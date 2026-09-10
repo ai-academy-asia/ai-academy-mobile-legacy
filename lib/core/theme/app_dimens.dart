@@ -83,6 +83,30 @@ abstract final class AppDimens {
   /// the two sit 4pt apart: 16 + 20 + 4 + 24 + 16 = the card's 80.
   static const double cardLineGap = 4;
 
+  // --- Reset password ------------------------------------------------------
+
+  /// Gap above the title on the reset screen.
+  ///
+  /// Not login's 88: that screen leaves a deliberately empty band above its
+  /// heading, while this one carries three fields and a requirements panel and
+  /// starts much closer to the status bar.
+  static const double resetHeadingTop = 32;
+
+  /// Title to its supporting line.
+  static const double titleToSupporting = 6;
+
+  /// Height of the password strength meter.
+  static const double strengthBarHeight = 6;
+
+  /// One requirement row, sized to its 16pt icon and text line.
+  static const double requirementRowHeight = 20;
+
+  /// Gap between requirement rows.
+  static const double requirementRowGap = 6;
+
+  /// Icon leading a requirement row.
+  static const double requirementIconSize = 16;
+
   // --- Radii and strokes, read off the Figma reference render -------------
 
   /// Input field corner radius.

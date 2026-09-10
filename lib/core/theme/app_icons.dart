@@ -30,4 +30,10 @@ abstract final class AppIcons {
   /// Password visibility toggle, password currently hidden — the closed eye
   /// the reference draws in the resting state.
   static const IconData eyeClosed = IconData(0xe222, fontFamily: _family);
+
+  /// A password requirement, before it is met and once it is.
+  static const IconData checkCircle = IconData(0xe184, fontFamily: _family);
+
+  /// A password requirement the typed password fails.
+  static const IconData xCircle = IconData(0xe4f8, fontFamily: _family);
 }
