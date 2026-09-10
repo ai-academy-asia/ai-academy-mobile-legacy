@@ -51,8 +51,18 @@ abstract final class AppColors {
   /// rgba(0, 0, 0, 0.5).
   static const Color textSecondary = Color(0x80000000);
 
-  /// Error border, error label and the validation message.
+  /// Error border, error label and the validation message. Also a password
+  /// requirement the current password fails.
   static const Color error = Color(0xFFE5484D);
+
+  /// A satisfied password requirement, and a full-strength meter.
+  ///
+  /// Read off the reset-password reference — the design has no green anywhere
+  /// on the login screen, so this is the first place it appears.
+  static const Color success = Color(0xFF22A06B);
+
+  /// A partly-satisfied strength meter, between [error] and [success].
+  static const Color warning = Color(0xFFF0A22E);
 
   /// Fill of a control that cannot be pressed.
   static const Color disabled = Color(0xFFC9CBDA);

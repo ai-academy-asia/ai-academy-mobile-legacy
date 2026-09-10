@@ -30,13 +30,16 @@ import 'widgets/remember_me_checkbox.dart';
 /// and the bottom card flexes, so the card sits at the bottom of a taller phone
 /// and the screen scrolls on a shorter one.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.repository, this.onSignedIn});
+  const LoginScreen({super.key, this.repository, this.onSignedIn, this.onResetPassword});
 
   /// Defaults to the real API. Injected in tests.
   final AuthRepository? repository;
 
   /// Where to go after a successful sign-in. Defaults to `/home`.
   final VoidCallback? onSignedIn;
+
+  /// What the "Нууц үг сэргээх" button does. Defaults to `/reset-password`.
+  final VoidCallback? onResetPassword;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -68,6 +71,15 @@ class _LoginScreenState extends State<LoginScreen> {
       widget.onSignedIn!();
     } else {
       Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
+  void _openResetPassword() {
+    FocusScope.of(context).unfocus();
+    if (widget.onResetPassword != null) {
+      widget.onResetPassword!();
+    } else {
+      Navigator.of(context).pushNamed('/reset-password');
     }
   }
 
@@ -208,11 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
           AppButton(
             label: LoginStrings.resetPassword,
             variant: AppButtonVariant.outlined,
-            // The reference draws this in its normal, un-greyed state, so it is
-            // not passed as disabled. Password reset is a separate piece of
-            // work, so the tap deliberately does nothing until that screen
-            // exists — there is nowhere yet to send anyone.
-            onPressed: () {},
+            onPressed: busy ? null : _openResetPassword,
           ),
         ],
       ),
