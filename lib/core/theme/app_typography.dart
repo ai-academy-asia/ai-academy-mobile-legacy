@@ -101,6 +101,37 @@ abstract final class AppTypography {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  // --- Course catalog -------------------------------------------------------
+  //
+  // No Figma reference exists for this screen (unlike Login and Reset
+  // Password, built against an exact frame), so these two styles are new
+  // rather than reused — the same situation `AppColors.success`/`warning` were
+  // added under: the first screen that needs something the login flow never
+  // did. Kept inside the established scale (10-22, weights 500-700) rather
+  // than picked freehand.
+
+  /// A course card's title — one step up from [cardTitle], which reads too
+  /// quiet as the primary line of a repeating list item.
+  static const TextStyle cardHeading = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    height: 20 / 15,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A small label inside a pill — a course's category, level, format or
+  /// status.
+  static const TextStyle badgeLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 10,
+    height: 14 / 10,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// The single line of red text under the checkbox.
   static const TextStyle fieldError = TextStyle(
     fontFamily: fontFamily,
