@@ -9,6 +9,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../data/http_auth_repository.dart';
 import '../domain/auth_repository.dart';
+import '../domain/auth_session_store.dart';
 import 'login_controller.dart';
 import 'login_strings.dart';
 import 'widgets/contact_manager_card.dart';
@@ -30,10 +31,19 @@ import 'widgets/remember_me_checkbox.dart';
 /// and the bottom card flexes, so the card sits at the bottom of a taller phone
 /// and the screen scrolls on a shorter one.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.repository, this.onSignedIn, this.onResetPassword});
+  const LoginScreen({
+    super.key,
+    this.repository,
+    this.sessionStore,
+    this.onSignedIn,
+    this.onResetPassword,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final AuthRepository? repository;
+
+  /// Where the issued token is kept. Defaults to the app-wide store.
+  final AuthSessionStore? sessionStore;
 
   /// Where to go after a successful sign-in. Defaults to `/home`.
   final VoidCallback? onSignedIn;
@@ -65,7 +75,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     final session = await _controller.submit();
-    if (session == null || !mounted) return;
+    if (session == null) return;
+
+    // Hold the token before navigating: it is the only copy, and the API has
+    // no refresh endpoint, so losing it here means signing in again.
+    (widget.sessionStore ?? AuthSessionStore.instance).save(session);
+
+    if (!mounted) return;
 
     if (widget.onSignedIn != null) {
       widget.onSignedIn!();
