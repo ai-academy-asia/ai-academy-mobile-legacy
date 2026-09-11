@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
-import 'features/home/presentation/home_placeholder_screen.dart';
+import 'features/courses/presentation/course_catalog_screen.dart';
 
 /// The application root.
 ///
@@ -23,7 +23,7 @@ class AiAcademyApp extends StatelessWidget {
       routes: {
         '/': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
-        '/home': (_) => const HomePlaceholderScreen(),
+        '/home': (_) => const CourseCatalogScreen(),
       },
     );
   }
