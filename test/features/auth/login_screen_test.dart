@@ -2,6 +2,8 @@ import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
@@ -47,6 +49,7 @@ void main() {
     WidgetTester tester,
     FakeAuthRepository repository, {
     VoidCallback? onSignedIn,
+    AuthSessionStore? sessionStore,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -56,7 +59,13 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: LoginScreen(repository: repository, onSignedIn: onSignedIn),
+        home: LoginScreen(
+          repository: repository,
+          // Never the app-wide store: a test must not leave a token behind for
+          // whatever runs next.
+          sessionStore: sessionStore ?? AuthSessionStore(),
+          onSignedIn: onSignedIn,
+        ),
       ),
     );
   }
@@ -462,6 +471,42 @@ void main() {
           reason: '"$text" is being ellipsised',
         );
       }
+    });
+  });
+
+  group('the issued token', () {
+    testWidgets('is kept when the API accepts the credentials', (tester) async {
+      final store = AuthSessionStore();
+      final repository = FakeAuthRepository(
+        session: const AuthSession(accessToken: 'tok-123', expiresIn: Duration(hours: 1)),
+      );
+      await pumpLogin(tester, repository, sessionStore: store, onSignedIn: () {});
+
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pumpAndSettle();
+
+      expect(store.accessToken, 'tok-123');
+      expect(store.authorizationHeader, {'Authorization': 'Bearer tok-123'});
+    });
+
+    testWidgets('is not kept when the API rejects them', (tester) async {
+      final store = AuthSessionStore();
+      final repository = FakeAuthRepository(
+        failure: const AuthFailure(AuthFailureKind.invalidCredentials),
+      );
+      await pumpLogin(tester, repository, sessionStore: store);
+
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'buruu-nuutsug');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pumpAndSettle();
+
+      expect(store.isSignedIn, isFalse);
+      expect(find.text(LoginStrings.invalidCredentials), findsOneWidget);
     });
   });
 
