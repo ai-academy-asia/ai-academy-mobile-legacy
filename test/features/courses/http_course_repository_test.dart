@@ -339,7 +339,7 @@ void main() {
     test(
       'other non-2xx are unexpected, including a 401 the endpoint should never send',
       () async {
-        for (final status in [401, 403, 404]) {
+        for (final status in [401, 403]) {
           final failure = await failureFrom(
             repositoryReturning((_) async => http.Response('{"error":"nope"}', status)),
           );
@@ -347,6 +347,17 @@ void main() {
         }
       },
     );
+
+    test('404 maps to notFound even on the list endpoint', () async {
+      // The shared transport does not know which endpoint is calling it, so
+      // this is uniform: 404 always means notFound, regardless of whether the
+      // caller is `getCourses` (where it is an unlikely, low-signal case) or
+      // `getCourseDetail` (where it is the primary, meaningful one).
+      final failure = await failureFrom(
+        repositoryReturning((_) async => http.Response('{"error":"nope"}', 404)),
+      );
+      expect(failure.kind, ApiFailureKind.notFound);
+    });
 
     test('an unreachable host is a network failure', () async {
       final failure = await failureFrom(
@@ -398,6 +409,262 @@ void main() {
       await repository.getCourses();
 
       expect(url.toString(), 'https://staging.example.test/courses');
+    });
+  });
+
+  // ===========================================================================
+  // getCourseDetail
+  // ===========================================================================
+
+  group('getCourseDetail: the request', () {
+    test('GETs /courses/{slug} with an Accept header and no body', () async {
+      late http.Request sent;
+      final repository = repositoryReturning((request) async {
+        sent = request;
+        return jsonResponse(jsonEncode(_courseJson()), 200);
+      });
+
+      await repository.getCourseDetail('summer-bootcamp');
+
+      expect(sent.method, 'GET');
+      expect(sent.url.toString(), 'https://api.ai-academy.asia/courses/summer-bootcamp');
+      expect(sent.headers[HttpHeaders.acceptHeader], 'application/json');
+      expect(sent.body, isEmpty);
+      expect(sent.headers.containsKey('Authorization'), isFalse);
+    });
+
+    test('URL-encodes a slug that needs it', () async {
+      late http.Request sent;
+      final repository = repositoryReturning((request) async {
+        sent = request;
+        return jsonResponse(jsonEncode(_courseJson()), 200);
+      });
+
+      await repository.getCourseDetail('ai for everyone');
+
+      expect(sent.url.path, '/courses/ai%20for%20everyone');
+    });
+  });
+
+  group('getCourseDetail: a successful response', () {
+    test('parses the 22 fields shared with the list endpoint', () async {
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(jsonEncode(_courseJson()), 200),
+      );
+
+      final course = await repository.getCourseDetail('summer-bootcamp');
+
+      expect(course.id, 4);
+      expect(course.slug, 'summer-bootcamp');
+      expect(course.title.mn, 'Зуны бүтээлч кэмп');
+      expect(course.priceAmount, 1200000.0);
+      expect(course.finalPriceAmount, 960000.0);
+    });
+
+    test('the response is the course object itself, with no envelope — '
+        'confirmed by a captured Postman response, not inferred', () async {
+      // No `{"course": {...}}` or similar wrapper: `_courseJson()` is the
+      // bare object, exactly as the confirmed response sends it, and it
+      // parses with no unwrapping step.
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(jsonEncode(_courseJson()), 200),
+      );
+
+      final course = await repository.getCourseDetail('summer-bootcamp');
+
+      expect(course.id, 4);
+      expect(course.slug, 'summer-bootcamp');
+    });
+
+    test('a wrapped envelope does not parse — the contract has none', () async {
+      // If the response were ever wrapped after all, this is what would have
+      // to change; today it must fail, since the confirmed contract has no
+      // wrapper for `getCourseDetail` to unwrap.
+      final wrapped = jsonEncode({'course': _courseJson()});
+      final repository = repositoryReturning((_) async => jsonResponse(wrapped, 200));
+
+      await expectLater(
+        repository.getCourseDetail('summer-bootcamp'),
+        throwsA(isA<ApiFailure>()),
+      );
+    });
+
+    test('parses every detail-only field when present', () async {
+      final json = _courseJson(
+        overrides: {
+          'attendance_method': 'in_person',
+          'capacity': 24,
+          'cert_template_name': 'bootcamp-cert-v2',
+          'contract_template_name': 'standard-contract',
+          'created_at': '2026-01-15T09:00:00Z',
+          'updated_at': '2026-02-01T12:30:00Z',
+          'final_project_type': 'group',
+          'google_classroom_url': 'https://classroom.google.com/c/abc123',
+          'has_attendance': true,
+          'has_cert_template': true,
+          'has_contract_template': false,
+          'has_exam': true,
+          'has_final_project': false,
+          'curriculum': ['Week 1: Intro', 'Week 2: Build'],
+          'description': {'en': 'A hands-on bootcamp', 'mn': 'Гарын доорхи сургалт'},
+          'instructors': [
+            {'name': 'Bat', 'title': 'Lead instructor'},
+          ],
+          'prerequisites': 'Basic computer literacy',
+          'whats_included': ['Laptop', 'Course materials', 'Certificate'],
+        },
+      );
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(jsonEncode(json), 200),
+      );
+
+      final course = await repository.getCourseDetail('summer-bootcamp');
+
+      expect(course.attendanceMethod, 'in_person');
+      expect(course.capacity, 24);
+      expect(course.certTemplateName, 'bootcamp-cert-v2');
+      expect(course.contractTemplateName, 'standard-contract');
+      expect(course.createdAt, '2026-01-15T09:00:00Z');
+      expect(course.updatedAt, '2026-02-01T12:30:00Z');
+      expect(course.finalProjectType, 'group');
+      expect(course.googleClassroomUrl, 'https://classroom.google.com/c/abc123');
+      expect(course.hasAttendance, isTrue);
+      expect(course.hasCertTemplate, isTrue);
+      expect(course.hasContractTemplate, isFalse);
+      expect(course.hasExam, isTrue);
+      expect(course.hasFinalProject, isFalse);
+      expect(course.curriculum, ['Week 1: Intro', 'Week 2: Build']);
+      expect(course.description, {
+        'en': 'A hands-on bootcamp',
+        'mn': 'Гарын доорхи сургалт',
+      });
+      expect(course.instructors, [
+        {'name': 'Bat', 'title': 'Lead instructor'},
+      ]);
+      expect(course.prerequisites, 'Basic computer literacy');
+      expect(course.whatsIncluded, ['Laptop', 'Course materials', 'Certificate']);
+    });
+
+    test('every detail-only field is null when the API sends none of them', () async {
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(jsonEncode(_courseJson()), 200),
+      );
+
+      final course = await repository.getCourseDetail('summer-bootcamp');
+
+      expect(course.attendanceMethod, isNull);
+      expect(course.capacity, isNull);
+      expect(course.certTemplateName, isNull);
+      expect(course.contractTemplateName, isNull);
+      expect(course.createdAt, isNull);
+      expect(course.updatedAt, isNull);
+      expect(course.finalProjectType, isNull);
+      expect(course.googleClassroomUrl, isNull);
+      expect(course.hasAttendance, isNull);
+      expect(course.hasCertTemplate, isNull);
+      expect(course.hasContractTemplate, isNull);
+      expect(course.hasExam, isNull);
+      expect(course.hasFinalProject, isNull);
+      expect(course.curriculum, isNull);
+      expect(course.description, isNull);
+      expect(course.instructors, isNull);
+      expect(course.prerequisites, isNull);
+      expect(course.whatsIncluded, isNull);
+    });
+
+    test(
+      'a wrongly-typed detail-only field reads as null rather than failing the fetch',
+      () async {
+        // These fields have a confirmed name but an assumed type — a
+        // mismatch is this code's guess being wrong, not the server being
+        // broken, so it must not throw.
+        final json = _courseJson(overrides: {'capacity': 'unlimited', 'has_exam': 'yes'});
+        final repository = repositoryReturning(
+          (_) async => jsonResponse(jsonEncode(json), 200),
+        );
+
+        final course = await repository.getCourseDetail('summer-bootcamp');
+
+        expect(course.capacity, isNull);
+        expect(course.hasExam, isNull);
+        // The 22 confirmed fields must still have parsed correctly — a soft
+        // field's bad type must not derail the rest of the course.
+        expect(course.id, 4);
+      },
+    );
+
+    test('a required (list-confirmed) field missing still fails the fetch', () async {
+      final json = _courseJson()..remove('id');
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(jsonEncode(json), 200),
+      );
+
+      await expectLater(
+        repository.getCourseDetail('summer-bootcamp'),
+        throwsA(isA<ApiFailure>()),
+      );
+    });
+  });
+
+  group('getCourseDetail: failures', () {
+    Future<ApiFailure> failureFrom(HttpCourseRepository repository) async {
+      try {
+        await repository.getCourseDetail('summer-bootcamp');
+      } on ApiFailure catch (failure) {
+        return failure;
+      }
+      fail('expected an ApiFailure');
+    }
+
+    test('404 is notFound — a slug that does not name a real course', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => http.Response('{"error":"not_found"}', 404)),
+      );
+      expect(failure.kind, ApiFailureKind.notFound);
+    });
+
+    test('5xx is a server fault', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => http.Response('boom', 500)),
+      );
+      expect(failure.kind, ApiFailureKind.server);
+    });
+
+    test('a malformed body is a server fault', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => http.Response('<html>nope</html>', 200)),
+      );
+      expect(failure.kind, ApiFailureKind.server);
+    });
+
+    test('a JSON array instead of an object is a server fault', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => http.Response('[]', 200)),
+      );
+      expect(failure.kind, ApiFailureKind.server);
+    });
+
+    test('an unreachable host is a network failure', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => throw const SocketException('no route')),
+      );
+      expect(failure.kind, ApiFailureKind.network);
+    });
+
+    test('a slow backend times out rather than hanging the caller', () async {
+      final repository = HttpCourseRepository(
+        client: MockClient(
+          (_) => Future.delayed(
+            const Duration(milliseconds: 200),
+            () => jsonResponse(jsonEncode(_courseJson()), 200),
+          ),
+        ),
+        timeout: const Duration(milliseconds: 20),
+      );
+
+      final failure = await failureFrom(repository);
+
+      expect(failure.kind, ApiFailureKind.network);
     });
   });
 }
