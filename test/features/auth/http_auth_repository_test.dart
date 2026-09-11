@@ -110,6 +110,17 @@ void main() {
       }
     });
 
+    test('the login 401 stays a credentials refusal', () async {
+      // /auth/login answers {"error":"invalid_credentials"}, which must not be
+      // caught by the session-code handling added for change-password.
+      final failure = await failureFrom(
+        repositoryReturning(
+          (_) async => http.Response('{"error":"invalid_credentials"}', 401),
+        ),
+      );
+      expect(failure.kind, AuthFailureKind.invalidCredentials);
+    });
+
     test('5xx is a server fault', () async {
       for (final status in [500, 503]) {
         final failure = await failureFrom(

@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session.dart';
+import 'auth_http.dart';
 
 /// Signs in against the AI Academy API.
 ///
@@ -34,41 +33,12 @@ class HttpAuthRepository implements AuthRepository {
 
   @override
   Future<AuthSession> signIn({required String email, required String password}) async {
-    final http.Response response;
-    try {
-      response = await _client
-          .post(
-            _baseUrl.resolve('/auth/login'),
-            headers: const {
-              HttpHeaders.contentTypeHeader: 'application/json',
-              HttpHeaders.acceptHeader: 'application/json',
-            },
-            body: jsonEncode({'email': email, 'password': password}),
-          )
-          .timeout(timeout);
-    } on TimeoutException {
-      throw const AuthFailure(AuthFailureKind.network, detail: 'request timed out');
-    } on SocketException catch (e) {
-      throw AuthFailure(AuthFailureKind.network, detail: e.message);
-    } on http.ClientException catch (e) {
-      throw AuthFailure(AuthFailureKind.network, detail: e.message);
-    }
-
-    if (response.statusCode == 401 || response.statusCode == 403) {
-      throw AuthFailure(
-        AuthFailureKind.invalidCredentials,
-        detail: 'HTTP ${response.statusCode}',
-      );
-    }
-    if (response.statusCode >= 500) {
-      throw AuthFailure(AuthFailureKind.server, detail: 'HTTP ${response.statusCode}');
-    }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw AuthFailure(
-        AuthFailureKind.unexpected,
-        detail: 'HTTP ${response.statusCode}',
-      );
-    }
+    final response = await postJson(
+      client: _client,
+      url: _baseUrl.resolve('/auth/login'),
+      body: {'email': email, 'password': password},
+      timeout: timeout,
+    );
 
     final Object? decoded;
     try {

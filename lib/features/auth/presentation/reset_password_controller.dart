@@ -132,8 +132,9 @@ class ResetPasswordController extends ChangeNotifier {
       _succeeded = true;
       return true;
     } on AuthFailure catch (failure) {
-      // The backend rejecting the credential means the *current* password was
-      // wrong, so the error belongs on that field rather than under the form.
+      // A refused *credential* means the current password was wrong, so it
+      // belongs on that field. A refused *session* does not — reddening the
+      // password field would send the user to correct something that is right.
       if (failure.kind == AuthFailureKind.invalidCredentials) {
         _currentError = ResetPasswordStrings.invalidCurrentPassword;
       } else {
@@ -151,6 +152,7 @@ class ResetPasswordController extends ChangeNotifier {
 
   static String _messageFor(AuthFailureKind kind) => switch (kind) {
     AuthFailureKind.invalidCredentials => ResetPasswordStrings.invalidCurrentPassword,
+    AuthFailureKind.sessionExpired => ResetPasswordStrings.sessionExpired,
     AuthFailureKind.network => ResetPasswordStrings.networkError,
     AuthFailureKind.server => ResetPasswordStrings.serverError,
     AuthFailureKind.unexpected => ResetPasswordStrings.unexpectedError,
