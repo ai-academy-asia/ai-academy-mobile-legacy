@@ -10,13 +10,21 @@ import '../domain/course_repository.dart';
 
 /// Reads the public course catalog against the AI Academy API.
 ///
-/// One endpoint, the confirmed one:
+/// Two endpoints, both confirmed:
 ///
 ///     GET https://api.ai-academy.asia/courses
 ///     -> { "courses": [ { "id": 4, "slug": "summer-bootcamp", ... } ] }
 ///
-/// No authentication — confirmed. This talks to the same host as the auth
-/// repositories but shares no code with them beyond the host string: no
+///     GET https://api.ai-academy.asia/courses/{slug}
+///     -> { "id": 4, "slug": "summer-bootcamp", ..., "curriculum": ... }
+///
+/// The detail response has no envelope — confirmed by a captured Postman
+/// response, not inferred: the course object is the response body itself,
+/// the same way this backend's admin API answers `GET /admin/students/{id}`
+/// ("the student object itself — no envelope").
+///
+/// No authentication — confirmed for both. This talks to the same host as the
+/// auth repositories but shares no code with them beyond the host string: no
 /// session, no token, and `ApiFailure` rather than `AuthFailure`, since none of
 /// that type's cases describe a public endpoint misbehaving.
 class HttpCourseRepository implements CourseRepository {
@@ -65,6 +73,31 @@ class HttpCourseRepository implements CourseRepository {
 
     return [for (final entry in courses) _courseFromJson(entry)];
   }
+
+  @override
+  Future<Course> getCourseDetail(String slug) async {
+    final response = await getJson(
+      client: _client,
+      url: _baseUrl.resolve('/courses/${Uri.encodeComponent(slug)}'),
+      timeout: timeout,
+    );
+
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException catch (e) {
+      throw ApiFailure(ApiFailureKind.server, detail: 'malformed JSON: ${e.message}');
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      throw const ApiFailure(
+        ApiFailureKind.server,
+        detail: 'response was not a JSON object',
+      );
+    }
+
+    return _courseDetailFromJson(decoded);
+  }
 }
 
 Course _courseFromJson(Object? entry) {
@@ -98,6 +131,40 @@ Course _courseFromJson(Object? entry) {
     icon: _optionalString(entry, 'icon'),
     sortOrder: _optionalInt(entry, 'sort_order'),
     targetAudience: _optionalString(entry, 'target_audience'),
+  );
+}
+
+/// Builds the full detail [Course]: the 22 fields the list endpoint already
+/// confirms, read by the exact same function the list parser uses, plus the
+/// 18 detail-only fields, read permissively — see the "soft readers" section
+/// below.
+Course _courseDetailFromJson(Object? entry) {
+  if (entry is! Map<String, dynamic>) {
+    throw ApiFailure(
+      ApiFailureKind.server,
+      detail: 'response was not a JSON object (got ${entry.runtimeType})',
+    );
+  }
+
+  return _courseFromJson(entry).copyWithDetail(
+    attendanceMethod: _softString(entry, 'attendance_method'),
+    capacity: _softInt(entry, 'capacity'),
+    certTemplateName: _softString(entry, 'cert_template_name'),
+    contractTemplateName: _softString(entry, 'contract_template_name'),
+    createdAt: _softString(entry, 'created_at'),
+    curriculum: entry['curriculum'],
+    description: entry['description'],
+    finalProjectType: _softString(entry, 'final_project_type'),
+    googleClassroomUrl: _softString(entry, 'google_classroom_url'),
+    hasAttendance: _softBool(entry, 'has_attendance'),
+    hasCertTemplate: _softBool(entry, 'has_cert_template'),
+    hasContractTemplate: _softBool(entry, 'has_contract_template'),
+    hasExam: _softBool(entry, 'has_exam'),
+    hasFinalProject: _softBool(entry, 'has_final_project'),
+    instructors: entry['instructors'],
+    prerequisites: entry['prerequisites'],
+    updatedAt: _softString(entry, 'updated_at'),
+    whatsIncluded: entry['whats_included'],
   );
 }
 
@@ -169,4 +236,28 @@ String? _optionalString(Map<String, dynamic> json, String key) {
     ApiFailureKind.server,
     detail: 'course.$key: expected a string or null, got ${value.runtimeType}',
   );
+}
+
+// --- Soft readers, detail-only fields --------------------------------------
+//
+// Unlike `_optionalString`/`_optionalInt` above, these never throw. Those
+// exist for fields a real response has already proven the shape of — a
+// mismatch there means the *server* changed. Every field below has only a
+// confirmed *name*; a mismatch here just as easily means this code guessed the
+// type wrong, which is not a fault worth failing the whole detail fetch over.
+// Read as null instead, and the screen shows less rather than nothing.
+
+String? _softString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  return value is String ? value : null;
+}
+
+int? _softInt(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  return value is num ? value.toInt() : null;
+}
+
+bool? _softBool(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  return value is bool ? value : null;
 }
