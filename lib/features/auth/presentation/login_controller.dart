@@ -108,6 +108,9 @@ class LoginController extends ChangeNotifier {
 
   static String _messageFor(AuthFailureKind kind) => switch (kind) {
     AuthFailureKind.invalidCredentials => LoginStrings.invalidCredentials,
+    // Sign-in carries no session to expire, so this cannot arrive here; the
+    // switch still has to be total.
+    AuthFailureKind.sessionExpired => LoginStrings.unexpectedError,
     AuthFailureKind.network => LoginStrings.networkError,
     AuthFailureKind.server => LoginStrings.serverError,
     AuthFailureKind.unexpected => LoginStrings.unexpectedError,

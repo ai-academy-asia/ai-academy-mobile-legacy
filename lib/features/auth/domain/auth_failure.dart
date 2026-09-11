@@ -7,6 +7,12 @@ enum AuthFailureKind {
   /// The API rejected the email/password pair (401 or 403).
   invalidCredentials,
 
+  /// A 401 that is about the *session* rather than the password: no token was
+  /// sent, or the one sent is not valid. Distinguished by the error code in the
+  /// body, because reporting it as a wrong password would have the user retype
+  /// a correct one indefinitely.
+  sessionExpired,
+
   /// The request never completed — no connectivity, DNS failure, timeout.
   network,
 

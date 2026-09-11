@@ -4,16 +4,13 @@
 /// with the backend: sign-in exchanges credentials for a token, this changes a
 /// credential while already holding one.
 ///
-/// **No confirmed API contract exists for this yet.** The only password
-/// endpoint anywhere in the AI Academy repos is
-/// `POST /admin/students/{id}/reset-password`, which an *administrator* calls
-/// with a student id and a new password — it has no current-password field and
-/// is not the self-service flow this screen implements. Rather than invent a
-/// URL, body and response, the screen depends on this interface and runs
-/// against [StubPasswordRepository] until the real endpoint is confirmed.
+/// Implemented by `HttpPasswordRepository` against
+/// `POST /auth/change-password`. The screen depends on this rather than on the
+/// HTTP class, so the transport can be swapped — a mock during development, a
+/// different client — without the screen being rewritten.
 ///
-/// Implementing it later means writing one class and passing it in; nothing in
-/// the screen or the controller changes.
+/// The confirm-password field on the screen is a client-side check and is not
+/// part of this contract: only the two passwords the API names cross it.
 abstract interface class PasswordRepository {
   /// Replaces the current password with a new one.
   ///

@@ -55,6 +55,9 @@ abstract final class ResetPasswordStrings {
   static const String success = 'Нууц үг амжилттай солигдлоо';
 
   static const String invalidCurrentPassword = 'Одоогийн нууц үг буруу байна';
+
+  /// The request was not authenticated — the session has gone, not the password.
+  static const String sessionExpired = 'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
   static const String networkError = 'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
   static const String serverError =
       'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';

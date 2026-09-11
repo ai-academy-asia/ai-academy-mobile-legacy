@@ -7,7 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
-import '../data/stub_password_repository.dart';
+import '../data/http_password_repository.dart';
 import '../domain/password_repository.dart';
 import 'reset_password_controller.dart';
 import 'reset_password_strings.dart';
@@ -28,8 +28,7 @@ import 'widgets/password_requirements_panel.dart';
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key, this.repository, this.onCompleted});
 
-  /// Defaults to the stub — there is no confirmed endpoint yet. Injected in
-  /// tests.
+  /// Defaults to the real API. Injected in tests.
   final PasswordRepository? repository;
 
   /// Called once the password has been changed. Defaults to popping back.
@@ -48,7 +47,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   void initState() {
     super.initState();
     _controller = ResetPasswordController(
-      repository: widget.repository ?? const StubPasswordRepository(),
+      repository: widget.repository ?? HttpPasswordRepository(),
     );
   }
 
