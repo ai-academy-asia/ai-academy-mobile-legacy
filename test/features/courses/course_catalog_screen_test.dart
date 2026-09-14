@@ -29,6 +29,7 @@ void main() {
     WidgetTester tester,
     FakeCourseRepository repository, {
     Size size = const Size(393, 852),
+    Map<String, WidgetBuilder> routes = const {},
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -38,9 +39,27 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: CourseCatalogScreen(repository: repository),
+        routes: routes,
       ),
     );
   }
+
+  group('navigation', () {
+    testWidgets('tapping a course opens the cohort list route', (tester) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [sampleCourse(bannerImageUrl: null)]),
+        // A stand-in for `/cohorts`: the real screen would reach for the API.
+        routes: {'/cohorts': (_) => const Scaffold(body: Text('cohort list route'))},
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CourseCard));
+      await tester.pumpAndSettle();
+
+      expect(find.text('cohort list route'), findsOneWidget);
+    });
+  });
 
   group('loading', () {
     testWidgets('shows a spinner while the first fetch is in flight', (tester) async {

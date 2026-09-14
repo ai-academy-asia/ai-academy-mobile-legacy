@@ -1,13 +1,17 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
+import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
+import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
+import 'package:aia_mobile/features/enrollments/presentation/enrollment_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../enrollments/fake_enrollment_repository.dart';
 import 'fake_cohort_repository.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
@@ -27,6 +31,7 @@ void main() {
   Future<void> pumpList(
     WidgetTester tester,
     FakeCohortRepository repository, {
+    FakeEnrollmentRepository? enrollmentRepository,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -36,7 +41,12 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: CohortListScreen(repository: repository),
+        home: CohortListScreen(
+          repository: repository,
+          // Always a fake: the default would reach for the app-wide session
+          // and the real API.
+          enrollmentRepository: enrollmentRepository ?? FakeEnrollmentRepository(),
+        ),
       ),
     );
   }
@@ -159,6 +169,132 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.callCount, 2);
+    });
+  });
+
+  group('enrollment', () {
+    Finder enrollButton() => find.widgetWithText(AppButton, EnrollmentStrings.enroll);
+
+    testWidgets('every card offers the enroll action', (tester) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1), sampleCohort(id: 2)]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(enrollButton(), findsNWidgets(2));
+    });
+
+    testWidgets('tapping enroll shows the button loading, then the enrolled state', (
+      tester,
+    ) async {
+      final enrollments = FakeEnrollmentRepository(hold: true);
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 4)]),
+        enrollmentRepository: enrollments,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(enrollButton());
+      await tester.pump();
+
+      expect(tester.widget<AppButton>(find.byType(AppButton)).loading, isTrue);
+      expect(
+        find.descendant(
+          of: find.byType(CohortCard),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsOneWidget,
+      );
+      expect(enrollments.requests, [4]);
+
+      enrollments.release();
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(find.byType(AppButton), findsNothing);
+    });
+
+    testWidgets('a failure shows its message in red and leaves the button to retry', (
+      tester,
+    ) async {
+      final enrollments = FakeEnrollmentRepository(
+        failure: const EnrollmentFailure(EnrollmentFailureKind.rejected),
+      );
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1)]),
+        enrollmentRepository: enrollments,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(enrollButton());
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.rejected), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text(EnrollmentStrings.rejected)).style?.color,
+        AppColors.error,
+      );
+      expect(enrollButton(), findsOneWidget);
+
+      enrollments.failure = null;
+      await tester.tap(enrollButton());
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.rejected), findsNothing);
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(enrollments.requests, [1, 1]);
+    });
+
+    testWidgets('an expired session tells the student to sign in again', (tester) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort()]),
+        enrollmentRepository: FakeEnrollmentRepository(
+          failure: const EnrollmentFailure(EnrollmentFailureKind.sessionExpired),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(enrollButton());
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.sessionExpired), findsOneWidget);
+    });
+
+    testWidgets('only the tapped card changes', (tester) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1), sampleCohort(id: 2)]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(enrollButton().first);
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(CohortCard).at(1), matching: enrollButton()),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the enrolled state survives a pull to refresh', (tester) async {
+      final cohorts = FakeCohortRepository(cohorts: [sampleCohort()]);
+      await pumpList(tester, cohorts);
+      await tester.pumpAndSettle();
+
+      await tester.tap(enrollButton());
+      await tester.pumpAndSettle();
+
+      await tester.fling(find.byType(CohortCard).first, const Offset(0, 300), 1000);
+      await tester.pumpAndSettle();
+
+      expect(cohorts.callCount, 2);
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(enrollButton(), findsNothing);
     });
   });
 
