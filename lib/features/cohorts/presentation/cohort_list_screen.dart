@@ -5,6 +5,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../enrollments/data/http_enrollment_repository.dart';
+import '../../enrollments/domain/enrollment_repository.dart';
+import '../../enrollments/presentation/enrollment_controller.dart';
 import '../data/http_cohort_repository.dart';
 import '../domain/cohort.dart';
 import '../domain/cohort_repository.dart';
@@ -19,13 +22,18 @@ import 'widgets/cohort_card.dart';
 /// cap, the same heading style, the same [AppButton] for retry, the same
 /// four states (loading, loaded, empty, error).
 ///
-/// No authentication: `GET /cohorts` is modelled as public, matching
-/// `CourseCatalogScreen` — see `CohortRepository`'s doc comment.
+/// Listing needs no authentication: `GET /cohorts` is modelled as public,
+/// matching `CourseCatalogScreen` — see `CohortRepository`'s doc comment.
+/// Enrolling does: each card's enroll action goes through
+/// [EnrollmentRepository], which carries the signed-in student's token.
 class CohortListScreen extends StatefulWidget {
-  const CohortListScreen({super.key, this.repository});
+  const CohortListScreen({super.key, this.repository, this.enrollmentRepository});
 
   /// Defaults to the real API. Injected in tests.
   final CohortRepository? repository;
+
+  /// Defaults to the real API with the app-wide session. Injected in tests.
+  final EnrollmentRepository? enrollmentRepository;
 
   @override
   State<CohortListScreen> createState() => _CohortListScreenState();
@@ -33,6 +41,7 @@ class CohortListScreen extends StatefulWidget {
 
 class _CohortListScreenState extends State<CohortListScreen> {
   late final CohortListController _controller;
+  late final EnrollmentController _enrollment;
 
   @override
   void initState() {
@@ -40,10 +49,14 @@ class _CohortListScreenState extends State<CohortListScreen> {
     _controller = CohortListController(
       repository: widget.repository ?? HttpCohortRepository(),
     )..load();
+    _enrollment = EnrollmentController(
+      repository: widget.enrollmentRepository ?? HttpEnrollmentRepository(),
+    );
   }
 
   @override
   void dispose() {
+    _enrollment.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -59,7 +72,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
         backgroundColor: AppColors.background,
         body: SafeArea(
           child: ListenableBuilder(
-            listenable: _controller,
+            listenable: Listenable.merge([_controller, _enrollment]),
             builder: (context, _) => Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
@@ -103,7 +116,11 @@ class _CohortListScreenState extends State<CohortListScreen> {
       return const _EmptyView();
     }
 
-    return _CohortList(cohorts: _controller.cohorts, onRefresh: _controller.load);
+    return _CohortList(
+      cohorts: _controller.cohorts,
+      enrollment: _enrollment,
+      onRefresh: _controller.load,
+    );
   }
 }
 
@@ -173,9 +190,14 @@ class _ErrorView extends StatelessWidget {
 }
 
 class _CohortList extends StatelessWidget {
-  const _CohortList({required this.cohorts, required this.onRefresh});
+  const _CohortList({
+    required this.cohorts,
+    required this.enrollment,
+    required this.onRefresh,
+  });
 
   final List<Cohort> cohorts;
+  final EnrollmentController enrollment;
   final Future<void> Function() onRefresh;
 
   @override
@@ -196,7 +218,16 @@ class _CohortList extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: cohorts.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => CohortCard(cohort: cohorts[index]),
+        itemBuilder: (context, index) {
+          final cohort = cohorts[index];
+          return CohortCard(
+            cohort: cohort,
+            enrolling: enrollment.isEnrolling(cohort.id),
+            enrolled: enrollment.enrollmentFor(cohort.id) != null,
+            enrollError: enrollment.errorFor(cohort.id),
+            onEnroll: () => enrollment.enroll(cohort.id),
+          );
+        },
       ),
     );
   }

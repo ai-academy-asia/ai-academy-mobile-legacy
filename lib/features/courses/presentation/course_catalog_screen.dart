@@ -200,7 +200,12 @@ class _CourseList extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: courses.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => CourseCard(course: courses[index]),
+        itemBuilder: (context, index) => CourseCard(
+          course: courses[index],
+          // Opens every cohort, not only this course's: `GET /cohorts` is the
+          // only confirmed cohort endpoint, and no course filter is confirmed.
+          onTap: () => Navigator.of(context).pushNamed('/cohorts'),
+        ),
       ),
     );
   }

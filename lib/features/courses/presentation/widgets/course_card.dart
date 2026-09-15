@@ -26,8 +26,8 @@ class CourseCard extends StatelessWidget {
 
   final Course course;
 
-  /// No detail screen exists yet, so this is optional and unused for now —
-  /// present so the card does not need to change shape when one is added.
+  /// What tapping the card does — the catalog opens the cohort list. Null
+  /// leaves the card inert.
   final VoidCallback? onTap;
 
   @override
