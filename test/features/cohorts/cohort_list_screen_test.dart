@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../enrollments/fake_enrollment_repository.dart';
 import 'fake_cohort_repository.dart';
 
@@ -32,6 +33,7 @@ void main() {
     WidgetTester tester,
     FakeCohortRepository repository, {
     FakeEnrollmentRepository? enrollmentRepository,
+    FakeEnrolledCohortsRepository? enrolledCohortsRepository,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -43,9 +45,11 @@ void main() {
         theme: AppTheme.light,
         home: CohortListScreen(
           repository: repository,
-          // Always a fake: the default would reach for the app-wide session
+          // Always fakes: the defaults would reach for the app-wide session
           // and the real API.
           enrollmentRepository: enrollmentRepository ?? FakeEnrollmentRepository(),
+          enrolledCohortsRepository:
+              enrolledCohortsRepository ?? FakeEnrolledCohortsRepository(),
         ),
       ),
     );
@@ -295,6 +299,133 @@ void main() {
       expect(cohorts.callCount, 2);
       expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
       expect(enrollButton(), findsNothing);
+    });
+  });
+
+  group('already enrolled, from the server', () {
+    Finder enrollButton() => find.widgetWithText(AppButton, EnrollmentStrings.enroll);
+
+    testWidgets('shows the enrolled label for a cohort GET /me/cohorts named', (
+      tester,
+    ) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1), sampleCohort(id: 2)]),
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(enrolledCohortIds: {1}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(enrollButton(), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(CohortCard).first, matching: enrollButton()),
+        findsNothing,
+      );
+    });
+
+    testWidgets('does not send an enroll request for an already-enrolled cohort', (
+      tester,
+    ) async {
+      final enrollments = FakeEnrollmentRepository();
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1)]),
+        enrollmentRepository: enrollments,
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+          enrolledCohortIds: {1},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(enrollButton(), findsNothing);
+      expect(enrollments.requests, isEmpty);
+    });
+
+    testWidgets('a cohort not on the list still offers the enroll button', (
+      tester,
+    ) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 5)]),
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(enrolledCohortIds: {1}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(enrollButton(), findsOneWidget);
+      expect(find.text(EnrollmentStrings.enrolled), findsNothing);
+    });
+
+    testWidgets('a fetch failure shows its message and defaults every cohort to '
+        'not-yet-enrolled', (tester) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1)]),
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+          failure: const EnrollmentFailure(EnrollmentFailureKind.network),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.networkError), findsOneWidget);
+      expect(enrollButton(), findsOneWidget);
+    });
+
+    testWidgets('tapping the retry link re-fetches and clears the message', (
+      tester,
+    ) async {
+      final enrolledCohorts = FakeEnrolledCohortsRepository(
+        failure: const EnrollmentFailure(EnrollmentFailureKind.server),
+      );
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1)]),
+        enrolledCohortsRepository: enrolledCohorts,
+      );
+      await tester.pumpAndSettle();
+      expect(enrolledCohorts.callCount, 1);
+
+      enrolledCohorts.failure = null;
+      enrolledCohorts.enrolledCohortIds = {1};
+
+      await tester.tap(find.text(CohortListStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(enrolledCohorts.callCount, 2);
+      expect(find.text(EnrollmentStrings.serverError), findsNothing);
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+    });
+
+    testWidgets('a session-expired failure reads the same as elsewhere on screen', (
+      tester,
+    ) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort()]),
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+          failure: const EnrollmentFailure(EnrollmentFailureKind.sessionExpired),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.sessionExpired), findsOneWidget);
+    });
+
+    testWidgets('pull to refresh also re-fetches the enrolled cohorts', (tester) async {
+      final cohorts = FakeCohortRepository(cohorts: [sampleCohort()]);
+      final enrolledCohorts = FakeEnrolledCohortsRepository();
+      await pumpList(
+        tester,
+        cohorts,
+        enrolledCohortsRepository: enrolledCohorts,
+      );
+      await tester.pumpAndSettle();
+      expect(enrolledCohorts.callCount, 1);
+
+      await tester.fling(find.byType(CohortCard).first, const Offset(0, 300), 1000);
+      await tester.pumpAndSettle();
+
+      expect(cohorts.callCount, 2);
+      expect(enrolledCohorts.callCount, 2);
     });
   });
 

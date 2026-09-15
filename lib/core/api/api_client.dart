@@ -54,6 +54,26 @@ Future<http.Response> postWithoutBody({
   timeout,
 );
 
+/// The transport for an authenticated GET whose caller must classify 401
+/// itself — `GET /me/cohorts` is the first caller. Same reasoning
+/// [postWithoutBody] documents for `POST /cohorts/{id}/enroll`: an
+/// authenticated endpoint's 401 means "sign in again", a reading
+/// [failureForStatus] deliberately does not have, and giving it one would put
+/// a case on every public GET caller's `switch` that can never occur there.
+///
+/// Returns the response for **every** status, the same way [postWithoutBody]
+/// does. Only a request that never completed is thrown, as
+/// [ApiFailureKind.network].
+Future<http.Response> getRaw({
+  required http.Client client,
+  required Uri url,
+  required Duration timeout,
+  Map<String, String> headers = const {},
+}) => _send(
+  () => client.get(url, headers: {HttpHeaders.acceptHeader: 'application/json', ...headers}),
+  timeout,
+);
+
 /// Runs [request], turning one that never completed into
 /// [ApiFailureKind.network] — so each transport above states the try/catch
 /// once rather than restating it.

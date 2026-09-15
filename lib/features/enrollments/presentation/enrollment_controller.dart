@@ -48,7 +48,7 @@ class EnrollmentController extends ChangeNotifier {
     try {
       _enrollments[cohortId] = await _repository.enroll(cohortId);
     } on EnrollmentFailure catch (failure) {
-      _errors[cohortId] = _messageFor(failure.kind);
+      _errors[cohortId] = EnrollmentStrings.messageFor(failure.kind);
     } catch (_) {
       _errors[cohortId] = EnrollmentStrings.unexpectedError;
     } finally {
@@ -56,14 +56,6 @@ class EnrollmentController extends ChangeNotifier {
       _notify();
     }
   }
-
-  static String _messageFor(EnrollmentFailureKind kind) => switch (kind) {
-    EnrollmentFailureKind.sessionExpired => EnrollmentStrings.sessionExpired,
-    EnrollmentFailureKind.rejected => EnrollmentStrings.rejected,
-    EnrollmentFailureKind.network => EnrollmentStrings.networkError,
-    EnrollmentFailureKind.server => EnrollmentStrings.serverError,
-    EnrollmentFailureKind.unexpected => EnrollmentStrings.unexpectedError,
-  };
 
   void _notify() {
     if (_disposed) return;
