@@ -25,7 +25,13 @@ class AiAcademyApp extends StatelessWidget {
         '/': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
         '/home': (_) => const CourseCatalogScreen(),
-        '/cohorts': (_) => const CohortListScreen(),
+        // Arguments are the tapped course's id (an int), set by
+        // `CourseCatalogScreen`'s navigation — null for any other caller,
+        // which shows every cohort unfiltered.
+        '/cohorts': (context) {
+          final courseId = ModalRoute.of(context)?.settings.arguments;
+          return CohortListScreen(courseId: courseId is int ? courseId : null);
+        },
       },
     );
   }

@@ -20,7 +20,8 @@ import 'cohort_list_controller.dart';
 import 'cohort_list_strings.dart';
 import 'widgets/cohort_card.dart';
 
-/// The public cohort list — every scheduled cohort across every course.
+/// The public cohort list — every scheduled cohort across every course, or,
+/// when reached with a [courseId], only that course's cohorts.
 ///
 /// Reuses `CourseCatalogScreen`'s system directly: the same page grey, the
 /// same [AppDimens.screenPadding] gutters and [AppDimens.maxContentWidth]
@@ -38,6 +39,7 @@ class CohortListScreen extends StatefulWidget {
     this.repository,
     this.enrollmentRepository,
     this.enrolledCohortsRepository,
+    this.courseId,
   });
 
   /// Defaults to the real API. Injected in tests.
@@ -48,6 +50,11 @@ class CohortListScreen extends StatefulWidget {
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
   final EnrolledCohortsRepository? enrolledCohortsRepository;
+
+  /// The course tapped on the catalog, carried here as the `/cohorts` route's
+  /// arguments. Null shows every cohort, unfiltered — reaching this screen
+  /// with no course context still works.
+  final int? courseId;
 
   @override
   State<CohortListScreen> createState() => _CohortListScreenState();
@@ -63,6 +70,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
     super.initState();
     _controller = CohortListController(
       repository: widget.repository ?? HttpCohortRepository(),
+      courseId: widget.courseId,
     )..load();
     _enrollment = EnrollmentController(
       repository: widget.enrollmentRepository ?? HttpEnrollmentRepository(),

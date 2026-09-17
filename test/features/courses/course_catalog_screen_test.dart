@@ -59,6 +59,26 @@ void main() {
 
       expect(find.text('cohort list route'), findsOneWidget);
     });
+
+    testWidgets('tapping a course passes its id as the route arguments', (tester) async {
+      Object? capturedArguments;
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [sampleCourse(id: 7, bannerImageUrl: null)]),
+        routes: {
+          '/cohorts': (context) {
+            capturedArguments = ModalRoute.of(context)!.settings.arguments;
+            return const Scaffold(body: Text('cohort list route'));
+          },
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CourseCard));
+      await tester.pumpAndSettle();
+
+      expect(capturedArguments, 7);
+    });
   });
 
   group('loading', () {
