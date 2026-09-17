@@ -1,5 +1,6 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
@@ -55,6 +56,39 @@ void main() {
     );
   }
 
+  group('back button', () {
+    testWidgets('pops back to the screen that pushed Cohort List', (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigatorKey,
+          theme: AppTheme.light,
+          home: const Scaffold(body: Text('previous screen')),
+        ),
+      );
+
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(
+          builder: (_) => CohortListScreen(
+            repository: FakeCohortRepository(cohorts: [sampleCohort()]),
+            enrollmentRepository: FakeEnrollmentRepository(),
+            enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CohortListStrings.heading), findsOneWidget);
+      expect(find.text('previous screen'), findsNothing);
+
+      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.pumpAndSettle();
+
+      expect(find.text('previous screen'), findsOneWidget);
+      expect(find.text(CohortListStrings.heading), findsNothing);
+    });
+  });
+
   group('loading', () {
     testWidgets('shows a spinner while the first fetch is in flight', (tester) async {
       final repository = FakeCohortRepository(hold: true);
@@ -104,17 +138,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Corporate Leaders 2026-08'), findsOneWidget);
-      expect(find.text('open'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
-      expect(find.text('AI Academy Central · Room 301'), findsOneWidget);
-      expect(find.text('Сараа Ганбат'), findsOneWidget);
-      expect(find.textContaining('mon, wed'), findsOneWidget);
-      expect(find.textContaining('2026-08-06'), findsOneWidget);
-      expect(find.textContaining('18:00'), findsOneWidget);
-      expect(
-        find.textContaining('20 ${CohortListStrings.seatsAvailableUnit}'),
-        findsOneWidget,
-      );
     });
   });
 

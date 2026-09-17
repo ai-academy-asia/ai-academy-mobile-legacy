@@ -32,4 +32,10 @@ abstract final class CourseCatalogStrings {
 
   /// Joins a course's start and end date.
   static String dateRange(String startDate, String endDate) => '$startDate – $endDate';
+
+  /// Caption above a card's audience line.
+  static const String whoIsItFor = 'Хэнд зориулагдсан';
+
+  /// Caption above a card's duration line.
+  static const String durationSectionLabel = 'Үргэлжлэх хугацаа';
 }

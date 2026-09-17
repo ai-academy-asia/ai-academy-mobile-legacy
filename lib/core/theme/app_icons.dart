@@ -21,6 +21,12 @@ abstract final class AppIcons {
   /// Trailing chevron of the "contact your manager" card.
   static const IconData caretRight = IconData(0xe13a, fontFamily: _family);
 
+  /// Back-navigation chevron. Same Phosphor "Regular" set already bundled —
+  /// confirmed against the font's own cmap, not guessed: `caretRight`'s
+  /// `0xe13a` and this icon's `0xe138` are adjacent codepoints in the same
+  /// glyph table.
+  static const IconData caretLeft = IconData(0xe138, fontFamily: _family);
+
   /// Tick inside a checked checkbox.
   static const IconData check = IconData(0xe182, fontFamily: _family);
 
@@ -36,4 +42,21 @@ abstract final class AppIcons {
 
   /// A password requirement the typed password fails.
   static const IconData xCircle = IconData(0xe4f8, fontFamily: _family);
+
+  // --- Bottom navigation -----------------------------------------------
+  //
+  // Codepoints confirmed against Phosphor's own published "Regular" web-font
+  // stylesheet (`@phosphor-icons/web`'s `regular/style.css`), then checked
+  // against this bundled font's own cmap to confirm the glyph is actually
+  // present at that codepoint — the same confirmation standard `caretLeft`
+  // above was held to, not a guess at the font's private-use-area layout.
+
+  /// "Нүүр" (Home) tab — Phosphor "House".
+  static const IconData house = IconData(0xe2c2, fontFamily: _family);
+
+  /// "Хичээл" (Courses) tab — Phosphor "BookOpenText".
+  static const IconData bookOpenText = IconData(0xe8f2, fontFamily: _family);
+
+  /// "Профайл" (Profile) tab — Phosphor "User".
+  static const IconData user = IconData(0xe4c2, fontFamily: _family);
 }
