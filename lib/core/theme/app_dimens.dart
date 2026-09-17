@@ -127,4 +127,11 @@ abstract final class AppDimens {
 
   /// Border of a focused or errored field, which the reference draws heavier.
   static const double borderWidthEmphasis = 1.5;
+
+  // --- Bottom navigation -----------------------------------------------
+
+  /// Height of the app-wide bottom navigation bar's tap area, excluding the
+  /// device's own bottom safe-area inset. A typical tab-bar height rather
+  /// than one read off a Figma node — no frame for it has been measured yet.
+  static const double bottomNavHeight = 56;
 }

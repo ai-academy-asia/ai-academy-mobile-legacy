@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
 import '../../enrollments/data/http_enrollment_repository.dart';
@@ -93,7 +95,31 @@ class _CohortListScreenState extends State<CohortListScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.background,
+        bottomNavigationBar: AppBottomNav(
+          currentIndex: 1,
+          items: [
+            const AppBottomNavItem(
+              icon: AppIcons.house,
+              label: CohortListStrings.navHome,
+              // No Home dashboard screen exists yet to navigate to.
+            ),
+            AppBottomNavItem(
+              icon: AppIcons.bookOpenText,
+              label: CohortListStrings.navCourses,
+              // Cohort List is only ever reached by pushing from the course
+              // catalog, so returning to "Хичээл" is the same pop the header
+              // back button already performs.
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+            const AppBottomNavItem(
+              icon: AppIcons.user,
+              label: CohortListStrings.navProfile,
+              // No Profile screen exists yet to navigate to.
+            ),
+          ],
+        ),
         body: SafeArea(
+          bottom: false,
           child: ListenableBuilder(
             listenable: Listenable.merge([_controller, _enrollment, _enrolledCohorts]),
             builder: (context, _) => Align(
@@ -110,11 +136,23 @@ class _CohortListScreenState extends State<CohortListScreen> {
                         AppDimens.screenPadding,
                         AppDimens.headingToForm,
                       ),
-                      child: Text(
-                        CohortListStrings.heading,
-                        style: AppTypography.heading,
+                      child: Row(
+                        children: [
+                          _BackButton(onTap: () => Navigator.of(context).maybePop()),
+                          Expanded(
+                            child: Text(
+                              CohortListStrings.heading,
+                              style: AppTypography.heading,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    // The header's own bottom rule — this screen had none
+                    // before; every card below already sits on
+                    // [AppColors.border] at [AppDimens.borderWidth], so the
+                    // divider reuses exactly that pairing.
+                    Container(height: AppDimens.borderWidth, color: AppColors.border),
                     Expanded(child: _buildBody()),
                   ],
                 ),
@@ -144,6 +182,37 @@ class _CohortListScreenState extends State<CohortListScreen> {
       enrollment: _enrollment,
       enrolledCohorts: _enrolledCohorts,
       onRefresh: _refresh,
+    );
+  }
+}
+
+/// The screen's back action.
+///
+/// Nothing else in the app has an on-screen back control yet — `LoginScreen`
+/// has no back target, and `ResetPasswordScreen` only pops itself
+/// automatically once its submit succeeds. This is the first screen reached
+/// by a forward push (from `CourseCatalogScreen`) that needs a visible way
+/// back, so it repeats that same `Navigator.maybePop()` call behind a control
+/// rather than inventing a new navigation primitive — nothing about how the
+/// screen is pushed or popped changes.
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: CohortListStrings.back,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: const Padding(
+          padding: EdgeInsets.only(right: 12),
+          child: Icon(AppIcons.caretLeft, size: 20, color: AppColors.textPrimary),
+        ),
+      ),
     );
   }
 }

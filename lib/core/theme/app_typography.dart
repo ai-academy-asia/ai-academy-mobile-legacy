@@ -132,6 +132,70 @@ abstract final class AppTypography {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  /// The card's title in the Figma "Course Catalog" frame — one step up from
+  /// [cardHeading], which reads too small for that reference.
+  static const TextStyle catalogTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 17,
+    height: 22 / 17,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// Label beside the track logo in the catalog card's top badge (e.g.
+  /// "Junior", "Adult").
+  static const TextStyle catalogTrackLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 11,
+    height: 14 / 11,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The Open/Full status pill in the catalog card. Colour is set at the call
+  /// site — white on either fill.
+  static const TextStyle catalogStatusLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 11,
+    height: 14 / 11,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A section caption in the catalog card ("Who is it for", "Duration").
+  static const TextStyle catalogSectionLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 11,
+    height: 16 / 11,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textSecondary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The value under a catalog card section caption. Colour is set at the
+  /// call site — muted when the course is full.
+  static const TextStyle catalogSectionValue = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 13,
+    height: 18 / 13,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The catalog card's final price — the largest, boldest text on the card.
+  /// Colour is set at the call site — muted when the course is full.
+  static const TextStyle catalogPrice = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 20,
+    height: 26 / 20,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// The single line of red text under the checkbox.
   static const TextStyle fieldError = TextStyle(
     fontFamily: fontFamily,

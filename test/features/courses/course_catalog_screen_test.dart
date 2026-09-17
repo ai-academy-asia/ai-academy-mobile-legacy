@@ -112,13 +112,13 @@ void main() {
 
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
       expect(find.text('3 долоо хоногийн эрчимжүүлсэн'), findsOneWidget);
-      expect(find.text('bootcamp'), findsOneWidget);
-      expect(find.text('junior'), findsOneWidget);
-      expect(find.text('in_person'), findsOneWidget);
-      expect(find.text('open'), findsOneWidget);
-      expect(find.text('10-18 ${CourseCatalogStrings.ageUnit}'), findsOneWidget);
+      expect(find.text('Junior'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('Junior · 10-18 ${CourseCatalogStrings.ageUnit}'), findsOneWidget);
       expect(
-        find.text(CourseCatalogStrings.dateRange('2026-06-01', '2026-06-21')),
+        find.text(
+          '${CourseCatalogStrings.dateRange('2026-06-01', '2026-06-21')} (3 ${CourseCatalogStrings.weeksUnit})',
+        ),
         findsOneWidget,
       );
       expect(find.textContaining('960,000'), findsOneWidget);
@@ -131,7 +131,7 @@ void main() {
       await pumpCatalog(tester, FakeCourseRepository(courses: [course]));
       await tester.pumpAndSettle();
 
-      expect(find.text('6 ${CourseCatalogStrings.weeksUnit}'), findsOneWidget);
+      expect(find.textContaining('6 ${CourseCatalogStrings.weeksUnit}'), findsOneWidget);
     });
 
     testWidgets('prefers duration_label when the API sends one', (tester) async {
@@ -139,8 +139,8 @@ void main() {
       await pumpCatalog(tester, FakeCourseRepository(courses: [course]));
       await tester.pumpAndSettle();
 
-      expect(find.text('1.5 сар'), findsOneWidget);
-      expect(find.text('6 ${CourseCatalogStrings.weeksUnit}'), findsNothing);
+      expect(find.textContaining('1.5 сар'), findsOneWidget);
+      expect(find.textContaining('6 ${CourseCatalogStrings.weeksUnit}'), findsNothing);
     });
 
     testWidgets('shows the struck-through original price only when discounted', (

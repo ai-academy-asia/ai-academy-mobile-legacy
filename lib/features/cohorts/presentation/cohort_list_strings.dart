@@ -4,6 +4,9 @@
 abstract final class CohortListStrings {
   static const String heading = 'Ангиуд';
 
+  /// Accessibility label for the header's back action.
+  static const String back = 'Буцах';
+
   static const String empty = 'Одоогоор товлогдсон анги алга байна';
 
   static const String retry = 'Дахин оролдох';
@@ -19,4 +22,10 @@ abstract final class CohortListStrings {
   static String dateRange(String startDate, String endDate) => '$startDate – $endDate';
 
   static String timeRange(String startTime, String endTime) => '$startTime–$endTime';
+
+  // --- Bottom navigation -------------------------------------------------
+
+  static const String navHome = 'Нүүр';
+  static const String navCourses = 'Хичээл';
+  static const String navProfile = 'Профайл';
 }
