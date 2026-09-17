@@ -128,6 +128,48 @@ void main() {
     expect(notifications, greaterThanOrEqualTo(2));
   });
 
+  group('course filter', () {
+    test('keeps only cohorts matching courseId when one is given', () async {
+      final cohorts = [
+        sampleCohort(id: 1, courseId: 6),
+        sampleCohort(id: 2, courseId: 9),
+        sampleCohort(id: 3, courseId: 6),
+      ];
+      final controller = CohortListController(
+        repository: FakeCohortRepository(cohorts: cohorts),
+        courseId: 6,
+      );
+
+      await controller.load();
+
+      expect(controller.cohorts.map((cohort) => cohort.id), [1, 3]);
+    });
+
+    test('keeps every cohort when no courseId is given', () async {
+      final cohorts = [sampleCohort(id: 1, courseId: 6), sampleCohort(id: 2, courseId: 9)];
+      final controller = CohortListController(
+        repository: FakeCohortRepository(cohorts: cohorts),
+      );
+
+      await controller.load();
+
+      expect(controller.cohorts, cohorts);
+    });
+
+    test('isEmpty is true when no cohort matches the given courseId', () async {
+      final controller = CohortListController(
+        repository: FakeCohortRepository(cohorts: [sampleCohort(id: 1, courseId: 9)]),
+        courseId: 6,
+      );
+
+      await controller.load();
+
+      expect(controller.cohorts, isEmpty);
+      expect(controller.errorMessage, isNull);
+      expect(controller.isEmpty, isTrue);
+    });
+  });
+
   test('does not notify after being disposed', () async {
     final repository = FakeCohortRepository(hold: true);
     final controller = CohortListController(repository: repository);

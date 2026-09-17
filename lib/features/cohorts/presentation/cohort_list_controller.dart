@@ -11,10 +11,19 @@ import 'cohort_list_strings.dart';
 /// `_disposed` guard, one fixed string per [ApiFailureKind], and
 /// [isEmpty] that is false until the first fetch has actually completed —
 /// an untouched controller has not established emptiness yet.
+///
+/// When [courseId] is given, [cohorts] (and therefore [isEmpty]) only ever
+/// holds cohorts whose `courseId` matches it. The filter is applied client
+/// side, after `GET /cohorts` returns — there is no confirmed per-course
+/// query parameter on that endpoint, so the request itself is unchanged.
 class CohortListController extends ChangeNotifier {
-  CohortListController({required this._repository});
+  CohortListController({required this._repository, this.courseId});
 
   final CohortRepository _repository;
+
+  /// Restricts [cohorts] to this course. Null shows every cohort, the
+  /// screen's original behaviour.
+  final int? courseId;
 
   bool _disposed = false;
   bool _loading = false;
@@ -42,7 +51,10 @@ class CohortListController extends ChangeNotifier {
     _notify();
 
     try {
-      _cohorts = await _repository.getCohorts();
+      final fetched = await _repository.getCohorts();
+      _cohorts = courseId == null
+          ? fetched
+          : fetched.where((cohort) => cohort.courseId == courseId).toList();
     } on ApiFailure catch (failure) {
       _cohorts = const [];
       _errorMessage = _messageFor(failure.kind);

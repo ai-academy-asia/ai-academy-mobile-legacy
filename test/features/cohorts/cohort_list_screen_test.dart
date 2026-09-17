@@ -35,6 +35,7 @@ void main() {
     FakeCohortRepository repository, {
     FakeEnrollmentRepository? enrollmentRepository,
     FakeEnrolledCohortsRepository? enrolledCohortsRepository,
+    int? courseId,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -51,6 +52,7 @@ void main() {
           enrollmentRepository: enrollmentRepository ?? FakeEnrollmentRepository(),
           enrolledCohortsRepository:
               enrolledCohortsRepository ?? FakeEnrolledCohortsRepository(),
+          courseId: courseId,
         ),
       ),
     );
@@ -140,6 +142,64 @@ void main() {
       expect(find.text('Corporate Leaders 2026-08'), findsOneWidget);
       expect(find.text('Open'), findsOneWidget);
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
+    });
+  });
+
+  group('course filter', () {
+    testWidgets('shows only cohorts matching the given course id', (tester) async {
+      final cohorts = [
+        sampleCohort(id: 1, courseId: 6),
+        sampleCohort(id: 2, courseId: 9),
+        sampleCohort(id: 3, courseId: 6),
+      ];
+      await pumpList(tester, FakeCohortRepository(cohorts: cohorts), courseId: 6);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsNWidgets(2));
+      final rendered = tester
+          .widgetList<CohortCard>(find.byType(CohortCard))
+          .map((card) => card.cohort.id)
+          .toList();
+      expect(rendered, [1, 3]);
+    });
+
+    testWidgets('shows every cohort when no course id is given', (tester) async {
+      final cohorts = [sampleCohort(id: 1, courseId: 6), sampleCohort(id: 2, courseId: 9)];
+      await pumpList(tester, FakeCohortRepository(cohorts: cohorts));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsNWidgets(2));
+    });
+
+    testWidgets('shows the empty state when no cohort matches the course id', (
+      tester,
+    ) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1, courseId: 9)]),
+        courseId: 6,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CohortListStrings.empty), findsOneWidget);
+      expect(find.byType(CohortCard), findsNothing);
+    });
+
+    testWidgets('enrollment still works on a course-filtered list', (tester) async {
+      final enrollments = FakeEnrollmentRepository();
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort(id: 1, courseId: 6)]),
+        enrollmentRepository: enrollments,
+        courseId: 6,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(AppButton, EnrollmentStrings.enroll));
+      await tester.pumpAndSettle();
+
+      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(enrollments.requests, [1]);
     });
   });
 
