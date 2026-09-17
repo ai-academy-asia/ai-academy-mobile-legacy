@@ -196,6 +196,51 @@ abstract final class AppTypography {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  // --- Profile --------------------------------------------------------------
+
+  /// The name in the profile header — the largest text on the screen after
+  /// the heading itself.
+  static const TextStyle profileName = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 22 / 16,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The join date under the profile name. [cardSupporting]'s 10pt reads too
+  /// small against the 17pt name beside it.
+  static const TextStyle profileJoinedDate = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textSecondary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A settings row's label ("Certificate", "Change password", …). Lighter
+  /// than [cardHeading], which reads too heavy for a long list of rows.
+  static const TextStyle settingsRowLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 20 / 14,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The label on one half of the MN/EN segmented control. Colour is set at
+  /// the call site — blue on the selected half, white on the other.
+  static const TextStyle segmentLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// The single line of red text under the checkbox.
   static const TextStyle fieldError = TextStyle(
     fontFamily: fontFamily,

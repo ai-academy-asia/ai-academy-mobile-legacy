@@ -76,7 +76,8 @@ class _CohortListScreenState extends State<CohortListScreen> {
       repository: widget.enrollmentRepository ?? HttpEnrollmentRepository(),
     );
     _enrolledCohorts = EnrolledCohortsController(
-      repository: widget.enrolledCohortsRepository ?? HttpEnrolledCohortsRepository(),
+      repository:
+          widget.enrolledCohortsRepository ?? HttpEnrolledCohortsRepository(),
     )..load();
   }
 
@@ -92,7 +93,8 @@ class _CohortListScreenState extends State<CohortListScreen> {
   /// student's own enrolled cohorts — so pull-to-refresh and either error
   /// view's retry button both leave the screen fully up to date rather than
   /// only half of it.
-  Future<void> _refresh() => Future.wait([_controller.load(), _enrolledCohorts.load()]);
+  Future<void> _refresh() =>
+      Future.wait([_controller.load(), _enrolledCohorts.load()]);
 
   @override
   Widget build(BuildContext context) {
@@ -119,21 +121,27 @@ class _CohortListScreenState extends State<CohortListScreen> {
               // back button already performs.
               onTap: () => Navigator.of(context).maybePop(),
             ),
-            const AppBottomNavItem(
+            AppBottomNavItem(
               icon: AppIcons.user,
               label: CohortListStrings.navProfile,
-              // No Profile screen exists yet to navigate to.
+              onTap: () => Navigator.of(context).pushNamed('/profile'),
             ),
           ],
         ),
         body: SafeArea(
           bottom: false,
           child: ListenableBuilder(
-            listenable: Listenable.merge([_controller, _enrollment, _enrolledCohorts]),
+            listenable: Listenable.merge([
+              _controller,
+              _enrollment,
+              _enrolledCohorts,
+            ]),
             builder: (context, _) => Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
+                constraints: const BoxConstraints(
+                  maxWidth: AppDimens.maxContentWidth,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -146,7 +154,9 @@ class _CohortListScreenState extends State<CohortListScreen> {
                       ),
                       child: Row(
                         children: [
-                          _BackButton(onTap: () => Navigator.of(context).maybePop()),
+                          _BackButton(
+                            onTap: () => Navigator.of(context).maybePop(),
+                          ),
                           Expanded(
                             child: Text(
                               CohortListStrings.heading,
@@ -160,7 +170,10 @@ class _CohortListScreenState extends State<CohortListScreen> {
                     // before; every card below already sits on
                     // [AppColors.border] at [AppDimens.borderWidth], so the
                     // divider reuses exactly that pairing.
-                    Container(height: AppDimens.borderWidth, color: AppColors.border),
+                    Container(
+                      height: AppDimens.borderWidth,
+                      color: AppColors.border,
+                    ),
                     Expanded(child: _buildBody()),
                   ],
                 ),
@@ -218,7 +231,11 @@ class _BackButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: const Padding(
           padding: EdgeInsets.only(right: 12),
-          child: Icon(AppIcons.caretLeft, size: 20, color: AppColors.textPrimary),
+          child: Icon(
+            AppIcons.caretLeft,
+            size: 20,
+            color: AppColors.textPrimary,
+          ),
         ),
       ),
     );
@@ -234,7 +251,10 @@ class _LoadingView extends StatelessWidget {
       child: SizedBox(
         width: 28,
         height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.blue),
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: AppColors.blue,
+        ),
       ),
     );
   }
@@ -247,7 +267,9 @@ class _EmptyView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Text(
           CohortListStrings.empty,
           style: AppTypography.cardSupporting,
@@ -268,7 +290,9 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -357,7 +381,10 @@ class _CohortList extends StatelessWidget {
 /// to a line of text. An [InkWell] on [AppTypography.buttonLabel] in the
 /// brand blue is the smallest control this design system already has.
 class _EnrolledCohortsErrorBanner extends StatelessWidget {
-  const _EnrolledCohortsErrorBanner({required this.message, required this.onRetry});
+  const _EnrolledCohortsErrorBanner({
+    required this.message,
+    required this.onRetry,
+  });
 
   final String message;
   final VoidCallback onRetry;
@@ -389,7 +416,9 @@ class _EnrolledCohortsErrorBanner extends StatelessWidget {
               onTap: onRetry,
               child: Text(
                 CohortListStrings.retry,
-                style: AppTypography.buttonLabel.copyWith(color: AppColors.blue),
+                style: AppTypography.buttonLabel.copyWith(
+                  color: AppColors.blue,
+                ),
               ),
             ),
           ),

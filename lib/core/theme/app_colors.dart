@@ -35,6 +35,10 @@ abstract final class AppColors {
   /// Fill of a field that is not accepting input.
   static const Color surfaceMuted = Color(0xFFEFF0F3);
 
+  /// A content ground barely off white — lighter than [background], which
+  /// reads as a distinct grey band behind a list of white rows.
+  static const Color surfaceSubtle = Color(0xFFF9FAFB);
+
   /// Resting border of a field, the secondary button and the bottom card.
   static const Color border = Color(0xFFE4E6EF);
 
