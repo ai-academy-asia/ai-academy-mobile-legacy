@@ -134,4 +134,29 @@ abstract final class AppDimens {
   /// device's own bottom safe-area inset. A typical tab-bar height rather
   /// than one read off a Figma node — no frame for it has been measured yet.
   static const double bottomNavHeight = 56;
+
+  // --- Profile -------------------------------------------------------------
+  //
+  // Sized by eye against the Figma render, the same way the type scale was —
+  // no node geometry was available for this frame.
+
+  /// The profile header's avatar circle.
+  static const double avatarSize = 44;
+
+  /// The circular edit control beside the avatar. Smaller than the avatar
+  /// it sits opposite, as the reference draws it.
+  static const double avatarEditSize = 36;
+
+  /// One settings row's minimum height, so rows with a toggle and rows with
+  /// only a label stay the same height. The reference runs compact; 40 is as
+  /// tight as this goes while each row is still a comfortable tap target.
+  static const double settingsRowHeight = 40;
+
+  /// The log out button is inset further than the rows beside it, which sit
+  /// on the screen's usual [screenPadding] gutter.
+  static const double logOutInset = 24;
+
+  /// Leading icon in a settings row. Matches the exported SVGs' own 20x20
+  /// viewBox, so they render 1:1 rather than scaled.
+  static const double settingsRowIconSize = 20;
 }

@@ -5,6 +5,7 @@ import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
+import 'features/profile/presentation/profile_screen.dart';
 
 /// The application root.
 ///
@@ -32,6 +33,7 @@ class AiAcademyApp extends StatelessWidget {
           final courseId = ModalRoute.of(context)?.settings.arguments;
           return CohortListScreen(courseId: courseId is int ? courseId : null);
         },
+        '/profile': (_) => const ProfileScreen(),
       },
     );
   }
