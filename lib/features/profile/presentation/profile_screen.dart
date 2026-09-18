@@ -8,6 +8,9 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../auth/data/http_current_user_repository.dart';
+import '../../auth/domain/current_user_repository.dart';
+import 'profile_controller.dart';
 import 'profile_strings.dart';
 
 /// The student's profile and app settings.
@@ -18,19 +21,24 @@ import 'profile_strings.dart';
 /// [AppButton] for the one action on screen, and the same [AppBottomNav]
 /// `CohortListScreen` already carries.
 ///
-/// **This screen is UI only.** Every row below is drawn, none is wired:
-/// E-Contract, Certificate, Transaction history, edit profile, Change
-/// password, Help center, Term of Service and Privacy Policy have no
-/// destination yet, and the language, light-mode and notification controls
-/// hold local state that nothing else reads — there is no locale mechanism,
-/// no dark palette and no notification-preference endpoint in the app to
-/// hand them to. Each is a separate issue; this one is the layout.
+/// **Every row but the header is UI only.** E-Contract, Certificate,
+/// Transaction history, edit profile, Change password, Help center, Term of
+/// Service and Privacy Policy have no destination yet, and the language,
+/// light-mode and notification controls hold local state that nothing else
+/// reads — there is no locale mechanism, no dark palette and no
+/// notification-preference endpoint in the app to hand them to. Each is a
+/// separate issue; this one is the layout.
 ///
-/// Takes no session: the header's name and join date are the design's
-/// placeholder copy, because `POST /auth/login` returns only an access token
-/// and no user endpoint is confirmed. See [ProfileStrings].
+/// The header's name loads from `GET /auth/me` through [ProfileController],
+/// the same way `CohortListScreen` loads `EnrolledCohortsController` —
+/// falling back to [ProfileStrings.name] while that fetch is loading or has
+/// failed. The join date stays the design's placeholder copy: the confirmed
+/// `/auth/me` response carries no join date. See [ProfileStrings].
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.repository});
+
+  /// Defaults to the real API with the app-wide session. Injected in tests.
+  final CurrentUserRepository? repository;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -42,6 +50,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _english = false;
   bool _lightMode = false;
   bool _notifications = false;
+
+  late final ProfileController _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _profile = ProfileController(
+      repository: widget.repository ?? HttpCurrentUserRepository(),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _profile.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +147,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _Header(),
+          ListenableBuilder(
+            listenable: _profile,
+            builder: (context, _) =>
+                _Header(name: _profile.user?.displayName ?? ProfileStrings.name),
+          ),
           const _Divider(),
 
           const _SectionLabel(ProfileStrings.accountSection),
@@ -246,7 +274,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 /// edge. The avatar is a generic glyph rather than an image: no avatar URL
 /// exists on any confirmed response to load one from.
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.name});
+
+  /// The fetched `CurrentUser.displayName`, or [ProfileStrings.name] while
+  /// loading or on failure — see [ProfileController].
+  final String name;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +309,7 @@ class _Header extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  ProfileStrings.name,
+                  name,
                   style: AppTypography.profileName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

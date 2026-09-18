@@ -1,6 +1,7 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/theme/app_typography.dart';
+import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
@@ -9,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'fake_current_user_repository.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
 /// without it, text is measured in the fallback font.
@@ -43,13 +46,23 @@ void main() {
   Future<void> pumpProfile(
     WidgetTester tester, {
     Size size = const Size(393, 852),
+    FakeCurrentUserRepository? repository,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const ProfileScreen()),
+      MaterialApp(
+        theme: AppTheme.light,
+        home: ProfileScreen(
+          repository:
+              repository ??
+              FakeCurrentUserRepository(
+                failure: const CurrentUserFailure(CurrentUserFailureKind.sessionExpired),
+              ),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -68,7 +81,7 @@ void main() {
       expect(sectionCaption(ProfileStrings.contactSection), findsOneWidget);
     });
 
-    testWidgets('shows the header placeholder name and join date', (
+    testWidgets('shows the placeholder name and join date when /auth/me fails', (
       tester,
     ) async {
       await pumpProfile(tester);
@@ -153,6 +166,34 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('/auth/me header', () {
+    testWidgets('shows the placeholder name while the fetch is in flight', (
+      tester,
+    ) async {
+      final repository = FakeCurrentUserRepository(hold: true);
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.light, home: ProfileScreen(repository: repository)),
+      );
+      await tester.pump();
+
+      expect(find.text(ProfileStrings.name), findsOneWidget);
+
+      repository.release();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows the fetched full name once /auth/me succeeds', (
+      tester,
+    ) async {
+      await pumpProfile(tester, repository: FakeCurrentUserRepository());
+
+      expect(find.text('CRUD TestStudent'), findsOneWidget);
+      expect(find.text(ProfileStrings.name), findsNothing);
+      // The join date has no confirmed source in the contract yet.
+      expect(find.text(ProfileStrings.joinedDate), findsOneWidget);
     });
   });
 

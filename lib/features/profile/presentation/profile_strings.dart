@@ -1,3 +1,5 @@
+import '../../auth/domain/current_user_failure.dart';
+
 /// Every word on the profile screen.
 ///
 /// Copy is taken from the Figma frame verbatim, which is why most of it is
@@ -5,16 +7,17 @@
 /// Mongolian — the design mixes the two, and this screen matches the design
 /// rather than translating it.
 ///
-/// [name], [joinedDate] and [version] are **placeholder copy, not data**. The
-/// confirmed `POST /auth/login` response carries only an access token — no
-/// user object, and no `/me` endpoint is confirmed anywhere — so there is
-/// nothing to source a real name, avatar or join date from yet. They are the
-/// design's own sample values, standing in until a user endpoint exists.
+/// [name] is shown only while [ProfileController]'s `GET /auth/me` fetch is
+/// loading or has failed — see [ProfileScreen]. Once it succeeds, the header
+/// shows the fetched `CurrentUser.displayName` instead. [joinedDate] and
+/// [version] remain the design's own placeholder copy: the confirmed
+/// `/auth/me` response carries no join date.
 abstract final class ProfileStrings {
   static const String heading = 'Profile';
 
-  // --- Header, placeholder until a user endpoint exists -------------------
+  // --- Header ---------------------------------------------------------------
 
+  /// Fallback shown while the real name is loading or unavailable.
   static const String name = 'Болд Батаа';
   static const String joinedDate = 'Joined Oct 2026';
 
@@ -67,6 +70,32 @@ abstract final class ProfileStrings {
   static const String navHome = 'Нүүр';
   static const String navCourses = 'Хичээл';
   static const String navProfile = 'Профайл';
+
+  // --- /auth/me failures ----------------------------------------------------
+  //
+  // Not shown on screen yet — the header falls back to [name] instead, the
+  // same way `CohortListScreen` lets a card fall back to "not yet enrolled"
+  // rather than blocking on secondary data. Kept here, one fixed string per
+  // [CurrentUserFailureKind], the same convention `EnrollmentStrings` follows,
+  // so [ProfileController] has something to report and a future screen change
+  // has somewhere to read it from.
+
+  static const String sessionExpired = 'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
+  static const String rejected = 'Мэдээлэл татаж чадсангүй';
+  static const String networkError = 'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
+  static const String serverError =
+      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
+  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+
+  /// The message for a failed `/auth/me` fetch — one fixed string per
+  /// [CurrentUserFailureKind].
+  static String messageFor(CurrentUserFailureKind kind) => switch (kind) {
+    CurrentUserFailureKind.sessionExpired => sessionExpired,
+    CurrentUserFailureKind.rejected => rejected,
+    CurrentUserFailureKind.network => networkError,
+    CurrentUserFailureKind.server => serverError,
+    CurrentUserFailureKind.unexpected => unexpectedError,
+  };
 }
 
 /// The screen's own icons, exported from the design.
