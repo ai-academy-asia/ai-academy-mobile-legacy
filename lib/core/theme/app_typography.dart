@@ -253,6 +253,44 @@ abstract final class AppTypography {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  // --- Home dashboard --------------------------------------------------------
+
+  /// The cohort's course name on Home — the largest text on the dashboard.
+  /// A step above [heading]: Home has no heading line of its own (the brand
+  /// lockup sits where one would), so the cohort's name is the screen's
+  /// anchor and the reference draws it larger than a section title.
+  static const TextStyle programTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 24,
+    height: 30 / 24,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A statistic's caption — "Дараанийн төлөлт", "Хичээлийн ирц", the cohort
+  /// caption over the title. [catalogSectionLabel]'s 11pt reads too small
+  /// beside the 15pt value under it on these cards.
+  static const TextStyle statLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 13,
+    height: 18 / 13,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textSecondary,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A statistic's value — "1/20 · 10%", "3 хоног дутуу". Colour is set at the
+  /// call site: blue at rest, red when a payment is late, white on the filled
+  /// attendance card.
+  static const TextStyle statValue = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    height: 20 / 15,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   // --- Splash ---------------------------------------------------------------
 
   /// The "AI academy Asia" wordmark beside the logo mark on the splash

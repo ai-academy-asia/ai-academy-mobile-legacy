@@ -442,5 +442,62 @@ void main() {
       expect(find.text('previous screen'), findsOneWidget);
       expect(find.text(ProfileStrings.heading), findsNothing);
     });
+
+    testWidgets('the home tab returns to the Home route', (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigatorKey,
+          theme: AppTheme.light,
+          initialRoute: '/home',
+          routes: {'/home': (_) => const Scaffold(body: Text('home route'))},
+        ),
+      );
+
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(ProfileStrings.heading), findsOneWidget);
+
+      await tester.tap(find.byIcon(AppIcons.house));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home route'), findsOneWidget);
+      expect(find.text(ProfileStrings.heading), findsNothing);
+    });
+
+    testWidgets('the home tab returns to Home even from several screens deep', (
+      tester,
+    ) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigatorKey,
+          theme: AppTheme.light,
+          initialRoute: '/home',
+          routes: {'/home': (_) => const Scaffold(body: Text('home route'))},
+        ),
+      );
+
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(
+          builder: (_) => const Scaffold(body: Text('intermediate screen')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(AppIcons.house));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home route'), findsOneWidget);
+      expect(find.text('intermediate screen'), findsNothing);
+      expect(find.text(ProfileStrings.heading), findsNothing);
+    });
   });
 }

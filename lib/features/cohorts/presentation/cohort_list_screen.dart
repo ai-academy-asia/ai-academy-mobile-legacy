@@ -108,10 +108,17 @@ class _CohortListScreenState extends State<CohortListScreen> {
         bottomNavigationBar: AppBottomNav(
           currentIndex: 1,
           items: [
-            const AppBottomNavItem(
+            AppBottomNavItem(
               icon: AppIcons.house,
               label: CohortListStrings.navHome,
-              // No Home dashboard screen exists yet to navigate to.
+              // Home is always the root of the stack once signed in — every
+              // screen reached from it is a `push`, never a replace — so
+              // popping back to it needs no route of its own. `isFirst` is
+              // the fallback for a stack that (in a test, say) never carries
+              // a route actually named '/home', so this always terminates.
+              onTap: () => Navigator.of(context).popUntil(
+                (route) => route.isFirst || route.settings.name == '/home',
+              ),
             ),
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
