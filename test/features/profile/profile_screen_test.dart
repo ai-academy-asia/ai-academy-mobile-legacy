@@ -2,6 +2,7 @@ import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
+import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
@@ -59,7 +60,9 @@ void main() {
           repository:
               repository ??
               FakeCurrentUserRepository(
-                failure: const CurrentUserFailure(CurrentUserFailureKind.sessionExpired),
+                failure: const CurrentUserFailure(
+                  CurrentUserFailureKind.sessionExpired,
+                ),
               ),
         ),
       ),
@@ -81,14 +84,15 @@ void main() {
       expect(sectionCaption(ProfileStrings.contactSection), findsOneWidget);
     });
 
-    testWidgets('shows the placeholder name and join date when /auth/me fails', (
-      tester,
-    ) async {
-      await pumpProfile(tester);
+    testWidgets(
+      'shows the placeholder name and join date when /auth/me fails',
+      (tester) async {
+        await pumpProfile(tester);
 
-      expect(find.text(ProfileStrings.name), findsOneWidget);
-      expect(find.text(ProfileStrings.joinedDate), findsOneWidget);
-    });
+        expect(find.text(ProfileStrings.name), findsOneWidget);
+        expect(find.text(ProfileStrings.joinedDate), findsOneWidget);
+      },
+    );
 
     testWidgets('shows every settings row', (tester) async {
       await pumpProfile(tester);
@@ -175,7 +179,10 @@ void main() {
     ) async {
       final repository = FakeCurrentUserRepository(hold: true);
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: ProfileScreen(repository: repository)),
+        MaterialApp(
+          theme: AppTheme.light,
+          home: ProfileScreen(repository: repository),
+        ),
       );
       await tester.pump();
 
@@ -341,6 +348,59 @@ void main() {
           tester.widgetList<Switch>(find.byType(Switch)).first.value,
           isTrue,
         );
+      },
+    );
+  });
+
+  group('change password', () {
+    testWidgets('tapping the row pushes the existing change-password screen', (
+      tester,
+    ) async {
+      await pumpProfile(tester);
+
+      await tester.tap(rowLabel(ProfileStrings.changePassword));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ResetPasswordScreen), findsOneWidget);
+    });
+
+    testWidgets(
+      'a successful change pops back to Profile, not to whatever pushed it',
+      (tester) async {
+        final navigatorKey = GlobalKey<NavigatorState>();
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorKey: navigatorKey,
+            theme: AppTheme.light,
+            home: const Scaffold(body: Text('previous screen')),
+          ),
+        );
+        navigatorKey.currentState!.push(
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(
+              repository: FakeCurrentUserRepository(
+                failure: const CurrentUserFailure(
+                  CurrentUserFailureKind.sessionExpired,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(rowLabel(ProfileStrings.changePassword));
+        await tester.pumpAndSettle();
+        expect(find.byType(ResetPasswordScreen), findsOneWidget);
+
+        // `ResetPasswordScreen`'s own suite covers a real submission; here it
+        // only matters that popping this route (as its default `onCompleted`
+        // does on success) lands back on Profile, not on "previous screen" —
+        // proving Change Password was pushed, not used to replace the route.
+        navigatorKey.currentState!.pop();
+        await tester.pumpAndSettle();
+
+        expect(find.text(ProfileStrings.heading), findsOneWidget);
+        expect(find.text('previous screen'), findsNothing);
       },
     );
   });
