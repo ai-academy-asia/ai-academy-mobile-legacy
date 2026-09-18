@@ -5,6 +5,7 @@ import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
+import 'features/home/presentation/home_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/splash/presentation/splash_screen.dart';
 
@@ -32,7 +33,13 @@ class AiAcademyApp extends StatelessWidget {
         '/': (_) => const SplashScreen(),
         '/login': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
-        '/home': (_) => const CourseCatalogScreen(),
+        // Sign-in lands here — `/home` is the Нүүр tab, the dashboard.
+        '/home': (_) => const HomeScreen(),
+        // The course catalog, which `/home` stood in for until the dashboard
+        // existed. Reached from Home's Хичээл tab; `CohortListScreen` is
+        // still pushed from it, so popping back from a cohort list still
+        // lands on the catalog exactly as before.
+        '/courses': (_) => const CourseCatalogScreen(),
         // Arguments are the tapped course's id (an int), set by
         // `CourseCatalogScreen`'s navigation — null for any other caller,
         // which shows every cohort unfiltered.

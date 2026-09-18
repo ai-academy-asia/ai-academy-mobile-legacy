@@ -159,4 +159,30 @@ abstract final class AppDimens {
   /// Leading icon in a settings row. Matches the exported SVGs' own 20x20
   /// viewBox, so they render 1:1 rather than scaled.
   static const double settingsRowIconSize = 20;
+
+  // --- Home dashboard --------------------------------------------------------
+  //
+  // Sized by eye against the Figma Home frames, the same way the Profile
+  // values were — no node geometry was available for them either.
+
+  /// Corner radius of every card on Home.
+  ///
+  /// Rounder than [cardRadius], which the rest of the app uses: the Home
+  /// frames draw a visibly larger corner on the cohort card and both
+  /// statistic cards, and matching it is the point of the screen.
+  static const double homeCardRadius = 16;
+
+  /// The module progress bar. Thicker than [strengthBarHeight] — that is a
+  /// password meter tucked under a field, this is the cohort card's headline.
+  static const double progressBarHeight = 8;
+
+  /// The rounded square holding a statistic card's icon.
+  static const double statIconTile = 40;
+
+  /// The circular notification control in the Home header. Matches
+  /// [avatarSize], the app's other 44pt circle, rather than inventing a size.
+  static const double headerActionSize = avatarSize;
+
+  /// Height of the brand lockup in the Home header.
+  static const double headerLogoHeight = 36;
 }
