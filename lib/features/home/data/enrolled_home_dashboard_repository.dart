@@ -18,7 +18,11 @@ import '../domain/lesson_schedule.dart';
 /// No new API is invented here and no transport is written: this composes
 /// three existing repositories, each with its own confirmed contract.
 ///
-///   * `GET /me/cohorts` — which cohorts the student is enrolled in.
+///   * `GET /me/cohorts` — which cohorts the student is enrolled in, and, per
+///     [EnrolledCohortSummary], the progress percentage an entry carries when
+///     it carries one — the same figure `Enrollment.progressPct` reports at
+///     enrollment time, read here from whichever entry names the current
+///     cohort.
 ///   * `GET /cohorts` — the cohort itself: its name, course, status and the
 ///     schedule [nextLessonFor] derives the next lesson from.
 ///   * `GET /courses` — only for the course's `level`, which drives the track
@@ -26,15 +30,16 @@ import '../domain/lesson_schedule.dart';
 ///
 /// ## What is deliberately missing
 ///
-/// The reference also shows module progress, an attendance tally, a payment
-/// state and an e-contract warning. **No endpoint in this API reports any of
-/// them**, so every one of those sections is left null rather than filled
-/// with the reference's sample numbers. Each is waiting on exactly one thing:
+/// The reference also shows a module count ("2 of 5"), an attendance tally, a
+/// payment state and an e-contract warning. **No endpoint in this API reports
+/// any of them**, so every one of those sections is left null rather than
+/// filled with the reference's sample numbers. Each is waiting on exactly one
+/// thing:
 ///
-///   * module progress — a lessons/modules endpoint, or `GET /me/cohorts`
-///     returning the enrollment body it currently discards (`Enrollment`
-///     already models `progressPct`; `HttpEnrolledCohortsRepository` reads
-///     only the id).
+///   * the module count — a lessons/modules endpoint. `progress_pct` names a
+///     percentage, not a count, so [ModuleProgress.completed]/[.total] stay
+///     null even once [ModuleProgress.percent] has a real value — see that
+///     class's own doc comment.
 ///   * attendance — an attendance endpoint. `Course.hasAttendance` and
 ///     `attendanceMethod` hint one is planned; neither is a tally.
 ///   * payment — an invoice/payment endpoint. Only catalog *prices* exist.
@@ -61,16 +66,16 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
 
   @override
   Future<HomeDashboard> getDashboard() async {
-    final Set<int> enrolledIds;
+    final List<EnrolledCohortSummary> enrolled;
     final List<Cohort> cohorts;
     try {
       // Both are needed to say anything at all, and neither depends on the
       // other, so they go out together rather than one after the next.
       final results = await Future.wait([
-        _enrolledCohorts.getEnrolledCohortIds(),
+        _enrolledCohorts.getEnrolledCohorts(),
         _cohorts.getCohorts(),
       ]);
-      enrolledIds = results[0] as Set<int>;
+      enrolled = results[0] as List<EnrolledCohortSummary>;
       cohorts = results[1] as List<Cohort>;
     } on EnrollmentFailure catch (failure) {
       throw HomeFailure(
@@ -81,8 +86,13 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
       throw HomeFailure(_kindForApi(failure.kind), detail: failure.detail);
     }
 
-    final cohort = _currentCohort(cohorts, enrolledIds);
+    final progressByCohortId = {
+      for (final entry in enrolled) entry.cohortId: entry.progressPct,
+    };
+    final cohort = _currentCohort(cohorts, progressByCohortId.keys.toSet());
     if (cohort == null) return const HomeDashboard();
+
+    final progressPct = progressByCohortId[cohort.id];
 
     return HomeDashboard(
       program: EnrolledProgram(
@@ -93,8 +103,15 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
             cohort.name,
         status: cohort.status,
         level: await _levelOf(cohort.courseId),
-        // Left null until a source exists — see the class doc.
-        progress: null,
+        // Null exactly when the entry named this cohort with no
+        // `progress_pct` — the module count still has no source, so
+        // `ModuleProgress.completed`/`.total` stay unset either way; see the
+        // class doc.
+        progress: progressPct == null
+            ? null
+            : ModuleProgress(
+                percent: progressPct.round().clamp(0, 100).toInt(),
+              ),
         nextLesson: nextLessonFor(cohort: cohort, now: _clock()),
       ),
     );
