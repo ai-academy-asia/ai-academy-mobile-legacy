@@ -65,19 +65,24 @@ void main() {
     }
   });
 
-  test('a failure clears any previously loaded ids and defaults to unenrolled', () async {
-    final repository = FakeEnrolledCohortsRepository(enrolledCohortIds: {1});
-    final controller = EnrolledCohortsController(repository: repository);
-    await controller.load();
-    expect(controller.isEnrolled(1), isTrue);
+  test(
+    'a failure clears any previously loaded ids and defaults to unenrolled',
+    () async {
+      final repository = FakeEnrolledCohortsRepository(enrolledCohortIds: {1});
+      final controller = EnrolledCohortsController(repository: repository);
+      await controller.load();
+      expect(controller.isEnrolled(1), isTrue);
 
-    repository.failure = const EnrollmentFailure(EnrollmentFailureKind.server);
-    await controller.load();
+      repository.failure = const EnrollmentFailure(
+        EnrollmentFailureKind.server,
+      );
+      await controller.load();
 
-    expect(controller.isEnrolled(1), isFalse);
-    expect(controller.enrolledCohortIds, isEmpty);
-    expect(controller.errorMessage, isNotNull);
-  });
+      expect(controller.isEnrolled(1), isFalse);
+      expect(controller.enrolledCohortIds, isEmpty);
+      expect(controller.errorMessage, isNotNull);
+    },
+  );
 
   test('a retry that succeeds clears the previous error', () async {
     final repository = FakeEnrolledCohortsRepository(
@@ -95,16 +100,19 @@ void main() {
     expect(controller.isEnrolled(5), isTrue);
   });
 
-  test('an unrecognised exception still surfaces as a message, not a crash', () async {
-    final controller = EnrolledCohortsController(
-      repository: _ThrowsNonEnrollmentFailure(),
-    );
+  test(
+    'an unrecognised exception still surfaces as a message, not a crash',
+    () async {
+      final controller = EnrolledCohortsController(
+        repository: _ThrowsNonEnrollmentFailure(),
+      );
 
-    await controller.load();
+      await controller.load();
 
-    expect(controller.errorMessage, EnrollmentStrings.unexpectedError);
-    expect(controller.loading, isFalse);
-  });
+      expect(controller.errorMessage, EnrollmentStrings.unexpectedError);
+      expect(controller.loading, isFalse);
+    },
+  );
 
   test('notifies listeners on every state change', () async {
     final repository = FakeEnrolledCohortsRepository(enrolledCohortIds: {1});
@@ -134,4 +142,8 @@ void main() {
 class _ThrowsNonEnrollmentFailure implements EnrolledCohortsRepository {
   @override
   Future<Set<int>> getEnrolledCohortIds() => throw StateError('boom');
+
+  @override
+  Future<List<EnrolledCohortSummary>> getEnrolledCohorts() =>
+      throw StateError('boom');
 }

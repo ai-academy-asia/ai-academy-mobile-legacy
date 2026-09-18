@@ -32,7 +32,9 @@ void main() {
     sessionStore: sessionStore ?? signedIn(),
   );
 
-  Future<EnrollmentFailure> failureFrom(HttpEnrolledCohortsRepository repository) async {
+  Future<EnrollmentFailure> failureFrom(
+    HttpEnrolledCohortsRepository repository,
+  ) async {
     try {
       await repository.getEnrolledCohortIds();
     } on EnrollmentFailure catch (failure) {
@@ -134,7 +136,9 @@ void main() {
           {'id': 1, 'name': 'Corporate Leaders 2026-08', 'status': 'open'},
         ],
       });
-      final repository = repositoryReturning((_) async => http.Response(body, 200));
+      final repository = repositoryReturning(
+        (_) async => http.Response(body, 200),
+      );
 
       expect(await repository.getEnrolledCohortIds(), {1});
     });
@@ -152,10 +156,122 @@ void main() {
     });
   });
 
+  group('getEnrolledCohorts (progress)', () {
+    test('reads progress_pct when an entry carries one', () async {
+      final body = jsonEncode({
+        'cohorts': [
+          {'id': 1, 'progress_pct': 40},
+          {'id': 2, 'progress_pct': 62.5},
+        ],
+      });
+      final repository = repositoryReturning(
+        (_) async => http.Response(body, 200),
+      );
+
+      final cohorts = await repository.getEnrolledCohorts();
+
+      expect(cohorts.map((c) => c.cohortId), [1, 2]);
+      expect(cohorts[0].progressPct, 40.0);
+      expect(cohorts[1].progressPct, 62.5);
+    });
+
+    test('an entry with no progress_pct carries null, not zero', () async {
+      final body = jsonEncode({
+        'cohorts': [
+          {'id': 1},
+        ],
+      });
+      final repository = repositoryReturning(
+        (_) async => http.Response(body, 200),
+      );
+
+      final cohorts = await repository.getEnrolledCohorts();
+
+      expect(cohorts.single.progressPct, isNull);
+    });
+
+    test(
+      'an explicit null progress_pct reads the same as an absent one',
+      () async {
+        final body = jsonEncode({
+          'cohorts': [
+            {'id': 1, 'progress_pct': null},
+          ],
+        });
+        final repository = repositoryReturning(
+          (_) async => http.Response(body, 200),
+        );
+
+        final cohorts = await repository.getEnrolledCohorts();
+
+        expect(cohorts.single.progressPct, isNull);
+      },
+    );
+
+    test('a non-numeric progress_pct is a server fault', () async {
+      final body = jsonEncode({
+        'cohorts': [
+          {'id': 1, 'progress_pct': 'forty'},
+        ],
+      });
+      final repository = repositoryReturning(
+        (_) async => http.Response(body, 200),
+      );
+
+      final failure = await failureFrom(repository);
+
+      expect(failure.kind, EnrollmentFailureKind.server);
+      expect(failure.detail, contains('progress_pct'));
+    });
+
+    test(
+      'getEnrolledCohortIds and getEnrolledCohorts read the same ids',
+      () async {
+        final body = jsonEncode({
+          'cohorts': [
+            {'id': 1, 'progress_pct': 40},
+            {'id': 4},
+          ],
+        });
+        final repository = repositoryReturning(
+          (_) async => http.Response(body, 200),
+        );
+
+        final ids = await repository.getEnrolledCohortIds();
+        final cohorts = await repository.getEnrolledCohorts();
+
+        expect(ids, {1, 4});
+        expect(cohorts.map((c) => c.cohortId).toSet(), ids);
+      },
+    );
+
+    test('without a usable session, sends nothing', () async {
+      var requests = 0;
+      final repository = repositoryReturning((_) async {
+        requests++;
+        return http.Response(bodyWithIds([]), 200);
+      }, sessionStore: AuthSessionStore());
+
+      await expectLater(
+        repository.getEnrolledCohorts(),
+        throwsA(
+          isA<EnrollmentFailure>().having(
+            (f) => f.kind,
+            'kind',
+            EnrollmentFailureKind.sessionExpired,
+          ),
+        ),
+      );
+      expect(requests, 0);
+    });
+  });
+
   group('malformed responses', () {
     test('a malformed body is a server fault', () async {
       final failure = await failureFrom(
-        repositoryReturning((_) async => http.Response('<html>nope</html>', 200)),
+        repositoryReturning(
+          (_) async => http.Response('<html>nope</html>', 200),
+        ),
       );
       expect(failure.kind, EnrollmentFailureKind.server);
       expect(failure.detail, contains('malformed JSON'));
@@ -170,7 +286,9 @@ void main() {
 
     test('a response with no "cohorts" key is a server fault', () async {
       final failure = await failureFrom(
-        repositoryReturning((_) async => http.Response(jsonEncode({'data': []}), 200)),
+        repositoryReturning(
+          (_) async => http.Response(jsonEncode({'data': []}), 200),
+        ),
       );
       expect(failure.kind, EnrollmentFailureKind.server);
       expect(failure.detail, contains('cohorts'));
@@ -233,7 +351,11 @@ void main() {
             sessionStore: store,
           ),
         );
-        expect(failure.kind, EnrollmentFailureKind.rejected, reason: 'HTTP $status');
+        expect(
+          failure.kind,
+          EnrollmentFailureKind.rejected,
+          reason: 'HTTP $status',
+        );
         expect(store.isSignedIn, isTrue, reason: 'HTTP $status');
       }
     });
@@ -254,7 +376,9 @@ void main() {
 
     test('an unreachable host is a network failure', () async {
       final failure = await failureFrom(
-        repositoryReturning((_) async => throw const SocketException('no route')),
+        repositoryReturning(
+          (_) async => throw const SocketException('no route'),
+        ),
       );
       expect(failure.kind, EnrollmentFailureKind.network);
     });

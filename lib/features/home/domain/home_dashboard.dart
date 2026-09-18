@@ -72,19 +72,26 @@ class EnrolledProgram {
   final NextLesson? nextLesson;
 }
 
-/// How far through the cohort's modules the student is.
+/// How far through the course the student is.
+///
+/// [percent] is the only field every source can fill: it is also the shape
+/// `Enrollment.progressPct` — the one progress figure the API confirms — sends,
+/// with no module count behind it. [completed]/[total] are set only when a
+/// source reports an actual count (a modules endpoint, if one is ever added);
+/// until then they stay null rather than being guessed at from a percentage,
+/// and the screen leaves the "Modules X of Y" line off while still drawing the
+/// percentage and the bar from [percent]. See `EnrolledHomeDashboardRepository`.
 class ModuleProgress {
-  const ModuleProgress({required this.completed, required this.total});
+  const ModuleProgress({required this.percent, this.completed, this.total});
 
-  final int completed;
-  final int total;
+  /// 0–100.
+  final int percent;
 
-  /// 0.0–1.0, clamped — what fills the progress bar. A zero or negative
-  /// total reads as no progress rather than dividing by zero.
-  double get fraction =>
-      total <= 0 ? 0 : (completed / total).clamp(0.0, 1.0).toDouble();
+  final int? completed;
+  final int? total;
 
-  int get percent => (fraction * 100).round();
+  /// 0.0–1.0, clamped — what fills the progress bar.
+  double get fraction => (percent / 100).clamp(0.0, 1.0);
 }
 
 /// When the cohort next meets.

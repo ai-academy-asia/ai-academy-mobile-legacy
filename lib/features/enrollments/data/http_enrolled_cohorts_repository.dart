@@ -17,12 +17,15 @@ import '../domain/enrollment_failure.dart';
 /// confirmed. Modeled the same way `GET /cohorts` is confirmed to answer —
 /// `{ "cohorts": [ { "id": ..., ... } ] }` — since this endpoint's name is
 /// that one's own convention applied to "mine", and every cohort
-/// representation this API has shown carries an "id". Only that field is
-/// read; anything else an entry carries is ignored, since matching enrolled
-/// ids against the displayed list is all this repository is for. If the real
-/// response uses a different envelope or field name, this fails loudly
-/// rather than silently getting it wrong — the same policy
-/// `HttpCohortRepository` follows.
+/// representation this API has shown carries an "id". Only `id` and an
+/// optional `progress_pct` (the same field name and meaning
+/// `POST /cohorts/{id}/enroll` confirms on `Enrollment`) are read; anything
+/// else an entry carries is ignored. If the real response uses a different
+/// envelope or field name for `id`, this fails loudly rather than silently
+/// getting it wrong — the same policy `HttpCohortRepository` follows.
+/// `progress_pct` gets the gentler reading: absent or `null` simply means no
+/// progress figure for that cohort, since this endpoint's envelope was never
+/// confirmed to carry one at all.
 ///
 /// The token is the one `LoginScreen` saved into [AuthSessionStore]. With no
 /// usable session the request is not sent at all, the same guard
@@ -46,6 +49,15 @@ class HttpEnrolledCohortsRepository implements EnrolledCohortsRepository {
 
   @override
   Future<Set<int>> getEnrolledCohortIds() async {
+    final cohorts = await _fetchEnrolledCohorts();
+    return {for (final cohort in cohorts) cohort.cohortId};
+  }
+
+  @override
+  Future<List<EnrolledCohortSummary>> getEnrolledCohorts() =>
+      _fetchEnrolledCohorts();
+
+  Future<List<EnrolledCohortSummary>> _fetchEnrolledCohorts() async {
     if (!_sessionStore.isSignedIn) {
       throw const EnrollmentFailure(
         EnrollmentFailureKind.sessionExpired,
@@ -69,18 +81,23 @@ class HttpEnrolledCohortsRepository implements EnrolledCohortsRepository {
       );
     } on ApiFailure catch (failure) {
       // The transport throws only for a request that never completed.
-      throw EnrollmentFailure(EnrollmentFailureKind.network, detail: failure.detail);
+      throw EnrollmentFailure(
+        EnrollmentFailureKind.network,
+        detail: failure.detail,
+      );
     }
 
     final failure = _failureForStatus(response.statusCode);
     if (failure != null) {
       // What the store asks of a token the backend has rejected: forget it,
       // so nothing goes on sending it.
-      if (failure.kind == EnrollmentFailureKind.sessionExpired) _sessionStore.clear();
+      if (failure.kind == EnrollmentFailureKind.sessionExpired) {
+        _sessionStore.clear();
+      }
       throw failure;
     }
 
-    return _enrolledCohortIdsFromBody(response.body);
+    return _enrolledCohortsFromBody(response.body);
   }
 }
 
@@ -93,21 +110,33 @@ class HttpEnrolledCohortsRepository implements EnrolledCohortsRepository {
 /// listing endpoint any more than there is on the enroll one.
 EnrollmentFailure? _failureForStatus(int statusCode) {
   if (statusCode == 401) {
-    return const EnrollmentFailure(EnrollmentFailureKind.sessionExpired, detail: 'HTTP 401');
+    return const EnrollmentFailure(
+      EnrollmentFailureKind.sessionExpired,
+      detail: 'HTTP 401',
+    );
   }
   if (statusCode >= 500) {
-    return EnrollmentFailure(EnrollmentFailureKind.server, detail: 'HTTP $statusCode');
+    return EnrollmentFailure(
+      EnrollmentFailureKind.server,
+      detail: 'HTTP $statusCode',
+    );
   }
   if (statusCode >= 400) {
-    return EnrollmentFailure(EnrollmentFailureKind.rejected, detail: 'HTTP $statusCode');
+    return EnrollmentFailure(
+      EnrollmentFailureKind.rejected,
+      detail: 'HTTP $statusCode',
+    );
   }
   if (statusCode < 200 || statusCode >= 300) {
-    return EnrollmentFailure(EnrollmentFailureKind.unexpected, detail: 'HTTP $statusCode');
+    return EnrollmentFailure(
+      EnrollmentFailureKind.unexpected,
+      detail: 'HTTP $statusCode',
+    );
   }
   return null;
 }
 
-Set<int> _enrolledCohortIdsFromBody(String body) {
+List<EnrolledCohortSummary> _enrolledCohortsFromBody(String body) {
   final Object? decoded;
   try {
     decoded = jsonDecode(body);
@@ -133,20 +162,36 @@ Set<int> _enrolledCohortIdsFromBody(String body) {
     );
   }
 
-  return {for (final entry in cohorts) _cohortIdFrom(entry)};
+  return [for (final entry in cohorts) _enrolledCohortFrom(entry)];
 }
 
-int _cohortIdFrom(Object? entry) {
+EnrolledCohortSummary _enrolledCohortFrom(Object? entry) {
   if (entry is! Map<String, dynamic>) {
     throw EnrollmentFailure(
       EnrollmentFailureKind.server,
       detail: 'a cohort entry was not a JSON object (got ${entry.runtimeType})',
     );
   }
+
   final id = entry['id'];
-  if (id is num) return id.toInt();
-  throw EnrollmentFailure(
-    EnrollmentFailureKind.server,
-    detail: 'cohort.id: expected a number, got ${id.runtimeType}',
+  if (id is! num) {
+    throw EnrollmentFailure(
+      EnrollmentFailureKind.server,
+      detail: 'cohort.id: expected a number, got ${id.runtimeType}',
+    );
+  }
+
+  final progress = entry['progress_pct'];
+  if (progress != null && progress is! num) {
+    throw EnrollmentFailure(
+      EnrollmentFailureKind.server,
+      detail:
+          'cohort.progress_pct: expected a number or null, got ${progress.runtimeType}',
+    );
+  }
+
+  return EnrolledCohortSummary(
+    cohortId: id.toInt(),
+    progressPct: (progress as num?)?.toDouble(),
   );
 }

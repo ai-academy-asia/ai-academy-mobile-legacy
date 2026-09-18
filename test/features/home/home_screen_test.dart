@@ -72,7 +72,7 @@ void main() {
   /// State A — a scheduled lesson, progress, and both statistic cards.
   HomeDashboard scheduledDashboard() => HomeDashboard(
     program: sampleProgram(
-      progress: const ModuleProgress(completed: 2, total: 5),
+      progress: const ModuleProgress(percent: 40, completed: 2, total: 5),
       nextLesson: sampleLesson(start: lessonStart),
     ),
     payment: const PaymentStatus.dueIn(3),
@@ -127,6 +127,35 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsNothing);
       expect(find.textContaining('complete'), findsNothing);
     });
+
+    testWidgets(
+      'shows just the percentage and the bar when there is no module count',
+      (tester) async {
+        // `Enrollment.progressPct` — the one real progress figure the API
+        // confirms — is a bare percentage, with no module count behind it.
+        await pumpHome(
+          tester,
+          FakeHomeDashboardRepository(
+            dashboard: HomeDashboard(
+              program: sampleProgram(
+                progress: const ModuleProgress(percent: 62),
+                nextLesson: sampleLesson(start: lessonStart),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text(HomeStrings.percentComplete(62)), findsOneWidget);
+        // No count to report — the "Modules X of Y" line stays off rather
+        // than showing an invented one.
+        expect(find.textContaining('Modules'), findsNothing);
+
+        final bar = tester.widget<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator),
+        );
+        expect(bar.value, 0.62);
+      },
+    );
 
     testWidgets('shows the next lesson window', (tester) async {
       await pumpHome(

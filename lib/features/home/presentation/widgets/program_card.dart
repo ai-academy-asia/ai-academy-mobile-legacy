@@ -100,27 +100,42 @@ class ProgramCard extends StatelessWidget {
 
                       if (progress case final progress?) ...[
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                HomeStrings.modules(
-                                  progress.completed,
-                                  progress.total,
+                        if (progress.completed != null &&
+                            progress.total != null)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  HomeStrings.modules(
+                                    progress.completed!,
+                                    progress.total!,
+                                  ),
+                                  style: AppTypography.statLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                style: AppTypography.statLabel,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
+                              const SizedBox(width: 12),
+                              Text(
+                                HomeStrings.percentComplete(progress.percent),
+                                style: AppTypography.catalogSectionValue,
+                              ),
+                            ],
+                          )
+                        else
+                          // No module count to caption the bar with — only
+                          // `Enrollment.progressPct`, a bare percentage. Right
+                          // aligned to sit where the percent sits when the
+                          // count line is also drawn, rather than left-aligned
+                          // and out of place.
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
                               HomeStrings.percentComplete(progress.percent),
                               style: AppTypography.catalogSectionValue,
                             ),
-                          ],
-                        ),
+                          ),
                         const SizedBox(height: 8),
                         _ProgressBar(fraction: progress.fraction),
                       ],
