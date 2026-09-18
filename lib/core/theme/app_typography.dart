@@ -6,7 +6,9 @@ import 'app_colors.dart';
 ///
 /// The design runs smaller and lighter than a Material default would: 12/20
 /// does most of the work, weights sit at 500–600, and only the heading goes
-/// bold. Nothing here is ExtraBold.
+/// bold. [splashWordmark] is the one ExtraBold in the scale — the splash
+/// screen's brand mark, not body copy, so it is held to the Figma reference's
+/// own heavier weight rather than this scale's usual ceiling.
 ///
 /// These sizes were set by eye against the Figma screenshot rather than by
 /// measuring it. Measuring the reference put the heading nearer 26 and body
@@ -248,6 +250,26 @@ abstract final class AppTypography {
     height: 16 / 10,
     fontWeight: FontWeight.w500,
     color: AppColors.error,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // --- Splash ---------------------------------------------------------------
+
+  /// The "AI academy Asia" wordmark beside the logo mark on the splash
+  /// screen. Coloured with [AppColors.navy] — the logo's own wordmark
+  /// colour, documented there for exactly this use — rather than
+  /// [AppColors.textPrimary], since this is the brand mark, not body copy.
+  ///
+  /// ExtraBold (800), a full step over [heading]'s Bold (700): the Figma
+  /// reference's wordmark reads heavier than this scale's usual ceiling, and
+  /// the weight is bundled already (`Manrope-ExtraBold.ttf`), so reaching for
+  /// it costs nothing.
+  static const TextStyle splashWordmark = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 20,
+    height: 24 / 20,
+    fontWeight: FontWeight.w800,
+    color: AppColors.navy,
     leadingDistribution: TextLeadingDistribution.even,
   );
 }
