@@ -9,11 +9,10 @@ import '../home_strings.dart';
 
 /// "Хичээлийн ирц" — how much of the cohort the student has attended.
 ///
-/// The one filled card on the dashboard, in the brand blue: the reference
-/// uses it to pick attendance out as the figure the student is meant to
-/// notice, against the white cards around it. Its lighter end is derived from
-/// [AppColors.blue] rather than a second hard-coded hex, so the gradient
-/// follows the brand colour if that ever moves.
+/// The one filled card on the dashboard, in a flat [AppColors.blue]: the
+/// reference uses it to pick attendance out as the figure the student is
+/// meant to notice, against the white cards around it. Flat rather than a
+/// gradient — the reference's fill reads as one solid colour, not a blend.
 ///
 /// Its action is [AppButtonVariant.outlined] — white fill, dark label — which
 /// is what reads as the inverse button on blue without inventing a third
@@ -30,15 +29,8 @@ class AttendanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.cardPadding),
       decoration: BoxDecoration(
+        color: AppColors.blue,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        gradient: LinearGradient(
-          begin: Alignment.bottomLeft,
-          end: Alignment.topRight,
-          colors: [
-            AppColors.blue,
-            Color.lerp(AppColors.blue, AppColors.surface, 0.22)!,
-          ],
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

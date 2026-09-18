@@ -172,17 +172,21 @@ abstract final class AppDimens {
   /// statistic cards, and matching it is the point of the screen.
   static const double homeCardRadius = 16;
 
-  /// The module progress bar. Thicker than [strengthBarHeight] — that is a
-  /// password meter tucked under a field, this is the cohort card's headline.
-  static const double progressBarHeight = 8;
+  /// The module progress bar. A thin rule under the percentage line, not a
+  /// thick headline bar — the reference draws it closer to
+  /// [strengthBarHeight] (a password meter) than to a first-class element.
+  static const double progressBarHeight = 6;
 
-  /// The rounded square holding a statistic card's icon.
-  static const double statIconTile = 40;
+  /// The rounded square holding a statistic card's icon. Sits visibly under
+  /// [buttonHeight] in the reference, not a near match to it.
+  static const double statIconTile = 36;
 
   /// The circular notification control in the Home header. Matches
   /// [avatarSize], the app's other 44pt circle, rather than inventing a size.
   static const double headerActionSize = avatarSize;
 
-  /// Height of the brand lockup in the Home header.
-  static const double headerLogoHeight = 36;
+  /// Height of the brand lockup in the Home header. A touch under
+  /// [avatarEditSize] — the reference's header reads more compact than the
+  /// rest of the app's 36–44pt marks.
+  static const double headerLogoHeight = 32;
 }

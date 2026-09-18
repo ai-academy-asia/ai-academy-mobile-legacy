@@ -82,7 +82,7 @@ class ProgramCard extends StatelessWidget {
                           _StatusPill(program.status),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
 
                       Text(
                         program.cohortName,
@@ -99,7 +99,7 @@ class ProgramCard extends StatelessWidget {
                       ),
 
                       if (progress case final progress?) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -258,6 +258,9 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
+        // A soft tint behind the outline, not a bare border: the reference
+        // draws every pill on Home with a faint fill in its own colour.
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color, width: AppDimens.borderWidth),
       ),
@@ -278,6 +281,7 @@ class _LiveBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
+        color: AppColors.blue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.blue, width: AppDimens.borderWidth),
       ),
@@ -322,12 +326,6 @@ class _AttendanceAction extends StatelessWidget {
             height: AppDimens.buttonHeight,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
-              border: enabled
-                  ? null
-                  : Border.all(
-                      color: AppColors.border,
-                      width: AppDimens.borderWidth,
-                    ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
