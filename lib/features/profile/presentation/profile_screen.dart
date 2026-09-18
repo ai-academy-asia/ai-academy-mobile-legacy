@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/current_user_repository.dart';
+import '../../auth/presentation/reset_password_screen.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
 
@@ -21,13 +22,21 @@ import 'profile_strings.dart';
 /// [AppButton] for the one action on screen, and the same [AppBottomNav]
 /// `CohortListScreen` already carries.
 ///
-/// **Every row but the header is UI only.** E-Contract, Certificate,
-/// Transaction history, edit profile, Change password, Help center, Term of
+/// **Every row but the header and Change password is UI only.** E-Contract,
+/// Certificate, Transaction history, edit profile, Help center, Term of
 /// Service and Privacy Policy have no destination yet, and the language,
 /// light-mode and notification controls hold local state that nothing else
 /// reads — there is no locale mechanism, no dark palette and no
 /// notification-preference endpoint in the app to hand them to. Each is a
 /// separate issue; this one is the layout.
+///
+/// Change password pushes [ResetPasswordScreen] rather than a screen of its
+/// own: that screen already is this flow (three fields, [PasswordPolicy]
+/// validation, `POST /auth/change-password` through the same
+/// `PasswordRepository`, the same loading/error handling) — it only reaches
+/// it from the login flow's forgotten-password entry today. Its default
+/// [ResetPasswordScreen.onCompleted] (pop, with a success snackbar) already
+/// lands back here, since this row pushes it rather than replacing the route.
 ///
 /// The header's name loads from `GET /auth/me` through [ProfileController],
 /// the same way `CohortListScreen` loads `EnrolledCohortsController` —
@@ -149,8 +158,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           ListenableBuilder(
             listenable: _profile,
-            builder: (context, _) =>
-                _Header(name: _profile.user?.displayName ?? ProfileStrings.name),
+            builder: (context, _) => _Header(
+              name: _profile.user?.displayName ?? ProfileStrings.name,
+            ),
           ),
           const _Divider(),
 
@@ -203,9 +213,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   semanticLabel: ProfileStrings.lightMode,
                 ),
               ),
-              const _SettingsRow(
+              _SettingsRow(
                 icon: ProfileIcons.changePassword,
                 label: ProfileStrings.changePassword,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ResetPasswordScreen(),
+                  ),
+                ),
               ),
             ],
           ),
@@ -410,7 +425,12 @@ class _SettingsGroup extends StatelessWidget {
 /// No chevron: the reference draws none on any row, including the ones that
 /// will eventually open a screen of their own.
 class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({required this.icon, required this.label, this.trailing});
+  const _SettingsRow({
+    required this.icon,
+    required this.label,
+    this.trailing,
+    this.onTap,
+  });
 
   /// Path to the row's exported SVG — see [ProfileIcons].
   final String icon;
@@ -420,9 +440,13 @@ class _SettingsRow extends StatelessWidget {
   /// The row's trailing control, where the row has one.
   final Widget? trailing;
 
+  /// Pushes the row's destination screen. `null` for every row with no
+  /// destination yet — see the class doc on [ProfileScreen].
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
+    final row = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: AppDimens.settingsRowHeight),
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -452,6 +476,15 @@ class _SettingsRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    final onTap = this.onTap;
+    if (onTap == null) return row;
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(onTap: onTap, child: row),
     );
   }
 }
