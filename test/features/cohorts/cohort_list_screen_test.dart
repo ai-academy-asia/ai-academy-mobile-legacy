@@ -1,15 +1,21 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
+import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/enrollments/presentation/enrollment_strings.dart';
+import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
@@ -27,6 +33,10 @@ Future<void> _loadFonts() async {
   await loader.load();
 }
 
+/// The "Бүртгүүлсэн" row `CohortCard` no longer draws. Kept here, not in
+/// `EnrollmentStrings`, only so the tests can assert it stays gone.
+const String _enrolledLabel = 'Бүртгүүлсэн';
+
 void main() {
   setUpAll(_loadFonts);
 
@@ -36,6 +46,7 @@ void main() {
     FakeEnrollmentRepository? enrollmentRepository,
     FakeEnrolledCohortsRepository? enrolledCohortsRepository,
     int? courseId,
+    bool enrolledOnly = false,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -54,43 +65,41 @@ void main() {
           enrolledCohortsRepository:
               enrolledCohortsRepository ?? FakeEnrolledCohortsRepository(),
           courseId: courseId,
+          enrolledOnly: enrolledOnly,
         ),
       ),
     );
   }
 
-  group('back button', () {
-    testWidgets('pops back to the screen that pushed Cohort List', (
+  group('header', () {
+    testWidgets('is the title alone — no back arrow on a top-level screen', (
       tester,
     ) async {
-      final navigatorKey = GlobalKey<NavigatorState>();
-      await tester.pumpWidget(
-        MaterialApp(
-          navigatorKey: navigatorKey,
-          theme: AppTheme.light,
-          home: const Scaffold(body: Text('previous screen')),
-        ),
-      );
-
-      navigatorKey.currentState!.push(
-        MaterialPageRoute(
-          builder: (_) => CohortListScreen(
-            repository: FakeCohortRepository(cohorts: [sampleCohort()]),
-            enrollmentRepository: FakeEnrollmentRepository(),
-            enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
-          ),
-        ),
-      );
+      await pumpList(tester, FakeCohortRepository(cohorts: [sampleCohort()]));
       await tester.pumpAndSettle();
 
       expect(find.text(CohortListStrings.heading), findsOneWidget);
-      expect(find.text('previous screen'), findsNothing);
+      expect(find.byIcon(AppIcons.caretLeft), findsNothing);
+    });
 
-      await tester.tap(find.byIcon(AppIcons.caretLeft));
+    testWidgets('leaves 16 between the header rule and the first card', (
+      tester,
+    ) async {
+      await pumpList(tester, FakeCohortRepository(cohorts: [sampleCohort()]));
       await tester.pumpAndSettle();
 
-      expect(find.text('previous screen'), findsOneWidget);
-      expect(find.text(CohortListStrings.heading), findsNothing);
+      final rule = find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.color == AppColors.border &&
+            widget.constraints?.maxHeight == AppDimens.borderWidth,
+      );
+      expect(rule, findsOneWidget);
+
+      final gap =
+          tester.getTopLeft(find.byType(CohortCard).first).dy -
+          tester.getBottomLeft(rule).dy;
+      expect(gap, AppDimens.screenPadding);
     });
   });
 
@@ -291,7 +300,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(
+        find.widgetWithText(AppButton, EnrollmentStrings.enroll),
+        findsNothing,
+      );
       expect(enrollments.requests, [1]);
     });
   });
@@ -416,7 +428,8 @@ void main() {
         enrollments.release();
         await tester.pumpAndSettle();
 
-        expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+        // No button, and no "enrolled" row taking its place.
+        expect(find.text(_enrolledLabel), findsNothing);
         expect(find.byType(AppButton), findsNothing);
       },
     );
@@ -452,7 +465,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text(EnrollmentStrings.rejected), findsNothing);
-        expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+        expect(enrollButton(), findsNothing);
         expect(enrollments.requests, [1, 1]);
       },
     );
@@ -489,7 +502,7 @@ void main() {
       await tester.tap(enrollButton().first);
       await tester.pumpAndSettle();
 
-      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(enrollButton(), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(CohortCard).at(1),
@@ -517,7 +530,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(cohorts.callCount, 2);
-      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
       expect(enrollButton(), findsNothing);
     });
   });
@@ -540,7 +552,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
       expect(enrollButton(), findsOneWidget);
       expect(
         find.descendant(
@@ -583,7 +594,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(enrollButton(), findsOneWidget);
-      expect(find.text(EnrollmentStrings.enrolled), findsNothing);
+      expect(find.text(_enrolledLabel), findsNothing);
     });
 
     testWidgets(
@@ -626,7 +637,7 @@ void main() {
 
       expect(enrolledCohorts.callCount, 2);
       expect(find.text(EnrollmentStrings.serverError), findsNothing);
-      expect(find.text(EnrollmentStrings.enrolled), findsOneWidget);
+      expect(enrollButton(), findsNothing);
     });
 
     testWidgets(
@@ -669,6 +680,347 @@ void main() {
 
       expect(cohorts.callCount, 2);
       expect(enrolledCohorts.callCount, 2);
+    });
+  });
+
+  group('the student\'s own cohorts', () {
+    Finder enrollButton() =>
+        find.widgetWithText(AppButton, EnrollmentStrings.enroll);
+
+    /// Three cohorts in the public list, the student enrolled in the active
+    /// and the finished one — `GET /me/cohorts` naming only their ids.
+    Future<void> pumpMine(
+      WidgetTester tester, {
+      List<EnrolledCohortSummary>? enrolled,
+      FakeEnrolledCohortsRepository? enrolledCohortsRepository,
+      FakeCohortRepository? repository,
+    }) => pumpList(
+      tester,
+      repository ??
+          FakeCohortRepository(
+            cohorts: [
+              sampleCohort(id: 1, name: 'Cohort 01', status: 'active'),
+              sampleCohort(id: 2, name: 'Cohort 02', status: 'open'),
+              sampleCohort(id: 3, name: 'Cohort 03', status: 'finished'),
+            ],
+          ),
+      enrolledCohortsRepository:
+          enrolledCohortsRepository ??
+          FakeEnrolledCohortsRepository(
+            enrolledCohorts:
+                enrolled ??
+                const [
+                  EnrolledCohortSummary(cohortId: 1),
+                  EnrolledCohortSummary(cohortId: 3),
+                ],
+          ),
+      enrolledOnly: true,
+    );
+
+    testWidgets('shows every cohort the student is enrolled in, active and '
+        'finished, and leaves the rest out', (tester) async {
+      await pumpMine(tester);
+      await tester.pumpAndSettle();
+
+      final rendered = tester
+          .widgetList<CohortCard>(find.byType(CohortCard))
+          .map((card) => card.cohort.id)
+          .toList();
+      expect(rendered, [1, 3]);
+      expect(find.text('Cohort 01'), findsOneWidget);
+      expect(find.text('Cohort 03'), findsOneWidget);
+      expect(find.text('Cohort 02'), findsNothing);
+      expect(find.text('Active'), findsOneWidget);
+      expect(find.text('Finished'), findsOneWidget);
+    });
+
+    testWidgets('shows the real programme name on each card', (tester) async {
+      await pumpMine(
+        tester,
+        repository: FakeCohortRepository(
+          cohorts: [
+            sampleCohort(
+              id: 1,
+              course: const CohortCourse(
+                id: 6,
+                slug: 'ai-engineer',
+                title: LocalizedText(en: 'AI Engineer', mn: 'AI инженер'),
+              ),
+            ),
+          ],
+        ),
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('AI инженер'), findsOneWidget);
+    });
+
+    testWidgets('draws each cohort\'s own progress from GET /me/cohorts', (
+      tester,
+    ) async {
+      await pumpMine(
+        tester,
+        enrolled: const [
+          EnrolledCohortSummary(cohortId: 1, progressPct: 40),
+          EnrolledCohortSummary(cohortId: 3, progressPct: 100),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CohortListStrings.percentComplete(40)), findsOneWidget);
+      expect(find.text(CohortListStrings.percentComplete(100)), findsOneWidget);
+
+      final bars = tester
+          .widgetList<LinearProgressIndicator>(
+            find.byType(LinearProgressIndicator),
+          )
+          .map((bar) => bar.value)
+          .toList();
+      expect(bars, [0.4, 1.0]);
+    });
+
+    testWidgets('rounds a fractional progress and clamps it to 0-100', (
+      tester,
+    ) async {
+      await pumpMine(
+        tester,
+        enrolled: const [
+          EnrolledCohortSummary(cohortId: 1, progressPct: 66.6),
+          EnrolledCohortSummary(cohortId: 3, progressPct: 140),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CohortListStrings.percentComplete(67)), findsOneWidget);
+      expect(find.text(CohortListStrings.percentComplete(100)), findsOneWidget);
+    });
+
+    testWidgets(
+      'an enrolled card with no progress is Figma\'s 148pt card, with no enrolled row',
+      (tester) async {
+        await pumpMine(
+          tester,
+          enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        );
+        await tester.pumpAndSettle();
+
+        final card = find.byType(CohortCard);
+        expect(card, findsOneWidget);
+        expect(find.text(_enrolledLabel), findsNothing);
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.byIcon(AppIcons.checkCircle),
+          ),
+          findsNothing,
+        );
+        // Figma's no-progress card: 361 Fill x 148 Hug.
+        expect(tester.getSize(card), const Size(361, 148));
+      },
+    );
+
+    testWidgets('a card with progress keeps its own, taller height', (
+      tester,
+    ) async {
+      await pumpMine(
+        tester,
+        enrolled: const [EnrolledCohortSummary(cohortId: 1, progressPct: 40)],
+      );
+      await tester.pumpAndSettle();
+
+      // Content-sized (badge row, caption, title, progress) — the 148 minimum
+      // does not stretch it.
+      final height = tester.getSize(find.byType(CohortCard)).height;
+      expect(height, greaterThan(148));
+      expect(height, closeTo(192, 1));
+    });
+
+    testWidgets('lays the card\'s parts out to Figma\'s measurements', (
+      tester,
+    ) async {
+      await pumpMine(
+        tester,
+        repository: FakeCohortRepository(
+          cohorts: [sampleCohort(id: 1, name: 'Cohort 01', status: 'finished')],
+        ),
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+      );
+      await tester.pumpAndSettle();
+
+      final card = tester.getRect(find.byType(CohortCard));
+      Rect inCard(Finder finder) => tester.getRect(finder).shift(-card.topLeft);
+      Finder boxAround(String text) => find
+          .ancestor(of: find.text(text), matching: find.byType(Container))
+          .first;
+
+      // 361 x 148, its content inset 16 either side: Figma's 329 Fill.
+      expect(card.size, const Size(361, 148));
+
+      // Adult badge 88.92 x 32, 24 below the top and 16 in from the edge; its
+      // icon 19.92 square.
+      final badge = inCard(boxAround('Adult'));
+      expect(badge.size.height, 32);
+      expect(badge.size.width, closeTo(88.92, 0.5));
+      expect(badge.topLeft, const Offset(16, 24));
+      final icon = inCard(find.byType(SvgPicture).at(1));
+      expect(icon.size.width, closeTo(19.92, 0.01));
+      expect(icon.size.height, closeTo(19.92, 0.01));
+
+      // Status pill 83 x 24, right-aligned to the same 16 inset, centred on
+      // the badge's row.
+      final pill = inCard(boxAround('Finished'));
+      expect(pill.size.height, 24);
+      expect(pill.size.width, closeTo(83, 0.5));
+      expect(pill.right, closeTo(345, 0.01));
+      expect(pill.center.dy, badge.center.dy);
+      expect(
+        tester.widget<Text>(find.text('Finished')).style,
+        isA<TextStyle>()
+            .having((style) => style.fontSize, 'fontSize', 12)
+            .having((style) => style.height, 'height', 16 / 12),
+      );
+
+      // Caption 18 high, 24 under the badge row; the title 26 high, flush
+      // under it.
+      final caption = inCard(find.text('Cohort 01'));
+      final title = inCard(find.text('Зуны бүтээлч кэмп'));
+      expect(caption.height, 18);
+      expect(title.height, 26);
+      expect(caption.top - badge.bottom, 24);
+      expect(title.top, caption.bottom);
+      expect(caption.left, 16);
+      expect(title.left, 16);
+    });
+
+    testWidgets('a cohort with no progress figure draws no progress row', (
+      tester,
+    ) async {
+      await pumpMine(
+        tester,
+        enrolled: const [
+          EnrolledCohortSummary(cohortId: 1, progressPct: 25),
+          EnrolledCohortSummary(cohortId: 3),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsNWidgets(2));
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.textContaining('% complete'), findsOneWidget);
+    });
+
+    testWidgets('offers no enroll action — every card is already enrolled', (
+      tester,
+    ) async {
+      await pumpMine(tester);
+      await tester.pumpAndSettle();
+
+      expect(enrollButton(), findsNothing);
+      // ...and no "enrolled" row where the button would have been.
+      expect(find.text(_enrolledLabel), findsNothing);
+    });
+
+    testWidgets('the card\'s background pattern is faint but not faded out', (
+      tester,
+    ) async {
+      await pumpMine(tester);
+      await tester.pumpAndSettle();
+
+      final opacity = tester.widget<Opacity>(
+        find
+            .descendant(
+              of: find.byType(CohortCard).first,
+              matching: find.byType(Opacity),
+            )
+            .first,
+      );
+      // Stronger than Home's 0.5, still nowhere near solid.
+      expect(opacity.opacity, greaterThan(0.5));
+      expect(opacity.opacity, lessThanOrEqualTo(0.85));
+    });
+
+    testWidgets('the public list is unchanged: no progress, every cohort', (
+      tester,
+    ) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(
+          cohorts: [sampleCohort(id: 1), sampleCohort(id: 2)],
+        ),
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+          enrolledCohorts: const [
+            EnrolledCohortSummary(cohortId: 1, progressPct: 40),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsNWidgets(2));
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
+    testWidgets('waits for both fetches before drawing anything', (
+      tester,
+    ) async {
+      final enrolled = FakeEnrolledCohortsRepository(
+        enrolledCohortIds: {1},
+        hold: true,
+      );
+      await pumpMine(tester, enrolledCohortsRepository: enrolled);
+      await tester.pump();
+
+      // The cohorts alone have answered; showing them now would list every
+      // cohort, not the student's.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CohortCard), findsNothing);
+
+      enrolled.release();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsOneWidget);
+    });
+
+    testWidgets('shows the student-specific empty message when enrolled in '
+        'nothing', (tester) async {
+      await pumpMine(tester, enrolled: const []);
+      await tester.pumpAndSettle();
+
+      expect(find.text(CohortListStrings.emptyMine), findsOneWidget);
+      expect(find.byType(CohortCard), findsNothing);
+    });
+
+    testWidgets('a failed GET /me/cohorts is an error with retry, not a '
+        'list of every cohort', (tester) async {
+      final enrolled = FakeEnrolledCohortsRepository(
+        enrolledCohortIds: {1},
+        failure: const EnrollmentFailure(EnrollmentFailureKind.network),
+      );
+      await pumpMine(tester, enrolledCohortsRepository: enrolled);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(EnrollmentStrings.messageFor(EnrollmentFailureKind.network)),
+        findsOneWidget,
+      );
+      expect(find.byType(CohortCard), findsNothing);
+
+      enrolled.failure = null;
+      await tester.tap(find.text(CohortListStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsOneWidget);
+    });
+
+    testWidgets('the courses tab is the current one and does nothing', (
+      tester,
+    ) async {
+      await pumpMine(tester);
+      await tester.pumpAndSettle();
+
+      final nav = tester.widget<AppBottomNav>(find.byType(AppBottomNav));
+      expect(nav.currentIndex, 1);
+      expect(nav.items[1].onTap, isNull);
     });
   });
 

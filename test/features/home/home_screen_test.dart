@@ -378,11 +378,15 @@ void main() {
       ]);
     });
 
-    testWidgets('the courses tab opens the catalog route', (tester) async {
+    testWidgets('the courses tab opens the student\'s cohort list directly', (
+      tester,
+    ) async {
       await pumpHome(
         tester,
         FakeHomeDashboardRepository(dashboard: scheduledDashboard()),
         routes: {
+          '/my-cohorts': (_) => const Scaffold(body: Text('my cohorts route')),
+          // Must not be reached: the draft catalog is out of this flow.
           '/courses': (_) => const Scaffold(body: Text('courses route')),
         },
       );
@@ -390,7 +394,8 @@ void main() {
       await tester.tap(find.text(HomeStrings.navCourses));
       await tester.pumpAndSettle();
 
-      expect(find.text('courses route'), findsOneWidget);
+      expect(find.text('my cohorts route'), findsOneWidget);
+      expect(find.text('courses route'), findsNothing);
     });
 
     testWidgets('the profile tab opens the profile route', (tester) async {

@@ -6,9 +6,6 @@ import '../domain/enrollment_failure.dart';
 abstract final class EnrollmentStrings {
   static const String enroll = 'Бүртгүүлэх';
 
-  /// Replaces the button once the API has created the enrollment.
-  static const String enrolled = 'Бүртгүүлсэн';
-
   static const String sessionExpired = 'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
   static const String rejected = 'Энэ ангид бүртгүүлэх боломжгүй байна';
 

@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
               label: HomeStrings.navCourses,
-              onTap: () => Navigator.of(context).pushNamed('/courses'),
+              onTap: () => Navigator.of(context).pushNamed('/my-cohorts'),
             ),
             AppBottomNavItem(
               icon: AppIcons.user,

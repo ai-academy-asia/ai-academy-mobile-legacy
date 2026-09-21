@@ -20,8 +20,10 @@ import 'cohort_list_controller.dart';
 import 'cohort_list_strings.dart';
 import 'widgets/cohort_card.dart';
 
-/// The public cohort list — every scheduled cohort across every course, or,
-/// when reached with a [courseId], only that course's cohorts.
+/// The cohort list — every scheduled cohort across every course, or, when
+/// reached with a [courseId], only that course's cohorts. With [enrolledOnly]
+/// it is the signed-in student's own list instead: `GET /cohorts` narrowed to
+/// the ids `GET /me/cohorts` names, each card carrying that entry's progress.
 ///
 /// Reuses `CourseCatalogScreen`'s system directly: the same page grey, the
 /// same [AppDimens.screenPadding] gutters and [AppDimens.maxContentWidth]
@@ -40,6 +42,7 @@ class CohortListScreen extends StatefulWidget {
     this.enrollmentRepository,
     this.enrolledCohortsRepository,
     this.courseId,
+    this.enrolledOnly = false,
   });
 
   /// Defaults to the real API. Injected in tests.
@@ -55,6 +58,12 @@ class CohortListScreen extends StatefulWidget {
   /// arguments. Null shows every cohort, unfiltered — reaching this screen
   /// with no course context still works.
   final int? courseId;
+
+  /// Shows only the cohorts the student is enrolled in, active or finished,
+  /// with their progress — the Хичээл tab's destination. Set, "already
+  /// enrolled" is no longer a nicety the list can do without: it decides what
+  /// the list *is*, so a failed `GET /me/cohorts` is an error, not a banner.
+  final bool enrolledOnly;
 
   @override
   State<CohortListScreen> createState() => _CohortListScreenState();
@@ -96,6 +105,16 @@ class _CohortListScreenState extends State<CohortListScreen> {
   Future<void> _refresh() =>
       Future.wait([_controller.load(), _enrolledCohorts.load()]);
 
+  /// What the list draws: every cohort the controller holds, or — for the
+  /// student's own list — only those `GET /me/cohorts` named. Keeps the
+  /// order `GET /cohorts` returned.
+  List<Cohort> get _visibleCohorts => widget.enrolledOnly
+      ? [
+          for (final cohort in _controller.cohorts)
+            if (_enrolledCohorts.isEnrolled(cohort.id)) cohort,
+        ]
+      : _controller.cohorts;
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -123,10 +142,12 @@ class _CohortListScreenState extends State<CohortListScreen> {
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
               label: CohortListStrings.navCourses,
-              // Cohort List is only ever reached by pushing from the course
-              // catalog, so returning to "Хичээл" is the same pop the header
-              // back button already performs.
-              onTap: () => Navigator.of(context).maybePop(),
+              // The student's own list *is* the Хичээл tab, so there is
+              // nowhere to go. Any other list was pushed from the course
+              // catalog, where returning to "Хичээл" is a plain pop.
+              onTap: widget.enrolledOnly
+                  ? null
+                  : () => Navigator.of(context).maybePop(),
             ),
             AppBottomNavItem(
               icon: AppIcons.user,
@@ -159,18 +180,11 @@ class _CohortListScreenState extends State<CohortListScreen> {
                         AppDimens.screenPadding,
                         AppDimens.headingToForm,
                       ),
-                      child: Row(
-                        children: [
-                          _BackButton(
-                            onTap: () => Navigator.of(context).maybePop(),
-                          ),
-                          Expanded(
-                            child: Text(
-                              CohortListStrings.heading,
-                              style: AppTypography.heading,
-                            ),
-                          ),
-                        ],
+                      // A top-level tab destination: the title stands alone, the
+                      // way Figma draws it, with no back control.
+                      child: Text(
+                        CohortListStrings.heading,
+                        style: AppTypography.heading,
                       ),
                     ),
                     // The header's own bottom rule — this screen had none
@@ -193,58 +207,42 @@ class _CohortListScreenState extends State<CohortListScreen> {
   }
 
   Widget _buildBody() {
+    final enrolledOnly = widget.enrolledOnly;
+
+    // The student's own list cannot say anything until both fetches have
+    // answered: the cohorts alone would show every cohort, the ids alone
+    // name nothing.
+    if (enrolledOnly && !_enrolledCohorts.hasLoadedOnce) {
+      return const _LoadingView();
+    }
     if (_controller.loading && _controller.cohorts.isEmpty) {
       return const _LoadingView();
     }
 
-    if (_controller.errorMessage != null) {
-      return _ErrorView(message: _controller.errorMessage!, onRetry: _refresh);
+    if (_controller.errorMessage case final message?) {
+      return _ErrorView(message: message, onRetry: _refresh);
+    }
+    if (enrolledOnly) {
+      if (_enrolledCohorts.errorMessage case final message?) {
+        return _ErrorView(message: message, onRetry: _refresh);
+      }
     }
 
-    if (_controller.isEmpty) {
-      return const _EmptyView();
+    final cohorts = _visibleCohorts;
+    if (enrolledOnly ? cohorts.isEmpty : _controller.isEmpty) {
+      return _EmptyView(
+        message: enrolledOnly
+            ? CohortListStrings.emptyMine
+            : CohortListStrings.empty,
+      );
     }
 
     return _CohortList(
-      cohorts: _controller.cohorts,
+      cohorts: cohorts,
       enrollment: _enrollment,
       enrolledCohorts: _enrolledCohorts,
       onRefresh: _refresh,
-    );
-  }
-}
-
-/// The screen's back action.
-///
-/// Nothing else in the app has an on-screen back control yet — `LoginScreen`
-/// has no back target, and `ResetPasswordScreen` only pops itself
-/// automatically once its submit succeeds. This is the first screen reached
-/// by a forward push (from `CourseCatalogScreen`) that needs a visible way
-/// back, so it repeats that same `Navigator.maybePop()` call behind a control
-/// rather than inventing a new navigation primitive — nothing about how the
-/// screen is pushed or popped changes.
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: CohortListStrings.back,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: const Padding(
-          padding: EdgeInsets.only(right: 12),
-          child: Icon(
-            AppIcons.caretLeft,
-            size: 20,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ),
+      showProgress: enrolledOnly,
     );
   }
 }
@@ -268,7 +266,9 @@ class _LoadingView extends StatelessWidget {
 }
 
 class _EmptyView extends StatelessWidget {
-  const _EmptyView();
+  const _EmptyView({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +278,7 @@ class _EmptyView extends StatelessWidget {
           horizontal: AppDimens.screenPadding,
         ),
         child: Text(
-          CohortListStrings.empty,
+          message,
           style: AppTypography.cardSupporting,
           textAlign: TextAlign.center,
         ),
@@ -327,7 +327,11 @@ class _CohortList extends StatelessWidget {
     required this.enrollment,
     required this.enrolledCohorts,
     required this.onRefresh,
+    required this.showProgress,
   });
+
+  /// Draws each card's `GET /me/cohorts` progress, when it has one.
+  final bool showProgress;
 
   final List<Cohort> cohorts;
   final EnrollmentController enrollment;
@@ -348,12 +352,9 @@ class _CohortList extends StatelessWidget {
             onRefresh: onRefresh,
             color: AppColors.blue,
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimens.screenPadding,
-                0,
-                AppDimens.screenPadding,
-                AppDimens.screenPadding,
-              ),
+              // The same 16 Home leaves between its header rule and its first
+              // card.
+              padding: const EdgeInsets.all(AppDimens.screenPadding),
               // Always scrollable, even when every card fits on screen, so
               // pull-to-refresh is reachable regardless of how many cohorts
               // there are.
@@ -370,6 +371,9 @@ class _CohortList extends StatelessWidget {
                   enrolling: enrollment.isEnrolling(cohort.id),
                   enrolled: enrolled,
                   enrollError: enrollment.errorFor(cohort.id),
+                  progressPct: showProgress
+                      ? enrolledCohorts.progressFor(cohort.id)
+                      : null,
                   onEnroll: () => enrollment.enroll(cohort.id),
                 );
               },

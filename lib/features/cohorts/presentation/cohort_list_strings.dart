@@ -4,14 +4,19 @@
 abstract final class CohortListStrings {
   static const String heading = 'Ангиуд';
 
-  /// Accessibility label for the header's back action.
-  static const String back = 'Буцах';
-
   static const String empty = 'Одоогоор товлогдсон анги алга байна';
+
+  /// Empty state for the student's own list — they are enrolled in nothing.
+  static const String emptyMine =
+      'Та одоогоор ямар ч ангид бүртгүүлээгүй байна';
+
+  /// Same wording Home's program card uses for the same figure.
+  static String percentComplete(int percent) => '$percent% complete';
 
   static const String retry = 'Дахин оролдох';
 
-  static const String networkError = 'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
+  static const String networkError =
+      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
   static const String serverError =
       'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
   static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
@@ -19,9 +24,11 @@ abstract final class CohortListStrings {
   /// Suffix after a seat count, e.g. "20 сул суудал".
   static const String seatsAvailableUnit = 'сул суудал';
 
-  static String dateRange(String startDate, String endDate) => '$startDate – $endDate';
+  static String dateRange(String startDate, String endDate) =>
+      '$startDate – $endDate';
 
-  static String timeRange(String startTime, String endTime) => '$startTime–$endTime';
+  static String timeRange(String startTime, String endTime) =>
+      '$startTime–$endTime';
 
   // --- Bottom navigation -------------------------------------------------
 
