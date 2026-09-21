@@ -135,6 +135,49 @@ void main() {
 
     await pending;
   });
+
+  test(
+    'holds the progress each entry carried, and none for one without',
+    () async {
+      final controller = EnrolledCohortsController(
+        repository: FakeEnrolledCohortsRepository(
+          enrolledCohorts: const [
+            EnrolledCohortSummary(cohortId: 1, progressPct: 42.5),
+            EnrolledCohortSummary(cohortId: 2),
+            EnrolledCohortSummary(cohortId: 3, progressPct: 0),
+          ],
+        ),
+      );
+
+      await controller.load();
+
+      expect(controller.enrolledCohortIds, {1, 2, 3});
+      expect(controller.progressFor(1), 42.5);
+      // No figure is null, not 0.
+      expect(controller.progressFor(2), isNull);
+      // A reported 0 is still a figure.
+      expect(controller.progressFor(3), 0);
+      // Not enrolled at all.
+      expect(controller.progressFor(9), isNull);
+    },
+  );
+
+  test('a failed reload forgets the progress it held', () async {
+    final repository = FakeEnrolledCohortsRepository(
+      enrolledCohorts: const [
+        EnrolledCohortSummary(cohortId: 1, progressPct: 80),
+      ],
+    );
+    final controller = EnrolledCohortsController(repository: repository);
+    await controller.load();
+    expect(controller.progressFor(1), 80);
+
+    repository.failure = const EnrollmentFailure(EnrollmentFailureKind.network);
+    await controller.load();
+
+    expect(controller.progressFor(1), isNull);
+    expect(controller.enrolledCohortIds, isEmpty);
+  });
 }
 
 /// A repository whose failure is not `EnrollmentFailure` at all, so the

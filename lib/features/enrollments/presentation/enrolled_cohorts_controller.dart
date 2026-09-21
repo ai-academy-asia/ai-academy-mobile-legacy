@@ -4,7 +4,8 @@ import '../domain/enrolled_cohorts_repository.dart';
 import '../domain/enrollment_failure.dart';
 import 'enrollment_strings.dart';
 
-/// Loads the signed-in student's already-enrolled cohort ids.
+/// Loads the signed-in student's already-enrolled cohort ids, and the progress
+/// each one's `GET /me/cohorts` entry carries.
 ///
 /// Same shape as `CohortListController`: a plain [ChangeNotifier], a
 /// `_disposed` guard, one fixed string per [EnrollmentFailureKind] (via
@@ -24,6 +25,7 @@ class EnrolledCohortsController extends ChangeNotifier {
   bool _loading = false;
   bool _hasLoadedOnce = false;
   Set<int> _enrolledCohortIds = const {};
+  Map<int, double> _progressByCohortId = const {};
   String? _errorMessage;
 
   bool get loading => _loading;
@@ -32,6 +34,11 @@ class EnrolledCohortsController extends ChangeNotifier {
   bool get hasLoadedOnce => _hasLoadedOnce;
 
   Set<int> get enrolledCohortIds => _enrolledCohortIds;
+
+  /// The progress percentage `GET /me/cohorts` reported for [cohortId], or
+  /// null when that entry carried none — or the cohort is not enrolled, or no
+  /// fetch has succeeded. Never zero-filled: no figure is not 0%.
+  double? progressFor(int cohortId) => _progressByCohortId[cohortId];
 
   /// Set only when the most recent fetch failed. Cleared as soon as another
   /// fetch starts.
@@ -53,12 +60,20 @@ class EnrolledCohortsController extends ChangeNotifier {
     _notify();
 
     try {
-      _enrolledCohortIds = await _repository.getEnrolledCohortIds();
+      // The one request that yields both the ids and the progress figures,
+      // rather than `getEnrolledCohortIds` plus a second call.
+      final summaries = await _repository.getEnrolledCohorts();
+      _enrolledCohortIds = {for (final entry in summaries) entry.cohortId};
+      _progressByCohortId = {
+        for (final entry in summaries) entry.cohortId: ?entry.progressPct,
+      };
     } on EnrollmentFailure catch (failure) {
       _enrolledCohortIds = const {};
+      _progressByCohortId = const {};
       _errorMessage = EnrollmentStrings.messageFor(failure.kind);
     } catch (_) {
       _enrolledCohortIds = const {};
+      _progressByCohortId = const {};
       _errorMessage = EnrollmentStrings.unexpectedError;
     } finally {
       _loading = false;

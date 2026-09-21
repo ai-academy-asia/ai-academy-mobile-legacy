@@ -35,10 +35,11 @@ class AiAcademyApp extends StatelessWidget {
         '/reset-password': (_) => const ResetPasswordScreen(),
         // Sign-in lands here — `/home` is the Нүүр tab, the dashboard.
         '/home': (_) => const HomeScreen(),
-        // The course catalog, which `/home` stood in for until the dashboard
-        // existed. Reached from Home's Хичээл tab; `CohortListScreen` is
-        // still pushed from it, so popping back from a cohort list still
-        // lands on the catalog exactly as before.
+        // The student's own cohorts — Home's Хичээл tab opens this directly.
+        '/my-cohorts': (_) => const CohortListScreen(enrolledOnly: true),
+        // The draft course catalog. No longer reached from Home's Хичээл tab
+        // (or anywhere else); still registered, and still pushes `/cohorts`
+        // with a course id, until it is deleted.
         '/courses': (_) => const CourseCatalogScreen(),
         // Arguments are the tapped course's id (an int), set by
         // `CourseCatalogScreen`'s navigation — null for any other caller,
