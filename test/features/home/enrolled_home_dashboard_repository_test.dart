@@ -1,7 +1,8 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
+import 'package:aia_mobile/features/auth/domain/current_user.dart';
+import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
-import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/home/data/enrolled_home_dashboard_repository.dart';
@@ -9,11 +10,11 @@ import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../cohorts/fake_cohort_repository.dart';
-import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
+import '../profile/fake_current_user_repository.dart';
 
 /// Exercises how [EnrolledHomeDashboardRepository] maps `GET /me/cohorts`,
-/// `GET /cohorts` and `GET /courses` — all three already confirmed and
+/// `GET /cohorts` and `GET /auth/me` — all three already confirmed and
 /// already tested against the wire in their own suites — onto a
 /// [HomeDashboard]. Nothing here talks to the network: each dependency is a
 /// fake, so this is purely about the composition.
@@ -21,14 +22,35 @@ void main() {
   EnrolledHomeDashboardRepository repository({
     required List<EnrolledCohortSummary> enrolled,
     required List<Cohort> cohorts,
-    List<Course> courses = const [],
+    FakeCurrentUserRepository? currentUser,
     DateTime? now,
   }) => EnrolledHomeDashboardRepository(
     enrolledCohorts: FakeEnrolledCohortsRepository(enrolledCohorts: enrolled),
     cohorts: FakeCohortRepository(cohorts: cohorts),
-    courses: FakeCourseRepository(courses: courses),
+    currentUser: currentUser ?? FakeCurrentUserRepository(),
     clock: () => now ?? DateTime(2026, 8, 10, 9),
   );
+
+  /// The `/auth/me` account with only its `ui_mode` chosen.
+  FakeCurrentUserRepository accountWithUiMode(String uiMode) =>
+      FakeCurrentUserRepository(
+        user: CurrentUser(
+          id: 9,
+          actorId: 5,
+          actorType: 'student',
+          email: 'student@example.mn',
+          role: 'student',
+          isActive: true,
+          mustChangePassword: false,
+          profile: UserProfile(
+            id: 5,
+            firstName: 'Test',
+            lastName: 'Student',
+            phone: '99123456',
+            uiMode: uiMode,
+          ),
+        ),
+      );
 
   group('no enrollment', () {
     test(
@@ -136,7 +158,7 @@ void main() {
     );
   });
 
-  group('course title and level', () {
+  group('course title', () {
     test('prefers Mongolian, then English, then the cohort name', () async {
       final dashboard = await repository(
         enrolled: const [EnrolledCohortSummary(cohortId: 1)],
@@ -154,48 +176,89 @@ void main() {
 
       expect(dashboard.program!.courseTitle, 'АЙ инженер');
     });
+  });
 
-    test('reads the level from the matching course in the catalog', () async {
+  group('ui mode', () {
+    List<EnrolledCohortSummary> enrolledInOne() => const [
+      EnrolledCohortSummary(cohortId: 1),
+    ];
+
+    test('reads it from the profile GET /auth/me returns', () async {
       final dashboard = await repository(
-        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
-        cohorts: [sampleCohort(id: 1, courseId: 6)],
-        courses: [sampleCourse(id: 6, level: 'adult')],
+        enrolled: enrolledInOne(),
+        cohorts: [sampleCohort(id: 1)],
+        currentUser: accountWithUiMode('kids'),
       ).getDashboard();
 
-      expect(dashboard.program!.level, 'adult');
+      expect(dashboard.program!.uiMode, 'kids');
+    });
+
+    test('passes any value through as the API sent it', () async {
+      final dashboard = await repository(
+        enrolled: enrolledInOne(),
+        cohorts: [sampleCohort(id: 1)],
+        currentUser: accountWithUiMode('teen'),
+      ).getDashboard();
+
+      expect(dashboard.program!.uiMode, 'teen');
+    });
+
+    test('does not come from the course or the cohort', () async {
+      // Two students on the same cohort get their own account's mode.
+      final cohorts = [sampleCohort(id: 1, courseId: 6)];
+      final first = await repository(
+        enrolled: enrolledInOne(),
+        cohorts: cohorts,
+        currentUser: accountWithUiMode('kids'),
+      ).getDashboard();
+      final second = await repository(
+        enrolled: enrolledInOne(),
+        cohorts: cohorts,
+        currentUser: accountWithUiMode('adult'),
+      ).getDashboard();
+
+      expect(first.program!.uiMode, 'kids');
+      expect(second.program!.uiMode, 'adult');
+    });
+
+    test('an empty ui_mode reads as none', () async {
+      final dashboard = await repository(
+        enrolled: enrolledInOne(),
+        cohorts: [sampleCohort(id: 1)],
+        currentUser: accountWithUiMode(''),
+      ).getDashboard();
+
+      expect(dashboard.program!.uiMode, isNull);
     });
 
     test(
-      'leaves the level null when the catalog has no matching course',
+      'a failed /auth/me leaves the ui mode null, not the whole dashboard',
       () async {
         final dashboard = await repository(
-          enrolled: const [EnrolledCohortSummary(cohortId: 1)],
-          cohorts: [sampleCohort(id: 1, courseId: 6)],
-          courses: [sampleCourse(id: 999, level: 'adult')],
-        ).getDashboard();
-
-        expect(dashboard.program!.level, isNull);
-      },
-    );
-
-    test(
-      'a failed catalog fetch leaves the level null, not the whole dashboard',
-      () async {
-        final dashboard = await EnrolledHomeDashboardRepository(
-          enrolledCohorts: FakeEnrolledCohortsRepository(
-            enrolledCohorts: const [EnrolledCohortSummary(cohortId: 1)],
+          enrolled: enrolledInOne(),
+          cohorts: [sampleCohort(id: 1, name: 'Cohort 01')],
+          currentUser: FakeCurrentUserRepository(
+            failure: const CurrentUserFailure(CurrentUserFailureKind.server),
           ),
-          cohorts: FakeCohortRepository(cohorts: [sampleCohort(id: 1)]),
-          courses: FakeCourseRepository(
-            failure: const ApiFailure(ApiFailureKind.server),
-          ),
-          clock: () => DateTime(2026, 8, 10, 9),
         ).getDashboard();
 
         expect(dashboard.program, isNotNull);
-        expect(dashboard.program!.level, isNull);
+        expect(dashboard.program!.cohortName, 'Cohort 01');
+        expect(dashboard.program!.uiMode, isNull);
       },
     );
+
+    test('is not requested when the student is enrolled nowhere', () async {
+      final currentUser = FakeCurrentUserRepository();
+      final dashboard = await repository(
+        enrolled: const [],
+        cohorts: [sampleCohort(id: 1)],
+        currentUser: currentUser,
+      ).getDashboard();
+
+      expect(dashboard.isEmpty, isTrue);
+      expect(currentUser.callCount, 0);
+    });
   });
 
   group('next lesson', () {

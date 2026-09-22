@@ -75,8 +75,8 @@ class ProgramCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (program.level case final level?)
-                            _TrackBadge(level)
+                          if (program.uiMode case final uiMode?)
+                            _TrackBadge(uiMode)
                           else
                             const SizedBox.shrink(),
                           _StatusPill(program.status),
@@ -216,17 +216,19 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-/// The course's track, as the outlined badge in the card's top-left. Same
-/// shape `CohortCard` draws, but from the catalog's `level` rather than
-/// assuming one — the cohort model carries no level of its own.
+/// The student's UI mode, as the outlined badge in the card's top-left. Same
+/// shape `CohortCard` draws, but labelled from the account's `ui_mode` rather
+/// than assuming one. Only the glyph branches on the value: the younger modes
+/// get the junior mark, anything else the adult one.
 class _TrackBadge extends StatelessWidget {
-  const _TrackBadge(this.level);
+  const _TrackBadge(this.uiMode);
 
-  final String level;
+  final String uiMode;
 
   @override
   Widget build(BuildContext context) {
-    final isJunior = level.toLowerCase() == 'junior';
+    final mode = uiMode.toLowerCase();
+    final isJunior = mode == 'junior' || mode == 'kids';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -246,7 +248,7 @@ class _TrackBadge extends StatelessWidget {
             height: 14,
           ),
           const SizedBox(width: 4),
-          Text(_capitalize(level), style: AppTypography.catalogTrackLabel),
+          Text(_capitalize(uiMode), style: AppTypography.catalogTrackLabel),
         ],
       ),
     );
@@ -361,6 +363,6 @@ class _AttendanceAction extends StatelessWidget {
 }
 
 /// `"active"` -> `"Active"`. Values are shown verbatim otherwise — status and
-/// level have no confirmed closed set, so this only tidies capitalisation.
+/// UI mode have no confirmed closed set, so this only tidies capitalisation.
 String _capitalize(String value) =>
     value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';

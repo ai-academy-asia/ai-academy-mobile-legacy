@@ -1,10 +1,9 @@
 import '../../../core/api/api_failure.dart';
+import '../../auth/data/http_current_user_repository.dart';
+import '../../auth/domain/current_user_repository.dart';
 import '../../cohorts/data/http_cohort_repository.dart';
 import '../../cohorts/domain/cohort.dart';
 import '../../cohorts/domain/cohort_repository.dart';
-import '../../courses/data/http_course_repository.dart';
-import '../../courses/domain/course.dart';
-import '../../courses/domain/course_repository.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrollment_failure.dart';
@@ -25,8 +24,9 @@ import '../domain/lesson_schedule.dart';
 ///     cohort.
 ///   * `GET /cohorts` — the cohort itself: its name, course, status and the
 ///     schedule [nextLessonFor] derives the next lesson from.
-///   * `GET /courses` — only for the course's `level`, which drives the track
-///     badge. `CohortCourse` carries no level field.
+///   * `GET /auth/me` — only for `profile.ui_mode`, which drives the track
+///     badge. Nothing on a cohort or its course says which mode the student
+///     uses; the account does.
 ///
 /// ## What is deliberately missing
 ///
@@ -52,16 +52,16 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   EnrolledHomeDashboardRepository({
     EnrolledCohortsRepository? enrolledCohorts,
     CohortRepository? cohorts,
-    CourseRepository? courses,
+    CurrentUserRepository? currentUser,
     DateTime Function()? clock,
   }) : _enrolledCohorts = enrolledCohorts ?? HttpEnrolledCohortsRepository(),
        _cohorts = cohorts ?? HttpCohortRepository(),
-       _courses = courses ?? HttpCourseRepository(),
+       _currentUser = currentUser ?? HttpCurrentUserRepository(),
        _clock = clock ?? DateTime.now;
 
   final EnrolledCohortsRepository _enrolledCohorts;
   final CohortRepository _cohorts;
-  final CourseRepository _courses;
+  final CurrentUserRepository _currentUser;
   final DateTime Function() _clock;
 
   @override
@@ -102,7 +102,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
             _preferMongolian(cohort.course.title.mn, cohort.course.title.en) ??
             cohort.name,
         status: cohort.status,
-        level: await _levelOf(cohort.courseId),
+        uiMode: await _uiMode(),
         // Null exactly when the entry named this cohort with no
         // `progress_pct` — the module count still has no source, so
         // `ModuleProgress.completed`/`.total` stay unset either way; see the
@@ -136,25 +136,19 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     return enrolled.first;
   }
 
-  /// The course's `level`, for the track badge.
+  /// The account's `ui_mode`, for the track badge.
   ///
   /// Its own request, and its own failure handling: the badge is decoration,
-  /// so a catalog that will not load leaves the badge off rather than taking
-  /// the whole dashboard down with it when the cohort itself loaded fine.
-  Future<String?> _levelOf(int courseId) async {
-    final List<Course> courses;
+  /// so an account fetch that fails — whatever the reason — leaves the badge
+  /// off rather than taking the whole dashboard down with it when the cohort
+  /// itself loaded fine. An empty `ui_mode` reads the same as none.
+  Future<String?> _uiMode() async {
     try {
-      courses = await _courses.getCourses();
-    } on ApiFailure {
-      return null;
+      final uiMode = (await _currentUser.getCurrentUser()).profile.uiMode;
+      return uiMode.isEmpty ? null : uiMode;
     } catch (_) {
       return null;
     }
-
-    for (final course in courses) {
-      if (course.id == courseId) return course.level;
-    }
-    return null;
   }
 }
 
