@@ -11,6 +11,7 @@ import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_home_dashboard_repository.dart';
@@ -91,6 +92,68 @@ void main() {
       expect(find.text('AI Engineer'), findsOneWidget);
       expect(find.text('Active'), findsOneWidget);
       expect(find.text('Adult'), findsOneWidget);
+    });
+
+    testWidgets(
+      'labels the badge with the account\'s ui mode, not a fixed one',
+      (tester) async {
+        await pumpHome(
+          tester,
+          FakeHomeDashboardRepository(
+            dashboard: HomeDashboard(program: sampleProgram(uiMode: 'kids')),
+          ),
+        );
+
+        expect(find.text('Kids'), findsOneWidget);
+        expect(find.text('Adult'), findsNothing);
+      },
+    );
+
+    Finder glyph(String asset) => find.byWidgetPredicate(
+      (widget) =>
+          widget is SvgPicture &&
+          widget.bytesLoader is SvgAssetLoader &&
+          (widget.bytesLoader as SvgAssetLoader).assetName == asset,
+    );
+
+    testWidgets('draws the junior mark for a younger ui mode', (tester) async {
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(program: sampleProgram(uiMode: 'kids')),
+        ),
+      );
+
+      expect(glyph(HomeIcons.junior), findsOneWidget);
+      expect(glyph(HomeIcons.adult), findsNothing);
+    });
+
+    testWidgets('draws the adult mark for any other ui mode', (tester) async {
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(program: sampleProgram(uiMode: 'adult')),
+        ),
+      );
+
+      expect(glyph(HomeIcons.adult), findsOneWidget);
+      expect(glyph(HomeIcons.junior), findsNothing);
+    });
+
+    testWidgets('leaves the badge off when there is no ui mode', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(program: sampleProgram(uiMode: null)),
+        ),
+      );
+
+      expect(find.byType(ProgramCard), findsOneWidget);
+      expect(find.text('Adult'), findsNothing);
+      expect(find.text('Kids'), findsNothing);
+      expect(find.text('AI Engineer'), findsOneWidget);
     });
 
     testWidgets('shows module progress and fills the bar to match', (

@@ -59,7 +59,7 @@ EnrolledProgram sampleProgram({
   String cohortName = 'Cohort 01',
   String courseTitle = 'AI Engineer',
   String status = 'active',
-  String? level = 'adult',
+  String? uiMode = 'adult',
   ModuleProgress? progress,
   NextLesson? nextLesson,
 }) => EnrolledProgram(
@@ -67,7 +67,7 @@ EnrolledProgram sampleProgram({
   cohortName: cohortName,
   courseTitle: courseTitle,
   status: status,
-  level: level,
+  uiMode: uiMode,
   progress: progress,
   nextLesson: nextLesson,
 );

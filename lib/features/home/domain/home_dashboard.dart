@@ -46,7 +46,7 @@ class EnrolledProgram {
     required this.cohortName,
     required this.courseTitle,
     required this.status,
-    this.level,
+    this.uiMode,
     this.progress,
     this.nextLesson,
   });
@@ -64,9 +64,11 @@ class EnrolledProgram {
   /// never translated — `Cohort.status` has no confirmed closed set.
   final String status;
 
-  /// "adult" / "junior", from the course catalog. Null when the catalog did
-  /// not name one, which leaves the track badge off rather than guessing.
-  final String? level;
+  /// The signed-in user's `profile.ui_mode` from `GET /auth/me` — e.g.
+  /// "kids". Drawn as the track badge, capitalised but never mapped to a
+  /// fixed set: the API confirms only one value. Null when `/auth/me` did not
+  /// answer, which leaves the badge off rather than guessing.
+  final String? uiMode;
 
   final ModuleProgress? progress;
   final NextLesson? nextLesson;
