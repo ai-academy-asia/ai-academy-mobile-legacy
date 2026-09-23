@@ -71,6 +71,7 @@ class CohortListController extends ChangeNotifier {
   static String _messageFor(ApiFailureKind kind) => switch (kind) {
     ApiFailureKind.network => CohortListStrings.networkError,
     ApiFailureKind.server => CohortListStrings.serverError,
+    ApiFailureKind.notFound => CohortListStrings.unexpectedError,
     ApiFailureKind.unexpected => CohortListStrings.unexpectedError,
   };
 

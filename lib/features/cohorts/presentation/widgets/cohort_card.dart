@@ -73,9 +73,14 @@ class CohortCard extends StatelessWidget {
     this.enrolled = false,
     this.enrollError,
     this.progressPct,
+    this.onTap,
   });
 
   final Cohort cohort;
+
+  /// Opens the cohort's course in `CourseDetailScreen`. Null leaves the card
+  /// inert, same as [onEnroll].
+  final VoidCallback? onTap;
 
   /// How far through the course the student is, as `GET /me/cohorts` reports
   /// it. Null draws no progress row at all — a missing figure is not 0%, and
@@ -98,101 +103,111 @@ class CohortCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: _minHeight),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        border: Border.all(
-          color: AppColors.border,
-          width: AppDimens.borderWidth,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        child: Stack(
-          children: [
-            // The reference's decorative shapes, from the exact asset rather
-            // than redrawn — kept subtle and behind the content via low
-            // opacity, painted before anything else in the stack. The asset
-            // is already a 12% tint, so this only lifts it to a faint blue
-            // wash; Home's program card keeps its own 0.5.
-            Positioned.fill(
-              child: Opacity(
-                opacity: _patternOpacity,
-                child: SvgPicture.asset(
-                  'assets/icons/cohort_background.svg',
-                  fit: BoxFit.cover,
-                ),
-              ),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: _minHeight),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+            border: Border.all(
+              color: AppColors.border,
+              width: AppDimens.borderWidth,
             ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimens.cardPadding - AppDimens.borderWidth,
-                vertical: _verticalPadding - AppDimens.borderWidth,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [const _AdultBadge(), _StatusPill(cohort.status)],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+            child: Stack(
+              children: [
+                // The reference's decorative shapes, from the exact asset rather
+                // than redrawn — kept subtle and behind the content via low
+                // opacity, painted before anything else in the stack. The asset
+                // is already a 12% tint, so this only lifts it to a faint blue
+                // wash; Home's program card keeps its own 0.5.
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: _patternOpacity,
+                    child: SvgPicture.asset(
+                      'assets/icons/cohort_background.svg',
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  const SizedBox(height: _rowToCaptionGap),
+                ),
 
-                  if (_preferMongolian(
-                        cohort.course.title.mn,
-                        cohort.course.title.en,
-                      )
-                      case final courseTitle?) ...[
-                    // A small caption above the bold heading: [cohort.name] is
-                    // the specific instance (e.g. "Corporate Leaders 2026-08"),
-                    // [courseTitle] the programme it belongs to — matching the
-                    // reference's "Cohort 0N" caption over the bold title.
-                    Text(
-                      cohort.name,
-                      style: _captionStyle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    // The caption's and title's line boxes sit flush in Figma.
-                    Text(
-                      courseTitle,
-                      style: _titleStyle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ] else
-                    // No course title to caption: falls back to the single
-                    // heading this card always showed, rather than leaving the
-                    // card with no bold line at all.
-                    Text(cohort.name, style: _titleStyle, maxLines: 2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.cardPadding - AppDimens.borderWidth,
+                    vertical: _verticalPadding - AppDimens.borderWidth,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const _AdultBadge(),
+                          _StatusPill(cohort.status),
+                        ],
+                      ),
+                      const SizedBox(height: _rowToCaptionGap),
 
-                  if (progressPct case final progressPct?) ...[
-                    const SizedBox(height: 12),
-                    _Progress(
-                      percent: progressPct.round().clamp(0, 100).toInt(),
-                    ),
-                  ],
+                      if (_preferMongolian(
+                            cohort.course.title.mn,
+                            cohort.course.title.en,
+                          )
+                          case final courseTitle?) ...[
+                        // A small caption above the bold heading: [cohort.name] is
+                        // the specific instance (e.g. "Corporate Leaders 2026-08"),
+                        // [courseTitle] the programme it belongs to — matching the
+                        // reference's "Cohort 0N" caption over the bold title.
+                        Text(
+                          cohort.name,
+                          style: _captionStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // The caption's and title's line boxes sit flush in Figma.
+                        Text(
+                          courseTitle,
+                          style: _titleStyle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ] else
+                        // No course title to caption: falls back to the single
+                        // heading this card always showed, rather than leaving the
+                        // card with no bold line at all.
+                        Text(cohort.name, style: _titleStyle, maxLines: 2),
 
-                  if (!enrolled && onEnroll != null) ...[
-                    const SizedBox(height: 12),
-                    AppButton(
-                      label: EnrollmentStrings.enroll,
-                      loading: enrolling,
-                      onPressed: onEnroll,
-                    ),
-                  ],
+                      if (progressPct case final progressPct?) ...[
+                        const SizedBox(height: 12),
+                        _Progress(
+                          percent: progressPct.round().clamp(0, 100).toInt(),
+                        ),
+                      ],
 
-                  if (enrollError case final message?) ...[
-                    const SizedBox(height: 8),
-                    Text(message, style: AppTypography.fieldError),
-                  ],
-                ],
-              ),
+                      if (!enrolled && onEnroll != null) ...[
+                        const SizedBox(height: 12),
+                        AppButton(
+                          label: EnrollmentStrings.enroll,
+                          loading: enrolling,
+                          onPressed: onEnroll,
+                        ),
+                      ],
+
+                      if (enrollError case final message?) ...[
+                        const SizedBox(height: 8),
+                        Text(message, style: AppTypography.fieldError),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
