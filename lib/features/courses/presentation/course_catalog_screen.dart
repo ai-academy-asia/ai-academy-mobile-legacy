@@ -218,11 +218,10 @@ class _CourseList extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) => CourseCard(
           course: courses[index],
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => CourseDetailScreen(slug: courses[index].slug),
-            ),
-          ),
+          // Carries the tapped course's id as the route's arguments, so
+          // Cohort List can filter to only this course's cohorts.
+          onTap: () =>
+              Navigator.of(context).pushNamed('/cohorts', arguments: courses[index].id),
         ),
       ),
     );

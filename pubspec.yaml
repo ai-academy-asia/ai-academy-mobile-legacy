@@ -38,6 +38,10 @@ dependencies:
   # Talks to https://api.ai-academy.asia/auth/login.
   http: ^1.6.0
 
+  # Renders the Figma-exported track logos (assets/icons/adult.svg,
+  # assets/icons/junior.svg) on the course catalog card.
+  flutter_svg: ^2.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,6 +66,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/icons/
 
   fonts:
     # Manrope is the design's typeface. Bundled rather than fetched at runtime

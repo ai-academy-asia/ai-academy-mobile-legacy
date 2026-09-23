@@ -3,13 +3,22 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
+import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
+import 'features/home/presentation/home_screen.dart';
+import 'features/profile/presentation/profile_screen.dart';
+import 'features/splash/presentation/splash_screen.dart';
 
 /// The application root.
 ///
 /// A named-route table — the app has a handful of screens, which does not yet
 /// justify a routing package. When the navigation grows deep links or nested
 /// shells, this is the single place that changes.
+///
+/// `/` is [SplashScreen] rather than [LoginScreen] directly: it runs its own
+/// short animation, then waits for a tap before it hands off to `/login`
+/// (see [SplashScreen.nextRoute]) — nothing else in the app should ever
+/// navigate back to `/`.
 class AiAcademyApp extends StatelessWidget {
   const AiAcademyApp({super.key});
 
@@ -21,9 +30,25 @@ class AiAcademyApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: '/',
       routes: {
-        '/': (_) => const LoginScreen(),
+        '/': (_) => const SplashScreen(),
+        '/login': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
-        '/home': (_) => const CourseCatalogScreen(),
+        // Sign-in lands here — `/home` is the Нүүр tab, the dashboard.
+        '/home': (_) => const HomeScreen(),
+        // The student's own cohorts — Home's Хичээл tab opens this directly.
+        '/my-cohorts': (_) => const CohortListScreen(enrolledOnly: true),
+        // The draft course catalog. No longer reached from Home's Хичээл tab
+        // (or anywhere else); still registered, and still pushes `/cohorts`
+        // with a course id, until it is deleted.
+        '/courses': (_) => const CourseCatalogScreen(),
+        // Arguments are the tapped course's id (an int), set by
+        // `CourseCatalogScreen`'s navigation — null for any other caller,
+        // which shows every cohort unfiltered.
+        '/cohorts': (context) {
+          final courseId = ModalRoute.of(context)?.settings.arguments;
+          return CohortListScreen(courseId: courseId is int ? courseId : null);
+        },
+        '/profile': (_) => const ProfileScreen(),
       },
     );
   }

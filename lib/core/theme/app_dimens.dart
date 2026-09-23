@@ -127,4 +127,66 @@ abstract final class AppDimens {
 
   /// Border of a focused or errored field, which the reference draws heavier.
   static const double borderWidthEmphasis = 1.5;
+
+  // --- Bottom navigation -----------------------------------------------
+
+  /// Height of the app-wide bottom navigation bar's tap area, excluding the
+  /// device's own bottom safe-area inset. A typical tab-bar height rather
+  /// than one read off a Figma node — no frame for it has been measured yet.
+  static const double bottomNavHeight = 56;
+
+  // --- Profile -------------------------------------------------------------
+  //
+  // Sized by eye against the Figma render, the same way the type scale was —
+  // no node geometry was available for this frame.
+
+  /// The profile header's avatar circle.
+  static const double avatarSize = 44;
+
+  /// The circular edit control beside the avatar. Smaller than the avatar
+  /// it sits opposite, as the reference draws it.
+  static const double avatarEditSize = 36;
+
+  /// One settings row's minimum height, so rows with a toggle and rows with
+  /// only a label stay the same height. The reference runs compact; 40 is as
+  /// tight as this goes while each row is still a comfortable tap target.
+  static const double settingsRowHeight = 40;
+
+  /// The log out button is inset further than the rows beside it, which sit
+  /// on the screen's usual [screenPadding] gutter.
+  static const double logOutInset = 24;
+
+  /// Leading icon in a settings row. Matches the exported SVGs' own 20x20
+  /// viewBox, so they render 1:1 rather than scaled.
+  static const double settingsRowIconSize = 20;
+
+  // --- Home dashboard --------------------------------------------------------
+  //
+  // Sized by eye against the Figma Home frames, the same way the Profile
+  // values were — no node geometry was available for them either.
+
+  /// Corner radius of every card on Home.
+  ///
+  /// Rounder than [cardRadius], which the rest of the app uses: the Home
+  /// frames draw a visibly larger corner on the cohort card and both
+  /// statistic cards, and matching it is the point of the screen.
+  static const double homeCardRadius = 16;
+
+  /// The module progress bar. A thin rule under the percentage line, not a
+  /// thick headline bar — the reference draws it closer to
+  /// [strengthBarHeight] (a password meter) than to a first-class element.
+  static const double progressBarHeight = 6;
+
+  /// The rounded square holding a statistic card's icon. Sits visibly under
+  /// [buttonHeight] in the reference, not a near match to it.
+  static const double statIconTile = 36;
+
+  /// The circular notification control in the Home header. Matches
+  /// [avatarSize], the app's other 44pt circle, rather than inventing a size.
+  static const double headerActionSize = avatarSize;
+
+  /// Height of the brand lockup in the Home header. A touch under
+  /// [avatarEditSize] — the reference's header reads more compact than the
+  /// rest of the app's 36–44pt marks.
+  static const double headerLogoHeight = 32;
 }

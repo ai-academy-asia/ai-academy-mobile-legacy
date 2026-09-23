@@ -31,6 +31,7 @@ void main() {
     WidgetTester tester,
     FakeCourseRepository repository, {
     Size size = const Size(393, 852),
+    Map<String, WidgetBuilder> routes = const {},
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -40,9 +41,47 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: CourseCatalogScreen(repository: repository),
+        routes: routes,
       ),
     );
   }
+
+  group('navigation', () {
+    testWidgets('tapping a course opens the cohort list route', (tester) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [sampleCourse(bannerImageUrl: null)]),
+        // A stand-in for `/cohorts`: the real screen would reach for the API.
+        routes: {'/cohorts': (_) => const Scaffold(body: Text('cohort list route'))},
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CourseCard));
+      await tester.pumpAndSettle();
+
+      expect(find.text('cohort list route'), findsOneWidget);
+    });
+
+    testWidgets('tapping a course passes its id as the route arguments', (tester) async {
+      Object? capturedArguments;
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [sampleCourse(id: 7, bannerImageUrl: null)]),
+        routes: {
+          '/cohorts': (context) {
+            capturedArguments = ModalRoute.of(context)!.settings.arguments;
+            return const Scaffold(body: Text('cohort list route'));
+          },
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CourseCard));
+      await tester.pumpAndSettle();
+
+      expect(capturedArguments, 7);
+    });
+  });
 
   group('loading', () {
     testWidgets('shows a spinner while the first fetch is in flight', (
@@ -99,16 +138,13 @@ void main() {
 
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
       expect(find.text('3 долоо хоногийн эрчимжүүлсэн'), findsOneWidget);
-      expect(find.text('bootcamp'), findsOneWidget);
-      expect(find.text('junior'), findsOneWidget);
-      expect(find.text('in_person'), findsOneWidget);
-      expect(find.text('open'), findsOneWidget);
+      expect(find.text('Junior'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('Junior · 10-18 ${CourseCatalogStrings.ageUnit}'), findsOneWidget);
       expect(
-        find.text('10-18 ${CourseCatalogStrings.ageUnit}'),
-        findsOneWidget,
-      );
-      expect(
-        find.text(CourseCatalogStrings.dateRange('2026-06-01', '2026-06-21')),
+        find.text(
+          '${CourseCatalogStrings.dateRange('2026-06-01', '2026-06-21')} (3 ${CourseCatalogStrings.weeksUnit})',
+        ),
         findsOneWidget,
       );
       expect(find.textContaining('960,000'), findsOneWidget);
@@ -131,12 +167,20 @@ void main() {
     testWidgets('prefers duration_label when the API sends one', (
       tester,
     ) async {
+      final course = sampleCourse(durationWeeks: 6, durationLabel: null);
+      await pumpCatalog(tester, FakeCourseRepository(courses: [course]));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('6 ${CourseCatalogStrings.weeksUnit}'), findsOneWidget);
+    });
+
+    testWidgets('prefers duration_label when the API sends one', (tester) async {
       final course = sampleCourse(durationWeeks: 6, durationLabel: '1.5 сар');
       await pumpCatalog(tester, FakeCourseRepository(courses: [course]));
       await tester.pumpAndSettle();
 
-      expect(find.text('1.5 сар'), findsOneWidget);
-      expect(find.text('6 ${CourseCatalogStrings.weeksUnit}'), findsNothing);
+      expect(find.textContaining('1.5 сар'), findsOneWidget);
+      expect(find.textContaining('6 ${CourseCatalogStrings.weeksUnit}'), findsNothing);
     });
 
     testWidgets(
