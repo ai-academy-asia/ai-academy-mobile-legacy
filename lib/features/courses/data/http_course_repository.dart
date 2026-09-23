@@ -53,7 +53,10 @@ class HttpCourseRepository implements CourseRepository {
     try {
       decoded = jsonDecode(response.body);
     } on FormatException catch (e) {
-      throw ApiFailure(ApiFailureKind.server, detail: 'malformed JSON: ${e.message}');
+      throw ApiFailure(
+        ApiFailureKind.server,
+        detail: 'malformed JSON: ${e.message}',
+      );
     }
 
     if (decoded is! Map<String, dynamic>) {
@@ -67,7 +70,8 @@ class HttpCourseRepository implements CourseRepository {
     if (courses is! List) {
       throw ApiFailure(
         ApiFailureKind.server,
-        detail: 'response carried no "courses" list (got ${courses.runtimeType})',
+        detail:
+            'response carried no "courses" list (got ${courses.runtimeType})',
       );
     }
 
@@ -76,17 +80,36 @@ class HttpCourseRepository implements CourseRepository {
 
   @override
   Future<Course> getCourseDetail(String slug) async {
-    final response = await getJson(
-      client: _client,
-      url: _baseUrl.resolve('/courses/${Uri.encodeComponent(slug)}'),
-      timeout: timeout,
-    );
+    final http.Response response;
+    try {
+      response = await getJson(
+        client: _client,
+        url: _baseUrl.resolve('/courses/${Uri.encodeComponent(slug)}'),
+        timeout: timeout,
+      );
+    } on ApiFailure catch (failure) {
+      // `getJson`'s shared status mapping has no notion of "this endpoint
+      // names a resource" — it reads a 404 as `unexpected`, same as any other
+      // status this client has no specific reading for. That's the right
+      // default for a shared transport other endpoints (the list endpoint,
+      // cohorts, …) also use, so it stays untouched; this reinterprets 404
+      // as `notFound` only for this one method, where a missing slug is the
+      // meaningful, primary case.
+      if (failure.kind == ApiFailureKind.unexpected &&
+          failure.detail == 'HTTP 404') {
+        throw ApiFailure(ApiFailureKind.notFound, detail: failure.detail);
+      }
+      rethrow;
+    }
 
     final Object? decoded;
     try {
       decoded = jsonDecode(response.body);
     } on FormatException catch (e) {
-      throw ApiFailure(ApiFailureKind.server, detail: 'malformed JSON: ${e.message}');
+      throw ApiFailure(
+        ApiFailureKind.server,
+        detail: 'malformed JSON: ${e.message}',
+      );
     }
 
     if (decoded is! Map<String, dynamic>) {
@@ -173,7 +196,8 @@ LocalizedText _requireLocalizedText(Map<String, dynamic> json, String key) {
   if (value is! Map<String, dynamic>) {
     throw ApiFailure(
       ApiFailureKind.server,
-      detail: 'course.$key: expected a {"en", "mn"} object, got ${value.runtimeType}',
+      detail:
+          'course.$key: expected a {"en", "mn"} object, got ${value.runtimeType}',
     );
   }
   return LocalizedText(

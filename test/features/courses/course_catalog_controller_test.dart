@@ -9,7 +9,9 @@ import 'fake_course_repository.dart';
 
 void main() {
   test('starts idle, before load() is ever called', () {
-    final controller = CourseCatalogController(repository: FakeCourseRepository());
+    final controller = CourseCatalogController(
+      repository: FakeCourseRepository(),
+    );
 
     expect(controller.loading, isFalse);
     expect(controller.courses, isEmpty);
@@ -36,7 +38,10 @@ void main() {
   });
 
   test('holds the fetched list on success', () async {
-    final courses = [sampleCourse(id: 1, slug: 'a'), sampleCourse(id: 2, slug: 'b')];
+    final courses = [
+      sampleCourse(id: 1, slug: 'a'),
+      sampleCourse(id: 2, slug: 'b'),
+    ];
     final controller = CourseCatalogController(
       repository: FakeCourseRepository(courses: courses),
     );
@@ -48,17 +53,20 @@ void main() {
     expect(controller.isEmpty, isFalse);
   });
 
-  test('an empty catalog is reported through isEmpty, not as an error', () async {
-    final controller = CourseCatalogController(
-      repository: FakeCourseRepository(courses: const []),
-    );
+  test(
+    'an empty catalog is reported through isEmpty, not as an error',
+    () async {
+      final controller = CourseCatalogController(
+        repository: FakeCourseRepository(courses: const []),
+      );
 
-    await controller.load();
+      await controller.load();
 
-    expect(controller.courses, isEmpty);
-    expect(controller.errorMessage, isNull);
-    expect(controller.isEmpty, isTrue);
-  });
+      expect(controller.courses, isEmpty);
+      expect(controller.errorMessage, isNull);
+      expect(controller.isEmpty, isTrue);
+    },
+  );
 
   test('maps each ApiFailureKind to its own message', () async {
     final repository = FakeCourseRepository();
@@ -111,13 +119,18 @@ void main() {
     expect(controller.courses, isNotEmpty);
   });
 
-  test('an unrecognised exception still surfaces as a message, not a crash', () async {
-    final controller = CourseCatalogController(repository: _ThrowsNonApiFailure());
+  test(
+    'an unrecognised exception still surfaces as a message, not a crash',
+    () async {
+      final controller = CourseCatalogController(
+        repository: _ThrowsNonApiFailure(),
+      );
 
-    await controller.load();
+      await controller.load();
 
-    expect(controller.errorMessage, CourseCatalogStrings.unexpectedError);
-  });
+      expect(controller.errorMessage, CourseCatalogStrings.unexpectedError);
+    },
+  );
 
   test('notifies listeners on every state change', () async {
     final repository = FakeCourseRepository(courses: [sampleCourse()]);
@@ -149,4 +162,7 @@ void main() {
 class _ThrowsNonApiFailure implements CourseRepository {
   @override
   Future<List<Course>> getCourses() => throw StateError('boom');
+
+  @override
+  Future<Course> getCourseDetail(String slug) => throw StateError('boom');
 }

@@ -1,7 +1,9 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/courses/presentation/course_catalog_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/course_catalog_strings.dart';
+import 'package:aia_mobile/features/courses/presentation/course_detail_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/widgets/course_card.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
@@ -82,7 +84,9 @@ void main() {
   });
 
   group('loading', () {
-    testWidgets('shows a spinner while the first fetch is in flight', (tester) async {
+    testWidgets('shows a spinner while the first fetch is in flight', (
+      tester,
+    ) async {
       final repository = FakeCourseRepository(hold: true);
       await pumpCatalog(tester, repository);
       await tester.pump();
@@ -108,7 +112,9 @@ void main() {
   });
 
   group('loaded', () {
-    testWidgets('renders one card per course, in the order returned', (tester) async {
+    testWidgets('renders one card per course, in the order returned', (
+      tester,
+    ) async {
       final courses = [
         sampleCourse(id: 1, slug: 'a'),
         sampleCourse(id: 2, slug: 'b'),
@@ -144,7 +150,21 @@ void main() {
       expect(find.textContaining('960,000'), findsOneWidget);
     });
 
-    testWidgets('falls back to a computed duration when duration_label is null', (
+    testWidgets(
+      'falls back to a computed duration when duration_label is null',
+      (tester) async {
+        final course = sampleCourse(durationWeeks: 6, durationLabel: null);
+        await pumpCatalog(tester, FakeCourseRepository(courses: [course]));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('6 ${CourseCatalogStrings.weeksUnit}'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('prefers duration_label when the API sends one', (
       tester,
     ) async {
       final course = sampleCourse(durationWeeks: 6, durationLabel: null);
@@ -163,42 +183,54 @@ void main() {
       expect(find.textContaining('6 ${CourseCatalogStrings.weeksUnit}'), findsNothing);
     });
 
-    testWidgets('shows the struck-through original price only when discounted', (
-      tester,
-    ) async {
-      final discounted = sampleCourse(
-        id: 1,
-        priceAmount: 1200000,
-        finalPriceAmount: 960000,
-        discountPercent: 20,
-      );
-      final fullPrice = sampleCourse(
-        id: 2,
-        priceAmount: 500000,
-        finalPriceAmount: 500000,
-        discountPercent: 0,
-      );
-      await pumpCatalog(tester, FakeCourseRepository(courses: [discounted, fullPrice]));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'shows the struck-through original price only when discounted',
+      (tester) async {
+        final discounted = sampleCourse(
+          id: 1,
+          priceAmount: 1200000,
+          finalPriceAmount: 960000,
+          discountPercent: 20,
+        );
+        final fullPrice = sampleCourse(
+          id: 2,
+          priceAmount: 500000,
+          finalPriceAmount: 500000,
+          discountPercent: 0,
+        );
+        await pumpCatalog(
+          tester,
+          FakeCourseRepository(courses: [discounted, fullPrice]),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('1,200,000'), findsOneWidget);
-      expect(find.textContaining('-20%'), findsOneWidget);
-      expect(find.textContaining('960,000'), findsOneWidget);
-      expect(find.textContaining('500,000'), findsOneWidget);
-    });
+        expect(find.textContaining('1,200,000'), findsOneWidget);
+        expect(find.textContaining('-20%'), findsOneWidget);
+        expect(find.textContaining('960,000'), findsOneWidget);
+        expect(find.textContaining('500,000'), findsOneWidget);
+      },
+    );
 
     testWidgets('shows a target_audience line only when the API sends one', (
       tester,
     ) async {
-      final withAudience = sampleCourse(id: 1, targetAudience: 'Coding beginners');
+      final withAudience = sampleCourse(
+        id: 1,
+        targetAudience: 'Coding beginners',
+      );
       final without = sampleCourse(id: 2, targetAudience: null);
-      await pumpCatalog(tester, FakeCourseRepository(courses: [withAudience, without]));
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [withAudience, without]),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Coding beginners'), findsOneWidget);
     });
 
-    testWidgets('renders no image when banner_image_url is null', (tester) async {
+    testWidgets('renders no image when banner_image_url is null', (
+      tester,
+    ) async {
       await pumpCatalog(
         tester,
         FakeCourseRepository(courses: [sampleCourse(bannerImageUrl: null)]),
@@ -214,14 +246,63 @@ void main() {
       await pumpCatalog(
         tester,
         FakeCourseRepository(
-          courses: [sampleCourse(bannerImageUrl: 'https://example.test/banner.png')],
+          courses: [
+            sampleCourse(bannerImageUrl: 'https://example.test/banner.png'),
+          ],
         ),
       );
       await tester.pump();
 
       final image = tester.widget<Image>(find.byType(Image));
       expect(image.image, isA<NetworkImage>());
-      expect((image.image as NetworkImage).url, 'https://example.test/banner.png');
+      expect(
+        (image.image as NetworkImage).url,
+        'https://example.test/banner.png',
+      );
+    });
+  });
+
+  group('navigation', () {
+    testWidgets('tapping a card opens CourseDetailScreen for its slug', (
+      tester,
+    ) async {
+      final courses = [
+        sampleCourse(id: 1, slug: 'summer-bootcamp'),
+        sampleCourse(id: 2, slug: 'ai-for-everyone'),
+      ];
+      await pumpCatalog(tester, FakeCourseRepository(courses: courses));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CourseCard).at(1));
+      await tester.pumpAndSettle();
+
+      final detailElement = tester.element(find.byType(CourseDetailScreen));
+      final detail = tester.widget<CourseDetailScreen>(
+        find.byType(CourseDetailScreen),
+      );
+      expect(detail.slug, 'ai-for-everyone');
+      // Pushed, not replaced: the catalog is still underneath, poppable.
+      expect(Navigator.of(detailElement).canPop(), isTrue);
+    });
+
+    testWidgets('the detail screen pops back to the catalog', (tester) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [sampleCourse(slug: 'summer-bootcamp')]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CourseCard));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseDetailScreen), findsOneWidget);
+
+      // CourseDetailScreen draws its own back control (AppIcons.caretLeft),
+      // not the platform-default back button `pageBack()` looks for.
+      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CourseDetailScreen), findsNothing);
+      expect(find.byType(CourseCard), findsOneWidget);
     });
   });
 
@@ -234,12 +315,17 @@ void main() {
 
       expect(find.text(CourseCatalogStrings.empty), findsOneWidget);
       expect(find.byType(CourseCard), findsNothing);
-      expect(find.widgetWithText(AppButton, CourseCatalogStrings.retry), findsNothing);
+      expect(
+        find.widgetWithText(AppButton, CourseCatalogStrings.retry),
+        findsNothing,
+      );
     });
   });
 
   group('error', () {
-    testWidgets('shows the matching message for each failure kind', (tester) async {
+    testWidgets('shows the matching message for each failure kind', (
+      tester,
+    ) async {
       final repository = FakeCourseRepository(
         failure: const ApiFailure(ApiFailureKind.network),
       );
@@ -247,11 +333,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(CourseCatalogStrings.networkError), findsOneWidget);
-      expect(find.widgetWithText(AppButton, CourseCatalogStrings.retry), findsOneWidget);
+      expect(
+        find.widgetWithText(AppButton, CourseCatalogStrings.retry),
+        findsOneWidget,
+      );
       expect(find.byType(CourseCard), findsNothing);
     });
 
-    testWidgets('retrying re-fetches and, on success, shows the list', (tester) async {
+    testWidgets('retrying re-fetches and, on success, shows the list', (
+      tester,
+    ) async {
       final repository = FakeCourseRepository(
         failure: const ApiFailure(ApiFailureKind.server),
       );
@@ -262,7 +353,9 @@ void main() {
       repository.failure = null;
       repository.courses = [sampleCourse()];
 
-      await tester.tap(find.widgetWithText(AppButton, CourseCatalogStrings.retry));
+      await tester.tap(
+        find.widgetWithText(AppButton, CourseCatalogStrings.retry),
+      );
       await tester.pumpAndSettle();
 
       expect(repository.callCount, 2);
@@ -278,7 +371,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(repository.callCount, 1);
 
-      await tester.fling(find.byType(CourseCard).first, const Offset(0, 300), 1000);
+      await tester.fling(
+        find.byType(CourseCard).first,
+        const Offset(0, 300),
+        1000,
+      );
       await tester.pumpAndSettle();
 
       expect(repository.callCount, 2);
@@ -286,7 +383,9 @@ void main() {
   });
 
   group('layout', () {
-    testWidgets('stays within a phone-width column on a desktop window', (tester) async {
+    testWidgets('stays within a phone-width column on a desktop window', (
+      tester,
+    ) async {
       await pumpCatalog(
         tester,
         FakeCourseRepository(courses: [sampleCourse()]),
@@ -305,7 +404,10 @@ void main() {
       await pumpCatalog(
         tester,
         FakeCourseRepository(
-          courses: List.generate(6, (i) => sampleCourse(id: i, slug: 'course-$i')),
+          courses: List.generate(
+            6,
+            (i) => sampleCourse(id: i, slug: 'course-$i'),
+          ),
         ),
         size: const Size(393, 420),
       );

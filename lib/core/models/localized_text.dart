@@ -10,4 +10,12 @@ class LocalizedText {
 
   final String? en;
   final String? mn;
+
+  /// Mongolian first — every other string in the app is — falling back to
+  /// English, and to null only when neither is a non-empty string.
+  String? get preferred {
+    if (mn != null && mn!.isNotEmpty) return mn;
+    if (en != null && en!.isNotEmpty) return en;
+    return null;
+  }
 }
