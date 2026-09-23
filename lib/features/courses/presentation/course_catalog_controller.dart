@@ -70,6 +70,10 @@ class CourseCatalogController extends ChangeNotifier {
   static String _messageFor(ApiFailureKind kind) => switch (kind) {
     ApiFailureKind.network => CourseCatalogStrings.networkError,
     ApiFailureKind.server => CourseCatalogStrings.serverError,
+    // The list endpoint names no resource in its URL, so a 404 here has no
+    // more specific story than "something went wrong" — unlike course detail,
+    // which reads this kind to mean a particular slug does not exist.
+    ApiFailureKind.notFound => CourseCatalogStrings.unexpectedError,
     ApiFailureKind.unexpected => CourseCatalogStrings.unexpectedError,
   };
 

@@ -10,6 +10,7 @@ import '../domain/course.dart';
 import '../domain/course_repository.dart';
 import 'course_catalog_controller.dart';
 import 'course_catalog_strings.dart';
+import 'course_detail_screen.dart';
 import 'widgets/course_card.dart';
 
 /// The public course catalog — where a signed-in student lands.
@@ -67,7 +68,9 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
             builder: (context, _) => Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
+                constraints: const BoxConstraints(
+                  maxWidth: AppDimens.maxContentWidth,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -100,14 +103,20 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
     }
 
     if (_controller.errorMessage != null) {
-      return _ErrorView(message: _controller.errorMessage!, onRetry: _controller.load);
+      return _ErrorView(
+        message: _controller.errorMessage!,
+        onRetry: _controller.load,
+      );
     }
 
     if (_controller.isEmpty) {
       return const _EmptyView();
     }
 
-    return _CourseList(courses: _controller.courses, onRefresh: _controller.load);
+    return _CourseList(
+      courses: _controller.courses,
+      onRefresh: _controller.load,
+    );
   }
 }
 
@@ -120,7 +129,10 @@ class _LoadingView extends StatelessWidget {
       child: SizedBox(
         width: 28,
         height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.blue),
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: AppColors.blue,
+        ),
       ),
     );
   }
@@ -133,7 +145,9 @@ class _EmptyView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Text(
           CourseCatalogStrings.empty,
           style: AppTypography.cardSupporting,
@@ -154,7 +168,9 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -200,7 +216,14 @@ class _CourseList extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: courses.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => CourseCard(course: courses[index]),
+        itemBuilder: (context, index) => CourseCard(
+          course: courses[index],
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => CourseDetailScreen(slug: courses[index].slug),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -13,6 +13,13 @@ enum ApiFailureKind {
   /// did not match the confirmed shape.
   server,
 
+  /// 404 — the resource named in the request does not exist. Split out from
+  /// [unexpected] because it is not the API misbehaving: a course slug that
+  /// was valid a moment ago (a stale link, a deep link, a course removed
+  /// between the catalog load and the tap) is a real, distinguishable outcome
+  /// a screen may want to word differently from "something went wrong".
+  notFound,
+
   /// A non-2xx status this client has no more specific reading for.
   unexpected,
 }
