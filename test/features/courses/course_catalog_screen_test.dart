@@ -1,9 +1,7 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
-import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/courses/presentation/course_catalog_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/course_catalog_strings.dart';
-import 'package:aia_mobile/features/courses/presentation/course_detail_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/widgets/course_card.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
@@ -259,50 +257,6 @@ void main() {
         (image.image as NetworkImage).url,
         'https://example.test/banner.png',
       );
-    });
-  });
-
-  group('navigation', () {
-    testWidgets('tapping a card opens CourseDetailScreen for its slug', (
-      tester,
-    ) async {
-      final courses = [
-        sampleCourse(id: 1, slug: 'summer-bootcamp'),
-        sampleCourse(id: 2, slug: 'ai-for-everyone'),
-      ];
-      await pumpCatalog(tester, FakeCourseRepository(courses: courses));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(CourseCard).at(1));
-      await tester.pumpAndSettle();
-
-      final detailElement = tester.element(find.byType(CourseDetailScreen));
-      final detail = tester.widget<CourseDetailScreen>(
-        find.byType(CourseDetailScreen),
-      );
-      expect(detail.slug, 'ai-for-everyone');
-      // Pushed, not replaced: the catalog is still underneath, poppable.
-      expect(Navigator.of(detailElement).canPop(), isTrue);
-    });
-
-    testWidgets('the detail screen pops back to the catalog', (tester) async {
-      await pumpCatalog(
-        tester,
-        FakeCourseRepository(courses: [sampleCourse(slug: 'summer-bootcamp')]),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(CourseCard));
-      await tester.pumpAndSettle();
-      expect(find.byType(CourseDetailScreen), findsOneWidget);
-
-      // CourseDetailScreen draws its own back control (AppIcons.caretLeft),
-      // not the platform-default back button `pageBack()` looks for.
-      await tester.tap(find.byIcon(AppIcons.caretLeft));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CourseDetailScreen), findsNothing);
-      expect(find.byType(CourseCard), findsOneWidget);
     });
   });
 

@@ -101,6 +101,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         courseTitle:
             _preferMongolian(cohort.course.title.mn, cohort.course.title.en) ??
             cohort.name,
+        courseSlug: cohort.course.slug,
         status: cohort.status,
         uiMode: await _uiMode(),
         // Null exactly when the entry named this cohort with no
@@ -164,6 +165,7 @@ HomeFailureKind _kindForEnrollment(EnrollmentFailureKind kind) =>
 HomeFailureKind _kindForApi(ApiFailureKind kind) => switch (kind) {
   ApiFailureKind.network => HomeFailureKind.network,
   ApiFailureKind.server => HomeFailureKind.server,
+  ApiFailureKind.notFound => HomeFailureKind.unexpected,
   ApiFailureKind.unexpected => HomeFailureKind.unexpected,
 };
 

@@ -45,6 +45,7 @@ class EnrolledProgram {
     required this.cohortId,
     required this.cohortName,
     required this.courseTitle,
+    required this.courseSlug,
     required this.status,
     this.uiMode,
     this.progress,
@@ -59,6 +60,11 @@ class EnrolledProgram {
 
   /// The programme the cohort teaches, e.g. "AI Engineer".
   final String courseTitle;
+
+  /// The programme's `Course.slug`, read off `cohort.course.slug` — what the
+  /// card's tap opens `CourseDetailScreen` with, the same `GET
+  /// /courses/{slug}` key the catalog already uses.
+  final String courseSlug;
 
   /// Raw wire value, e.g. "active". Drawn as the status pill, capitalised but
   /// never translated — `Cohort.status` has no confirmed closed set.

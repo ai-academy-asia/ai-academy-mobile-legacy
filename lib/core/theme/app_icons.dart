@@ -43,9 +43,6 @@ abstract final class AppIcons {
   /// A password requirement the typed password fails.
   static const IconData xCircle = IconData(0xe4f8, fontFamily: _family);
 
-  /// Back navigation — the course detail screen's back button. Pairs with
-  /// [caretRight] at the adjacent code point.
-  static const IconData caretLeft = IconData(0xe138, fontFamily: _family);
   // --- Bottom navigation -----------------------------------------------
   //
   // Codepoints confirmed against Phosphor's own published "Regular" web-font
