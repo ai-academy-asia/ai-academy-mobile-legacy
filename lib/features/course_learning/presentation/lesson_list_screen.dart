@@ -13,10 +13,18 @@ import 'lesson_list_controller.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/lesson_list_item.dart';
 
-/// The Lesson List — reached from an unlocked `CourseModuleCard`, or from
-/// either "Continue learning" button, on `CourseModuleListScreen`.
+/// The Lesson List.
 ///
-/// No Figma screenshot exists for this screen yet (unlike Module List and
+/// **Not part of the app's normal navigation.** The Figma flow goes straight
+/// from Module List to Exercise Detail, with no Lesson List step between
+/// them — `CourseModuleListScreen`'s unlocked module cards and "Continue
+/// learning" buttons both open `CourseExerciseDetailScreen` directly. This
+/// screen is kept, working and tested, for when a real per-lesson backend
+/// contract exists to justify a Lesson List step; nothing currently pushes
+/// it, but it stays reachable by constructing it directly (e.g. from a test,
+/// or a future dev-only route) without needing to be rebuilt from scratch.
+///
+/// No Figma screenshot exists for this screen (unlike Module List and
 /// Exercise Detail, both built strictly against provided references) — it
 /// reuses `CourseModuleListScreen`'s own structure (the same back button, the
 /// same heading style, the same card treatment via `LessonListItem`) rather

@@ -1,5 +1,6 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_module_card.dart';
 import 'package:flutter/material.dart';
@@ -157,6 +158,43 @@ void main() {
         expect(find.byIcon(Icons.lock_outline), findsNWidgets(3));
       },
     );
+  });
+
+  group('exercise navigation', () {
+    testWidgets('tapping an unlocked module opens Exercise Detail directly', (
+      tester,
+    ) async {
+      // The Figma flow has no Lesson List step between Module List and
+      // Exercise Detail.
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Prediction and Probabilities'));
+      await tester.pumpAndSettle();
+
+      final detail = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(detail.moduleId, 1);
+    });
+
+    testWidgets('tapping Continue learning opens Exercise Detail directly', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continue learning').first);
+      await tester.pumpAndSettle();
+
+      // No module is "available, not started" in the sample data (see
+      // CourseModule.locked's own doc comment), so the fallback picks the
+      // most recently completed module — "Language Model Training", id 2.
+      final detail = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(detail.moduleId, 2);
+    });
   });
 
   group('certification', () {

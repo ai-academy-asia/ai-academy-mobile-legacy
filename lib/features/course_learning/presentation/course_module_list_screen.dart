@@ -9,25 +9,28 @@ import '../data/sample_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
+import 'course_exercise_detail_screen.dart';
 import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
-import 'lesson_list_screen.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/course_module_card.dart';
 
-/// The Course Learning overview — reached from `CourseDetailScreen`'s
-/// "Continue learning" entry point.
+/// The Course Learning overview — reached directly from a Home/Cohort course
+/// card, or from `CourseDetailScreen`'s own "Continue learning" entry point.
 ///
 /// Built strictly against the Figma screenshots provided for this screen —
 /// see the deviations called out on individual widgets below for the few
 /// spots where no existing app-wide pattern covered what the reference draws
 /// at all (the card shadows, the hero's tint).
 ///
-/// An unlocked module card opens `LessonListScreen`. Locked modules stay
-/// genuinely inert (`onTap: null`). Both "Continue learning" buttons open the
-/// same screen, for whichever module [_continueLearningTarget] picks — see
-/// that function's own doc comment for what the rule is and, importantly,
-/// what it is not.
+/// An unlocked module card opens `CourseExerciseDetailScreen` directly — the
+/// Figma flow has no Lesson List step between them. (`LessonListScreen`
+/// itself still exists, with its own tests, for when a real per-lesson
+/// backend contract lands; it is simply not reachable from this screen's
+/// normal navigation today.) Locked modules stay genuinely inert (`onTap:
+/// null`). Both "Continue learning" buttons open the same screen, for
+/// whichever module [_continueLearningTarget] picks — see that function's
+/// own doc comment for what the rule is and, importantly, what it is not.
 class CourseModuleListScreen extends StatefulWidget {
   const CourseModuleListScreen({
     required this.courseSlug,
@@ -167,16 +170,15 @@ CourseModule? _continueLearningTarget(List<CourseModule> modules) {
   return null;
 }
 
-void _openLessonList(
+void _openExerciseDetail(
   BuildContext context,
   CourseModule module,
   CourseLearningRepository repository,
 ) {
   Navigator.of(context).push(
     MaterialPageRoute(
-      builder: (_) => LessonListScreen(
+      builder: (_) => CourseExerciseDetailScreen(
         moduleId: module.id,
-        moduleTitle: module.title,
         repository: repository,
       ),
     ),
@@ -377,7 +379,7 @@ class _ContinueLearningButton extends StatelessWidget {
           child: InkWell(
             onTap: target == null
                 ? null
-                : () => _openLessonList(context, target, repository),
+                : () => _openExerciseDetail(context, target, repository),
             borderRadius: BorderRadius.circular(20),
             splashColor: Colors.white24,
             highlightColor: Colors.white10,
@@ -421,7 +423,7 @@ class _ModuleList extends StatelessWidget {
             module: modules[i],
             onTap: modules[i].locked
                 ? null
-                : () => _openLessonList(context, modules[i], repository),
+                : () => _openExerciseDetail(context, modules[i], repository),
           ),
           if (i != modules.length - 1) const _ModuleConnector(),
         ],

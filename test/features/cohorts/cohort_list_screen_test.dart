@@ -8,7 +8,7 @@ import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
-import 'package:aia_mobile/features/courses/presentation/course_detail_screen.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/enrollments/presentation/enrollment_strings.dart';
@@ -180,31 +180,30 @@ void main() {
     });
   });
 
-  group('course detail navigation', () {
-    testWidgets(
-      'tapping a card opens Course Detail with the resolved catalog slug, '
-      'not the cohort\'s own stale one',
-      (tester) async {
-        // Reproduces the real, confirmed drift `resolveCohortCourse`'s own
-        // doc comment describes: `sampleCohort()`'s embedded course (id 6,
-        // slug "summer-bootcamp-2027") shares its title with
-        // `sampleCourse()`'s catalog entry (id 4, slug "summer-bootcamp").
-        await pumpList(
-          tester,
-          FakeCohortRepository(cohorts: [sampleCohort()]),
-          courseRepository: FakeCourseRepository(courses: [sampleCourse()]),
-        );
-        await tester.pumpAndSettle();
+  group('course module list navigation', () {
+    testWidgets('tapping a card opens Module List directly, with the resolved '
+        'catalog slug, not the cohort\'s own stale one', (tester) async {
+      // The Figma flow has no Course Detail step between a cohort card
+      // and Module List. Also reproduces the real, confirmed drift
+      // `resolveCohortCourse`'s own doc comment describes: `sampleCohort()`
+      // 's embedded course (id 6, slug "summer-bootcamp-2027") shares its
+      // title with `sampleCourse()`'s catalog entry (id 4, slug
+      // "summer-bootcamp").
+      await pumpList(
+        tester,
+        FakeCohortRepository(cohorts: [sampleCohort()]),
+        courseRepository: FakeCourseRepository(courses: [sampleCourse()]),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text(sampleCohort().name));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text(sampleCohort().name));
+      await tester.pumpAndSettle();
 
-        final detail = tester.widget<CourseDetailScreen>(
-          find.byType(CourseDetailScreen),
-        );
-        expect(detail.slug, 'summer-bootcamp');
-      },
-    );
+      final moduleList = tester.widget<CourseModuleListScreen>(
+        find.byType(CourseModuleListScreen),
+      );
+      expect(moduleList.courseSlug, 'summer-bootcamp');
+    });
 
     testWidgets(
       'falls back to the cohort\'s own slug when the catalog has no match',
@@ -219,10 +218,10 @@ void main() {
         await tester.tap(find.text(sampleCohort().name));
         await tester.pumpAndSettle();
 
-        final detail = tester.widget<CourseDetailScreen>(
-          find.byType(CourseDetailScreen),
+        final moduleList = tester.widget<CourseModuleListScreen>(
+          find.byType(CourseModuleListScreen),
         );
-        expect(detail.slug, 'summer-bootcamp-2027');
+        expect(moduleList.courseSlug, 'summer-bootcamp-2027');
       },
     );
   });

@@ -7,8 +7,8 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../courses/domain/course_repository.dart';
-import '../../courses/presentation/course_detail_screen.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
 import '../../enrollments/data/http_enrollment_repository.dart';
 import '../../enrollments/domain/enrolled_cohorts_repository.dart';
@@ -393,8 +393,9 @@ class _CohortList extends StatelessWidget {
                   onEnroll: () => enrollment.enroll(cohort.id),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          CourseDetailScreen(slug: courseSlugFor(cohort)),
+                      builder: (_) => CourseModuleListScreen(
+                        courseSlug: courseSlugFor(cohort),
+                      ),
                     ),
                   ),
                 );
