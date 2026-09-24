@@ -185,6 +185,93 @@ void main() {
       expect(find.text('Mentor Feedback'), findsOneWidget);
       expect(find.text('No feedback yet'), findsOneWidget);
     });
+
+    testWidgets('submitting shows the pending state, fields locked', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Submit'));
+      await tester.pump();
+
+      expect(find.text('Submitted'), findsOneWidget);
+      expect(find.text('Submit'), findsNothing);
+      // Still no feedback while the sample "review" is in flight.
+      expect(find.text('No feedback yet'), findsOneWidget);
+
+      final field = tester.widget<TextField>(find.byType(TextField).first);
+      expect(field.enabled, isFalse);
+
+      // Advance past the pending delay explicitly: nothing animates while
+      // it's in flight, so `pumpAndSettle()` alone considers the tree
+      // already "settled" and returns before the Future.delayed fires,
+      // leaving a real Timer pending at teardown.
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('first submission resolves to Resubmit with mentor feedback', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Submit'));
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Resubmit'), findsOneWidget);
+      expect(find.text('Mentor Feedback'), findsOneWidget);
+      expect(find.text('No feedback yet'), findsNothing);
+      expect(find.text('Ганбаатар Эрдэнэ'), findsOneWidget);
+      expect(
+        find.text('Please check the matrix traversal and resubmit.'),
+        findsOneWidget,
+      );
+
+      final field = tester.widget<TextField>(find.byType(TextField).first);
+      expect(field.enabled, isTrue);
+    });
+
+    testWidgets('resubmitting resolves to the accepted, terminal state', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Submit'));
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Resubmit'));
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Resubmit'), findsNothing);
+      expect(find.text('Submitted'), findsOneWidget);
+      expect(find.text('Nice work — accepted.'), findsOneWidget);
+
+      final field = tester.widget<TextField>(find.byType(TextField).first);
+      expect(field.enabled, isFalse);
+    });
+
+    testWidgets('an exercise with no scripted feedback stays accepted', (
+      tester,
+    ) async {
+      final exercise = sampleExercise(assignmentFeedback: const []);
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Submit'));
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Submitted'), findsOneWidget);
+      expect(find.text('No feedback yet'), findsOneWidget);
+    });
   });
 
   group('course materials tab', () {

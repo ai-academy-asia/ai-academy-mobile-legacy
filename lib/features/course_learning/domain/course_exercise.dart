@@ -15,6 +15,7 @@ class CourseExercise {
     required this.extraSections,
     required this.materials,
     this.note,
+    this.assignmentFeedback = const [],
   });
 
   /// Which module this exercise belongs to — `CourseModule.id`.
@@ -46,6 +47,16 @@ class CourseExercise {
   /// The student's own note on this exercise. Null when none has been left
   /// yet — the Note tab's empty/edit state.
   final CourseExerciseNote? note;
+
+  /// Canned mentor responses to an Assignment submission, in order — the
+  /// Assignment tab's Submitted/Resubmit/Mentor feedback states, driven by
+  /// sample data the same way [note] drives the Note tab's two states.
+  ///
+  /// Index 0 is shown after the first submit, index 1 after resubmitting,
+  /// and so on; the last entry repeats once exhausted. Empty means the tab
+  /// never advances past its initial state — used by every exercise that
+  /// does not care about demonstrating this flow.
+  final List<AssignmentMentorFeedback> assignmentFeedback;
 }
 
 /// One heading-and-body block in the expanded description, optionally
@@ -105,4 +116,33 @@ class CourseExerciseNote {
   /// `CourseExerciseMaterial.sizeLabel`: no confirmed raw timestamp source to
   /// format from yet.
   final String timestampLabel;
+}
+
+/// One canned mentor response to an Assignment submission — sample data
+/// only, same status as every other class in this file. Drives the
+/// Assignment tab's "Resubmit" state when [requiresResubmission] is true, or
+/// its terminal "Mentor feedback" state when false.
+class AssignmentMentorFeedback {
+  const AssignmentMentorFeedback({
+    required this.mentorInitials,
+    required this.mentorName,
+    required this.message,
+    required this.timestampLabel,
+    required this.requiresResubmission,
+  });
+
+  /// e.g. "ГЭ", drawn inside the avatar circle — same treatment as
+  /// `CourseExerciseNote.authorInitials`.
+  final String mentorInitials;
+
+  final String mentorName;
+  final String message;
+
+  /// Pre-formatted, same reasoning as `CourseExerciseNote.timestampLabel`.
+  final String timestampLabel;
+
+  /// True when the mentor asked for changes — the Assignment tab reopens its
+  /// fields for editing and labels its button "Resubmit". False means the
+  /// submission was accepted — nothing more to do.
+  final bool requiresResubmission;
 }
