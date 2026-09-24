@@ -50,4 +50,13 @@ abstract final class CourseLearningStrings {
   static const String noFeedbackYet = 'No feedback yet';
 
   static const String editNote = 'Засах';
+
+  /// [CourseExerciseNote.authorLabel] for a note the student just left —
+  /// matches the one pre-existing sample note's own wording verbatim.
+  static const String noteAuthorMe = 'Me';
+
+  /// [CourseExerciseNote.timestampLabel] for a note the student just
+  /// left or just edited — see `NoteTab`'s own doc comment on why this,
+  /// not a fabricated date/time.
+  static const String noteJustNow = 'Just now';
 }

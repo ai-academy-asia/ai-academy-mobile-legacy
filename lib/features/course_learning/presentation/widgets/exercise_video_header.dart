@@ -24,6 +24,22 @@ const Color _videoBackground = Color(0xFF080F35);
 /// `Positioned` spot overlaid on the video, with the recording badge
 /// deliberately drawn first so the button overlaps its leading edge — exactly
 /// as the reference shows the badge's own text partly hidden behind it.
+///
+/// **The back button and badge are offset by the device's own top inset**
+/// (`MediaQuery.paddingOf(context).top`), not wrapped in a `SafeArea` — this
+/// screen has no `SafeArea` around its scroll content at all (unlike
+/// `CourseModuleListScreen`/`LessonListScreen`, both of which wrap their
+/// whole body in one), because the video background is meant to run
+/// genuinely full-bleed under the status bar/notch, matching the reference.
+/// Without this offset, the button's fixed `top: 16` sits inside the status
+/// bar/notch's own reserved area on a real phone: it still paints there and
+/// looks tappable, but iOS's own status-bar touch handling — present because
+/// this screen scrolls (`SingleChildScrollView`) — claims taps in that zone
+/// before Flutter's gesture arena ever sees them, so `onTap` silently never
+/// fires. A widget test's fake window has no real status bar to do that
+/// interception, which is why `tester.tap` on this button passed even while
+/// it did nothing on a real device. The play button and duration label need
+/// no such offset: neither sits inside the unsafe top strip.
 class ExerciseVideoHeader extends StatelessWidget {
   const ExerciseVideoHeader({
     required this.durationLabel,
@@ -36,6 +52,8 @@ class ExerciseVideoHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top;
+
     return SizedBox(
       height: 196,
       child: ColoredBox(
@@ -43,14 +61,14 @@ class ExerciseVideoHeader extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              top: 24,
+              top: topInset + 24,
               left: AppDimens.screenPadding,
               child: _RecordingBadge(label: recordingBadgeLabel),
             ),
-            const Positioned(
-              top: AppDimens.screenPadding,
+            Positioned(
+              top: topInset + AppDimens.screenPadding,
               left: AppDimens.screenPadding,
-              child: _VideoBackButton(),
+              child: const _VideoBackButton(),
             ),
             const Center(child: _PlayButton()),
             Positioned(
