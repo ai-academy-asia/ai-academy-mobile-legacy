@@ -1,11 +1,13 @@
 import 'package:flutter/widgets.dart';
 
+import '../domain/course_exercise.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 
-/// Serves one hand-authored [CourseLearningPath], regardless of which
-/// [getCourseLearning] is asked for.
+/// Serves one hand-authored [CourseLearningPath] and one hand-authored
+/// [CourseExercise], regardless of which [getCourseLearning]/[getExercise] is
+/// asked for.
 ///
 /// **Placeholder pending a real learning API.** `course_learning_api_
 /// requirements_v1.md` confirms no `Module`/`Lesson`/progress endpoint exists
@@ -13,10 +15,11 @@ import '../domain/course_module.dart';
 /// mocking one — this exists anyway because the issue this ships for asks for
 /// the Course Learning *screens* now, against sample data, with the backend
 /// call still to come. Content (module titles, schedule lines, which two are
-/// "completed") is transcribed from the Figma reference for the one course it
-/// shows ("How AI works"); every other slug gets the same content today,
-/// which is the smallest thing that lets the screen render at all until a
-/// real per-course source exists.
+/// "completed"; the "Nesting loops" exercise's copy, materials and note) is
+/// transcribed from the Figma reference for the one course/exercise it shows;
+/// every other slug/module id gets the same content today, which is the
+/// smallest thing that lets the screens render at all until a real per-course
+/// source exists.
 class SampleCourseLearningRepository implements CourseLearningRepository {
   @override
   Future<CourseLearningPath> getCourseLearning(String courseSlug) async {
@@ -79,6 +82,70 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
           locked: true,
         ),
       ],
+    );
+  }
+
+  @override
+  Future<CourseExercise> getExercise(int moduleId) async {
+    return CourseExercise(
+      moduleId: moduleId,
+      moduleCaption: 'Modules 2',
+      title: 'Nesting loops',
+      durationLabel: '24:15',
+      recordingBadgeLabel: 'Live Classroom Recording',
+      summary:
+          'A nested loop is a loop placed entirely within the body '
+          'of another loop. For every single iteration of the outer '
+          'loop, the inner loop executes from start to finish. They '
+          'are primarily used for processing multi-dimensional '
+          'data structures like matrices, generating '
+          'combinations, or handling complex sorting algorithms.',
+      extraSections: const [
+        CourseExerciseSection(
+          title: 'Pre-training',
+          body:
+              'In the pre-training phase, the model is fed trillions of '
+              'tokens (such as text scraped from the internet, books, '
+              'and code) to learn fundamental knowledge about the '
+              'world.',
+          bullets: [
+            'Self-Supervised Learning: The model’s primary '
+                'objective is to predict the next word in a sentence. '
+                'It analyzes sequences, calculates its error through '
+                'a loss function, and adjusts its internal weights via '
+                'backpropagation so its future predictions are more '
+                'accurate.',
+            'Base Model Creation: The output of pre-training is a '
+                '"base model". While this model contains a vast '
+                'amount of information, it merely completes text '
+                'rather than answering questions or following '
+                'instructions.',
+          ],
+        ),
+      ],
+      materials: const [
+        CourseExerciseMaterial(
+          id: 1,
+          name: 'Course material 1',
+          sizeLabel: '10 MB',
+        ),
+        CourseExerciseMaterial(
+          id: 2,
+          name: 'Course material 1',
+          sizeLabel: '12 MB',
+        ),
+      ],
+      note: const CourseExerciseNote(
+        authorInitials: 'БП',
+        authorName: 'Болд Батаа',
+        authorLabel: 'Me',
+        message:
+            'Good foundation — improve validation '
+            'accuracy before final submission. Look into '
+            'hyperparameter tuning for the XGBoost '
+            'model.',
+        timestampLabel: 'Today, 14:20',
+      ),
     );
   }
 
