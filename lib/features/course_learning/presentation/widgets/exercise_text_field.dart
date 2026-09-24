@@ -36,6 +36,7 @@ class ExerciseTextField extends StatelessWidget {
     super.key,
     this.floatingLabel,
     this.multiline = false,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -46,6 +47,11 @@ class ExerciseTextField extends StatelessWidget {
   /// True for the description/note textareas; false for the single-line
   /// link field.
   final bool multiline;
+
+  /// False once the Assignment tab's submission is no longer editable
+  /// (pending review, or accepted) — `TextField`'s own disabled treatment,
+  /// nothing custom.
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +70,7 @@ class ExerciseTextField extends StatelessWidget {
       height: height,
       child: TextField(
         controller: controller,
+        enabled: enabled,
         maxLines: multiline ? 6 : 1,
         textAlignVertical: TextAlignVertical.top,
         style: AppTypography.fieldValue,

@@ -20,16 +20,16 @@ import 'widgets/note_tab.dart';
 /// so for now this is opened directly, the same way `CourseModuleListScreen`
 /// is, via the temporary `/dev/` preview route).
 ///
-/// **Scope.** Only the five states the issue asks for are implemented:
-/// the Assignment tab's initial (empty) state, the description's
-/// expanded/collapsed toggle, the Course materials tab, and the Note tab's
-/// empty and existing-note states. Everything past those initial states —
-/// upload/download progress, an uploaded-file state, submit success,
-/// resubmission, mentor feedback actually progressing past "No feedback
-/// yet", the quiz and its scoring/retry — is reserved for a separate future
-/// issue and is not implemented here. Every widget that would eventually
-/// carry that behaviour (the submit buttons, the play button, the download
-/// buttons) is already in place and wired to nothing, the same
+/// **Scope.** The description's expanded/collapsed toggle, the Course
+/// materials tab, and the Note tab's empty/existing-note states are UI-only,
+/// same as before. The Assignment tab now cycles through four sample-data
+/// states — not submitted, pending review, needs resubmission, accepted —
+/// entirely as local widget state; see `AssignmentTab`'s own doc comment.
+/// Still out of scope, reserved for a separate future issue: real file
+/// upload (an uploaded-file state, upload/download progress against an
+/// actual file), the quiz and its scoring/retry, and the certificate. Every
+/// widget that would eventually carry that behaviour (the play button, the
+/// download buttons) is already in place and wired to nothing, the same
 /// `_noDestinationYet`-style placeholder `CourseModuleListScreen` uses for
 /// its own not-yet-built destinations, so this structure does not need to be
 /// rewritten to add that behaviour later.
@@ -206,7 +206,9 @@ class _TabContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (tab) {
-      ExerciseTab.assignment => const AssignmentTab(),
+      ExerciseTab.assignment => AssignmentTab(
+        feedbackSequence: exercise.assignmentFeedback,
+      ),
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,
       ),

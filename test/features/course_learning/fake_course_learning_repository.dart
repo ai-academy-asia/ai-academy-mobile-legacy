@@ -269,6 +269,7 @@ CourseExercise sampleExercise({
   ],
   List<CourseExerciseMaterial>? materials,
   Object? note = _unset,
+  List<AssignmentMentorFeedback>? assignmentFeedback,
 }) => CourseExercise(
   moduleId: moduleId,
   moduleCaption: moduleCaption,
@@ -281,6 +282,7 @@ CourseExercise sampleExercise({
       materials ??
       [sampleMaterial(), sampleMaterial(id: 2, sizeLabel: '12 MB')],
   note: identical(note, _unset) ? sampleNote() : note as CourseExerciseNote?,
+  assignmentFeedback: assignmentFeedback ?? sampleAssignmentFeedback(),
 );
 
 /// Sentinel distinguishing "the caller did not pass `note`" (default to
@@ -293,6 +295,25 @@ CourseExerciseMaterial sampleMaterial({
   String name = 'Course material 1',
   String sizeLabel = '10 MB',
 }) => CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel);
+
+/// The sample module's two canned mentor responses: a resubmission request,
+/// then an acceptance — mirrors production's own default sequence.
+List<AssignmentMentorFeedback> sampleAssignmentFeedback() => const [
+  AssignmentMentorFeedback(
+    mentorInitials: 'ГЭ',
+    mentorName: 'Ганбаатар Эрдэнэ',
+    message: 'Please check the matrix traversal and resubmit.',
+    timestampLabel: 'Yesterday, 16:40',
+    requiresResubmission: true,
+  ),
+  AssignmentMentorFeedback(
+    mentorInitials: 'ГЭ',
+    mentorName: 'Ганбаатар Эрдэнэ',
+    message: 'Nice work — accepted.',
+    timestampLabel: 'Today, 09:15',
+    requiresResubmission: false,
+  ),
+];
 
 CourseExerciseNote sampleNote({
   String authorInitials = 'БП',

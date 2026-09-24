@@ -184,6 +184,26 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
             'model.',
         timestampLabel: 'Today, 14:20',
       ),
+      assignmentFeedback: const [
+        AssignmentMentorFeedback(
+          mentorInitials: 'ГЭ',
+          mentorName: 'Ганбаатар Эрдэнэ',
+          message:
+              'Good start, but your loop bounds are off by one — check '
+              'the matrix traversal and resubmit.',
+          timestampLabel: 'Yesterday, 16:40',
+          requiresResubmission: true,
+        ),
+        AssignmentMentorFeedback(
+          mentorInitials: 'ГЭ',
+          mentorName: 'Ганбаатар Эрдэнэ',
+          message:
+              'Nice work — the fix looks correct and your explanation is '
+              'clear.',
+          timestampLabel: 'Today, 09:15',
+          requiresResubmission: false,
+        ),
+      ],
     );
   }
 

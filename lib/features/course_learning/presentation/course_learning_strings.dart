@@ -18,6 +18,11 @@ abstract final class CourseLearningStrings {
 
   static const String moduleCaption = 'Modules';
 
+  // --- Lesson List -------------------------------------------------------
+
+  static const String lessonsLabel = 'LESSONS';
+  static const String lessonCaption = 'Lesson';
+
   static const String certificationLabel = 'CERTIFICATION';
   static const String certificationTitle = 'Earn a Certificate of completion';
 
@@ -38,6 +43,8 @@ abstract final class CourseLearningStrings {
   static const String descriptionFloatingLabel = 'Тайлбар';
   static const String descriptionPlaceholder = 'Энд бичнэ үү...';
   static const String submit = 'Submit';
+  static const String submitted = 'Submitted';
+  static const String resubmit = 'Resubmit';
 
   static const String mentorFeedbackTitle = 'Mentor Feedback';
   static const String noFeedbackYet = 'No feedback yet';
