@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../home_strings.dart';
 
 /// The dashboard's header: the brand lockup, and the notification control at
@@ -11,6 +12,14 @@ import '../home_strings.dart';
 /// Home is the only screen with no heading line — the lockup stands in for
 /// one, which is why this sits on [AppColors.surface] with a rule under it
 /// while the content below scrolls on the page grey.
+///
+/// The lockup is the icon mark ([HomeIcons.appIcon]) beside "AI academy" /
+/// "Asia" drawn as live text ([AppTypography.homeLogoWordmark]) — the same
+/// icon-plus-text split the splash screen uses, in place of the one flattened
+/// `ai_academy_logo.png` export this used to show. Both pieces are sized so
+/// the whole lockup still sits at [AppDimens.headerLogoHeight] (32), same as
+/// the old image did — the header's own height, padding and the bell's
+/// position are unchanged.
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key, this.onNotifications});
 
@@ -32,16 +41,41 @@ class HomeHeader extends StatelessWidget {
             Semantics(
               label: HomeStrings.logo,
               image: true,
-              child: Image.asset(
-                HomeIcons.logo,
-                height: AppDimens.headerLogoHeight,
-                fit: BoxFit.contain,
-              ),
+              child: const _BrandLockup(),
             ),
             const Spacer(),
             _NotificationButton(onTap: onNotifications),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Icon mark + two-line wordmark, both held to
+/// [AppDimens.headerLogoHeight] (32) so the pair reads as one lockup at the
+/// same footprint the single flattened logo image used to occupy.
+class _BrandLockup extends StatelessWidget {
+  const _BrandLockup();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: AppDimens.headerLogoHeight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            HomeIcons.appIcon,
+            height: AppDimens.headerLogoHeight,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${HomeStrings.wordmarkLine1}\n${HomeStrings.wordmarkLine2}',
+            style: AppTypography.homeLogoWordmark,
+          ),
+        ],
       ),
     );
   }

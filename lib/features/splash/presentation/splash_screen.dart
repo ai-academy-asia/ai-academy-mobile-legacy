@@ -7,38 +7,52 @@ import 'splash_strings.dart';
 
 /// The screen shown on launch, before sign-in.
 ///
-/// One [AnimationController] over [duration] (~1 second, per the storyboard),
-/// split into three back-to-back beats and a closing hold — nothing repeats
-/// or reverses, so the controller simply runs once and then sits at rest:
+/// One [AnimationController] over [duration] (7 seconds), split into an
+/// entrance, a hold and a fade-out — nothing repeats or reverses, so the
+/// controller simply runs once and then hands off on its own:
 ///
-///   * 0 – 40%: the icon fades and scales in, alone and centred — a blank
-///     white screen is the true first frame.
-///   * 40 – 60%: an invisible slot beside the icon widens from nothing to the
-///     wordmark's full width. Centred as a whole, the [Row] grows around its
-///     own centre, so this is what reads as "the icon moves left" — nothing
-///     about the icon itself moves; the space opening up beside it does.
-///   * 60 – 80%: the wordmark, already sized into that slot, fades in and
-///     slides the last few pixels in from the right.
-///   * 80 – 100%: hold. No animation targets this range, so every value
-///     above is already at its resting state — [Interval] holds a curve's
-///     output at 1.0 for any input past its own end.
+///   * 0 – 17.1%: the icon fades and scales in, alone and centred — a blank
+///     [AppColors.surface] screen is the true first frame.
+///   * 17.1 – 25.7%: an invisible slot beside the icon widens from nothing to
+///     the wordmark's full width. Centred as a whole, the [Row] grows around
+///     its own centre, so this is what reads as "the icon moves left" —
+///     nothing about the icon itself moves; the space opening up beside it
+///     does.
+///   * 25.7 – 42.9%: the wordmark, already sized into that slot, fades in and
+///     slides the last few pixels in from the right. Entrance ends here, at
+///     3 seconds — this beat, and the two before it, are unchanged from the
+///     original storyboard; only [duration] itself shrank, which is what
+///     moved every fraction in this list without moving any of the
+///     millisecond marks they still land on.
+///   * 42.9 – 71.4%: hold. No animation targets this range, so the lockup
+///     simply sits at rest, fully visible, for 2 seconds.
+///   * 71.4 – 100%: the whole lockup fades back out together over the final
+///     2 seconds — same curve and style as before, just shortened from the
+///     4 seconds an earlier pass used.
 ///
-/// It does **not** hand off to `/login` on its own: the whole screen is one
-/// tap target, but a tap before the animation has reached that resting state
-/// does nothing — see [_handleTap]. Only the first tap once it has settled
-/// navigates; every tap after that (including a second tap on the same
-/// still-mounted frame, before the route push takes effect) is ignored, via
-/// [_navigating].
+/// It hands off to sign-in **on its own**, once the fade-out completes — see
+/// [_onStatusChanged] — rather than waiting for a tap: a splash screen that
+/// requires input to end is not really a splash screen. [_navigating] still
+/// guards the actual route push, the same reasoning a tap-driven version
+/// would need it for — [AnimationStatus.completed] is not itself guaranteed
+/// to fire only once for the life of this controller (a hot reload or a
+/// forced rebuild could in principle re-observe it), and a second
+/// `pushReplacement` on an already-popped-from route is exactly the kind of
+/// bug worth foreclosing for free.
 ///
-/// The icon is cropped from the one bundled logo image rather than redrawn —
-/// see [SplashAssets.logo] for the measured crop and why the wordmark is
-/// drawn separately instead of read off the same picture.
+/// The icon is the same bundled mark [HomeHeader] shows — see
+/// [SplashAssets.icon] — drawn directly rather than cropped from a combined
+/// image, since that combined export no longer exists.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
-  /// Total run time, start to hand-off. Short and non-negotiable: the
-  /// storyboard calls for "~1 second", not something a user waits through.
-  static const Duration duration = Duration(milliseconds: 1000);
+  /// Total run time, start to hand-off: a 3-second entrance, a 2-second
+  /// hold, and a 2-second fade-out. Deliberately unhurried — this is a
+  /// branded moment, not a loading spinner standing in for one. The fade-out
+  /// is the one beat shortened from an earlier pass (was 4 seconds, felt too
+  /// slow); the entrance is exactly as long, and exactly as smooth, as
+  /// before, and the fade-out keeps its own curve/style, just over less time.
+  static const Duration duration = Duration(milliseconds: 7000);
 
   /// The route a tap hands off to, once the animation has settled.
   static const String nextRoute = '/login';
@@ -49,6 +63,12 @@ class SplashScreen extends StatefulWidget {
   static const Key logoOpacityKey = ValueKey('splash-logo-opacity');
   static const Key textSlotKey = ValueKey('splash-text-slot');
   static const Key textOpacityKey = ValueKey('splash-text-opacity');
+
+  /// The whole lockup's own fade-out opacity, distinct from [logoOpacityKey]/
+  /// [textOpacityKey] — those two only ever animate up to 1.0 during the
+  /// entrance and then hold there; this is what carries the lockup back down
+  /// to 0.0 for the closing beat.
+  static const Key screenFadeKey = ValueKey('splash-screen-fade');
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -62,9 +82,10 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _textSlotFactor;
   late final Animation<double> _textOpacity;
   late final Animation<double> _textSlide;
+  late final Animation<double> _screenFade;
 
-  /// Set once a tap has started the hand-off, so a second tap — before the
-  /// route push actually removes this screen — can't start it again.
+  /// Set once the hand-off has started, so a stray extra notification can't
+  /// start it again — see the class doc.
   bool _navigating = false;
 
   @override
@@ -75,21 +96,28 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: SplashScreen.duration,
     )..forward();
+    _controller.addStatusListener(_onStatusChanged);
 
+    // Every fraction below is a millisecond mark from the original
+    // storyboard divided by the current, shorter [duration] — the entrance
+    // marks (0, 1200, 1800, 3000ms) and the hold's own length (2s) are
+    // unchanged; only the fade-out (now 5000ms – 7000ms, was 5000ms –
+    // 9000ms) actually got shorter, and that alone is why every fraction
+    // here moved without any of the millisecond marks themselves moving.
     _logoOpacity = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0, 0.4, curve: Curves.easeOut),
+      curve: const Interval(0, 6 / 35, curve: Curves.easeOut),
     );
     _logoScale = Tween<double>(begin: 0.9, end: 1.0).animate(_logoOpacity);
 
     _textSlotFactor = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.4, 0.6, curve: Curves.easeOut),
+      curve: const Interval(6 / 35, 9 / 35, curve: Curves.easeOut),
     );
 
     final textCurve = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.6, 0.8, curve: Curves.easeOut),
+      curve: const Interval(9 / 35, 3 / 7, curve: Curves.easeOut),
     );
     _textOpacity = textCurve;
     // Slides in from 10 logical pixels right of rest — inside the
@@ -97,22 +125,18 @@ class _SplashScreenState extends State<SplashScreen>
     // offset is already small by the time the text is visible enough to
     // notice it moving.
     _textSlide = Tween<double>(begin: 10, end: 0).animate(textCurve);
+
+    _screenFade = Tween<double>(begin: 1, end: 0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(5 / 7, 1.0, curve: Curves.easeInOut),
+      ),
+    );
   }
 
-  /// Sends the screen on to sign-in — only once the animation has settled,
-  /// and only for the first tap that catches it settled.
-  ///
-  /// Gates on [AnimationController.value] reaching [AnimationController.upperBound]
-  /// rather than on [AnimationController.isCompleted]/[AnimationStatus.completed]:
-  /// the two are not the same instant. A controller's value reaches its upper
-  /// bound the moment elapsed time reaches its duration, but its status only
-  /// flips to `completed` once elapsed time *exceeds* that duration — so a
-  /// tap landing in that gap would read `isCompleted` as still false even
-  /// though the storyboard has visibly finished (every value on screen is
-  /// already at its resting state, per the class doc). The value check has
-  /// no such gap.
-  void _handleTap() {
-    if (_controller.value < _controller.upperBound || _navigating) return;
+  /// The automatic hand-off — see the class doc on why this replaces a tap.
+  void _onStatusChanged(AnimationStatus status) {
+    if (status != AnimationStatus.completed || _navigating) return;
     _navigating = true;
     // A plain `PageRouteBuilder` rather than `pushReplacementNamed`: a named
     // push takes the platform's default (slide-in) transition, and the
@@ -120,7 +144,7 @@ class _SplashScreenState extends State<SplashScreen>
     // one more fade than as a sudden switch to a different transition style.
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 250),
+        transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) =>
             const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
@@ -131,6 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _controller.removeStatusListener(_onStatusChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -139,16 +164,13 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: GestureDetector(
-        // Opaque: the animation leaves most of the screen visually blank, and
-        // a tap anywhere on it — not just on the logo or the wordmark — is
-        // still a tap on the splash screen.
-        behavior: HitTestBehavior.opaque,
-        onTap: _handleTap,
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => Row(
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => Opacity(
+            key: SplashScreen.screenFadeKey,
+            opacity: _screenFade.value,
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Opacity(
@@ -183,50 +205,22 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// The bundled logo image, cropped to just its icon — see
-/// [SplashAssets.logo] for the measured crop.
+/// The bundled icon mark, at the same rendered height the splash's earlier,
+/// combined-image version measured out for it.
 class _LogoMark extends StatelessWidget {
   const _LogoMark();
 
-  static const double _sourceWidth = 320;
-  static const double _sourceHeight = 97;
-
-  /// Sits inside the transparent gap between the icon and the wordmark
-  /// (columns 106–125), so the crop carries a hair of breathing room on
-  /// either side without reaching into either shape's pixels.
-  static const double _iconCropWidth = 112;
-
   /// The icon's rendered height on screen.
   ///
-  /// The source PNG is only 320 x 97 — its icon glyph occupies roughly
-  /// 105 x 96 of that. 48 keeps this close to the asset's own resolution
-  /// rather than stretching it further than necessary: on a 2x display that's
-  /// 96 physical pixels, essentially native; on the densest common displays
-  /// (3x) it's 144, under a 1.5x upscale. `AppDimens.avatarSize` (44) is the
-  /// closest existing icon-scale reference in this app, so 48 also reads as
-  /// "one more icon at this app's usual glyph size" rather than a one-off.
-  /// The wordmark is sized to read well beside it instead — see
-  /// [AppTypography.splashWordmark].
+  /// `AppDimens.avatarSize` (44) is the closest existing icon-scale reference
+  /// in this app, so 48 reads as "one more icon at this app's usual glyph
+  /// size" rather than a one-off. The wordmark is sized to read well beside
+  /// it instead — see [AppTypography.splashWordmark].
   static const double _renderedHeight = 48;
-
-  static const double _scale = _renderedHeight / _sourceHeight;
-  static const double _renderedFullWidth = _sourceWidth * _scale;
-  static const double _iconCropFraction = _iconCropWidth / _sourceWidth;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: Align(
-        alignment: Alignment.centerLeft,
-        widthFactor: _iconCropFraction,
-        child: Image.asset(
-          SplashAssets.logo,
-          width: _renderedFullWidth,
-          height: _renderedHeight,
-          fit: BoxFit.fill,
-        ),
-      ),
-    );
+    return Image.asset(SplashAssets.icon, height: _renderedHeight);
   }
 }
 
