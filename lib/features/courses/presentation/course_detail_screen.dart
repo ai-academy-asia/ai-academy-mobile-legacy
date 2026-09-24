@@ -7,6 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/describe_json.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../data/http_course_repository.dart';
 import '../domain/course.dart';
 import '../domain/course_repository.dart';
@@ -76,7 +77,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             builder: (context, _) => Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
+                constraints: const BoxConstraints(
+                  maxWidth: AppDimens.maxContentWidth,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -98,7 +101,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     }
 
     if (_controller.errorMessage != null) {
-      return _ErrorView(message: _controller.errorMessage!, onRetry: _controller.load);
+      return _ErrorView(
+        message: _controller.errorMessage!,
+        onRetry: _controller.load,
+      );
     }
 
     // Loading is checked above only for the *first* fetch — a retry after an
@@ -125,7 +131,11 @@ class _BackButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             child: const Padding(
               padding: EdgeInsets.all(8),
-              child: Icon(AppIcons.caretLeft, size: 22, color: AppColors.textPrimary),
+              child: Icon(
+                AppIcons.caretLeft,
+                size: 22,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ),
@@ -143,7 +153,10 @@ class _LoadingView extends StatelessWidget {
       child: SizedBox(
         width: 28,
         height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.blue),
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: AppColors.blue,
+        ),
       ),
     );
   }
@@ -159,7 +172,9 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -206,7 +221,10 @@ class _CourseDetailBody extends StatelessWidget {
           CourseBadges(course: course),
           const SizedBox(height: 12),
 
-          Text(course.title.preferred ?? course.slug, style: AppTypography.heading),
+          Text(
+            course.title.preferred ?? course.slug,
+            style: AppTypography.heading,
+          ),
 
           if (course.tagline.preferred case final tagline?) ...[
             const SizedBox(height: AppDimens.titleToSupporting),
@@ -223,6 +241,16 @@ class _CourseDetailBody extends StatelessWidget {
 
           const SizedBox(height: 12),
           CoursePriceRow(course: course),
+
+          const SizedBox(height: 16),
+          AppButton(
+            label: CourseDetailStrings.openCourseLearning,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CourseModuleListScreen(courseSlug: course.slug),
+              ),
+            ),
+          ),
 
           const SizedBox(height: 24),
 
