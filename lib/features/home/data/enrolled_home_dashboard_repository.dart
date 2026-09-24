@@ -3,7 +3,11 @@ import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../cohorts/data/http_cohort_repository.dart';
 import '../../cohorts/domain/cohort.dart';
+import '../../cohorts/domain/cohort_course_resolver.dart';
 import '../../cohorts/domain/cohort_repository.dart';
+import '../../courses/data/http_course_repository.dart';
+import '../../courses/domain/course.dart';
+import '../../courses/domain/course_repository.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrollment_failure.dart';
@@ -15,7 +19,7 @@ import '../domain/lesson_schedule.dart';
 /// Assembles the Home dashboard out of the endpoints the app already has.
 ///
 /// No new API is invented here and no transport is written: this composes
-/// three existing repositories, each with its own confirmed contract.
+/// existing repositories, each with its own confirmed contract.
 ///
 ///   * `GET /me/cohorts` — which cohorts the student is enrolled in, and, per
 ///     [EnrolledCohortSummary], the progress percentage an entry carries when
@@ -27,6 +31,12 @@ import '../domain/lesson_schedule.dart';
 ///   * `GET /auth/me` — only for `profile.ui_mode`, which drives the track
 ///     badge. Nothing on a cohort or its course says which mode the student
 ///     uses; the account does.
+///   * `GET /courses` — only to resolve [EnrolledProgram.courseSlug] against
+///     the live catalog via [resolveCohortCourse], since the cohort's own
+///     embedded course slug can be stale (see that function's own doc
+///     comment). Best-effort, same treatment as [_uiMode]: a failure here
+///     falls back to the cohort's own slug rather than failing the whole
+///     dashboard over a resolution nicety.
 ///
 /// ## What is deliberately missing
 ///
@@ -53,15 +63,18 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     EnrolledCohortsRepository? enrolledCohorts,
     CohortRepository? cohorts,
     CurrentUserRepository? currentUser,
+    CourseRepository? courses,
     DateTime Function()? clock,
   }) : _enrolledCohorts = enrolledCohorts ?? HttpEnrolledCohortsRepository(),
        _cohorts = cohorts ?? HttpCohortRepository(),
        _currentUser = currentUser ?? HttpCurrentUserRepository(),
+       _courses = courses ?? HttpCourseRepository(),
        _clock = clock ?? DateTime.now;
 
   final EnrolledCohortsRepository _enrolledCohorts;
   final CohortRepository _cohorts;
   final CurrentUserRepository _currentUser;
+  final CourseRepository _courses;
   final DateTime Function() _clock;
 
   @override
@@ -93,6 +106,9 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     if (cohort == null) return const HomeDashboard();
 
     final progressPct = progressByCohortId[cohort.id];
+    final courseSlug =
+        resolveCohortCourse(await _courseCatalog(), cohort.course)?.slug ??
+        cohort.course.slug;
 
     return HomeDashboard(
       program: EnrolledProgram(
@@ -101,7 +117,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         courseTitle:
             _preferMongolian(cohort.course.title.mn, cohort.course.title.en) ??
             cohort.name,
-        courseSlug: cohort.course.slug,
+        courseSlug: courseSlug,
         status: cohort.status,
         uiMode: await _uiMode(),
         // Null exactly when the entry named this cohort with no
@@ -149,6 +165,19 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
       return uiMode.isEmpty ? null : uiMode;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// The public course catalog, for [resolveCohortCourse]. Its own request,
+  /// its own failure handling — same reasoning as [_uiMode]: resolving a
+  /// fresher slug is a nicety, so a failed `GET /courses` leaves
+  /// [EnrolledProgram.courseSlug] on the cohort's own slug rather than
+  /// taking the whole dashboard down.
+  Future<List<Course>> _courseCatalog() async {
+    try {
+      return await _courses.getCourses();
+    } catch (_) {
+      return const [];
     }
   }
 }

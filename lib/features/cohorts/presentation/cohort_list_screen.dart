@@ -7,6 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../courses/domain/course_repository.dart';
 import '../../courses/presentation/course_detail_screen.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
 import '../../enrollments/data/http_enrollment_repository.dart';
@@ -40,6 +41,7 @@ class CohortListScreen extends StatefulWidget {
   const CohortListScreen({
     super.key,
     this.repository,
+    this.courseRepository,
     this.enrollmentRepository,
     this.enrolledCohortsRepository,
     this.courseId,
@@ -48,6 +50,11 @@ class CohortListScreen extends StatefulWidget {
 
   /// Defaults to the real API. Injected in tests.
   final CohortRepository? repository;
+
+  /// `GET /courses`, used only to resolve each cohort's real course-catalog
+  /// slug — see `CohortListController.courseSlugFor`. Defaults to the real
+  /// API. Injected in tests.
+  final CourseRepository? courseRepository;
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
   final EnrollmentRepository? enrollmentRepository;
@@ -80,6 +87,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
     super.initState();
     _controller = CohortListController(
       repository: widget.repository ?? HttpCohortRepository(),
+      courseRepository: widget.courseRepository,
       courseId: widget.courseId,
     )..load();
     _enrollment = EnrollmentController(
@@ -244,6 +252,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
       enrolledCohorts: _enrolledCohorts,
       onRefresh: _refresh,
       showProgress: enrolledOnly,
+      courseSlugFor: _controller.courseSlugFor,
     );
   }
 }
@@ -329,6 +338,7 @@ class _CohortList extends StatelessWidget {
     required this.enrolledCohorts,
     required this.onRefresh,
     required this.showProgress,
+    required this.courseSlugFor,
   });
 
   /// Draws each card's `GET /me/cohorts` progress, when it has one.
@@ -338,6 +348,11 @@ class _CohortList extends StatelessWidget {
   final EnrollmentController enrollment;
   final EnrolledCohortsController enrolledCohorts;
   final Future<void> Function() onRefresh;
+
+  /// `CohortListController.courseSlugFor` — resolves a cohort's real
+  /// course-catalog slug rather than trusting its own, possibly stale,
+  /// embedded one. See `resolveCohortCourse`'s doc comment.
+  final String Function(Cohort cohort) courseSlugFor;
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +394,7 @@ class _CohortList extends StatelessWidget {
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) =>
-                          CourseDetailScreen(slug: cohort.course.slug),
+                          CourseDetailScreen(slug: courseSlugFor(cohort)),
                     ),
                   ),
                 );

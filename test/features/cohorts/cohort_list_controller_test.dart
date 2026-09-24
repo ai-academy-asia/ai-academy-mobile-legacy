@@ -5,11 +5,15 @@ import 'package:aia_mobile/features/cohorts/presentation/cohort_list_controller.
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../courses/fake_course_repository.dart';
 import 'fake_cohort_repository.dart';
 
 void main() {
   test('starts idle, before load() is ever called', () {
-    final controller = CohortListController(repository: FakeCohortRepository());
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: FakeCohortRepository(),
+    );
 
     expect(controller.loading, isFalse);
     expect(controller.cohorts, isEmpty);
@@ -19,7 +23,10 @@ void main() {
 
   test('reports loading while the request is in flight', () async {
     final repository = FakeCohortRepository(hold: true);
-    final controller = CohortListController(repository: repository);
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: repository,
+    );
 
     final pending = controller.load();
     await Future<void>.delayed(Duration.zero);
@@ -34,8 +41,12 @@ void main() {
   });
 
   test('holds the fetched list on success', () async {
-    final cohorts = [sampleCohort(id: 1, name: 'A'), sampleCohort(id: 2, name: 'B')];
+    final cohorts = [
+      sampleCohort(id: 1, name: 'A'),
+      sampleCohort(id: 2, name: 'B'),
+    ];
     final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
       repository: FakeCohortRepository(cohorts: cohorts),
     );
 
@@ -48,6 +59,7 @@ void main() {
 
   test('an empty list is reported through isEmpty, not as an error', () async {
     final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
       repository: FakeCohortRepository(cohorts: const []),
     );
 
@@ -60,7 +72,10 @@ void main() {
 
   test('maps each ApiFailureKind to its own message', () async {
     final repository = FakeCohortRepository();
-    final controller = CohortListController(repository: repository);
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: repository,
+    );
 
     repository.failure = const ApiFailure(ApiFailureKind.network);
     await controller.load();
@@ -77,7 +92,10 @@ void main() {
 
   test('a failure clears any previously loaded list', () async {
     final repository = FakeCohortRepository(cohorts: [sampleCohort()]);
-    final controller = CohortListController(repository: repository);
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: repository,
+    );
     await controller.load();
     expect(controller.cohorts, isNotEmpty);
 
@@ -97,7 +115,10 @@ void main() {
     final repository = FakeCohortRepository(
       failure: const ApiFailure(ApiFailureKind.network),
     );
-    final controller = CohortListController(repository: repository);
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: repository,
+    );
     await controller.load();
     expect(controller.errorMessage, isNotNull);
 
@@ -109,17 +130,26 @@ void main() {
     expect(controller.cohorts, isNotEmpty);
   });
 
-  test('an unrecognised exception still surfaces as a message, not a crash', () async {
-    final controller = CohortListController(repository: _ThrowsNonApiFailure());
+  test(
+    'an unrecognised exception still surfaces as a message, not a crash',
+    () async {
+      final controller = CohortListController(
+        courseRepository: FakeCourseRepository(),
+        repository: _ThrowsNonApiFailure(),
+      );
 
-    await controller.load();
+      await controller.load();
 
-    expect(controller.errorMessage, CohortListStrings.unexpectedError);
-  });
+      expect(controller.errorMessage, CohortListStrings.unexpectedError);
+    },
+  );
 
   test('notifies listeners on every state change', () async {
     final repository = FakeCohortRepository(cohorts: [sampleCohort()]);
-    final controller = CohortListController(repository: repository);
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: repository,
+    );
     var notifications = 0;
     controller.addListener(() => notifications++);
 
@@ -136,6 +166,7 @@ void main() {
         sampleCohort(id: 3, courseId: 6),
       ];
       final controller = CohortListController(
+        courseRepository: FakeCourseRepository(),
         repository: FakeCohortRepository(cohorts: cohorts),
         courseId: 6,
       );
@@ -146,8 +177,12 @@ void main() {
     });
 
     test('keeps every cohort when no courseId is given', () async {
-      final cohorts = [sampleCohort(id: 1, courseId: 6), sampleCohort(id: 2, courseId: 9)];
+      final cohorts = [
+        sampleCohort(id: 1, courseId: 6),
+        sampleCohort(id: 2, courseId: 9),
+      ];
       final controller = CohortListController(
+        courseRepository: FakeCourseRepository(),
         repository: FakeCohortRepository(cohorts: cohorts),
       );
 
@@ -158,7 +193,10 @@ void main() {
 
     test('isEmpty is true when no cohort matches the given courseId', () async {
       final controller = CohortListController(
-        repository: FakeCohortRepository(cohorts: [sampleCohort(id: 1, courseId: 9)]),
+        courseRepository: FakeCourseRepository(),
+        repository: FakeCohortRepository(
+          cohorts: [sampleCohort(id: 1, courseId: 9)],
+        ),
         courseId: 6,
       );
 
@@ -172,13 +210,54 @@ void main() {
 
   test('does not notify after being disposed', () async {
     final repository = FakeCohortRepository(hold: true);
-    final controller = CohortListController(repository: repository);
+    final controller = CohortListController(
+      courseRepository: FakeCourseRepository(),
+      repository: repository,
+    );
 
     final pending = controller.load();
     controller.dispose();
     repository.release();
 
     await pending;
+  });
+
+  group('courseSlugFor', () {
+    test('resolves the catalog slug when the cohort\'s own is stale', () async {
+      // Reproduces the real, confirmed drift — see `resolveCohortCourse`'s
+      // own doc comment: `sampleCohort`'s embedded course (id 6, slug
+      // "summer-bootcamp-2027") shares its title with `sampleCourse`'s
+      // catalog entry (id 4, slug "summer-bootcamp").
+      final controller = CohortListController(
+        repository: FakeCohortRepository(),
+        courseRepository: FakeCourseRepository(courses: [sampleCourse()]),
+      );
+      await controller.load();
+
+      expect(controller.courseSlugFor(sampleCohort()), 'summer-bootcamp');
+    });
+
+    test('falls back to the cohort\'s own slug when nothing matches', () async {
+      final controller = CohortListController(
+        repository: FakeCohortRepository(),
+        courseRepository: FakeCourseRepository(courses: const []),
+      );
+      await controller.load();
+
+      expect(controller.courseSlugFor(sampleCohort()), 'summer-bootcamp-2027');
+    });
+
+    test('a failed GET /courses falls back, not to an exception', () async {
+      final controller = CohortListController(
+        repository: FakeCohortRepository(),
+        courseRepository: FakeCourseRepository(
+          failure: const ApiFailure(ApiFailureKind.server),
+        ),
+      );
+      await controller.load();
+
+      expect(controller.courseSlugFor(sampleCohort()), 'summer-bootcamp-2027');
+    });
   });
 }
 
