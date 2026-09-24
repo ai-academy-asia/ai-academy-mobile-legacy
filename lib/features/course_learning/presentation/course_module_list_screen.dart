@@ -11,6 +11,7 @@ import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
+import 'lesson_list_screen.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/course_module_card.dart';
 
@@ -22,12 +23,11 @@ import 'widgets/course_module_card.dart';
 /// spots where no existing app-wide pattern covered what the reference draws
 /// at all (the card shadows, the hero's tint).
 ///
-/// Module tap and both "Continue learning" buttons are wired to nothing yet —
-/// same reasoning as Home's `noDestinationYet`: Lesson List/Lesson Detail are
-/// a later increment of this same issue, not built yet, so there is nowhere
-/// real to send a tap. Locked modules stay genuinely inert (`onTap: null`);
-/// completed ones look tappable, matching the reference, without a live
-/// destination.
+/// An unlocked module card opens `LessonListScreen`. Locked modules stay
+/// genuinely inert (`onTap: null`). Both "Continue learning" buttons open the
+/// same screen, for whichever module [_continueLearningTarget] picks — see
+/// that function's own doc comment for what the rule is and, importantly,
+/// what it is not.
 class CourseModuleListScreen extends StatefulWidget {
   const CourseModuleListScreen({
     required this.courseSlug,
@@ -46,13 +46,15 @@ class CourseModuleListScreen extends StatefulWidget {
 }
 
 class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
+  late final CourseLearningRepository _repository =
+      widget.repository ?? SampleCourseLearningRepository();
   late final CourseLearningController _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = CourseLearningController(
-      repository: widget.repository ?? SampleCourseLearningRepository(),
+      repository: _repository,
       courseSlug: widget.courseSlug,
     )..load();
   }
@@ -118,7 +120,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
     if (_controller.loading && path == null) {
       return const _LoadingView();
     }
-    return _CourseLearningBody(path: path!);
+    return _CourseLearningBody(path: path!, repository: _repository);
   }
 }
 
@@ -140,14 +142,52 @@ class _LoadingView extends StatelessWidget {
   }
 }
 
-/// Placeholder for every action this screen draws but cannot yet send
-/// anywhere — see the class doc on `CourseModuleListScreen`.
-void _noDestinationYet() {}
+/// The module "Continue learning" should open.
+///
+/// **A frontend placeholder, not a confirmed backend rule.**
+/// `course_learning_api_requirements_v1.md` explicitly defers "which rule
+/// selects the module/lesson" to backend confirmation — this exists only so
+/// the button has *somewhere* real to go against today's sample data, not as
+/// a claim about what the eventual rule will be.
+///
+/// The rule: the first module that is neither completed nor locked — the
+/// "in progress, pick up here" case a real rule would presumably also pick.
+/// Today's sample data has no module in that state (see `CourseModule.
+/// locked`'s own doc comment on why), so this falls back to the most
+/// recently completed module instead, which is still a defensible "continue
+/// where you left off" reading. Null only if every module is locked, which
+/// the sample data never produces.
+CourseModule? _continueLearningTarget(List<CourseModule> modules) {
+  for (final module in modules) {
+    if (!module.completed && !module.locked) return module;
+  }
+  for (final module in modules.reversed) {
+    if (module.completed) return module;
+  }
+  return null;
+}
+
+void _openLessonList(
+  BuildContext context,
+  CourseModule module,
+  CourseLearningRepository repository,
+) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => LessonListScreen(
+        moduleId: module.id,
+        moduleTitle: module.title,
+        repository: repository,
+      ),
+    ),
+  );
+}
 
 class _CourseLearningBody extends StatelessWidget {
-  const _CourseLearningBody({required this.path});
+  const _CourseLearningBody({required this.path, required this.repository});
 
   final CourseLearningPath path;
+  final CourseLearningRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -163,11 +203,19 @@ class _CourseLearningBody extends StatelessWidget {
         children: [
           _Hero(path: path),
           const SizedBox(height: 20),
-          _ProgressCtaRow(percentComplete: path.percentComplete),
+          _ProgressCtaRow(
+            percentComplete: path.percentComplete,
+            modules: path.modules,
+            repository: repository,
+          ),
           const SizedBox(height: 24),
-          _ModuleList(modules: path.modules),
+          _ModuleList(modules: path.modules, repository: repository),
           const SizedBox(height: 24),
-          _CertificationSection(percentComplete: path.percentComplete),
+          _CertificationSection(
+            percentComplete: path.percentComplete,
+            modules: path.modules,
+            repository: repository,
+          ),
         ],
       ),
     );
@@ -244,9 +292,15 @@ class _Hero extends StatelessWidget {
 /// overflowed by a couple of pixels in the narrower one. Flexing the one
 /// approximate segment keeps the button's exact size exact everywhere.
 class _ProgressCtaRow extends StatelessWidget {
-  const _ProgressCtaRow({required this.percentComplete});
+  const _ProgressCtaRow({
+    required this.percentComplete,
+    required this.modules,
+    required this.repository,
+  });
 
   final int percentComplete;
+  final List<CourseModule> modules;
+  final CourseLearningRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -277,17 +331,25 @@ class _ProgressCtaRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        const _ContinueLearningButton(),
+        _ContinueLearningButton(modules: modules, repository: repository),
       ],
     );
   }
 }
 
 class _ContinueLearningButton extends StatelessWidget {
-  const _ContinueLearningButton();
+  const _ContinueLearningButton({
+    required this.modules,
+    required this.repository,
+  });
+
+  final List<CourseModule> modules;
+  final CourseLearningRepository repository;
 
   @override
   Widget build(BuildContext context) {
+    final target = _continueLearningTarget(modules);
+
     return Semantics(
       button: true,
       label: CourseLearningStrings.continueLearning,
@@ -313,7 +375,9 @@ class _ContinueLearningButton extends StatelessWidget {
           color: AppColors.blue,
           borderRadius: BorderRadius.circular(20),
           child: InkWell(
-            onTap: _noDestinationYet,
+            onTap: target == null
+                ? null
+                : () => _openLessonList(context, target, repository),
             borderRadius: BorderRadius.circular(20),
             splashColor: Colors.white24,
             highlightColor: Colors.white10,
@@ -343,9 +407,10 @@ class _ContinueLearningButton extends StatelessWidget {
 /// rule — the Figma reference draws a thin line running down the card list,
 /// centred under the icon column.
 class _ModuleList extends StatelessWidget {
-  const _ModuleList({required this.modules});
+  const _ModuleList({required this.modules, required this.repository});
 
   final List<CourseModule> modules;
+  final CourseLearningRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +419,9 @@ class _ModuleList extends StatelessWidget {
         for (var i = 0; i < modules.length; i++) ...[
           CourseModuleCard(
             module: modules[i],
-            onTap: modules[i].locked ? null : _noDestinationYet,
+            onTap: modules[i].locked
+                ? null
+                : () => _openLessonList(context, modules[i], repository),
           ),
           if (i != modules.length - 1) const _ModuleConnector(),
         ],
@@ -388,9 +455,15 @@ class _ModuleConnector extends StatelessWidget {
 /// width as everything above it, with its own padding standing in for the
 /// reference's edge-to-edge bleed.
 class _CertificationSection extends StatelessWidget {
-  const _CertificationSection({required this.percentComplete});
+  const _CertificationSection({
+    required this.percentComplete,
+    required this.modules,
+    required this.repository,
+  });
 
   final int percentComplete;
+  final List<CourseModule> modules;
+  final CourseLearningRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +520,11 @@ class _CertificationSection extends StatelessWidget {
           const SizedBox(height: 16),
           const _CertificatePreview(),
           const SizedBox(height: 20),
-          _ProgressCtaRow(percentComplete: percentComplete),
+          _ProgressCtaRow(
+            percentComplete: percentComplete,
+            modules: modules,
+            repository: repository,
+          ),
         ],
       ),
     );

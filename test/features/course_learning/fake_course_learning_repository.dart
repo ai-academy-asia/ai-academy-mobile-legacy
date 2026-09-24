@@ -5,6 +5,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart'
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 
 /// A repository the tests drive by hand.
 ///
@@ -12,12 +13,15 @@ import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
 /// real `SampleCourseLearningRepository` never actually awaits anything —
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
-/// [getCourseLearning] and [getExercise] are tracked independently, same
-/// reasoning as `FakeCourseRepository`'s `getCourses`/`getCourseDetail` split.
+/// [getCourseLearning], [getLessons] and [getExercise] are tracked
+/// independently, same reasoning as `FakeCourseRepository`'s
+/// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
     this.path,
     this.hold = false,
+    this.lessons,
+    this.holdLessons = false,
     this.exercise,
     this.holdExercise = false,
   });
@@ -50,6 +54,36 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     }
 
     return path ?? samplePath(courseSlug: courseSlug);
+  }
+
+  // --- getLessons --------------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleLessons] if unset.
+  List<Lesson>? lessons;
+
+  /// When true, [getLessons] blocks until [releaseLessons] is called.
+  bool holdLessons;
+
+  /// Every module id [getLessons] was called with, in order.
+  final List<int> lessonCalls = [];
+
+  Completer<void>? _lessonsGate;
+
+  void releaseLessons() {
+    final gate = _lessonsGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<List<Lesson>> getLessons(int moduleId) async {
+    lessonCalls.add(moduleId);
+
+    if (holdLessons) {
+      _lessonsGate = Completer<void>();
+      await _lessonsGate!.future;
+    }
+
+    return lessons ?? sampleLessons(moduleId: moduleId);
   }
 
   // --- getExercise -----------------------------------------------------
@@ -162,6 +196,50 @@ CourseLearningPath samplePath({
         ),
       ],
 );
+
+/// A minimal lesson, every field overridable, for a test that only cares
+/// about one or two of them.
+Lesson sampleLesson({
+  int id = 2,
+  int moduleId = 2,
+  int order = 2,
+  String title = 'Nesting loops',
+  String durationLabel = '24:15',
+  bool completed = false,
+  bool locked = false,
+}) => Lesson(
+  id: id,
+  moduleId: moduleId,
+  order: order,
+  title: title,
+  durationLabel: durationLabel,
+  completed: completed,
+  locked: locked,
+);
+
+/// The sample module's own three lessons: one completed, one open, one
+/// locked — mirrors [samplePath]'s own completed/locked mix at module level.
+List<Lesson> sampleLessons({int moduleId = 2, List<Lesson>? lessons}) =>
+    lessons ??
+    [
+      sampleLesson(
+        id: 1,
+        moduleId: moduleId,
+        order: 1,
+        title: 'Introduction to loops',
+        durationLabel: '12:30',
+        completed: true,
+      ),
+      sampleLesson(id: 2, moduleId: moduleId, order: 2),
+      sampleLesson(
+        id: 3,
+        moduleId: moduleId,
+        order: 3,
+        title: 'Practice: matrix traversal',
+        durationLabel: '18:40',
+        locked: true,
+      ),
+    ];
 
 /// The Figma "Nesting loops" sample, note included by default — pass
 /// `note: null` for the empty/edit-state fixture.
