@@ -231,6 +231,33 @@ void main() {
       expect(find.text('open'), findsOneWidget);
       expect(find.byType(CourseModuleListScreen), findsNothing);
     });
+
+    testWidgets('the full chain: Exercise Detail back returns to Module List, '
+        'Module List back returns to the previous screen', (tester) async {
+      // The normal flow this screen sits in: previous screen (Home/Cohort
+      // List, stood in for here by a plain "open" button) → Module List →
+      // Exercise Detail, with neither Course Detail nor Lesson List as an
+      // intermediate step.
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Prediction and Probabilities'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
+      expect(find.byType(CourseModuleListScreen), findsNothing);
+
+      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(find.byType(CourseModuleListScreen), findsOneWidget);
+
+      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CourseModuleListScreen), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+    });
   });
 
   group('loading', () {

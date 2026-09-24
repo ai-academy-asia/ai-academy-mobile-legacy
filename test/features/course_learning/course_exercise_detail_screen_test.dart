@@ -287,6 +287,31 @@ void main() {
       expect(find.text('10 MB'), findsOneWidget);
       expect(find.text('12 MB'), findsOneWidget);
     });
+
+    testWidgets('tapping a download button marks only that row downloaded', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Course materials'));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Download'), findsNWidgets(2));
+      expect(find.bySemanticsLabel('Downloaded'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Download').first);
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+      expect(find.bySemanticsLabel('Download'), findsOneWidget);
+
+      // Already downloaded, so tapping it again does nothing further —
+      // there is exactly one checked icon, not a toggle back and forth.
+      await tester.tap(find.bySemanticsLabel('Downloaded'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+    });
   });
 
   group('note tab', () {
@@ -330,6 +355,123 @@ void main() {
         expect(find.text('Засах'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'whitespace-only input leaves Submit disabled — nothing is saved',
+      (tester) async {
+        final exercise = sampleExercise(note: null);
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(exercise: exercise),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Note'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), '   ');
+        await tester.pump();
+        await tester.tap(find.text('Submit'));
+        await tester.pumpAndSettle();
+
+        // Still the empty/editable state — a disabled button ignores the
+        // tap, so no saved-note card ever appears.
+        expect(find.text('Энд бичнэ үү...'), findsOneWidget);
+        expect(find.text('Болд Батаа'), findsNothing);
+      },
+    );
+
+    testWidgets('submitting real content shows the saved note', (tester) async {
+      final exercise = sampleExercise(note: null);
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Note'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'This part is unclear.');
+      await tester.pump();
+      await tester.tap(find.text('Submit'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('This part is unclear.'), findsOneWidget);
+      expect(find.text('Болд Батаа'), findsOneWidget);
+      expect(find.text('Me'), findsOneWidget);
+      expect(find.text('БП'), findsOneWidget);
+      expect(find.text('Just now'), findsOneWidget);
+      expect(find.text('Засах'), findsOneWidget);
+      // The textarea and its own Submit are gone — this is the saved state.
+      expect(find.text('Энд бичнэ үү...'), findsNothing);
+    });
+
+    testWidgets('a saved note survives switching to another tab and back', (
+      tester,
+    ) async {
+      final exercise = sampleExercise(note: null);
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Note'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Saved once.');
+      await tester.pump();
+      await tester.tap(find.text('Submit'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Note'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saved once.'), findsOneWidget);
+      expect(find.text('Засах'), findsOneWidget);
+    });
+
+    testWidgets(
+      'editing pre-fills the field, and resubmitting updates the message',
+      (tester) async {
+        final exercise = sampleExercise();
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(exercise: exercise),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Note'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Засах'));
+        await tester.pumpAndSettle();
+
+        final field = tester.widget<TextField>(find.byType(TextField));
+        expect(field.controller!.text, contains('improve validation'));
+
+        await tester.enterText(
+          find.byType(TextField),
+          'Revised: fixed the validation split.',
+        );
+        await tester.pump();
+        await tester.tap(find.text('Submit'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Revised: fixed the validation split.'),
+          findsOneWidget,
+        );
+        expect(find.text('Just now'), findsOneWidget);
+        expect(find.text('Today, 14:20'), findsNothing);
+        // Same author identity as before the edit — only the message and
+        // timestamp change.
+        expect(find.text('Болд Батаа'), findsOneWidget);
+        expect(find.text('БП'), findsOneWidget);
+      },
+    );
   });
 
   group('navigation', () {
@@ -344,6 +486,39 @@ void main() {
       expect(find.text('open'), findsOneWidget);
       expect(find.byType(CourseExerciseDetailScreen), findsNothing);
     });
+
+    testWidgets(
+      'the back button still pops when a real status bar/notch inset is '
+      'present, not just at zero inset',
+      (tester) async {
+        // Reproduces the actual on-device bug a plain `tester.tap` at zero
+        // inset cannot: with no simulated notch, the button sat wherever
+        // `Positioned(top: 16)` put it and a synthetic tap always reached it
+        // — that's why the previous test above passed even though the real
+        // app's back button did nothing. A real phone reports a non-zero top
+        // view padding for its status bar/notch; simulating that here is
+        // what actually exercises `ExerciseVideoHeader`'s safe-area offset.
+        const topInset = 47.0; // a typical notched iPhone's status bar.
+
+        await pumpScreen(tester, FakeCourseLearningRepository());
+        // `pumpScreen`'s own `addTearDown(tester.view.reset)` already
+        // resets this along with physicalSize/devicePixelRatio.
+        tester.view.padding = FakeViewPadding(
+          top: topInset * tester.view.devicePixelRatio,
+        );
+        await tester.pumpAndSettle();
+
+        // The button must actually have moved below the inset — otherwise
+        // this test would pass for the same wrong reason the old one did.
+        expect(tester.getTopLeft(backButton()).dy, greaterThan(topInset));
+
+        await tester.tap(backButton());
+        await tester.pumpAndSettle();
+
+        expect(find.text('open'), findsOneWidget);
+        expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      },
+    );
   });
 
   group('loading', () {

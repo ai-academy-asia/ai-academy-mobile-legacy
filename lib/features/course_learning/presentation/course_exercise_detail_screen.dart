@@ -22,19 +22,23 @@ import 'widgets/note_tab.dart';
 /// per-lesson backend contract, but is not part of this screen's normal
 /// navigation today — see `CourseModuleListScreen`'s own doc comment.
 ///
-/// **Scope.** The description's expanded/collapsed toggle, the Course
-/// materials tab, and the Note tab's empty/existing-note states are UI-only,
-/// same as before. The Assignment tab now cycles through four sample-data
-/// states — not submitted, pending review, needs resubmission, accepted —
-/// entirely as local widget state; see `AssignmentTab`'s own doc comment.
+/// **Scope.** The description's expanded/collapsed toggle is UI-only, same
+/// as before. The Assignment tab cycles through four sample-data states —
+/// not submitted, pending review, needs resubmission, accepted — entirely
+/// as local widget state; see `AssignmentTab`'s own doc comment. The Note
+/// tab similarly cycles between empty, editing and saved, held in this
+/// screen's own state (see `_note`) so it survives a tab switch; see
+/// `NoteTab`'s own doc comment. The Course materials tab's download button
+/// flips to a checked "downloaded" state on tap, also local only — see
+/// `CourseMaterialCard`'s own doc comment. None of this reaches a backend:
+/// there is no Note or Materials-download endpoint to call yet.
 /// Still out of scope, reserved for a separate future issue: real file
-/// upload (an uploaded-file state, upload/download progress against an
-/// actual file), the quiz and its scoring/retry, and the certificate. Every
-/// widget that would eventually carry that behaviour (the play button, the
-/// download buttons) is already in place and wired to nothing, the same
-/// `_noDestinationYet`-style placeholder `CourseModuleListScreen` uses for
-/// its own not-yet-built destinations, so this structure does not need to be
-/// rewritten to add that behaviour later.
+/// upload/download against an actual file, the quiz and its scoring/retry,
+/// and the certificate. Every widget that would eventually carry that
+/// behaviour (the upload control, the play button) is already in place and
+/// wired to nothing, the same `_noDestinationYet`-style placeholder
+/// `CourseModuleListScreen` uses for its own not-yet-built destinations, so
+/// this structure does not need to be rewritten to add that behaviour later.
 class CourseExerciseDetailScreen extends StatefulWidget {
   const CourseExerciseDetailScreen({
     required this.moduleId,
@@ -59,6 +63,13 @@ class _CourseExerciseDetailScreenState
 
   bool _descriptionExpanded = false;
   ExerciseTab _selectedTab = ExerciseTab.assignment;
+
+  /// The Note tab's current note — seeded once from the loaded sample
+  /// exercise (see [_buildBody]), then replaced whenever `NoteTab` saves a
+  /// new one. Held here, not inside `NoteTab` itself, so a note survives
+  /// switching to another tab and back — the same reason [_selectedTab]
+  /// and [_descriptionExpanded] live here rather than in a child.
+  CourseExerciseNote? _note;
 
   @override
   void initState() {
@@ -109,6 +120,10 @@ class _CourseExerciseDetailScreenState
       );
     }
 
+    // Seeded exactly once, the first time the exercise loads — `_note`
+    // then holds whatever `NoteTab` last saved, not the original sample.
+    _note ??= exercise!.note;
+
     return _ExerciseDetailBody(
       exercise: exercise!,
       descriptionExpanded: _descriptionExpanded,
@@ -116,6 +131,8 @@ class _CourseExerciseDetailScreenState
           setState(() => _descriptionExpanded = !_descriptionExpanded),
       selectedTab: _selectedTab,
       onSelectTab: (tab) => setState(() => _selectedTab = tab),
+      note: _note,
+      onSaveNote: (note) => setState(() => _note = note),
     );
   }
 }
@@ -127,6 +144,8 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.onToggleDescription,
     required this.selectedTab,
     required this.onSelectTab,
+    required this.note,
+    required this.onSaveNote,
   });
 
   final CourseExercise exercise;
@@ -134,6 +153,8 @@ class _ExerciseDetailBody extends StatelessWidget {
   final VoidCallback onToggleDescription;
   final ExerciseTab selectedTab;
   final ValueChanged<ExerciseTab> onSelectTab;
+  final CourseExerciseNote? note;
+  final ValueChanged<CourseExerciseNote> onSaveNote;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +205,12 @@ class _ExerciseDetailBody extends StatelessWidget {
                             selected: selectedTab,
                             onSelected: onSelectTab,
                           ),
-                          _TabContent(tab: selectedTab, exercise: exercise),
+                          _TabContent(
+                            tab: selectedTab,
+                            exercise: exercise,
+                            note: note,
+                            onSaveNote: onSaveNote,
+                          ),
                         ],
                       ),
                     ),
@@ -200,10 +226,17 @@ class _ExerciseDetailBody extends StatelessWidget {
 }
 
 class _TabContent extends StatelessWidget {
-  const _TabContent({required this.tab, required this.exercise});
+  const _TabContent({
+    required this.tab,
+    required this.exercise,
+    required this.note,
+    required this.onSaveNote,
+  });
 
   final ExerciseTab tab;
   final CourseExercise exercise;
+  final CourseExerciseNote? note;
+  final ValueChanged<CourseExerciseNote> onSaveNote;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +247,7 @@ class _TabContent extends StatelessWidget {
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,
       ),
-      ExerciseTab.note => NoteTab(note: exercise.note),
+      ExerciseTab.note => NoteTab(note: note, onSave: onSaveNote),
     };
   }
 }
