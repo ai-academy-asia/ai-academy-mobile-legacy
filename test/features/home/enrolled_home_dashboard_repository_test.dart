@@ -3,6 +3,7 @@ import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/home/data/enrolled_home_dashboard_repository.dart';
@@ -10,23 +11,26 @@ import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../cohorts/fake_cohort_repository.dart';
+import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 
 /// Exercises how [EnrolledHomeDashboardRepository] maps `GET /me/cohorts`,
-/// `GET /cohorts` and `GET /auth/me` — all three already confirmed and
-/// already tested against the wire in their own suites — onto a
-/// [HomeDashboard]. Nothing here talks to the network: each dependency is a
-/// fake, so this is purely about the composition.
+/// `GET /cohorts`, `GET /courses` and `GET /auth/me` — all four already
+/// confirmed and already tested against the wire in their own suites — onto
+/// a [HomeDashboard]. Nothing here talks to the network: each dependency is
+/// a fake, so this is purely about the composition.
 void main() {
   EnrolledHomeDashboardRepository repository({
     required List<EnrolledCohortSummary> enrolled,
     required List<Cohort> cohorts,
+    List<Course> courses = const [],
     FakeCurrentUserRepository? currentUser,
     DateTime? now,
   }) => EnrolledHomeDashboardRepository(
     enrolledCohorts: FakeEnrolledCohortsRepository(enrolledCohorts: enrolled),
     cohorts: FakeCohortRepository(cohorts: cohorts),
+    courses: FakeCourseRepository(courses: courses),
     currentUser: currentUser ?? FakeCurrentUserRepository(),
     clock: () => now ?? DateTime(2026, 8, 10, 9),
   );
@@ -175,6 +179,48 @@ void main() {
       ).getDashboard();
 
       expect(dashboard.program!.courseTitle, 'АЙ инженер');
+    });
+  });
+
+  group('course slug resolution', () {
+    test('resolves the catalog slug when the cohort\'s own is stale', () async {
+      // Reproduces the real, confirmed drift: the cohort's embedded course
+      // stub names id 6 / slug "summer-bootcamp-2027" — `sampleCohort`'s
+      // own defaults — while the catalog's matching course (same title)
+      // is id 4 / slug "summer-bootcamp" — `sampleCourse`'s own defaults.
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courses: [sampleCourse()],
+      ).getDashboard();
+
+      expect(dashboard.program!.courseSlug, 'summer-bootcamp');
+    });
+
+    test('falls back to the cohort\'s own slug when nothing matches', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courses: const [],
+      ).getDashboard();
+
+      expect(dashboard.program!.courseSlug, 'summer-bootcamp-2027');
+    });
+
+    test('a failed GET /courses falls back, not the whole dashboard', () async {
+      final dashboard = await EnrolledHomeDashboardRepository(
+        enrolledCohorts: FakeEnrolledCohortsRepository(
+          enrolledCohorts: const [EnrolledCohortSummary(cohortId: 1)],
+        ),
+        cohorts: FakeCohortRepository(cohorts: [sampleCohort(id: 1)]),
+        courses: FakeCourseRepository(
+          failure: const ApiFailure(ApiFailureKind.server),
+        ),
+        currentUser: FakeCurrentUserRepository(),
+      ).getDashboard();
+
+      expect(dashboard.program, isNotNull);
+      expect(dashboard.program!.courseSlug, 'summer-bootcamp-2027');
     });
   });
 

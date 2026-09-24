@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/courses/presentation/course_detail_screen.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/enrollments/presentation/enrollment_strings.dart';
@@ -18,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../enrollments/fake_enrollment_repository.dart';
 import 'fake_cohort_repository.dart';
@@ -43,6 +45,7 @@ void main() {
   Future<void> pumpList(
     WidgetTester tester,
     FakeCohortRepository repository, {
+    FakeCourseRepository? courseRepository,
     FakeEnrollmentRepository? enrollmentRepository,
     FakeEnrolledCohortsRepository? enrolledCohortsRepository,
     int? courseId,
@@ -60,6 +63,7 @@ void main() {
           repository: repository,
           // Always fakes: the defaults would reach for the app-wide session
           // and the real API.
+          courseRepository: courseRepository ?? FakeCourseRepository(),
           enrollmentRepository:
               enrollmentRepository ?? FakeEnrollmentRepository(),
           enrolledCohortsRepository:
@@ -119,6 +123,7 @@ void main() {
         MaterialPageRoute(
           builder: (_) => CohortListScreen(
             repository: FakeCohortRepository(cohorts: [sampleCohort()]),
+            courseRepository: FakeCourseRepository(),
             enrollmentRepository: FakeEnrollmentRepository(),
             enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
           ),
@@ -158,6 +163,7 @@ void main() {
         MaterialPageRoute(
           builder: (_) => CohortListScreen(
             repository: FakeCohortRepository(cohorts: [sampleCohort()]),
+            courseRepository: FakeCourseRepository(),
             enrollmentRepository: FakeEnrollmentRepository(),
             enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
           ),
@@ -172,6 +178,53 @@ void main() {
       expect(find.text('intermediate screen'), findsNothing);
       expect(find.text(CohortListStrings.heading), findsNothing);
     });
+  });
+
+  group('course detail navigation', () {
+    testWidgets(
+      'tapping a card opens Course Detail with the resolved catalog slug, '
+      'not the cohort\'s own stale one',
+      (tester) async {
+        // Reproduces the real, confirmed drift `resolveCohortCourse`'s own
+        // doc comment describes: `sampleCohort()`'s embedded course (id 6,
+        // slug "summer-bootcamp-2027") shares its title with
+        // `sampleCourse()`'s catalog entry (id 4, slug "summer-bootcamp").
+        await pumpList(
+          tester,
+          FakeCohortRepository(cohorts: [sampleCohort()]),
+          courseRepository: FakeCourseRepository(courses: [sampleCourse()]),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(sampleCohort().name));
+        await tester.pumpAndSettle();
+
+        final detail = tester.widget<CourseDetailScreen>(
+          find.byType(CourseDetailScreen),
+        );
+        expect(detail.slug, 'summer-bootcamp');
+      },
+    );
+
+    testWidgets(
+      'falls back to the cohort\'s own slug when the catalog has no match',
+      (tester) async {
+        await pumpList(
+          tester,
+          FakeCohortRepository(cohorts: [sampleCohort()]),
+          courseRepository: FakeCourseRepository(courses: const []),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(sampleCohort().name));
+        await tester.pumpAndSettle();
+
+        final detail = tester.widget<CourseDetailScreen>(
+          find.byType(CourseDetailScreen),
+        );
+        expect(detail.slug, 'summer-bootcamp-2027');
+      },
+    );
   });
 
   group('loading', () {

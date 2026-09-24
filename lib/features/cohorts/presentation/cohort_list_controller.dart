@@ -1,7 +1,11 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/api/api_failure.dart';
+import '../../courses/data/http_course_repository.dart';
+import '../../courses/domain/course.dart';
+import '../../courses/domain/course_repository.dart';
 import '../domain/cohort.dart';
+import '../domain/cohort_course_resolver.dart';
 import '../domain/cohort_repository.dart';
 import 'cohort_list_strings.dart';
 
@@ -17,9 +21,17 @@ import 'cohort_list_strings.dart';
 /// side, after `GET /cohorts` returns — there is no confirmed per-course
 /// query parameter on that endpoint, so the request itself is unchanged.
 class CohortListController extends ChangeNotifier {
-  CohortListController({required this._repository, this.courseId});
+  CohortListController({
+    required this._repository,
+    this.courseId,
+    CourseRepository? courseRepository,
+  }) : _courseRepository = courseRepository ?? HttpCourseRepository();
 
   final CohortRepository _repository;
+
+  /// `GET /courses`, fetched alongside the cohort list purely to resolve
+  /// [courseSlugFor] — see that method's own doc comment.
+  final CourseRepository _courseRepository;
 
   /// Restricts [cohorts] to this course. Null shows every cohort, the
   /// screen's original behaviour.
@@ -29,6 +41,7 @@ class CohortListController extends ChangeNotifier {
   bool _loading = false;
   bool _hasLoadedOnce = false;
   List<Cohort> _cohorts = const [];
+  List<Course> _courses = const [];
   String? _errorMessage;
 
   bool get loading => _loading;
@@ -55,6 +68,10 @@ class CohortListController extends ChangeNotifier {
       _cohorts = courseId == null
           ? fetched
           : fetched.where((cohort) => cohort.courseId == courseId).toList();
+      // Best-effort, same reasoning as `EnrolledHomeDashboardRepository.
+      // _courseCatalog`: powers `courseSlugFor` only, so a failed
+      // `GET /courses` must not turn into a cohort-list error.
+      _courses = await _fetchCourses();
     } on ApiFailure catch (failure) {
       _cohorts = const [];
       _errorMessage = _messageFor(failure.kind);
@@ -67,6 +84,22 @@ class CohortListController extends ChangeNotifier {
       _notify();
     }
   }
+
+  Future<List<Course>> _fetchCourses() async {
+    try {
+      return await _courseRepository.getCourses();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// The real course-catalog slug for [cohort]'s course, resolved against
+  /// the already-fetched catalog via `resolveCohortCourse` — see that
+  /// function's own doc comment for why `cohort.course.slug` can be stale.
+  /// Falls back to `cohort.course.slug` when nothing resolves, reproducing
+  /// today's existing 404 behaviour rather than guessing.
+  String courseSlugFor(Cohort cohort) =>
+      resolveCohortCourse(_courses, cohort.course)?.slug ?? cohort.course.slug;
 
   static String _messageFor(ApiFailureKind kind) => switch (kind) {
     ApiFailureKind.network => CohortListStrings.networkError,
