@@ -4,10 +4,11 @@ import '../domain/course_exercise.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
+import '../domain/lesson.dart';
 
-/// Serves one hand-authored [CourseLearningPath] and one hand-authored
-/// [CourseExercise], regardless of which [getCourseLearning]/[getExercise] is
-/// asked for.
+/// Serves one hand-authored [CourseLearningPath], one hand-authored lesson
+/// list, and one hand-authored [CourseExercise], regardless of which
+/// [getCourseLearning]/[getLessons]/[getExercise] is asked for.
 ///
 /// **Placeholder pending a real learning API.** `course_learning_api_
 /// requirements_v1.md` confirms no `Module`/`Lesson`/progress endpoint exists
@@ -83,6 +84,43 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         ),
       ],
     );
+  }
+
+  @override
+  Future<List<Lesson>> getLessons(int moduleId) async {
+    return [
+      Lesson(
+        id: 1,
+        moduleId: moduleId,
+        order: 1,
+        title: 'Introduction to loops',
+        durationLabel: '12:30',
+        completed: true,
+        locked: false,
+      ),
+      Lesson(
+        id: 2,
+        moduleId: moduleId,
+        order: 2,
+        // Matches getExercise's own sample title — every lesson opens the
+        // same exercise detail today (see CourseLearningRepository's doc
+        // comment on that gap), so the one lesson a student can actually
+        // open shows content consistent with what it opens.
+        title: 'Nesting loops',
+        durationLabel: '24:15',
+        completed: false,
+        locked: false,
+      ),
+      Lesson(
+        id: 3,
+        moduleId: moduleId,
+        order: 3,
+        title: 'Practice: matrix traversal',
+        durationLabel: '18:40',
+        completed: false,
+        locked: true,
+      ),
+    ];
   }
 
   @override
