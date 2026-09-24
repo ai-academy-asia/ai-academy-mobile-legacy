@@ -15,6 +15,14 @@ abstract final class HomeStrings {
   /// Accessibility label for the brand lockup in the header.
   static const String logo = 'AI academy Asia';
 
+  /// The wordmark's two lines, beside the icon mark — matches
+  /// `SplashStrings.wordmarkLine1`/`wordmarkLine2` verbatim (same brand mark,
+  /// kept as its own local copy rather than a cross-feature import, the same
+  /// way `NoteTab`'s sample student identity duplicates `ProfileStrings.name`
+  /// instead of importing it).
+  static const String wordmarkLine1 = 'AI academy';
+  static const String wordmarkLine2 = 'Asia';
+
   // --- Cohort card ----------------------------------------------------------
 
   static String modules(int completed, int total) =>
@@ -104,9 +112,11 @@ abstract final class HomeStrings {
 abstract final class HomeIcons {
   static const String _dir = 'assets/icons';
 
-  /// The brand lockup in the header — the same bundled export the splash
-  /// screen shows, here at full width rather than cropped to its mark.
-  static const String logo = 'assets/images/ai_academy_logo.png';
+  /// The icon half of the header's brand lockup — the same bundled mark the
+  /// splash screen shows. The "AI academy" / "Asia" wordmark beside it is
+  /// drawn as text ([AppTypography.homeLogoWordmark]), not read off an image;
+  /// see `HomeHeader`'s own doc comment.
+  static const String appIcon = 'assets/images/ai_academy_app_icon.png';
 
   static const String notification = '$_dir/notification.svg';
   static const String contract = '$_dir/e_contract.svg';

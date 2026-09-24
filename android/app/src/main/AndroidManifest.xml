@@ -4,7 +4,7 @@
          sign-in request fails in release builds. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="aia_mobile"
+        android:label="AI Academy Asia"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

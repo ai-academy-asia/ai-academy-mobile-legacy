@@ -10,14 +10,10 @@ abstract final class SplashStrings {
 
 /// The splash screen's own assets.
 abstract final class SplashAssets {
-  /// The bundled brand lockup: the icon mark and the "AI academy Asia"
-  /// wordmark, flattened into one exported PNG (320 x 97).
-  ///
-  /// `SplashScreen` shows only this image's icon — its opaque pixels run from
-  /// column 1 to column 105, then a transparent gap runs to column 125
-  /// before the wordmark starts — and draws the wordmark itself as text
-  /// instead of the image's own baked-in copy, so the two can animate in on
-  /// the storyboard's separate schedule: the icon first, alone and centred;
-  /// the wordmark only once the icon has already moved aside for it.
-  static const String logo = 'assets/images/ai_academy_logo.png';
+  /// The bundled icon mark — the same image the Home header's brand lockup
+  /// uses. The wordmark beside it is drawn as text ([SplashStrings]) rather
+  /// than baked into an image, so the two can animate in on the storyboard's
+  /// separate schedule: the icon first, alone and centred; the wordmark only
+  /// once the icon has already moved aside for it.
+  static const String icon = 'assets/images/ai_academy_app_icon.png';
 }
