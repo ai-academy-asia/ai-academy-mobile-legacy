@@ -1,4 +1,5 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:aia_mobile/features/home/presentation/home_screen.dart';
@@ -229,6 +230,28 @@ void main() {
       expect(find.text(HomeStrings.nextLesson), findsOneWidget);
       expect(find.text('08/04 • 09:00 – 11:00'), findsOneWidget);
     });
+  });
+
+  group('course navigation', () {
+    testWidgets(
+      'tapping the programme card opens Course Module List directly',
+      (tester) async {
+        // The Figma flow has no Course Detail step between a Home course
+        // card and Module List.
+        await pumpHome(
+          tester,
+          FakeHomeDashboardRepository(dashboard: scheduledDashboard()),
+        );
+
+        await tester.tap(find.byType(ProgramCard));
+        await tester.pumpAndSettle();
+
+        final moduleList = tester.widget<CourseModuleListScreen>(
+          find.byType(CourseModuleListScreen),
+        );
+        expect(moduleList.courseSlug, 'ai-engineer');
+      },
+    );
   });
 
   group('attendance action', () {

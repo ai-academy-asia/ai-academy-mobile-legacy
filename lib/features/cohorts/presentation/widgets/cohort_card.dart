@@ -78,8 +78,8 @@ class CohortCard extends StatelessWidget {
 
   final Cohort cohort;
 
-  /// Opens the cohort's course in `CourseDetailScreen`. Null leaves the card
-  /// inert, same as [onEnroll].
+  /// Opens the cohort's course in `CourseModuleListScreen`. Null leaves the
+  /// card inert, same as [onEnroll].
   final VoidCallback? onTap;
 
   /// How far through the course the student is, as `GET /me/cohorts` reports

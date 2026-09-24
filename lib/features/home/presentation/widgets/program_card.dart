@@ -38,8 +38,8 @@ class ProgramCard extends StatelessWidget {
   /// [live] — there is nothing to register otherwise.
   final VoidCallback? onRegisterAttendance;
 
-  /// Opens the programme's `CourseDetailScreen`. Null leaves the card inert,
-  /// same as `CourseCard.onTap`.
+  /// Opens the programme's `CourseModuleListScreen`. Null leaves the card
+  /// inert, same as `CourseCard.onTap`.
   final VoidCallback? onTap;
 
   @override

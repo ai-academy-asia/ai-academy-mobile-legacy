@@ -15,10 +15,12 @@ import 'widgets/exercise_text_field.dart';
 import 'widgets/exercise_video_header.dart';
 import 'widgets/note_tab.dart';
 
-/// The Exercise Detail screen — reached from a module's lesson (Module List
-/// → Lesson → Exercise Detail; Lesson List/Lesson Detail are not built yet,
-/// so for now this is opened directly, the same way `CourseModuleListScreen`
-/// is, via the temporary `/dev/` preview route).
+/// The Exercise Detail screen — reached directly from an unlocked module
+/// card on `CourseModuleListScreen`, or from either of its "Continue
+/// learning" buttons. The Figma flow has no Lesson List step between them;
+/// `LessonListScreen` still exists (with its own tests) for a real
+/// per-lesson backend contract, but is not part of this screen's normal
+/// navigation today — see `CourseModuleListScreen`'s own doc comment.
 ///
 /// **Scope.** The description's expanded/collapsed toggle, the Course
 /// materials tab, and the Note tab's empty/existing-note states are UI-only,
