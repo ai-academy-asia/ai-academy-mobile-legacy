@@ -1,6 +1,7 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/course_detail_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/course_detail_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
@@ -99,7 +100,10 @@ void main() {
 
   group('loaded', () {
     testWidgets('shows the confirmed base fields', (tester) async {
-      await pumpDetail(tester, FakeCourseRepository(courseDetail: sampleCourse()));
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(courseDetail: sampleCourse()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
@@ -114,7 +118,9 @@ void main() {
       expect(find.textContaining('-20%'), findsOneWidget);
     });
 
-    testWidgets('renders description from a bilingual {en,mn} object', (tester) async {
+    testWidgets('renders description from a bilingual {en,mn} object', (
+      tester,
+    ) async {
       final course = sampleCourse(
         description: {'en': 'A hands-on bootcamp', 'mn': 'Гарын доорх сургалт'},
       );
@@ -126,17 +132,20 @@ void main() {
       expect(find.text('A hands-on bootcamp'), findsNothing);
     });
 
-    testWidgets('renders description as a paragraph when it is a plain string', (
+    testWidgets(
+      'renders description as a paragraph when it is a plain string',
+      (tester) async {
+        final course = sampleCourse(description: 'A hands-on bootcamp');
+        await pumpDetail(tester, FakeCourseRepository(courseDetail: course));
+        await tester.pumpAndSettle();
+
+        expect(find.text('A hands-on bootcamp'), findsOneWidget);
+      },
+    );
+
+    testWidgets('renders a list-shaped curriculum as bulleted lines', (
       tester,
     ) async {
-      final course = sampleCourse(description: 'A hands-on bootcamp');
-      await pumpDetail(tester, FakeCourseRepository(courseDetail: course));
-      await tester.pumpAndSettle();
-
-      expect(find.text('A hands-on bootcamp'), findsOneWidget);
-    });
-
-    testWidgets('renders a list-shaped curriculum as bulleted lines', (tester) async {
       final course = sampleCourse(
         curriculum: ['Week 1: Intro', 'Week 2: Build', 'Week 3: Ship'],
       );
@@ -158,7 +167,9 @@ void main() {
       expect(find.text('•  Basic computer literacy'), findsNothing);
     });
 
-    testWidgets('renders a list of objects generically, key by key', (tester) async {
+    testWidgets('renders a list of objects generically, key by key', (
+      tester,
+    ) async {
       final course = sampleCourse(
         instructors: [
           {'name': 'Bat', 'title': 'Lead instructor'},
@@ -175,7 +186,10 @@ void main() {
       tester,
     ) async {
       // Every ambiguous-shape field left null.
-      await pumpDetail(tester, FakeCourseRepository(courseDetail: sampleCourse()));
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(courseDetail: sampleCourse()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(CourseDetailStrings.descriptionTitle), findsNothing);
@@ -185,33 +199,69 @@ void main() {
       expect(find.text(CourseDetailStrings.whatsIncludedTitle), findsNothing);
     });
 
-    testWidgets('a wrongly-shaped composite field degrades to nothing, not a crash', (
+    testWidgets(
+      'a wrongly-shaped composite field degrades to nothing, not a crash',
+      (tester) async {
+        // Not a List, not a Map, not a String — an int, which no branch of the
+        // renderer specifically expects for one of these fields.
+        final course = sampleCourse(whatsIncluded: 42);
+        await pumpDetail(tester, FakeCourseRepository(courseDetail: course));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('42'), findsOneWidget);
+      },
+    );
+  });
+
+  group('course learning', () {
+    testWidgets('the CTA opens CourseModuleListScreen for the course\'s slug', (
       tester,
     ) async {
-      // Not a List, not a Map, not a String — an int, which no branch of the
-      // renderer specifically expects for one of these fields.
-      final course = sampleCourse(whatsIncluded: 42);
-      await pumpDetail(tester, FakeCourseRepository(courseDetail: course));
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(
+          courseDetail: sampleCourse(slug: 'summer-bootcamp'),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('42'), findsOneWidget);
+      await tester.tap(
+        find.widgetWithText(AppButton, CourseDetailStrings.openCourseLearning),
+      );
+      await tester.pumpAndSettle();
+
+      final screen = tester.widget<CourseModuleListScreen>(
+        find.byType(CourseModuleListScreen),
+      );
+      expect(screen.courseSlug, 'summer-bootcamp');
+      // Pushed, not replaced: the detail screen is still underneath, poppable.
+      expect(
+        Navigator.of(
+          tester.element(find.byType(CourseModuleListScreen)),
+        ).canPop(),
+        isTrue,
+      );
     });
   });
 
   group('error', () {
-    testWidgets('a missing course shows the not-found message, not a generic one', (
-      tester,
-    ) async {
-      final repository = FakeCourseRepository(
-        detailFailure: const ApiFailure(ApiFailureKind.notFound),
-      );
-      await pumpDetail(tester, repository);
-      await tester.pumpAndSettle();
+    testWidgets(
+      'a missing course shows the not-found message, not a generic one',
+      (tester) async {
+        final repository = FakeCourseRepository(
+          detailFailure: const ApiFailure(ApiFailureKind.notFound),
+        );
+        await pumpDetail(tester, repository);
+        await tester.pumpAndSettle();
 
-      expect(find.text(CourseDetailStrings.notFound), findsOneWidget);
-      expect(find.widgetWithText(AppButton, CourseDetailStrings.retry), findsOneWidget);
-    });
+        expect(find.text(CourseDetailStrings.notFound), findsOneWidget);
+        expect(
+          find.widgetWithText(AppButton, CourseDetailStrings.retry),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('a network failure shows its own message', (tester) async {
       final repository = FakeCourseRepository(
@@ -223,7 +273,9 @@ void main() {
       expect(find.text(CourseDetailStrings.networkError), findsOneWidget);
     });
 
-    testWidgets('retrying re-fetches and, on success, shows the course', (tester) async {
+    testWidgets('retrying re-fetches and, on success, shows the course', (
+      tester,
+    ) async {
       final repository = FakeCourseRepository(
         detailFailure: const ApiFailure(ApiFailureKind.server),
       );
@@ -234,7 +286,9 @@ void main() {
       repository.detailFailure = null;
       repository.courseDetail = sampleCourse();
 
-      await tester.tap(find.widgetWithText(AppButton, CourseDetailStrings.retry));
+      await tester.tap(
+        find.widgetWithText(AppButton, CourseDetailStrings.retry),
+      );
       await tester.pumpAndSettle();
 
       expect(repository.detailCalls, hasLength(2));
@@ -242,7 +296,9 @@ void main() {
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
     });
 
-    testWidgets('the back button still works from the error state', (tester) async {
+    testWidgets('the back button still works from the error state', (
+      tester,
+    ) async {
       final repository = FakeCourseRepository(
         detailFailure: const ApiFailure(ApiFailureKind.network),
       );
@@ -259,7 +315,10 @@ void main() {
 
   group('back navigation', () {
     testWidgets('the back button pops the screen', (tester) async {
-      await pumpDetail(tester, FakeCourseRepository(courseDetail: sampleCourse()));
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(courseDetail: sampleCourse()),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(CourseDetailScreen), findsOneWidget);
 
@@ -271,7 +330,10 @@ void main() {
     });
 
     testWidgets('the system back gesture also pops the screen', (tester) async {
-      await pumpDetail(tester, FakeCourseRepository(courseDetail: sampleCourse()));
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(courseDetail: sampleCourse()),
+      );
       await tester.pumpAndSettle();
 
       // Simulates the Android hardware/gesture back button, independent of
@@ -285,7 +347,9 @@ void main() {
   });
 
   group('layout', () {
-    testWidgets('stays within a phone-width column on a desktop window', (tester) async {
+    testWidgets('stays within a phone-width column on a desktop window', (
+      tester,
+    ) async {
       await pumpDetail(
         tester,
         FakeCourseRepository(courseDetail: sampleCourse()),
@@ -296,7 +360,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a course with every optional section does not overflow', (tester) async {
+    testWidgets('a course with every optional section does not overflow', (
+      tester,
+    ) async {
       final course = sampleCourse(
         bannerImageUrl: 'https://example.test/banner.png',
         targetAudience: 'Beginners welcome',
@@ -318,7 +384,10 @@ void main() {
 
       expect(tester.takeException(), isNull);
 
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -3000));
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -3000),
+      );
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);

@@ -66,6 +66,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/course_learning/
     - assets/icons/
 
   fonts:
