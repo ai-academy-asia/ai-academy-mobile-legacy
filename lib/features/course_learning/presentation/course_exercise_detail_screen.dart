@@ -14,6 +14,7 @@ import 'widgets/exercise_tabs.dart';
 import 'widgets/exercise_text_field.dart';
 import 'widgets/exercise_video_header.dart';
 import 'widgets/note_tab.dart';
+import 'widgets/quiz_tab.dart';
 
 /// The Exercise Detail screen — reached directly from an unlocked module
 /// card on `CourseModuleListScreen`, or from either of its "Continue
@@ -25,20 +26,24 @@ import 'widgets/note_tab.dart';
 /// **Scope.** The description's expanded/collapsed toggle is UI-only, same
 /// as before. The Assignment tab cycles through four sample-data states —
 /// not submitted, pending review, needs resubmission, accepted — entirely
-/// as local widget state; see `AssignmentTab`'s own doc comment. The Note
-/// tab similarly cycles between empty, editing and saved, held in this
-/// screen's own state (see `_note`) so it survives a tab switch; see
-/// `NoteTab`'s own doc comment. The Course materials tab's download button
-/// flips to a checked "downloaded" state on tap, also local only — see
-/// `CourseMaterialCard`'s own doc comment. None of this reaches a backend:
-/// there is no Note or Materials-download endpoint to call yet.
-/// Still out of scope, reserved for a separate future issue: real file
-/// upload/download against an actual file, the quiz and its scoring/retry,
-/// and the certificate. Every widget that would eventually carry that
-/// behaviour (the upload control, the play button) is already in place and
-/// wired to nothing, the same `_noDestinationYet`-style placeholder
-/// `CourseModuleListScreen` uses for its own not-yet-built destinations, so
-/// this structure does not need to be rewritten to add that behaviour later.
+/// as local widget state, now also gated on an attached reference file
+/// being (simulated-)downloaded when the exercise has one; see
+/// `AssignmentTab`'s own doc comment. The Note tab similarly cycles between
+/// empty, editing and saved, held in this screen's own state (see `_note`)
+/// so it survives a tab switch; see `NoteTab`'s own doc comment. The Course
+/// materials tab's download button flips to a checked "downloaded" state on
+/// tap, also local only — see `CourseMaterialCard`'s own doc comment. The
+/// Quiz tab runs its own local start → answer → submit → result → retry
+/// cycle, graded on-device against each question's own sample answer key —
+/// see `QuizTab`'s own doc comment. None of this reaches a backend: there is
+/// no Assignment, Note, Materials-download or Quiz endpoint to call yet.
+/// Still out of scope, reserved for a separate future issue: a real file
+/// *upload* (as opposed to the download this issue adds) against an actual
+/// file, and the certificate. Every widget that would eventually carry that
+/// behaviour (the play button) is already in place and wired to nothing, the
+/// same `_noDestinationYet`-style placeholder `CourseModuleListScreen` uses
+/// for its own not-yet-built destinations, so this structure does not need
+/// to be rewritten to add that behaviour later.
 class CourseExerciseDetailScreen extends StatefulWidget {
   const CourseExerciseDetailScreen({
     required this.moduleId,
@@ -243,11 +248,13 @@ class _TabContent extends StatelessWidget {
     return switch (tab) {
       ExerciseTab.assignment => AssignmentTab(
         feedbackSequence: exercise.assignmentFeedback,
+        attachment: exercise.assignmentAttachment,
       ),
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,
       ),
       ExerciseTab.note => NoteTab(note: note, onSave: onSaveNote),
+      ExerciseTab.quiz => QuizTab(quiz: exercise.quiz),
     };
   }
 }

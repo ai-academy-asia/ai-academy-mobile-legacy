@@ -38,6 +38,7 @@ abstract final class CourseLearningStrings {
   static const String assignmentTab = 'Assignment';
   static const String courseMaterialsTab = 'Course materials';
   static const String noteTab = 'Note';
+  static const String quizTab = 'Quiz';
 
   static const String linkPlaceholder = 'Link оруулна уу';
   static const String descriptionFloatingLabel = 'Тайлбар';
@@ -59,4 +60,26 @@ abstract final class CourseLearningStrings {
   /// left or just edited — see `NoteTab`'s own doc comment on why this,
   /// not a fabricated date/time.
   static const String noteJustNow = 'Just now';
+
+  // --- Assignment attachment ---------------------------------------------
+
+  static const String downloadAttachment = 'Download';
+  static const String downloadingAttachment = 'Downloading, tap to cancel';
+  static const String downloadedAttachment = 'Downloaded';
+
+  // --- Quiz ----------------------------------------------------------------
+
+  static const String startQuiz = 'Start Quiz';
+  static const String submitQuiz = 'Submit Quiz';
+  static const String retryQuiz = 'Retry Quiz';
+  static const String quizQuestionLabel = 'Question';
+
+  static String quizQuestionCount(int count) =>
+      count == 1 ? '1 question' : '$count questions';
+
+  static String quizScore(int correct, int total) =>
+      'You scored $correct/$total';
+
+  static const String quizPassed = 'Well done!';
+  static const String quizNeedsReview = 'Keep practicing!';
 }
