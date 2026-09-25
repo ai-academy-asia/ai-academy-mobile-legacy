@@ -21,11 +21,13 @@ import '../domain/lesson.dart';
 /// transcribed from the Figma reference for the one course/exercise it shows;
 /// every other slug/module id gets the same content today, which is the
 /// smallest thing that lets the screens render at all until a real per-course
-/// source exists. The assignment attachment and the quiz's questions have no
-/// Figma reference of their own — they are hand-authored sample content that
-/// demonstrates the Assignment tab's download-gated Submit and the Quiz
-/// tab's full start/answer/submit/result/retry cycle, sourced from this same
-/// exercise's own "Nesting loops"/pre-training copy for coherence.
+/// source exists. The assignment attachment is hand-authored sample content
+/// that demonstrates the Assignment tab's download-gated Submit. The quiz's
+/// four questions are transcribed from the Figma quiz-flow reference
+/// verbatim (Mongolian prompts/options, English explanations, exactly as
+/// captioned there) — its own separate frame from the "Nesting loops"
+/// Exercise Detail screen, which is why its subject (general AI/ML) does not
+/// match this exercise's own.
 class SampleCourseLearningRepository implements CourseLearningRepository {
   @override
   Future<CourseLearningPath> getCourseLearning(String courseSlug) async {
@@ -191,64 +193,78 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
       ),
       assignmentFeedback: const [
         AssignmentMentorFeedback(
-          mentorInitials: 'ГЭ',
-          mentorName: 'Ганбаатар Эрдэнэ',
+          mentorInitials: 'БП',
+          mentorName: 'Б.Пүрэв',
+          mentorRole: 'Lead Mentor',
           message:
-              'Good start, but your loop bounds are off by one — check '
-              'the matrix traversal and resubmit.',
-          timestampLabel: 'Yesterday, 16:40',
-          requiresResubmission: true,
-        ),
-        AssignmentMentorFeedback(
-          mentorInitials: 'ГЭ',
-          mentorName: 'Ганбаатар Эрдэнэ',
-          message:
-              'Nice work — the fix looks correct and your explanation is '
-              'clear.',
-          timestampLabel: 'Today, 09:15',
-          requiresResubmission: false,
+              'Good foundation — improve validation accuracy before final '
+              'submission. Look into hyperparameter tuning for the XGBoost '
+              'model.',
+          timestampLabel: 'Today, 14:20',
         ),
       ],
       assignmentAttachment: const CourseExerciseMaterial(
         id: 3,
         name: 'Assignment template.zip',
-        sizeLabel: '4 MB',
+        sizeLabel: '1 MB',
       ),
       quiz: const CourseQuiz(
         title: 'Nesting loops quiz',
-        estimatedMinutesLabel: '~5 min',
+        resultTitle: 'Level 2 - Language Model Training',
         questions: [
           QuizQuestion(
-            prompt:
-                'What happens during each single iteration of the outer '
-                'loop in a nested loop?',
+            prompt: 'AI гэж юу вэ?',
+            options: ['Хиймэл оюун', 'Тоглоом', 'Робот', 'Мэдэхгүй'],
+            correctOptionIndex: 0,
+            explanation:
+                'Artificial intelligence (AI) is a branch of computer '
+                'science focused on building systems capable of performing '
+                'tasks that typically require human intelligence. This '
+                'includes learning from data, recognizing patterns, '
+                'understanding language, solving problems, and making '
+                'decisions.',
+          ),
+          QuizQuestion(
+            prompt: 'Machine Learning гэж юу вэ?',
             options: [
-              'The inner loop executes from start to finish',
-              'The outer loop pauses indefinitely',
-              'The program exits immediately',
-              'Nothing — nested loops run in parallel',
+              'Өгөгдлөөс сурах чадвар',
+              'Хатуу код бичих арга',
+              'Тоглоомын хөдөлгүүр',
+              'Мэдэхгүй',
             ],
             correctOptionIndex: 0,
+            explanation:
+                'Machine learning is a subset of AI where systems learn '
+                'patterns from data instead of following hardcoded rules, '
+                'improving their performance as they see more examples.',
           ),
           QuizQuestion(
-            prompt: 'Nested loops are primarily used for:',
+            prompt: 'Neural Network загвар юуг дуурайдаг вэ?',
             options: [
-              'Sending network requests',
-              'Processing multi-dimensional data structures like matrices',
-              'Styling a user interface',
-              'Compiling source code',
+              'Хүний тархи',
+              'Компьютерийн CPU',
+              'Интернет сүлжээ',
+              'Мэдэхгүй',
             ],
-            correctOptionIndex: 1,
+            correctOptionIndex: 0,
+            explanation:
+                'Artificial neural networks are loosely inspired by the '
+                'human brain — layers of interconnected nodes ("neurons") '
+                'pass signals to one another to recognize patterns.',
           ),
           QuizQuestion(
-            prompt: 'During the pre-training phase, a model is fed:',
+            prompt: 'Pre-training үе шатанд загварт юу өгдөг вэ?',
             options: [
-              'A single labeled example',
-              'Trillions of tokens scraped from text, books, and code',
-              'Only its own previous outputs',
-              'Encrypted binary data',
+              'Их хэмжээний текст өгөгдөл',
+              'Зөвхөн нэг зураг',
+              'Хэрэглэгчийн нууц үг',
+              'Мэдэхгүй',
             ],
-            correctOptionIndex: 1,
+            correctOptionIndex: 0,
+            explanation:
+                'During pre-training, a model is exposed to massive '
+                'amounts of text data so it can learn general language '
+                'patterns before being fine-tuned for a specific task.',
           ),
         ],
       ),

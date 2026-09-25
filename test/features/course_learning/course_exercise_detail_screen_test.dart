@@ -215,7 +215,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('first submission resolves to Resubmit with mentor feedback', (
+    testWidgets('submitting shows the success card with mentor feedback', (
       tester,
     ) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
@@ -229,45 +229,50 @@ void main() {
       await tester.pump(const Duration(milliseconds: 900));
       await tester.pumpAndSettle();
 
+      expect(find.text('Assignment submitted successfully'), findsOneWidget);
       expect(find.text('Resubmit'), findsOneWidget);
       expect(find.text('Mentor Feedback'), findsOneWidget);
       expect(find.text('No feedback yet'), findsNothing);
-      expect(find.text('Ганбаатар Эрдэнэ'), findsOneWidget);
+      expect(find.text('Б.Пүрэв'), findsOneWidget);
+      expect(find.text('Lead Mentor'), findsOneWidget);
       expect(
-        find.text('Please check the matrix traversal and resubmit.'),
+        find.text('Good foundation — improve validation accuracy.'),
         findsOneWidget,
       );
-
-      final field = tester.widget<TextField>(find.byType(TextField).first);
-      expect(field.enabled, isTrue);
     });
 
-    testWidgets('resubmitting resolves to the accepted, terminal state', (
-      tester,
-    ) async {
-      await pumpScreen(tester, FakeCourseLearningRepository());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'tapping Resubmit reopens the fields, and resubmitting shows the '
+      'next mentor feedback',
+      (tester) async {
+        await pumpScreen(tester, FakeCourseLearningRepository());
+        await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
-      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
-      await tester.pump();
+        await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+        await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+        await tester.pump();
+        await tester.tap(find.text('Submit'));
+        await tester.pump(const Duration(milliseconds: 900));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Submit'));
-      await tester.pump(const Duration(milliseconds: 900));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Resubmit'));
-      await tester.pump(const Duration(milliseconds: 900));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Resubmit'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Resubmit'), findsNothing);
-      expect(find.text('Submitted'), findsOneWidget);
-      expect(find.text('Nice work — accepted.'), findsOneWidget);
+        // Fields are back, still holding what was typed before.
+        expect(find.text('Assignment submitted successfully'), findsNothing);
+        final field = tester.widget<TextField>(find.byType(TextField).first);
+        expect(field.enabled, isTrue);
 
-      final field = tester.widget<TextField>(find.byType(TextField).first);
-      expect(field.enabled, isFalse);
-    });
+        await tester.tap(find.text('Submit'));
+        await tester.pump(const Duration(milliseconds: 900));
+        await tester.pumpAndSettle();
 
-    testWidgets('an exercise with no scripted feedback stays accepted', (
+        expect(find.text('Assignment submitted successfully'), findsOneWidget);
+        expect(find.text('Nice work — accepted.'), findsOneWidget);
+      },
+    );
+
+    testWidgets('an exercise with no scripted feedback shows no feedback', (
       tester,
     ) async {
       final exercise = sampleExercise(assignmentFeedback: const []);
@@ -285,7 +290,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 900));
       await tester.pumpAndSettle();
 
-      expect(find.text('Submitted'), findsOneWidget);
+      expect(find.text('Assignment submitted successfully'), findsOneWidget);
       expect(find.text('No feedback yet'), findsOneWidget);
     });
   });
@@ -315,7 +320,7 @@ void main() {
 
         // A disabled Submit ignores the tap — still the editable,
         // not-submitted state.
-        expect(find.text('Submitted'), findsNothing);
+        expect(find.text('Assignment submitted successfully'), findsNothing);
         final field = tester.widget<TextField>(find.byType(TextField).first);
         expect(field.enabled, isTrue);
       },
@@ -334,17 +339,15 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Download'));
       await tester.pump(const Duration(milliseconds: 150));
 
-      expect(
-        find.bySemanticsLabel('Downloading, tap to cancel'),
-        findsOneWidget,
-      );
-      expect(find.bySemanticsLabel('Downloaded'), findsNothing);
+      expect(find.text('Downloading...'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.bySemanticsLabel('Remove'), findsNothing);
 
-      await tester.tap(find.bySemanticsLabel('Downloading, tap to cancel'));
+      await tester.tap(find.text('Cancel'));
       await tester.pump();
 
       expect(find.bySemanticsLabel('Download'), findsOneWidget);
-      expect(find.bySemanticsLabel('Downloading, tap to cancel'), findsNothing);
+      expect(find.text('Downloading...'), findsNothing);
     });
 
     testWidgets(
@@ -367,19 +370,50 @@ void main() {
         // Long enough for every simulated tick (10 x 150ms) to fire.
         await tester.pump(const Duration(milliseconds: 1600));
 
-        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+        expect(find.text('Complete'), findsOneWidget);
+        expect(find.bySemanticsLabel('Remove'), findsOneWidget);
 
         await tester.tap(find.text('Submit'));
         await tester.pump();
 
+        // The transient "pending review" state — the terminal success card
+        // only shows once the sample delay below resolves.
         expect(find.text('Submitted'), findsOneWidget);
 
-        // Flush the pending review delay, same reason the other assignment
-        // tests do — otherwise a real Timer is still pending at teardown.
         await tester.pump(const Duration(milliseconds: 900));
         await tester.pumpAndSettle();
+
+        expect(find.text('Assignment submitted successfully'), findsOneWidget);
       },
     );
+
+    testWidgets('removing a completed attachment disables Submit again', (
+      tester,
+    ) async {
+      final exercise = sampleExercise(assignmentAttachment: sampleAttachment());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+      await tester.pump();
+
+      await tester.tap(find.bySemanticsLabel('Download'));
+      await tester.pump(const Duration(milliseconds: 1600));
+      expect(find.bySemanticsLabel('Remove'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Remove'));
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('Download'), findsOneWidget);
+
+      await tester.tap(find.text('Submit'));
+      await tester.pump();
+      expect(find.text('Assignment submitted successfully'), findsNothing);
+    });
   });
 
   group('course materials tab', () {
@@ -582,8 +616,10 @@ void main() {
     );
   });
 
-  group('quiz tab', () {
-    testWidgets('an exercise with no quiz shows an empty tab', (tester) async {
+  group('quiz preview card', () {
+    testWidgets('an exercise with no quiz shows no preview card', (
+      tester,
+    ) async {
       final exercise = sampleExercise(quiz: null);
       await pumpScreen(
         tester,
@@ -591,13 +627,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Quiz'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Start Quiz'), findsNothing);
+      expect(find.text('Start quiz'), findsNothing);
     });
 
-    testWidgets('shows the intro card, then the questions once started', (
+    testWidgets('shows the title, question count and Start quiz', (
       tester,
     ) async {
       final exercise = sampleExercise(quiz: sampleQuiz(title: 'Loops quiz'));
@@ -607,26 +640,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Quiz'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Loops quiz'), findsOneWidget);
-      expect(find.text('2 questions · ~2 min'), findsOneWidget);
-      expect(find.text('Start Quiz'), findsOneWidget);
-      expect(find.text('Question 1'), findsNothing);
-
-      await tester.ensureVisible(find.text('Start Quiz'));
-      await tester.tap(find.text('Start Quiz'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Question 1'), findsOneWidget);
-      expect(find.text('Question 2'), findsOneWidget);
-      await tester.ensureVisible(find.text('Submit Quiz'));
-      expect(find.text('Submit Quiz'), findsOneWidget);
+      expect(find.text('Total 2 questions'), findsOneWidget);
+      await tester.ensureVisible(find.text('Start quiz'));
+      expect(find.text('Start quiz'), findsOneWidget);
     });
+  });
 
+  group('quiz flow', () {
     testWidgets(
-      'Submit Quiz stays disabled until every question has an answer',
+      'the close button pops back to Exercise Detail without a result',
       (tester) async {
         final exercise = sampleExercise(quiz: sampleQuiz());
         await pumpScreen(
@@ -635,27 +658,21 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Quiz'));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Start Quiz'));
-        await tester.tap(find.text('Start Quiz'));
+        await tester.ensureVisible(find.text('Start quiz'));
+        await tester.tap(find.text('Start quiz'));
         await tester.pumpAndSettle();
 
-        await tester.ensureVisible(find.text('Right').first);
-        await tester.tap(find.text('Right').first);
-        await tester.pump();
-        await tester.ensureVisible(find.text('Submit Quiz'));
-        await tester.tap(find.text('Submit Quiz'));
-        await tester.pump();
+        await tester.tap(find.bySemanticsLabel('Close'));
+        await tester.pumpAndSettle();
 
-        // Only one of two questions answered — still on the questions.
-        expect(find.text('Question 1'), findsOneWidget);
-        expect(find.textContaining('You scored'), findsNothing);
+        expect(find.text('Start quiz'), findsOneWidget);
+        expect(find.text('Дахин quiz өгөх'), findsNothing);
       },
     );
 
-    testWidgets('submitting once every question is answered scores it, '
-        'and Retry Quiz clears the answers', (tester) async {
+    testWidgets('answering incorrectly shows the wrong feedback', (
+      tester,
+    ) async {
       final exercise = sampleExercise(quiz: sampleQuiz());
       await pumpScreen(
         tester,
@@ -663,37 +680,71 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Quiz'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Start Quiz'));
-      await tester.tap(find.text('Start Quiz'));
+      await tester.ensureVisible(find.text('Start quiz'));
+      await tester.tap(find.text('Start quiz'));
       await tester.pumpAndSettle();
 
-      // `sampleQuiz()`'s own correct answers: question 1 → "Right" (index
-      // 0), question 2 → "Right" (index 1, labelled second there).
-      await tester.ensureVisible(find.text('Right').first);
-      await tester.tap(find.text('Right').first);
-      await tester.pump();
-      await tester.ensureVisible(find.text('Right').last);
-      await tester.tap(find.text('Right').last);
+      expect(find.text('1/2'), findsOneWidget);
+      expect(find.text('Pick the right answer (first question)'), findsOneWidget);
+
+      // `sampleQuiz()`'s question 1: "Wrong" is option B, "Right" (index 0)
+      // is correct.
+      await tester.tap(find.text('Wrong'));
       await tester.pump();
 
-      await tester.ensureVisible(find.text('Submit Quiz'));
-      await tester.tap(find.text('Submit Quiz'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('You scored 2/2'), findsOneWidget);
-      expect(find.text('Well done!'), findsOneWidget);
-      expect(find.text('Retry Quiz'), findsOneWidget);
-
-      await tester.ensureVisible(find.text('Retry Quiz'));
-      await tester.tap(find.text('Retry Quiz'));
-      await tester.pumpAndSettle();
-
-      // Back to the questions, nothing pre-selected.
-      expect(find.text('Question 1'), findsOneWidget);
-      expect(find.textContaining('You scored'), findsNothing);
+      expect(find.text('Хариулт буруу байна.'), findsOneWidget);
+      expect(find.text("Зөв хариулт нь 'A'."), findsOneWidget);
     });
+
+    testWidgets(
+      'completing both questions correctly shows the result, and Дахин '
+      'quiz өгөх retakes it',
+      (tester) async {
+        final exercise = sampleExercise(quiz: sampleQuiz());
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(exercise: exercise),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('Start quiz'));
+        await tester.tap(find.text('Start quiz'));
+        await tester.pumpAndSettle();
+
+        // Question 1: "Right" (index 0) is correct.
+        await tester.tap(find.text('Right'));
+        await tester.pump();
+        expect(find.text('Хариул зөв байна.'), findsOneWidget);
+
+        await tester.tap(find.text('Үргэлжлүүлэх'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('2/2'), findsOneWidget);
+        expect(
+          find.text('Pick the right answer (second question)'),
+          findsOneWidget,
+        );
+
+        // Question 2: "Right" (index 1) is correct.
+        await tester.tap(find.text('Right'));
+        await tester.pump();
+        expect(find.text('Хариул зөв байна.'), findsOneWidget);
+
+        await tester.tap(find.text('Үргэлжлүүлэх'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Sample result'), findsOneWidget);
+        expect(find.text('100%'), findsOneWidget);
+        expect(find.text('Та 2 асуултаас 2-д зөв хариуллаа'), findsOneWidget);
+
+        await tester.tap(find.text('Дуусгах'));
+        await tester.pumpAndSettle();
+
+        // Back on Exercise Detail, the preview card now shows the result.
+        expect(find.text('100%'), findsOneWidget);
+        expect(find.text('Дахин quiz өгөх'), findsOneWidget);
+      },
+    );
   });
 
   group('navigation', () {

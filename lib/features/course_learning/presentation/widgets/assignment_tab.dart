@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
 import 'assignment_attachment_card.dart';
@@ -7,10 +11,11 @@ import 'exercise_submit_button.dart';
 import 'exercise_text_field.dart';
 import 'mentor_feedback_card.dart';
 
-/// The four Assignment states this tab demonstrates, all driven by sample
-/// data — see the class doc below for what each one shows.
+/// The three states this tab cycles through, all driven by sample data — see
+/// the class doc below for what each one shows.
 enum _AssignmentStage {
-  /// Editable fields, nothing submitted yet. The tab's original, only state.
+  /// Editable fields, nothing submitted yet — or the student tapped
+  /// "Resubmit" on the success card to submit again.
   notSubmitted,
 
   /// Just submitted; fields locked while sample "review" plays out. A brief,
@@ -18,20 +23,18 @@ enum _AssignmentStage {
   /// call, no backend.
   pendingReview,
 
-  /// The latest canned mentor response asked for changes — fields reopen for
-  /// editing, the button relabels "Resubmit".
-  needsResubmission,
-
-  /// The latest canned mentor response accepted the submission — terminal,
-  /// nothing left to do.
-  accepted,
+  /// "Assignment submitted successfully" — the reference shows this same
+  /// card regardless of what the mentor's own feedback says (see
+  /// `AssignmentMentorFeedback`, rendered separately below by
+  /// `MentorFeedbackCard`); "Resubmit" here always reopens the fields for
+  /// another attempt, it is not conditional on the feedback asking for one.
+  submitted,
 }
 
 /// The Assignment tab: an optional attached reference file, a link field, a
-/// description textarea, a submit button, and a Mentor Feedback footer,
-/// cycling through [_AssignmentStage.notSubmitted] → `pendingReview` →
-/// `needsResubmission` or `accepted` as [CourseExercise.assignmentFeedback]
-/// scripts it.
+/// description textarea and a submit button while editable, or — once
+/// submitted — a success card with a "Resubmit" action, followed in both
+/// cases by a Mentor Feedback footer.
 ///
 /// **Submit is enabled once the "required sample content" is ready**: both
 /// fields hold non-blank text, and — when [attachment] is not null — the
@@ -44,10 +47,10 @@ enum _AssignmentStage {
 /// Submission backend contract to call — `course_learning_api_
 /// requirements_v1.md` lists both as requiring backend confirmation. Typing
 /// is real (the fields own working `TextEditingController`s); "submitting"
-/// only ever advances this widget's own [_AssignmentStage], sourced from
-/// `CourseExercise.assignmentFeedback`'s canned entries. A real file
-/// *upload* and the certificate remain out of scope — see
-/// `CourseExerciseDetailScreen`'s own doc comment.
+/// only ever advances this widget's own [_AssignmentStage], and the Mentor
+/// Feedback card below is sourced from `CourseExercise.assignmentFeedback`'s
+/// canned entries. A real file *upload* and the certificate remain out of
+/// scope — see `CourseExerciseDetailScreen`'s own doc comment.
 class AssignmentTab extends StatefulWidget {
   const AssignmentTab({
     required this.feedbackSequence,
@@ -109,11 +112,8 @@ class _AssignmentTabState extends State<AssignmentTab> {
     if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
   }
 
-  bool get _fieldsEditable =>
-      _stage == _AssignmentStage.notSubmitted ||
-      _stage == _AssignmentStage.needsResubmission;
-
-  bool get _readyToSubmit => _fieldsEditable && _hasContent && _attachmentReady;
+  bool get _readyToSubmit =>
+      _stage == _AssignmentStage.notSubmitted && _hasContent && _attachmentReady;
 
   AssignmentMentorFeedback? get _latestFeedback {
     final sequence = widget.feedbackSequence;
@@ -122,76 +122,161 @@ class _AssignmentTabState extends State<AssignmentTab> {
     return sequence[index];
   }
 
-  String get _buttonLabel => switch (_stage) {
-    _AssignmentStage.notSubmitted => CourseLearningStrings.submit,
-    _AssignmentStage.pendingReview => CourseLearningStrings.submitted,
-    _AssignmentStage.needsResubmission => CourseLearningStrings.resubmit,
-    _AssignmentStage.accepted => CourseLearningStrings.submitted,
-  };
-
   /// Locks the fields, waits out a short cosmetic delay (standing in for a
-  /// real mentor review nothing here has a backend for), then resolves to
-  /// whichever canned entry comes next.
+  /// real mentor review nothing here has a backend for), then shows the
+  /// success card.
   Future<void> _submit() async {
     setState(() => _stage = _AssignmentStage.pendingReview);
 
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
 
-    final nextCount = _resolvedSubmissions + 1;
-    final sequence = widget.feedbackSequence;
-    final feedback = sequence.isEmpty
-        ? null
-        : sequence[(nextCount - 1).clamp(0, sequence.length - 1)];
-
     setState(() {
-      _resolvedSubmissions = nextCount;
-      _stage = (feedback != null && feedback.requiresResubmission)
-          ? _AssignmentStage.needsResubmission
-          : _AssignmentStage.accepted;
+      _resolvedSubmissions += 1;
+      _stage = _AssignmentStage.submitted;
     });
   }
 
+  void _resubmit() => setState(() => _stage = _AssignmentStage.notSubmitted);
+
   @override
   Widget build(BuildContext context) {
-    final attachment = widget.attachment;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (attachment != null) ...[
-            AssignmentAttachmentCard(
-              attachment: attachment,
-              onDownloaded: () => setState(() => _attachmentReady = true),
+          if (_stage == _AssignmentStage.submitted)
+            _AssignmentSuccessCard(onResubmit: _resubmit)
+          else ...[
+            if (widget.attachment case final attachment?) ...[
+              AssignmentAttachmentCard(
+                attachment: attachment,
+                onDownloaded: () => setState(() => _attachmentReady = true),
+                onRemoved: () => setState(() => _attachmentReady = false),
+              ),
+              const SizedBox(height: 12),
+            ],
+            ExerciseTextField(
+              controller: _linkController,
+              placeholder: CourseLearningStrings.linkPlaceholder,
+              height: 53,
+              enabled: _stage == _AssignmentStage.notSubmitted,
             ),
             const SizedBox(height: 12),
+            ExerciseTextField(
+              controller: _descriptionController,
+              placeholder: CourseLearningStrings.descriptionPlaceholder,
+              floatingLabel: CourseLearningStrings.descriptionFloatingLabel,
+              height: 104,
+              multiline: true,
+              enabled: _stage == _AssignmentStage.notSubmitted,
+            ),
+            const SizedBox(height: 16),
+            ExerciseSubmitButton(
+              label: _stage == _AssignmentStage.pendingReview
+                  ? CourseLearningStrings.submitted
+                  : CourseLearningStrings.submit,
+              onPressed: _readyToSubmit ? _submit : null,
+            ),
           ],
-          ExerciseTextField(
-            controller: _linkController,
-            placeholder: CourseLearningStrings.linkPlaceholder,
-            height: 53,
-            enabled: _fieldsEditable,
-          ),
-          const SizedBox(height: 12),
-          ExerciseTextField(
-            controller: _descriptionController,
-            placeholder: CourseLearningStrings.descriptionPlaceholder,
-            floatingLabel: CourseLearningStrings.descriptionFloatingLabel,
-            height: 104,
-            multiline: true,
-            enabled: _fieldsEditable,
-          ),
-          const SizedBox(height: 16),
-          ExerciseSubmitButton(
-            label: _buttonLabel,
-            onPressed: _readyToSubmit ? _submit : null,
-          ),
           const SizedBox(height: 16),
           const Divider(height: 1),
           MentorFeedbackCard(feedback: _latestFeedback),
         ],
+      ),
+    );
+  }
+}
+
+/// "Assignment submitted successfully" — a double-check icon, the message,
+/// and an outlined (not primary-blue) "Resubmit" pill that always reopens
+/// the fields, regardless of what the mentor's own feedback says.
+class _AssignmentSuccessCard extends StatelessWidget {
+  const _AssignmentSuccessCard({required this.onResubmit});
+
+  final VoidCallback onResubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(
+          width: 48,
+          height: 48,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                left: 2,
+                child: Icon(AppIcons.check, size: 26, color: AppColors.success),
+              ),
+              Positioned(
+                right: 2,
+                child: Icon(AppIcons.check, size: 26, color: AppColors.success),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          CourseLearningStrings.assignmentSubmittedSuccess,
+          style: AppTypography.cardSupporting,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        _ResubmitButton(onTap: onResubmit),
+      ],
+    );
+  }
+}
+
+/// The outlined "Resubmit" pill — same 329 x 44 footprint as
+/// `ExerciseSubmitButton`, but white/bordered rather than filled blue, which
+/// is why this is its own widget rather than a new variant of that one.
+class _ResubmitButton extends StatelessWidget {
+  const _ResubmitButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: CourseLearningStrings.resubmit,
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Container(
+            width: 329,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: AppColors.border,
+                width: AppDimens.borderWidth,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.refresh, size: 18, color: AppColors.textPrimary),
+                const SizedBox(width: 8),
+                Text(
+                  CourseLearningStrings.resubmit,
+                  style: AppTypography.buttonLabel.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

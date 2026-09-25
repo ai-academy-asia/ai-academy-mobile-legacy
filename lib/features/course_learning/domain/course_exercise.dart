@@ -52,14 +52,16 @@ class CourseExercise {
   /// yet — the Note tab's empty/edit state.
   final CourseExerciseNote? note;
 
-  /// Canned mentor responses to an Assignment submission, in order — the
-  /// Assignment tab's Submitted/Resubmit/Mentor feedback states, driven by
-  /// sample data the same way [note] drives the Note tab's two states.
+  /// Canned mentor responses to an Assignment submission, in order — feeds
+  /// the Assignment tab's Mentor Feedback card once a submission exists,
+  /// driven by sample data the same way [note] drives the Note tab's two
+  /// states.
   ///
   /// Index 0 is shown after the first submit, index 1 after resubmitting,
-  /// and so on; the last entry repeats once exhausted. Empty means the tab
-  /// never advances past its initial state — used by every exercise that
-  /// does not care about demonstrating this flow.
+  /// and so on; the last entry repeats once exhausted. Empty means the
+  /// Mentor Feedback card stays on its "No feedback yet" state forever —
+  /// used by every exercise that does not care about demonstrating this
+  /// flow.
   final List<AssignmentMentorFeedback> assignmentFeedback;
 
   /// A reference file (e.g. a starter template) attached to the Assignment
@@ -133,30 +135,29 @@ class CourseExerciseNote {
 }
 
 /// One canned mentor response to an Assignment submission — sample data
-/// only, same status as every other class in this file. Drives the
-/// Assignment tab's "Resubmit" state when [requiresResubmission] is true, or
-/// its terminal "Mentor feedback" state when false.
+/// only, same status as every other class in this file. Shown under the
+/// Assignment tab's "Assignment submitted successfully" state — see
+/// `AssignmentTab`'s own doc comment.
 class AssignmentMentorFeedback {
   const AssignmentMentorFeedback({
     required this.mentorInitials,
     required this.mentorName,
+    required this.mentorRole,
     required this.message,
     required this.timestampLabel,
-    required this.requiresResubmission,
   });
 
-  /// e.g. "ГЭ", drawn inside the avatar circle — same treatment as
+  /// e.g. "БП", drawn inside the avatar circle — same treatment as
   /// `CourseExerciseNote.authorInitials`.
   final String mentorInitials;
 
   final String mentorName;
+
+  /// e.g. "Lead Mentor", shown under [mentorName].
+  final String mentorRole;
+
   final String message;
 
   /// Pre-formatted, same reasoning as `CourseExerciseNote.timestampLabel`.
   final String timestampLabel;
-
-  /// True when the mentor asked for changes — the Assignment tab reopens its
-  /// fields for editing and labels its button "Resubmit". False means the
-  /// submission was accepted — nothing more to do.
-  final bool requiresResubmission;
 }
