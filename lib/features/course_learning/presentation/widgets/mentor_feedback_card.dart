@@ -99,9 +99,16 @@ class _PopulatedMentorFeedback extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      feedback.mentorName,
-                      style: AppTypography.cardHeading,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(feedback.mentorName, style: AppTypography.cardHeading),
+                        Text(
+                          feedback.mentorRole,
+                          style: AppTypography.cardSupporting,
+                        ),
+                      ],
                     ),
                   ),
                 ],

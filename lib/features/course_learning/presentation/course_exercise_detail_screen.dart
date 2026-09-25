@@ -14,7 +14,7 @@ import 'widgets/exercise_tabs.dart';
 import 'widgets/exercise_text_field.dart';
 import 'widgets/exercise_video_header.dart';
 import 'widgets/note_tab.dart';
-import 'widgets/quiz_tab.dart';
+import 'widgets/quiz_preview_card.dart';
 
 /// The Exercise Detail screen — reached directly from an unlocked module
 /// card on `CourseModuleListScreen`, or from either of its "Continue
@@ -24,19 +24,25 @@ import 'widgets/quiz_tab.dart';
 /// navigation today — see `CourseModuleListScreen`'s own doc comment.
 ///
 /// **Scope.** The description's expanded/collapsed toggle is UI-only, same
-/// as before. The Assignment tab cycles through four sample-data states —
-/// not submitted, pending review, needs resubmission, accepted — entirely
-/// as local widget state, now also gated on an attached reference file
-/// being (simulated-)downloaded when the exercise has one; see
-/// `AssignmentTab`'s own doc comment. The Note tab similarly cycles between
-/// empty, editing and saved, held in this screen's own state (see `_note`)
-/// so it survives a tab switch; see `NoteTab`'s own doc comment. The Course
-/// materials tab's download button flips to a checked "downloaded" state on
-/// tap, also local only — see `CourseMaterialCard`'s own doc comment. The
-/// Quiz tab runs its own local start → answer → submit → result → retry
-/// cycle, graded on-device against each question's own sample answer key —
-/// see `QuizTab`'s own doc comment. None of this reaches a backend: there is
-/// no Assignment, Note, Materials-download or Quiz endpoint to call yet.
+/// as before. The Assignment tab cycles through submit → pending review →
+/// "submitted successfully", entirely as local widget state, gated on an
+/// attached reference file being (simulated-)downloaded when the exercise
+/// has one; see `AssignmentTab`'s own doc comment. The Note tab similarly
+/// cycles between empty, editing and saved, held in this screen's own state
+/// (see `_note`) so it survives a tab switch; see `NoteTab`'s own doc
+/// comment. The Course materials tab's download button flips to a checked
+/// "downloaded" state on tap, also local only — see `CourseMaterialCard`'s
+/// own doc comment.
+///
+/// **The Quiz is not one of this card's tabs.** It is a separate
+/// `QuizPreviewCard` below the tab card, and starting it pushes two more
+/// full screens (`CourseQuizScreen`, `CourseQuizResultScreen`) on top of
+/// this one — matching the reference, which draws the quiz as its own
+/// preview card and its own screens, not a fourth tab. Its score is held
+/// here (see `_quizResult`) for the same reason `_note` is: the student
+/// pops back to this screen after finishing it, and the preview card needs
+/// to keep showing that result. None of this reaches a backend: there is no
+/// Assignment, Note, Materials-download or Quiz endpoint to call yet.
 /// Still out of scope, reserved for a separate future issue: a real file
 /// *upload* (as opposed to the download this issue adds) against an actual
 /// file, and the certificate. Every widget that would eventually carry that
@@ -75,6 +81,13 @@ class _CourseExerciseDetailScreenState
   /// switching to another tab and back — the same reason [_selectedTab]
   /// and [_descriptionExpanded] live here rather than in a child.
   CourseExerciseNote? _note;
+
+  /// The Quiz's last completed attempt — null until the student finishes it
+  /// at least once. Held here, not inside `QuizPreviewCard`, for the same
+  /// reason [_note] is: `CourseQuizScreen`/`CourseQuizResultScreen` are
+  /// pushed on top of this screen, so their result has to survive popping
+  /// back to it.
+  ({int correct, int total})? _quizResult;
 
   @override
   void initState() {
@@ -138,6 +151,8 @@ class _CourseExerciseDetailScreenState
       onSelectTab: (tab) => setState(() => _selectedTab = tab),
       note: _note,
       onSaveNote: (note) => setState(() => _note = note),
+      quizResult: _quizResult,
+      onQuizResult: (result) => setState(() => _quizResult = result),
     );
   }
 }
@@ -151,6 +166,8 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.onSelectTab,
     required this.note,
     required this.onSaveNote,
+    required this.quizResult,
+    required this.onQuizResult,
   });
 
   final CourseExercise exercise;
@@ -160,6 +177,8 @@ class _ExerciseDetailBody extends StatelessWidget {
   final ValueChanged<ExerciseTab> onSelectTab;
   final CourseExerciseNote? note;
   final ValueChanged<CourseExerciseNote> onSaveNote;
+  final ({int correct, int total})? quizResult;
+  final ValueChanged<({int correct, int total})> onQuizResult;
 
   @override
   Widget build(BuildContext context) {
@@ -219,6 +238,13 @@ class _ExerciseDetailBody extends StatelessWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    QuizPreviewCard(
+                      moduleCaption: exercise.moduleCaption,
+                      quiz: exercise.quiz,
+                      result: quizResult,
+                      onResult: onQuizResult,
+                    ),
                   ],
                 ),
               ),
@@ -254,7 +280,6 @@ class _TabContent extends StatelessWidget {
         materials: exercise.materials,
       ),
       ExerciseTab.note => NoteTab(note: note, onSave: onSaveNote),
-      ExerciseTab.quiz => QuizTab(quiz: exercise.quiz),
     };
   }
 }

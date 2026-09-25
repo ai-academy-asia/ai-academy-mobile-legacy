@@ -38,7 +38,6 @@ abstract final class CourseLearningStrings {
   static const String assignmentTab = 'Assignment';
   static const String courseMaterialsTab = 'Course materials';
   static const String noteTab = 'Note';
-  static const String quizTab = 'Quiz';
 
   static const String linkPlaceholder = 'Link оруулна уу';
   static const String descriptionFloatingLabel = 'Тайлбар';
@@ -46,6 +45,8 @@ abstract final class CourseLearningStrings {
   static const String submit = 'Submit';
   static const String submitted = 'Submitted';
   static const String resubmit = 'Resubmit';
+  static const String assignmentSubmittedSuccess =
+      'Assignment submitted successfully';
 
   static const String mentorFeedbackTitle = 'Mentor Feedback';
   static const String noFeedbackYet = 'No feedback yet';
@@ -64,22 +65,45 @@ abstract final class CourseLearningStrings {
   // --- Assignment attachment ---------------------------------------------
 
   static const String downloadAttachment = 'Download';
-  static const String downloadingAttachment = 'Downloading, tap to cancel';
   static const String downloadedAttachment = 'Downloaded';
+  static const String removeAttachment = 'Remove';
+  static const String cancelDownload = 'Cancel';
+  static const String downloadStarted = 'Your download has started.';
+  static const String downloadingAttachment = 'Downloading...';
+  static const String attachmentComplete = 'Complete';
 
-  // --- Quiz ----------------------------------------------------------------
+  /// e.g. "1 MB, PDF" — the reference shows a file type alongside the size
+  /// once a download finishes; there is no confirmed source for a real file
+  /// type, so this is fixed the same way `CourseExerciseMaterial.sizeLabel`
+  /// is a pre-formatted display string rather than raw data.
+  static String attachmentTypeLabel(String sizeLabel) => '$sizeLabel, PDF';
 
-  static const String startQuiz = 'Start Quiz';
-  static const String submitQuiz = 'Submit Quiz';
-  static const String retryQuiz = 'Retry Quiz';
-  static const String quizQuestionLabel = 'Question';
+  // --- Quiz preview/result card (Exercise Detail) ---------------------------
+
+  static const String startQuiz = 'Start quiz';
+  static const String retakeQuiz = 'Дахин quiz өгөх';
+  static const String yourScoreLabel = 'Таны оноо';
 
   static String quizQuestionCount(int count) =>
-      count == 1 ? '1 question' : '$count questions';
+      count == 1 ? 'Total 1 question' : 'Total $count questions';
 
-  static String quizScore(int correct, int total) =>
-      'You scored $correct/$total';
+  // --- Quiz question screen -------------------------------------------------
 
-  static const String quizPassed = 'Well done!';
-  static const String quizNeedsReview = 'Keep practicing!';
+  static String quizProgressCounter(int current, int total) =>
+      '$current/$total';
+
+  static const String quizContinue = 'Үргэлжлүүлэх';
+  static const String quizCorrectTitle = 'Хариул зөв байна.';
+  static const String quizWrongTitle = 'Хариулт буруу байна.';
+
+  static String quizCorrectAnswerIs(String letter) =>
+      "Зөв хариулт нь '$letter'.";
+
+  // --- Quiz result screen ----------------------------------------------------
+
+  static String quizResultSummary(int total, int correct) =>
+      'Та $total асуултаас $correct-д зөв хариуллаа';
+
+  static const String quizResultQuestionLabel = 'Асуулт';
+  static const String quizFinish = 'Дуусгах';
 }

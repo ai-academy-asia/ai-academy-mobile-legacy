@@ -310,54 +310,46 @@ CourseExerciseMaterial sampleMaterial({
 CourseExerciseMaterial sampleAttachment({
   int id = 3,
   String name = 'Assignment template.zip',
-  String sizeLabel = '4 MB',
+  String sizeLabel = '1 MB',
 }) => CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel);
 
 /// A minimal two-question quiz — enough to exercise "some answered, not
 /// all", "all correct" and "some wrong" without a test having to reason
 /// about three questions' worth of state.
-///
-/// Prompts deliberately avoid the literal text "Question 1"/"Question 2" —
-/// `_QuizQuestionCard` already renders that as its own numbered label, and a
-/// prompt with the same text would make `find.text('Question 1')` match two
-/// widgets instead of one.
 CourseQuiz sampleQuiz({
   String title = 'Sample quiz',
-  String estimatedMinutesLabel = '~2 min',
+  String resultTitle = 'Sample result',
   List<QuizQuestion> questions = const [
     QuizQuestion(
       prompt: 'Pick the right answer (first question)',
       options: ['Right', 'Wrong'],
       correctOptionIndex: 0,
+      explanation: 'The first option is right.',
     ),
     QuizQuestion(
       prompt: 'Pick the right answer (second question)',
       options: ['Wrong', 'Right'],
       correctOptionIndex: 1,
+      explanation: 'The second option is right.',
     ),
   ],
-}) => CourseQuiz(
-  title: title,
-  estimatedMinutesLabel: estimatedMinutesLabel,
-  questions: questions,
-);
+}) => CourseQuiz(title: title, resultTitle: resultTitle, questions: questions);
 
-/// The sample module's two canned mentor responses: a resubmission request,
-/// then an acceptance — mirrors production's own default sequence.
+/// The sample module's own mentor response — mirrors production's default.
 List<AssignmentMentorFeedback> sampleAssignmentFeedback() => const [
   AssignmentMentorFeedback(
-    mentorInitials: 'ГЭ',
-    mentorName: 'Ганбаатар Эрдэнэ',
-    message: 'Please check the matrix traversal and resubmit.',
-    timestampLabel: 'Yesterday, 16:40',
-    requiresResubmission: true,
+    mentorInitials: 'БП',
+    mentorName: 'Б.Пүрэв',
+    mentorRole: 'Lead Mentor',
+    message: 'Good foundation — improve validation accuracy.',
+    timestampLabel: 'Today, 14:20',
   ),
   AssignmentMentorFeedback(
-    mentorInitials: 'ГЭ',
-    mentorName: 'Ганбаатар Эрдэнэ',
+    mentorInitials: 'БП',
+    mentorName: 'Б.Пүрэв',
+    mentorRole: 'Lead Mentor',
     message: 'Nice work — accepted.',
-    timestampLabel: 'Today, 09:15',
-    requiresResubmission: false,
+    timestampLabel: 'Today, 16:40',
   ),
 ];
 
