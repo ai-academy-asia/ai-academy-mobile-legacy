@@ -5,6 +5,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart'
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 
 /// A repository the tests drive by hand.
@@ -270,6 +271,8 @@ CourseExercise sampleExercise({
   List<CourseExerciseMaterial>? materials,
   Object? note = _unset,
   List<AssignmentMentorFeedback>? assignmentFeedback,
+  CourseExerciseMaterial? assignmentAttachment,
+  CourseQuiz? quiz,
 }) => CourseExercise(
   moduleId: moduleId,
   moduleCaption: moduleCaption,
@@ -283,6 +286,13 @@ CourseExercise sampleExercise({
       [sampleMaterial(), sampleMaterial(id: 2, sizeLabel: '12 MB')],
   note: identical(note, _unset) ? sampleNote() : note as CourseExerciseNote?,
   assignmentFeedback: assignmentFeedback ?? sampleAssignmentFeedback(),
+  // Unlike `note`/`assignmentFeedback`, these default to null (no override
+  // sentinel needed): a test that does not care about the attachment/quiz
+  // flow should see exactly what every other exercise does today — neither
+  // — so only tests that explicitly want one pass `sampleAttachment()`/
+  // `sampleQuiz()` in.
+  assignmentAttachment: assignmentAttachment,
+  quiz: quiz,
 );
 
 /// Sentinel distinguishing "the caller did not pass `note`" (default to
@@ -295,6 +305,42 @@ CourseExerciseMaterial sampleMaterial({
   String name = 'Course material 1',
   String sizeLabel = '10 MB',
 }) => CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel);
+
+/// The Assignment tab's own attachment — mirrors production's default.
+CourseExerciseMaterial sampleAttachment({
+  int id = 3,
+  String name = 'Assignment template.zip',
+  String sizeLabel = '4 MB',
+}) => CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel);
+
+/// A minimal two-question quiz — enough to exercise "some answered, not
+/// all", "all correct" and "some wrong" without a test having to reason
+/// about three questions' worth of state.
+///
+/// Prompts deliberately avoid the literal text "Question 1"/"Question 2" —
+/// `_QuizQuestionCard` already renders that as its own numbered label, and a
+/// prompt with the same text would make `find.text('Question 1')` match two
+/// widgets instead of one.
+CourseQuiz sampleQuiz({
+  String title = 'Sample quiz',
+  String estimatedMinutesLabel = '~2 min',
+  List<QuizQuestion> questions = const [
+    QuizQuestion(
+      prompt: 'Pick the right answer (first question)',
+      options: ['Right', 'Wrong'],
+      correctOptionIndex: 0,
+    ),
+    QuizQuestion(
+      prompt: 'Pick the right answer (second question)',
+      options: ['Wrong', 'Right'],
+      correctOptionIndex: 1,
+    ),
+  ],
+}) => CourseQuiz(
+  title: title,
+  estimatedMinutesLabel: estimatedMinutesLabel,
+  questions: questions,
+);
 
 /// The sample module's two canned mentor responses: a resubmission request,
 /// then an acceptance — mirrors production's own default sequence.

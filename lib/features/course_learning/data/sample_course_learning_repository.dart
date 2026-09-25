@@ -4,6 +4,7 @@ import '../domain/course_exercise.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
+import '../domain/course_quiz.dart';
 import '../domain/lesson.dart';
 
 /// Serves one hand-authored [CourseLearningPath], one hand-authored lesson
@@ -20,7 +21,11 @@ import '../domain/lesson.dart';
 /// transcribed from the Figma reference for the one course/exercise it shows;
 /// every other slug/module id gets the same content today, which is the
 /// smallest thing that lets the screens render at all until a real per-course
-/// source exists.
+/// source exists. The assignment attachment and the quiz's questions have no
+/// Figma reference of their own — they are hand-authored sample content that
+/// demonstrates the Assignment tab's download-gated Submit and the Quiz
+/// tab's full start/answer/submit/result/retry cycle, sourced from this same
+/// exercise's own "Nesting loops"/pre-training copy for coherence.
 class SampleCourseLearningRepository implements CourseLearningRepository {
   @override
   Future<CourseLearningPath> getCourseLearning(String courseSlug) async {
@@ -204,6 +209,49 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
           requiresResubmission: false,
         ),
       ],
+      assignmentAttachment: const CourseExerciseMaterial(
+        id: 3,
+        name: 'Assignment template.zip',
+        sizeLabel: '4 MB',
+      ),
+      quiz: const CourseQuiz(
+        title: 'Nesting loops quiz',
+        estimatedMinutesLabel: '~5 min',
+        questions: [
+          QuizQuestion(
+            prompt:
+                'What happens during each single iteration of the outer '
+                'loop in a nested loop?',
+            options: [
+              'The inner loop executes from start to finish',
+              'The outer loop pauses indefinitely',
+              'The program exits immediately',
+              'Nothing — nested loops run in parallel',
+            ],
+            correctOptionIndex: 0,
+          ),
+          QuizQuestion(
+            prompt: 'Nested loops are primarily used for:',
+            options: [
+              'Sending network requests',
+              'Processing multi-dimensional data structures like matrices',
+              'Styling a user interface',
+              'Compiling source code',
+            ],
+            correctOptionIndex: 1,
+          ),
+          QuizQuestion(
+            prompt: 'During the pre-training phase, a model is fed:',
+            options: [
+              'A single labeled example',
+              'Trillions of tokens scraped from text, books, and code',
+              'Only its own previous outputs',
+              'Encrypted binary data',
+            ],
+            correctOptionIndex: 1,
+          ),
+        ],
+      ),
     );
   }
 

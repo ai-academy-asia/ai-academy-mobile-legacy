@@ -192,6 +192,10 @@ void main() {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
 
+      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+      await tester.pump();
+
       await tester.tap(find.text('Submit'));
       await tester.pump();
 
@@ -217,6 +221,10 @@ void main() {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
 
+      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+      await tester.pump();
+
       await tester.tap(find.text('Submit'));
       await tester.pump(const Duration(milliseconds: 900));
       await tester.pumpAndSettle();
@@ -239,6 +247,10 @@ void main() {
     ) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+      await tester.pump();
 
       await tester.tap(find.text('Submit'));
       await tester.pump(const Duration(milliseconds: 900));
@@ -265,6 +277,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+      await tester.pump();
+
       await tester.tap(find.text('Submit'));
       await tester.pump(const Duration(milliseconds: 900));
       await tester.pumpAndSettle();
@@ -272,6 +288,98 @@ void main() {
       expect(find.text('Submitted'), findsOneWidget);
       expect(find.text('No feedback yet'), findsOneWidget);
     });
+  });
+
+  group('assignment attachment', () {
+    testWidgets(
+      'Submit stays disabled until the attachment is downloaded, even '
+      'with the fields filled in',
+      (tester) async {
+        final exercise = sampleExercise(
+          assignmentAttachment: sampleAttachment(),
+        );
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(exercise: exercise),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.bySemanticsLabel('Download'), findsOneWidget);
+
+        await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+        await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+        await tester.pump();
+
+        await tester.tap(find.text('Submit'));
+        await tester.pump();
+
+        // A disabled Submit ignores the tap — still the editable,
+        // not-submitted state.
+        expect(find.text('Submitted'), findsNothing);
+        final field = tester.widget<TextField>(find.byType(TextField).first);
+        expect(field.enabled, isTrue);
+      },
+    );
+
+    testWidgets('downloading can be cancelled mid-way, back to idle', (
+      tester,
+    ) async {
+      final exercise = sampleExercise(assignmentAttachment: sampleAttachment());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Download'));
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(
+        find.bySemanticsLabel('Downloading, tap to cancel'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Downloaded'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Downloading, tap to cancel'));
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('Download'), findsOneWidget);
+      expect(find.bySemanticsLabel('Downloading, tap to cancel'), findsNothing);
+    });
+
+    testWidgets(
+      'completing the download, plus filling the fields, enables Submit',
+      (tester) async {
+        final exercise = sampleExercise(
+          assignmentAttachment: sampleAttachment(),
+        );
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(exercise: exercise),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
+        await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+        await tester.pump();
+
+        await tester.tap(find.bySemanticsLabel('Download'));
+        // Long enough for every simulated tick (10 x 150ms) to fire.
+        await tester.pump(const Duration(milliseconds: 1600));
+
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+
+        await tester.tap(find.text('Submit'));
+        await tester.pump();
+
+        expect(find.text('Submitted'), findsOneWidget);
+
+        // Flush the pending review delay, same reason the other assignment
+        // tests do — otherwise a real Timer is still pending at teardown.
+        await tester.pump(const Duration(milliseconds: 900));
+        await tester.pumpAndSettle();
+      },
+    );
   });
 
   group('course materials tab', () {
@@ -472,6 +580,120 @@ void main() {
         expect(find.text('БП'), findsOneWidget);
       },
     );
+  });
+
+  group('quiz tab', () {
+    testWidgets('an exercise with no quiz shows an empty tab', (tester) async {
+      final exercise = sampleExercise(quiz: null);
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Quiz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Start Quiz'), findsNothing);
+    });
+
+    testWidgets('shows the intro card, then the questions once started', (
+      tester,
+    ) async {
+      final exercise = sampleExercise(quiz: sampleQuiz(title: 'Loops quiz'));
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Quiz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Loops quiz'), findsOneWidget);
+      expect(find.text('2 questions · ~2 min'), findsOneWidget);
+      expect(find.text('Start Quiz'), findsOneWidget);
+      expect(find.text('Question 1'), findsNothing);
+
+      await tester.ensureVisible(find.text('Start Quiz'));
+      await tester.tap(find.text('Start Quiz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Question 1'), findsOneWidget);
+      expect(find.text('Question 2'), findsOneWidget);
+      await tester.ensureVisible(find.text('Submit Quiz'));
+      expect(find.text('Submit Quiz'), findsOneWidget);
+    });
+
+    testWidgets(
+      'Submit Quiz stays disabled until every question has an answer',
+      (tester) async {
+        final exercise = sampleExercise(quiz: sampleQuiz());
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(exercise: exercise),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Quiz'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Start Quiz'));
+        await tester.tap(find.text('Start Quiz'));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('Right').first);
+        await tester.tap(find.text('Right').first);
+        await tester.pump();
+        await tester.ensureVisible(find.text('Submit Quiz'));
+        await tester.tap(find.text('Submit Quiz'));
+        await tester.pump();
+
+        // Only one of two questions answered — still on the questions.
+        expect(find.text('Question 1'), findsOneWidget);
+        expect(find.textContaining('You scored'), findsNothing);
+      },
+    );
+
+    testWidgets('submitting once every question is answered scores it, '
+        'and Retry Quiz clears the answers', (tester) async {
+      final exercise = sampleExercise(quiz: sampleQuiz());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Quiz'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Start Quiz'));
+      await tester.tap(find.text('Start Quiz'));
+      await tester.pumpAndSettle();
+
+      // `sampleQuiz()`'s own correct answers: question 1 → "Right" (index
+      // 0), question 2 → "Right" (index 1, labelled second there).
+      await tester.ensureVisible(find.text('Right').first);
+      await tester.tap(find.text('Right').first);
+      await tester.pump();
+      await tester.ensureVisible(find.text('Right').last);
+      await tester.tap(find.text('Right').last);
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Submit Quiz'));
+      await tester.tap(find.text('Submit Quiz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('You scored 2/2'), findsOneWidget);
+      expect(find.text('Well done!'), findsOneWidget);
+      expect(find.text('Retry Quiz'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Retry Quiz'));
+      await tester.tap(find.text('Retry Quiz'));
+      await tester.pumpAndSettle();
+
+      // Back to the questions, nothing pre-selected.
+      expect(find.text('Question 1'), findsOneWidget);
+      expect(find.textContaining('You scored'), findsNothing);
+    });
   });
 
   group('navigation', () {

@@ -1,9 +1,11 @@
+import 'course_quiz.dart';
+
 /// One module's exercise/lesson content — the Figma "Exercise Detail" screen.
 ///
 /// **Sample data only.** Same status as `CourseModule`: no backend endpoint
-/// for exercise/lesson content, assignments, materials or notes exists yet —
-/// every field here is this app's own choice for local sample data, not a
-/// claim about a future API's shape.
+/// for exercise/lesson content, assignments, materials, notes or quizzes
+/// exists yet — every field here is this app's own choice for local sample
+/// data, not a claim about a future API's shape.
 class CourseExercise {
   const CourseExercise({
     required this.moduleId,
@@ -16,6 +18,8 @@ class CourseExercise {
     required this.materials,
     this.note,
     this.assignmentFeedback = const [],
+    this.assignmentAttachment,
+    this.quiz,
   });
 
   /// Which module this exercise belongs to — `CourseModule.id`.
@@ -57,6 +61,16 @@ class CourseExercise {
   /// never advances past its initial state — used by every exercise that
   /// does not care about demonstrating this flow.
   final List<AssignmentMentorFeedback> assignmentFeedback;
+
+  /// A reference file (e.g. a starter template) attached to the Assignment
+  /// tab, downloadable with its own simulated progress — see
+  /// `AssignmentAttachmentCard`. Null means this exercise's assignment has
+  /// no attachment, and the tab shows only its fields.
+  final CourseExerciseMaterial? assignmentAttachment;
+
+  /// This exercise's quiz, shown on the Quiz tab. Null means there is no
+  /// quiz for this exercise — `QuizTab` then renders nothing.
+  final CourseQuiz? quiz;
 }
 
 /// One heading-and-body block in the expanded description, optionally
