@@ -75,7 +75,8 @@ void main() {
   // "Нэвтрэх" is both the heading and the primary button's label, so anything
   // aimed at the button has to be scoped to it rather than found by text.
   Finder signInButton() => find.widgetWithText(AppButton, LoginStrings.signIn);
-  Finder resetButton() => find.widgetWithText(AppButton, LoginStrings.resetPassword);
+  Finder resetButton() =>
+      find.widgetWithText(AppButton, LoginStrings.resetPassword);
 
   InkWell inkOf(WidgetTester tester, Finder button) => tester.widget<InkWell>(
     find.descendant(of: button, matching: find.byType(InkWell)).first,
@@ -88,10 +89,14 @@ void main() {
   /// where the error state shows, since an errored field is usually not the
   /// one under the cursor.
   Color restingBorderAt(WidgetTester tester, int index) =>
-      (decorationAt(tester, index).enabledBorder! as OutlineInputBorder).borderSide.color;
+      (decorationAt(tester, index).enabledBorder! as OutlineInputBorder)
+          .borderSide
+          .color;
 
   Color focusedBorderAt(WidgetTester tester, int index) =>
-      (decorationAt(tester, index).focusedBorder! as OutlineInputBorder).borderSide.color;
+      (decorationAt(tester, index).focusedBorder! as OutlineInputBorder)
+          .borderSide
+          .color;
 
   Color floatingLabelColourAt(WidgetTester tester, int index) =>
       decorationAt(tester, index).floatingLabelStyle!.color!;
@@ -113,7 +118,9 @@ void main() {
       expect(find.byType(TextField), findsNWidgets(2));
     });
 
-    testWidgets('rests the long placeholder inside the first field', (tester) async {
+    testWidgets('rests the long placeholder inside the first field', (
+      tester,
+    ) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       expect(labelTextAt(tester, 0), LoginStrings.identifierPlaceholder);
@@ -154,7 +161,9 @@ void main() {
       expect(floatingLabelColourAt(tester, 0), AppColors.borderFocused);
     });
 
-    testWidgets('focuses with a dark border, never the button blue', (tester) async {
+    testWidgets('focuses with a dark border, never the button blue', (
+      tester,
+    ) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       await tester.tap(fieldAt(0));
@@ -166,7 +175,20 @@ void main() {
       expect(floatingLabelColourAt(tester, 0), isNot(AppColors.blue));
     });
 
-    testWidgets('keeps the label lifted once a number is typed', (tester) async {
+    testWidgets('asks for the phone pad the reference draws', (tester) async {
+      await pumpLogin(tester, FakeAuthRepository());
+
+      // `Sign in - 2` shows a phone keypad under this field, matching its own
+      // floating label ("Утасны дугаар").
+      expect(
+        tester.widget<TextField>(fieldAt(0)).keyboardType,
+        TextInputType.phone,
+      );
+    });
+
+    testWidgets('keeps the label lifted once a number is typed', (
+      tester,
+    ) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       await tester.enterText(fieldAt(0), '99112233');
@@ -180,7 +202,9 @@ void main() {
   });
 
   group('Sign in - 3, the password focused', () {
-    testWidgets('lifts the password label and keeps the value masked', (tester) async {
+    testWidgets('lifts the password label and keeps the value masked', (
+      tester,
+    ) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       await tester.enterText(fieldAt(0), '99112233');
@@ -191,6 +215,18 @@ void main() {
       expect(labelTextAt(tester, 1), LoginStrings.passwordLabel);
       expect(floatingLabelColourAt(tester, 1), AppColors.borderFocused);
       expect(tester.widget<TextField>(fieldAt(1)).obscureText, isTrue);
+    });
+
+    testWidgets('takes the default text keyboard, not the phone pad', (
+      tester,
+    ) async {
+      await pumpLogin(tester, FakeAuthRepository());
+
+      // `Sign in - 3` draws a full alphanumeric keyboard here, unlike the
+      // identifier field above it.
+      final password = tester.widget<TextField>(fieldAt(1));
+      expect(password.keyboardType, isNot(TextInputType.phone));
+      expect(password.obscureText, isTrue);
     });
 
     testWidgets('reveals and re-hides the password', (tester) async {
@@ -295,7 +331,9 @@ void main() {
 
       final fill = tester
           .widget<Material>(
-            find.descendant(of: signInButton(), matching: find.byType(Material)).first,
+            find
+                .descendant(of: signInButton(), matching: find.byType(Material))
+                .first,
           )
           .color;
       expect(fill, AppColors.blue, reason: 'primary is brand blue at rest');
@@ -313,7 +351,9 @@ void main() {
       expect(repository.calls, isEmpty);
     });
 
-    testWidgets('shows a spinner and blocks the fields while signing in', (tester) async {
+    testWidgets('shows a spinner and blocks the fields while signing in', (
+      tester,
+    ) async {
       final repository = FakeAuthRepository(hold: true);
       await pumpLogin(tester, repository, onSignedIn: () {});
 
@@ -325,7 +365,10 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(
-        find.descendant(of: signInButton(), matching: find.text(LoginStrings.signIn)),
+        find.descendant(
+          of: signInButton(),
+          matching: find.text(LoginStrings.signIn),
+        ),
         findsNothing,
         reason: 'label swapped for the spinner',
       );
@@ -351,7 +394,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('surfaces an API rejection in the message band', (tester) async {
+    testWidgets('surfaces an API rejection in the message band', (
+      tester,
+    ) async {
       final repository = FakeAuthRepository(
         failure: const AuthFailure(AuthFailureKind.invalidCredentials),
       );
@@ -367,7 +412,9 @@ void main() {
       expect(repository.calls, hasLength(1));
     });
 
-    testWidgets('a network failure reads differently from a rejection', (tester) async {
+    testWidgets('a network failure reads differently from a rejection', (
+      tester,
+    ) async {
       final repository = FakeAuthRepository(
         failure: const AuthFailure(AuthFailureKind.network),
       );
@@ -429,7 +476,9 @@ void main() {
 
       for (final finder in [signInButton(), resetButton()]) {
         final style = tester
-            .widget<Text>(find.descendant(of: finder, matching: find.byType(Text)).first)
+            .widget<Text>(
+              find.descendant(of: finder, matching: find.byType(Text)).first,
+            )
             .style!;
         expect(style.fontSize, 12);
         expect(style.fontWeight, FontWeight.w600);
@@ -441,19 +490,25 @@ void main() {
 
       final fill = tester
           .widget<Material>(
-            find.descendant(of: signInButton(), matching: find.byType(Material)).first,
+            find
+                .descendant(of: signInButton(), matching: find.byType(Material))
+                .first,
           )
           .color;
       expect(fill, const Color(0xFF296CFF));
     });
 
-    testWidgets('white controls sit on a light grey page', (tester) async {
+    testWidgets('white controls sit on the reference page fill', (
+      tester,
+    ) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, AppColors.background);
+      // The Figma frame's own #F9FAFB, which surfaceSubtle holds exactly.
+      expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
+      expect(AppColors.surfaceSubtle, const Color(0xFFF9FAFB));
       expect(
-        AppColors.background,
+        AppColors.surfaceSubtle,
         isNot(AppColors.surface),
         reason: 'a flat white page loses the card and field surfaces',
       );
@@ -463,7 +518,10 @@ void main() {
     testWidgets('the card fits both lines without truncating', (tester) async {
       await pumpLogin(tester, FakeAuthRepository());
 
-      for (final text in [LoginStrings.contactSupporting, LoginStrings.contactManager]) {
+      for (final text in [
+        LoginStrings.contactSupporting,
+        LoginStrings.contactManager,
+      ]) {
         final rendered = tester.renderObject<RenderParagraph>(find.text(text));
         expect(
           rendered.didExceedMaxLines,
@@ -478,9 +536,17 @@ void main() {
     testWidgets('is kept when the API accepts the credentials', (tester) async {
       final store = AuthSessionStore();
       final repository = FakeAuthRepository(
-        session: const AuthSession(accessToken: 'tok-123', expiresIn: Duration(hours: 1)),
+        session: const AuthSession(
+          accessToken: 'tok-123',
+          expiresIn: Duration(hours: 1),
+        ),
       );
-      await pumpLogin(tester, repository, sessionStore: store, onSignedIn: () {});
+      await pumpLogin(
+        tester,
+        repository,
+        sessionStore: store,
+        onSignedIn: () {},
+      );
 
       await tester.enterText(fieldAt(0), '99112233');
       await tester.enterText(fieldAt(1), 'nuutsug123');
@@ -524,17 +590,26 @@ void main() {
 
       final button = tester.getRect(
         find
-            .ancestor(of: find.text(LoginStrings.signIn), matching: find.byType(Ink))
+            .ancestor(
+              of: find.text(LoginStrings.signIn),
+              matching: find.byType(Ink),
+            )
             .first,
       );
       expect(button.height, 44, reason: 'button height');
       expect(button.width, 361);
     });
 
-    testWidgets('keeps a phone-width column on a desktop-sized window', (tester) async {
+    testWidgets('keeps a phone-width column on a desktop-sized window', (
+      tester,
+    ) async {
       // The macOS build opens a wide window; the design is a phone layout, and
       // the fields must not stretch into desktop-width bars.
-      await pumpLogin(tester, FakeAuthRepository(), size: const Size(1200, 900));
+      await pumpLogin(
+        tester,
+        FakeAuthRepository(),
+        size: const Size(1200, 900),
+      );
 
       final field = tester.getRect(fieldAt(0));
       expect(field.width, 480 - 32);
@@ -555,7 +630,10 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(SingleChildScrollView), findsOneWidget);
 
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -200));
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -200),
+      );
       await tester.pump();
       expect(tester.takeException(), isNull);
     });

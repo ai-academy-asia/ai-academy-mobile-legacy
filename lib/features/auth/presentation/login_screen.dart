@@ -30,6 +30,15 @@ import 'widgets/remember_me_checkbox.dart';
 /// to the device width behind fixed 16pt gutters, and the band between the form
 /// and the bottom card flexes, so the card sits at the bottom of a taller phone
 /// and the screen scrolls on a shorter one.
+///
+/// **Colour note.** The page uses [AppColors.surfaceSubtle] (`#F9FAFB`) — the
+/// reference's own fill — rather than [AppColors.background] (`#F4F5F7`).
+/// Three further reference values still differ from their shared tokens
+/// (border `#D6DBE1` vs [AppColors.border], error `#EF4444` vs
+/// [AppColors.error], primary `#2970FF` vs [AppColors.blue], the last
+/// imperceptibly). Those live inside `AppTextField`/`AppButton` and are used
+/// by every other screen, so correcting them is a design-system change rather
+/// than a Login one, and is deliberately not done here.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
@@ -62,7 +71,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = LoginController(repository: widget.repository ?? HttpAuthRepository());
+    _controller = LoginController(
+      repository: widget.repository ?? HttpAuthRepository(),
+    );
   }
 
   @override
@@ -106,10 +117,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarColor: AppColors.surfaceSubtle,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        // The Figma frame's own page fill (#F9FAFB), which `surfaceSubtle`
+        // already holds exactly — not `background` (#F4F5F7), which is a
+        // slightly darker approximation. See this screen's own doc comment.
+        backgroundColor: AppColors.surfaceSubtle,
         // The keyboard overlays the screen instead of shrinking it. In the
         // reference the form does not move when the keypad appears — it simply
         // covers the bottom card — and resizing would jerk that card up to meet
@@ -124,7 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
               listenable: _controller,
               builder: (context, _) => LayoutBuilder(
                 builder: (context, constraints) => SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   // Grows the scrollable extent by the height of the keyboard so
                   // a short screen can still scroll a covered field into view,
                   // without the layout itself resizing.
@@ -140,14 +155,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           horizontal: AppDimens.screenPadding,
                         ),
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
                           child: IntrinsicHeight(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 const SizedBox(height: AppDimens.headingTop),
 
-                                Text(LoginStrings.heading, style: AppTypography.heading),
+                                Text(
+                                  LoginStrings.heading,
+                                  style: AppTypography.heading,
+                                ),
                                 const SizedBox(height: AppDimens.headingToForm),
 
                                 _buildForm(),
@@ -158,7 +178,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 24),
 
                                 ContactManagerCard(
-                                  supportingText: LoginStrings.contactSupporting,
+                                  supportingText:
+                                      LoginStrings.contactSupporting,
                                   title: LoginStrings.contactManager,
                                 ),
                                 const SizedBox(height: AppDimens.cardPadding),
@@ -191,12 +212,23 @@ class _LoginScreenState extends State<LoginScreen> {
             floatingLabel: LoginStrings.identifierLabel,
             errorText: _controller.identifierError,
             enabled: !busy,
-            // The field takes an address as well as a number, so it cannot use
-            // the numeric pad the reference shows: that pad has no letters and
-            // would lock out the "Email хаяг" half of the field.
-            keyboardType: TextInputType.emailAddress,
+            // The phone pad the reference draws in `Sign in - 2`, matching the
+            // field's own floating label there ("Утасны дугаар").
+            //
+            // **This narrows what can actually be typed.** The resting
+            // placeholder still offers "/ Email хаяг" and `LoginController.
+            // validateIdentifier` still accepts an address, but iOS's phone pad
+            // has no letter keys, so an email can no longer be entered by hand
+            // — only pasted or autofilled. The reference is internally
+            // inconsistent on this point (a phone-only pad under a
+            // phone-or-email placeholder); this follows the pad it draws.
+            keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.username, AutofillHints.email],
+            autofillHints: const [
+              AutofillHints.username,
+              AutofillHints.telephoneNumber,
+              AutofillHints.email,
+            ],
             onSubmitted: (_) => _passwordFocus.requestFocus(),
           ),
           const SizedBox(height: AppDimens.fieldGap),
@@ -218,7 +250,9 @@ class _LoginScreenState extends State<LoginScreen> {
           RememberMeCheckbox(
             value: _controller.rememberMe,
             label: LoginStrings.rememberMe,
-            onChanged: busy ? null : (value) => _controller.setRememberMe(value: value),
+            onChanged: busy
+                ? null
+                : (value) => _controller.setRememberMe(value: value),
           ),
 
           _buildMessageBand(),
