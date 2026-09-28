@@ -34,6 +34,10 @@ class PasswordRequirementsPanel extends StatelessWidget {
   /// instead of opening the screen covered in red.
   final bool evaluated;
 
+  /// How far the meter is inset inside the 361pt field column — see the
+  /// comment at its use site.
+  static const double _meterInset = 4;
+
   /// Red until the password is close, amber on the way, green when every rule
   /// passes — the three meter colours the reference uses.
   Color get _meterColor {
@@ -47,9 +51,17 @@ class PasswordRequirementsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(ResetPasswordStrings.requirementsTitle, style: AppTypography.cardTitle),
+        Text(
+          ResetPasswordStrings.requirementsTitle,
+          style: AppTypography.cardTitle,
+        ),
         const SizedBox(height: 12),
-        _StrengthBar(value: strength, color: _meterColor),
+        // The reference insets the meter 4pt inside the field column on each
+        // side — a 353pt bar at x=20, against the fields' 361 at x=16.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _meterInset),
+          child: _StrengthBar(value: strength, color: _meterColor),
+        ),
         const SizedBox(height: 12),
         for (final requirement in PasswordPolicy.all) ...[
           _RequirementRow(
@@ -81,7 +93,10 @@ class _StrengthBar extends StatelessWidget {
           height: AppDimens.strengthBarHeight,
           child: Stack(
             children: [
-              const ColoredBox(color: AppColors.border, child: SizedBox.expand()),
+              const ColoredBox(
+                color: AppColors.border,
+                child: SizedBox.expand(),
+              ),
               // A sliver of colour even at zero, so the meter reads as a meter
               // rather than as an empty rule — the reference shows one.
               FractionallySizedBox(

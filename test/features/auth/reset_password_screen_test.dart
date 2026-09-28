@@ -54,7 +54,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: ResetPasswordScreen(repository: repository, onCompleted: onCompleted),
+        home: ResetPasswordScreen(
+          repository: repository,
+          onCompleted: onCompleted,
+        ),
       ),
     );
   }
@@ -65,22 +68,28 @@ void main() {
       tester.widget<TextField>(fieldAt(index)).decoration!;
 
   Color restingBorderAt(WidgetTester tester, int index) =>
-      (decorationAt(tester, index).enabledBorder! as OutlineInputBorder).borderSide.color;
+      (decorationAt(tester, index).enabledBorder! as OutlineInputBorder)
+          .borderSide
+          .color;
 
   Color focusedBorderAt(WidgetTester tester, int index) =>
-      (decorationAt(tester, index).focusedBorder! as OutlineInputBorder).borderSide.color;
+      (decorationAt(tester, index).focusedBorder! as OutlineInputBorder)
+          .borderSide
+          .color;
 
   Color floatingLabelColourAt(WidgetTester tester, int index) =>
       decorationAt(tester, index).floatingLabelStyle!.color!;
 
-  Finder submitButton() => find.widgetWithText(AppButton, ResetPasswordStrings.submit);
+  Finder submitButton() =>
+      find.widgetWithText(AppButton, ResetPasswordStrings.submit);
 
   /// The requirement rows, in the design's order.
   Iterable<Color> requirementColours(WidgetTester tester) => tester
       .widgetList<Icon>(
         find.byWidgetPredicate(
           (w) =>
-              w is Icon && (w.icon == AppIcons.checkCircle || w.icon == AppIcons.xCircle),
+              w is Icon &&
+              (w.icon == AppIcons.checkCircle || w.icon == AppIcons.xCircle),
         ),
       )
       .map((icon) => icon.color!);
@@ -94,12 +103,23 @@ void main() {
       expect(find.text(ResetPasswordStrings.requirementsTitle), findsOneWidget);
       expect(find.byType(TextField), findsNWidgets(3));
 
-      expect(decorationAt(tester, 0).labelText, ResetPasswordStrings.currentPassword);
-      expect(decorationAt(tester, 1).labelText, ResetPasswordStrings.newPassword);
-      expect(decorationAt(tester, 2).labelText, ResetPasswordStrings.confirmPassword);
+      expect(
+        decorationAt(tester, 0).labelText,
+        ResetPasswordStrings.currentPassword,
+      );
+      expect(
+        decorationAt(tester, 1).labelText,
+        ResetPasswordStrings.newPassword,
+      );
+      expect(
+        decorationAt(tester, 2).labelText,
+        ResetPasswordStrings.confirmPassword,
+      );
     });
 
-    testWidgets('lists all five requirements, neutral and unjudged', (tester) async {
+    testWidgets('lists all five requirements, neutral and unjudged', (
+      tester,
+    ) async {
       await pumpReset(tester, FakePasswordRepository());
 
       expect(find.byIcon(AppIcons.checkCircle), findsNWidgets(5));
@@ -130,7 +150,9 @@ void main() {
   });
 
   group('Sign in - 7, the current password focused', () {
-    testWidgets('takes a dark border and label, never the button blue', (tester) async {
+    testWidgets('takes a dark border and label, never the button blue', (
+      tester,
+    ) async {
       await pumpReset(tester, FakePasswordRepository());
 
       await tester.tap(fieldAt(0));
@@ -143,7 +165,9 @@ void main() {
   });
 
   group('Sign in - 8, the new password focused and partly valid', () {
-    testWidgets('marks passing rules green and failing rules red', (tester) async {
+    testWidgets('marks passing rules green and failing rules red', (
+      tester,
+    ) async {
       await pumpReset(tester, FakePasswordRepository());
 
       // Eight characters with both cases, but no digit and no symbol.
@@ -187,7 +211,9 @@ void main() {
   });
 
   group('Sign in - 10, the confirmation does not match', () {
-    testWidgets('reddens only the confirm field and names the reason', (tester) async {
+    testWidgets('reddens only the confirm field and names the reason', (
+      tester,
+    ) async {
       final repository = FakePasswordRepository();
       await pumpReset(tester, repository);
 
@@ -205,7 +231,10 @@ void main() {
         AppColors.border,
         reason: 'the new password itself is fine',
       );
-      expect(find.text(ResetPasswordStrings.confirmPasswordMismatch), findsOneWidget);
+      expect(
+        find.text(ResetPasswordStrings.confirmPasswordMismatch),
+        findsOneWidget,
+      );
       expect(repository.calls, isEmpty);
     });
 
@@ -224,12 +253,17 @@ void main() {
       await tester.pump();
 
       expect(restingBorderAt(tester, 2), AppColors.border);
-      expect(find.text(ResetPasswordStrings.confirmPasswordMismatch), findsNothing);
+      expect(
+        find.text(ResetPasswordStrings.confirmPasswordMismatch),
+        findsNothing,
+      );
     });
   });
 
   group('submission', () {
-    testWidgets('toggles one password without revealing the others', (tester) async {
+    testWidgets('toggles one password without revealing the others', (
+      tester,
+    ) async {
       await pumpReset(tester, FakePasswordRepository());
 
       await tester.tap(find.byIcon(AppIcons.eyeClosed).at(1));
@@ -241,7 +275,9 @@ void main() {
       expect(find.byIcon(AppIcons.eye), findsOneWidget);
     });
 
-    testWidgets('shows a spinner and blocks the fields while saving', (tester) async {
+    testWidgets('shows a spinner and blocks the fields while saving', (
+      tester,
+    ) async {
       final repository = FakePasswordRepository(hold: true);
       await pumpReset(tester, repository, onCompleted: () {});
 
@@ -261,7 +297,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('signals completion once the password is changed', (tester) async {
+    testWidgets('signals completion once the password is changed', (
+      tester,
+    ) async {
       var completed = false;
       final repository = FakePasswordRepository();
       await pumpReset(tester, repository, onCompleted: () => completed = true);
@@ -277,7 +315,9 @@ void main() {
       expect(repository.calls, hasLength(1));
     });
 
-    testWidgets('a rejected current password reddens that field', (tester) async {
+    testWidgets('a rejected current password reddens that field', (
+      tester,
+    ) async {
       final repository = FakePasswordRepository(
         failure: const AuthFailure(AuthFailureKind.invalidCredentials),
       );
@@ -291,7 +331,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(restingBorderAt(tester, 0), AppColors.error);
-      expect(find.text(ResetPasswordStrings.invalidCurrentPassword), findsOneWidget);
+      expect(
+        find.text(ResetPasswordStrings.invalidCurrentPassword),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a network failure reads under the form', (tester) async {
@@ -322,9 +365,16 @@ void main() {
         expect(rect.width, 361, reason: 'field $i width');
       }
 
-      // 12pt between fields, exactly as login spaces its two.
-      expect(tester.getRect(fieldAt(1)).top - tester.getRect(fieldAt(0)).bottom, 12);
-      expect(tester.getRect(fieldAt(2)).top - tester.getRect(fieldAt(1)).bottom, 12);
+      // The reference sets the current password apart from the new pair:
+      // 24pt above, 12pt between the new password and its confirmation.
+      expect(
+        tester.getRect(fieldAt(1)).top - tester.getRect(fieldAt(0)).bottom,
+        24,
+      );
+      expect(
+        tester.getRect(fieldAt(2)).top - tester.getRect(fieldAt(1)).bottom,
+        12,
+      );
 
       final button = tester.getRect(
         find.descendant(of: submitButton(), matching: find.byType(Ink)).first,
@@ -333,14 +383,115 @@ void main() {
       expect(button.width, 361);
     });
 
+    testWidgets('the mismatch error leaves all three fields where they were', (
+      tester,
+    ) async {
+      await pumpReset(tester, FakePasswordRepository());
+
+      final before = [for (var i = 0; i < 3; i++) tester.getRect(fieldAt(i))];
+
+      await tester.enterText(fieldAt(0), 'Huuchin1!');
+      await tester.enterText(fieldAt(1), good);
+      await tester.enterText(fieldAt(2), 'Nuutsug2!');
+      await tester.pump();
+      await tester.tap(submitButton());
+      await tester.pump();
+
+      // The error is showing...
+      expect(
+        find.text(ResetPasswordStrings.confirmPasswordMismatch),
+        findsOneWidget,
+      );
+      // ...and not one of the fields has moved.
+      for (var i = 0; i < 3; i++) {
+        expect(tester.getRect(fieldAt(i)), before[i], reason: 'field $i moved');
+      }
+    });
+
+    testWidgets('the strength meter is the reference 353 x 8 at x=20', (
+      tester,
+    ) async {
+      await pumpReset(tester, FakePasswordRepository());
+
+      final bar = tester.getRect(
+        find
+            .ancestor(
+              of: find.byType(FractionallySizedBox),
+              matching: find.byType(ClipRRect),
+            )
+            .first,
+      );
+      // Inset 4pt inside the 361pt field column, which starts at x=16.
+      expect(bar.height, 8);
+      expect(bar.left, 20);
+      expect(bar.width, 353);
+    });
+
+    testWidgets('the page is the reference fill, fields stay white', (
+      tester,
+    ) async {
+      await pumpReset(tester, FakePasswordRepository());
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
+      expect(AppColors.surfaceSubtle, const Color(0xFFF9FAFB));
+      expect(decorationAt(tester, 0).fillColor, AppColors.surface);
+    });
+
+    testWidgets('all three fields take the ordinary alphanumeric keyboard', (
+      tester,
+    ) async {
+      await pumpReset(tester, FakePasswordRepository());
+
+      // The reference draws a full QWERTY under every one of these, unlike
+      // login's identifier field, which asks for the phone pad.
+      for (var i = 0; i < 3; i++) {
+        expect(
+          tester.widget<TextField>(fieldAt(i)).keyboardType,
+          isNot(TextInputType.phone),
+          reason: 'field $i',
+        );
+        expect(tester.widget<TextField>(fieldAt(i)).obscureText, isTrue);
+      }
+    });
+
+    testWidgets('the keyboard covers the page instead of moving the fields', (
+      tester,
+    ) async {
+      await pumpReset(tester, FakePasswordRepository());
+      final before = [for (var i = 0; i < 3; i++) tester.getRect(fieldAt(i))];
+
+      // A keyboard's worth of bottom inset, as the reference's states 2-4 show.
+      tester.view.viewInsets = FakeViewPadding(
+        bottom: 336 * tester.view.devicePixelRatio,
+      );
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 3; i++) {
+        expect(
+          tester.getRect(fieldAt(i)),
+          before[i],
+          reason: 'field $i moved when the keyboard appeared',
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('survives a keyboard-height viewport without overflowing', (
       tester,
     ) async {
-      await pumpReset(tester, FakePasswordRepository(), size: const Size(393, 420));
+      await pumpReset(
+        tester,
+        FakePasswordRepository(),
+        size: const Size(393, 420),
+      );
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -200));
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -200),
+      );
       await tester.pump();
       expect(tester.takeException(), isNull);
     });
@@ -365,7 +516,9 @@ void main() {
 
       expect(find.text(ResetPasswordStrings.title), findsNothing);
 
-      await tester.tap(find.widgetWithText(AppButton, LoginStrings.resetPassword));
+      await tester.tap(
+        find.widgetWithText(AppButton, LoginStrings.resetPassword),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(ResetPasswordStrings.title), findsOneWidget);
