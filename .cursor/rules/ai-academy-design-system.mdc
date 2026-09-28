@@ -1,0 +1,61 @@
+---
+description: AI Academy Mobile — Figma-first design rules, design tokens, and visual QA. Apply to any task that changes or creates UI.
+globs: lib/**/presentation/**/*.dart,lib/core/theme/*.dart
+alwaysApply: false
+---
+
+# AI Academy Mobile — Design System
+
+**Full detail:** `docs/design-system/DESIGN_SYSTEM.md` · `COMPONENT_PATTERNS.md` · `SCREEN_PATTERNS.md` · `FIGMA_TO_FLUTTER.md`
+
+## Figma-first
+
+**Figma is the source of truth for visual design. The existing Flutter UI is not.**
+It may contain mismatches; where it disagrees with Figma, **the Flutter code changes**. Treat the current implementation as *implementation context* — what exists and can be reused — never as evidence a value is correct.
+
+**Figma MCP is unavailable (quota exhausted).** Do not depend on it. Use the screenshots/exports supplied in the task. The **"App UI"** page is the mobile source of truth — never "- Web UI".
+
+## Three tiers — classify every value
+
+| Tier | Lives in |
+|---|---|
+| Global token | `lib/core/theme/` — `AppColors`, `AppTypography`, `AppDimens`, `AppIcons` |
+| Screen/feature-local | a documented `const` in that feature (e.g. `exerciseBorderColor` `#D6DBE1`, `exercisePrimaryColor` `#2970FF`) |
+| Screen-specific exception | inline, **with a comment saying why** (e.g. the 164.5 × 40 Continue-learning button) |
+
+Promote to a global token **only** when multiple screens genuinely share the value *and* Figma confirms it is one token. `exercisePrimaryColor` (`#2970FF`) and `AppColors.blue` (`#296CFF`) are deliberately separate — **do not merge them** without Figma confirmation.
+
+## Layout spine
+
+**393** artboard · **16** gutter (`screenPadding`) · **361** content (`contentWidth`) · **329** common inner form/action block · **480** `maxContentWidth` cap.
+Radii: field/card **12**, home/learning card **16**, button = pill. Border **1** (emphasis **1.5**). Button height **44**.
+
+## No arbitrary values
+
+Token first → documented screen-local constant second → bare literal only for a genuine one-off Figma measurement, **and then write the measurement and its reason in a comment**. A literal with no provenance is the thing to avoid.
+
+## Typography
+
+**Do not copy pixel sizes from the frame.** The shipped scale sits ~15% below the measured Figma values by a deliberate, documented decision, with line heights kept at the layout's values. Map the role to the nearest existing style and `.copyWith()` for a local nudge. New top-level styles only when the scale genuinely lacks the role.
+
+## Component reuse
+
+Shared widget → feature widget → new widget. **When you do not reuse, record why in a doc comment.** Never widen a shared widget's contract to serve one screen — build a local widget instead (precedent: `ExerciseSubmitButton` vs `AppButton`).
+
+## States
+
+- Loading (28×28 spinner, `strokeWidth 2.5`, blue), empty (centred `cardSupporting` message), error (message + retry) — the established trio.
+- Loading shows on **first load only** (`hasLoadedOnce`); empty is distinct from error.
+- **States a frame does not show are `UNKNOWN`** — mirror the nearest documented sibling or leave them unmodelled, and say so. Never invent a state and present it as designed.
+
+## Icons and assets
+
+Phosphor font first (**codepoints confirmed against the bundled font, never guessed**) → Material `Icons.*` fallback **with a comment** → new SVG only when no existing icon reproduces the Figma one. Never duplicate an existing asset.
+
+## Shadows
+
+No global elevation scale, and **not** Material's default elevation. Paint explicitly: card lift `black 8%` blur 6 y3 · large panel `black 5%` blur 16 y4 · primary button **blue-tinted** `blue 35%` blur 10 y4.
+
+## Visual QA
+
+A visual change is not done because it compiles. `flutter analyze` + tests, then **see it rendered** (golden capture or simulator) and compare geometry, spacing, type, colour, borders, radii, shadows and every state in the frame. **If you could not verify visually, say so explicitly.**

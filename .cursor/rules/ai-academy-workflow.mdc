@@ -1,0 +1,72 @@
+---
+description: AI Academy Mobile — Git workflow, validation steps, and the protected iOS files. Applies to every task in this repository.
+globs:
+alwaysApply: true
+---
+
+# AI Academy Mobile — Workflow
+
+**Full detail:** `docs/ai/DEVELOPMENT_RULES.md`
+
+## Git workflow — non-negotiable order
+
+1. **GitHub Issue first**
+2. Update local `main` from `origin/main`
+3. Create the feature branch **from the updated main**
+4. Work **only** inside the feature branch
+5. **Inspect before modifying**
+6. Implement
+7. Format / `flutter analyze` / tests / validation
+8. Review the diff
+9. Commit
+10. Push
+11. Open the PR
+12. **A human developer reviews and merges**
+
+**NEVER create a branch before the Issue.**
+**NEVER work directly on `main`.**
+**NEVER auto-merge a PR.**
+**Never commit or push unless the task explicitly asks.** Otherwise leave work uncommitted and report the changed files.
+
+Branches: `feat/…`, `fix/…`, `chore/…`, `docs/…`, or `feature/<issue>-<slug>`.
+Commits: lowercase, type-prefixed, imperative — `feat: implement exercise detail quiz flow`.
+
+## PROTECTED FILES — never revert
+
+```
+ios/Runner.xcodeproj/project.pbxproj
+ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+ios/Runner/AppDelegate.swift
+```
+
+These carry **intentional persistent local changes** (local Apple `DEVELOPMENT_TEAM` signing ID, `IPHONEOS_DEPLOYMENT_TARGET` 13.0 → 15.0, Xcode project-format upgrades) and show as modified in `git status` essentially always.
+
+**NEVER restore, reset, stash, overwrite, check out or clean them as part of an unrelated task. Never recommend a command that would.** Reverting them breaks local device builds and signing.
+
+**Always list them separately in reports as pre-existing, protected, untouched** — never mixed in with task changes.
+
+## Destructive commands
+
+Run `git status` and understand every modified file before anything that can discard work (`checkout --`, `restore`, `reset`, `clean`, `stash`, `rm -rf`).
+**`git stash` is not used in this repository.** `git checkout --` only on a file proven disposable. Prefer a reversible step over deletion.
+
+## Validation
+
+```bash
+flutter analyze
+flutter test <directory you touched>
+flutter test                 # full suite when the change is broad
+```
+
+**Known pre-existing results — report as pre-existing, do not fix in an unrelated task:**
+
+- Analyzer: `lib/features/courses/presentation/course_catalog_screen.dart:13` — `unused_import`
+- Test: `test/features/courses/course_catalog_screen_test.dart` — *"loaded falls back to a computed duration when duration_label is null"*
+
+**Formatting: format only the files you edited** (`dart format <file>`). **Never `dart format lib/`** — the repo is written to ~90 columns, the formatter defaults to 80, and a blanket run reflows ~30 untouched files.
+
+**UI work must be visually verified** (golden capture or simulator), or the gap stated explicitly. Do not claim a visual result you did not see.
+
+## Reporting
+
+Concise: **changed files, validation results, remaining issues.** Separate *pre-existing* failures from ones the task caused. State unknowns as `UNKNOWN` / `BACKEND GAP`.
