@@ -1,0 +1,73 @@
+---
+description: AI Academy Mobile — Flutter conventions for screens, widgets, controllers, accessibility and tests.
+globs: lib/**/*.dart,test/**/*.dart
+alwaysApply: false
+---
+
+# AI Academy Mobile — Flutter Conventions
+
+**Full detail:** `docs/ai/ARCHITECTURE.md` · `docs/design-system/COMPONENT_PATTERNS.md` · `docs/design-system/SCREEN_PATTERNS.md`
+
+## Responsibilities
+
+- **Screen** — owns its controller (create in `initState`, dispose in `dispose`), builds one `ListenableBuilder`, maps controller state to loading/empty/error/loaded, and constructs the repository at its edge so tests can inject a fake.
+- **Controller** (`ChangeNotifier`) — owns loading/data/error, converts typed failures into `String? errorMessage` using the feature's `*_strings.dart`. **Widgets never catch failures.**
+- **Repository** — `domain/` declares an `abstract interface class`; `data/` implements it over HTTP with everything injectable (`client`, `baseUrl`, `timeout`, `sessionStore`).
+- **Widget** — presentation only. No network calls, no failure handling, no business rules.
+
+## Controller shape
+
+```dart
+class XController extends ChangeNotifier {
+  bool _disposed = false, _loading = false, _hasLoadedOnce = false;
+  X? _data; String? _errorMessage;
+  Future<void> load() async { /* loading → await repo → map failure → notify */ }
+  void _notify() { if (_disposed) return; notifyListeners(); }
+  @override void dispose() { _disposed = true; super.dispose(); }
+}
+```
+
+Constructor parameters (a slug, a module id) are **fixed for the controller's lifetime**.
+
+## Screen skeleton
+
+`AnnotatedRegion` (status-bar style) → `Scaffold(backgroundColor: AppColors.background)` → `SafeArea` → `ListenableBuilder` → `Align(topCenter)` + `ConstrainedBox(maxWidth: AppDimens.maxContentWidth)` → scroll body padded by `AppDimens.screenPadding`.
+
+Deviate only with a documented reason (e.g. Exercise Detail omits `SafeArea` for a full-bleed video header and offsets its overlay controls by `MediaQuery.paddingOf(context).top` — that offset is **mandatory**, not cosmetic: without it iOS status-bar touch handling swallows taps on a scrolling screen).
+
+## Reuse
+
+Shared (`lib/shared/widgets/`) → feature (`presentation/widgets/`) → new. **Justify non-reuse in a doc comment.** Never widen a shared widget's contract for one screen.
+
+## State handling rules
+
+- Loading appears on **first load only**; a refresh must not blank existing content.
+- Empty is a distinct state from error.
+- Error views carry a **retry** that re-invokes the controller's load.
+- `course_learning` controllers currently have **no error state** (their sample repository cannot fail). Adding a real repository there means adding error states and a failure model.
+
+## Accessibility
+
+- Wrap non-standard tappables in `Semantics(button: true, label: …)`; use `Semantics(selected: …)` for tab/option rows.
+- Tap targets: 40×40 circular controls, 44 primary buttons.
+- **Gotcha:** a `Semantics(label: 'X')` wrapping a widget that also contains `Text('X')` merges labels, so `find.bySemanticsLabel('X')` matches neither. Icon-only controls are safe; test text buttons with `find.text(...)`.
+
+## Testing expectations
+
+Every behavioural change needs a test. Three kinds: controller (vs `fake_*` repo), repository (vs `MockClient`), widget/screen (injected fake).
+
+Widget-test conventions:
+
+- Load **real fonts** via `FontLoader` in `setUpAll` (Manrope + Phosphor).
+- Set the viewport explicitly — `Size(393, 852)` @ `devicePixelRatio: 3`, with `addTearDown(tester.view.reset)`.
+- Push screens with a back button onto a **real navigation stack**, not pumped bare.
+- **Advance timers explicitly** (`await tester.pump(duration)`) for any `Future.delayed`/`Timer` a tap starts, or teardown fails on a pending timer.
+- `await tester.ensureVisible(finder)` before tapping anything below the fold — not `warnIfMissed: false`.
+
+## Dart/Flutter specifics
+
+- Dart 3 features are available and used: records, patterns, `switch` expressions, `if (x case final y?)`.
+- Prefer `const` constructors; private widget classes (`_Foo`) for screen-internal pieces.
+- Use `withValues(alpha: …)`, not the deprecated `withOpacity`.
+- `avoid_print` is active via `flutter_lints` — no debug prints.
+- **No `TODO`/`FIXME`.** Do the work or document the gap in `docs/`.
