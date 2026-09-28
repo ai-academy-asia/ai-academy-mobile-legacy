@@ -10,7 +10,7 @@ import '../domain/course.dart';
 import '../domain/course_repository.dart';
 import 'course_catalog_controller.dart';
 import 'course_catalog_strings.dart';
-import 'course_detail_screen.dart';
+// import 'course_detail_screen.dart';
 import 'widgets/course_card.dart';
 
 /// The public course catalog — where a signed-in student lands.
