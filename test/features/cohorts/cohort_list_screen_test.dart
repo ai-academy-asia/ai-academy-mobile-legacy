@@ -75,6 +75,277 @@ void main() {
     );
   }
 
+  group('Course Catalog reference', () {
+    /// The reference's own three cards, in its own order.
+    Future<void> pumpCatalog(WidgetTester tester) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(
+          cohorts: [
+            sampleCohort(id: 1, name: 'Cohort 01', status: 'finished'),
+            sampleCohort(id: 2, name: 'Cohort 02', status: 'active'),
+            sampleCohort(id: 3, name: 'Cohort 03', status: 'open'),
+          ],
+        ),
+        enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+          enrolledCohortIds: const {1, 2, 3},
+          enrolledCohorts: const [
+            EnrolledCohortSummary(cohortId: 1),
+            EnrolledCohortSummary(cohortId: 2, progressPct: 30),
+            EnrolledCohortSummary(cohortId: 3),
+          ],
+        ),
+        enrolledOnly: true,
+        size: const Size(393, 854),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    BoxDecoration pillDecoration(WidgetTester tester, String label) {
+      final box = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(label), matching: find.byType(Container))
+            .first,
+      );
+      return box.decoration! as BoxDecoration;
+    }
+
+    /// The pill's outline colour, which is also its text colour.
+    Color pillColour(WidgetTester tester, String label) =>
+        (pillDecoration(tester, label).border! as Border).top.color;
+
+    /// The pill's fill, a flat colour sampled off the reference rather than the
+    /// outline colour at an alpha.
+    Color pillFill(WidgetTester tester, String label) =>
+        pillDecoration(tester, label).color!;
+
+    testWidgets('titles the screen "Courses" over three cards', (tester) async {
+      await pumpCatalog(tester);
+
+      expect(find.text('Courses'), findsOneWidget);
+      expect(find.byType(CohortCard), findsNWidgets(3));
+    });
+
+    testWidgets('the page is white and the cards carry the decoration', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      // The reference inverts the app's usual grey-page/white-card pairing.
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.backgroundColor, AppColors.surface);
+
+      // One abstract background per card, from the bundled asset.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is SvgPicture &&
+              w.bytesLoader.toString().contains('cohort_background'),
+        ),
+        findsNWidgets(3),
+      );
+    });
+
+    testWidgets('finished reads blue; active and open read green', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      // Not the obvious semantic mapping — this is what the frame draws. The
+      // hues are the reference's own, sampled at 1:1: they are neither
+      // [AppColors.blue] nor [AppColors.success], and the fills are flat
+      // colours rather than the outline at a low alpha.
+      expect(pillColour(tester, 'Finished'), const Color(0xFF0D99FF));
+      expect(pillFill(tester, 'Finished'), const Color(0xFFE5F4FF));
+
+      expect(pillColour(tester, 'Active'), const Color(0xFF14AE5C));
+      expect(pillFill(tester, 'Active'), const Color(0xFFEBFFEE));
+
+      expect(pillColour(tester, 'Open'), const Color(0xFF14AE5C));
+      expect(pillFill(tester, 'Open'), const Color(0xFFEBFFEE));
+    });
+
+    testWidgets('only the card with reported progress shows the bar', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      expect(find.text(CohortListStrings.percentComplete(30)), findsOneWidget);
+      // A cohort with no reported figure draws no progress row at all.
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
+            .value,
+        closeTo(0.30, 0.001),
+      );
+    });
+
+    testWidgets('cards are 16 apart and span the 361pt content width', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      final rects = [
+        for (var i = 0; i < 3; i++)
+          tester.getRect(find.byType(CohortCard).at(i)),
+      ];
+      for (final rect in rects) {
+        expect(rect.left, AppDimens.screenPadding);
+        expect(rect.width, AppDimens.contentWidth);
+      }
+      expect(rects[1].top - rects[0].bottom, AppDimens.screenPadding);
+      expect(rects[2].top - rects[1].bottom, AppDimens.screenPadding);
+    });
+
+    testWidgets('the Courses tab is the selected one', (tester) async {
+      await pumpCatalog(tester);
+
+      expect(
+        tester.widget<AppBottomNav>(find.byType(AppBottomNav)).currentIndex,
+        1,
+      );
+    });
+
+    testWidgets('the selected Courses tab draws the design\'s own glyph', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      // The reference ships the active Courses icon as artwork, not as a
+      // weight of the icon font, so the tab swaps the font glyph for the
+      // exact asset while selected.
+      final asset = find.byWidgetPredicate(
+        (w) =>
+            w is SvgPicture &&
+            w.bytesLoader.toString().contains('nav_courses_selected'),
+      );
+      expect(asset, findsOneWidget);
+      // ...and therefore does not also draw the font glyph it replaces.
+      expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
+
+      // Drawn at the asset's own 21x18 rather than scaled to the icon box.
+      expect(tester.getSize(asset), const Size(21, 18));
+
+      // The unselected tabs keep their font glyphs.
+      expect(find.byIcon(AppIcons.house), findsOneWidget);
+      expect(find.byIcon(AppIcons.user), findsOneWidget);
+    });
+
+    testWidgets('the card outline and surface are the reference\'s own', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      // Sampled at 1:1: a surface a shade cooler than the white page, and an
+      // outline warmer than the global [AppColors.border] (#E4E6EF).
+      final container = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(CohortCard).first,
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = container.decoration! as BoxDecoration;
+      expect((decoration.border! as Border).top.color, const Color(0xFFD6DBE1));
+
+      expect(
+        tester
+            .widget<Material>(
+              find
+                  .descendant(
+                    of: find.byType(CohortCard).first,
+                    matching: find.byType(Material),
+                  )
+                  .first,
+            )
+            .color,
+        const Color(0xFFF8FAFF),
+      );
+    });
+
+    testWidgets('the progress bar is the reference\'s 8 tall, in its colours', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      final bar = tester.widget<LinearProgressIndicator>(
+        find.byType(LinearProgressIndicator),
+      );
+      // 8, not the global [AppDimens.progressBarHeight] of 6 that other
+      // screens rely on.
+      expect(bar.minHeight, 8);
+      expect(bar.backgroundColor, const Color(0xFFD6DBE1));
+      expect(bar.valueColor!.value, const Color(0xFF2970FF));
+
+      // Spans the card's full 329 inner width, so 30% inks 98.7 of it.
+      expect(
+        tester.getSize(find.byType(LinearProgressIndicator)).width,
+        AppDimens.contentWidth - 2 * AppDimens.cardPadding,
+      );
+    });
+
+    testWidgets('sits where the reference draws it, at a real device inset', (
+      tester,
+    ) async {
+      // The reference frame is 393x854 with an iPhone's own insets, so this is
+      // the only setup in which its absolute positions mean anything: at a
+      // zero inset the whole column reads 59 high and the nav rule 34 low.
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 854) * 3;
+      tester.view.padding = const FakeViewPadding(top: 59 * 3, bottom: 34 * 3);
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: CohortListScreen(
+            enrolledOnly: true,
+            repository: FakeCohortRepository(
+              cohorts: [
+                sampleCohort(id: 1, name: 'Cohort 01', status: 'finished'),
+                sampleCohort(id: 2, name: 'Cohort 02', status: 'active'),
+              ],
+            ),
+            enrollmentRepository: FakeEnrollmentRepository(),
+            enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+              enrolledCohortIds: const {1, 2},
+              enrolledCohorts: const [
+                EnrolledCohortSummary(cohortId: 1),
+                EnrolledCohortSummary(cohortId: 2, progressPct: 30),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The heading's line box starts flush with the inset, which puts its cap
+      // on the reference's y67 and the rule beneath it on y107.
+      expect(tester.getTopLeft(find.text('Courses')).dy, 59);
+      expect(tester.getTopLeft(find.byType(CohortCard).first).dy, 124);
+
+      // The bar's own rule lands on the reference's y748: 854 less the 34
+      // home-indicator inset and the bar's 72.
+      expect(tester.getTopLeft(find.byType(AppBottomNav)).dy, 748);
+    });
+
+    testWidgets('the heading is the reference\'s 24 over a 34 line', (
+      tester,
+    ) async {
+      await pumpCatalog(tester);
+
+      // A size up from [AppTypography.heading]'s 22, which four other screens
+      // share; the line box stays 34 so the heading's top edge does not drift.
+      final style = tester.widget<Text>(find.text('Courses')).style!;
+      expect(style.fontSize, 24);
+      expect(style.fontSize! * style.height!, 34);
+    });
+  });
+
   group('header', () {
     testWidgets('is the title alone — no back arrow on a top-level screen', (
       tester,
@@ -92,10 +363,12 @@ void main() {
       await pumpList(tester, FakeCohortRepository(cohorts: [sampleCohort()]));
       await tester.pumpAndSettle();
 
+      // The rule is a lighter grey than the global [AppColors.border], sampled
+      // off the reference at 1:1.
       final rule = find.byWidgetPredicate(
         (widget) =>
             widget is Container &&
-            widget.color == AppColors.border &&
+            widget.color == const Color(0xFFEAEDF0) &&
             widget.constraints?.maxHeight == AppDimens.borderWidth,
       );
       expect(rule, findsOneWidget);
@@ -883,9 +1156,15 @@ void main() {
 
       // Content-sized (badge row, caption, title, progress) — the 148 minimum
       // does not stretch it.
+      //
+      // The reference's progress card is 208. The 14 difference is the
+      // "Modules 2 of 5 complete" line it draws above the percentage, which
+      // needs a module count no endpoint reports — `EnrolledCohortSummary`
+      // carries only `{cohortId, progressPct}`. The line is left out rather
+      // than filled with a guess, so the card is correspondingly shorter.
       final height = tester.getSize(find.byType(CohortCard)).height;
       expect(height, greaterThan(148));
-      expect(height, closeTo(192, 1));
+      expect(height, closeTo(194, 1));
     });
 
     testWidgets('lays the card\'s parts out to Figma\'s measurements', (

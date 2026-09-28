@@ -22,6 +22,25 @@ import 'cohort_list_controller.dart';
 import 'cohort_list_strings.dart';
 import 'widgets/cohort_card.dart';
 
+/// The heading's size and the rule beneath it, measured off the reference at
+/// 1:1. The heading is a size up from [AppTypography.heading]'s 22, which four
+/// other screens share, so it is overridden here rather than on the token; the
+/// rule is a lighter grey than the global [AppColors.border].
+const double _headingSize = 24;
+const double _headingToRule = 14;
+const Color _ruleColor = Color(0xFFEAEDF0);
+
+/// The heading's line box starts flush with the safe-area inset — this screen
+/// does not take [AppDimens.resetHeadingTop]'s 32, which three other screens
+/// share. The box carries 8 of its own leading above the cap, so the title
+/// still clears the status bar; the reference's own chain confirms it, at a
+/// 59pt inset: 59 + 34 (box) + 14 = 107, the rule, and +1+16 = 124, card one.
+const double _headingTop = 0;
+
+/// The Courses tab's active glyph, which the design ships as artwork rather
+/// than as a weight of the icon font.
+const String _navCoursesSelectedAsset = 'assets/icons/nav_courses_selected.svg';
+
 /// The cohort list — every scheduled cohort across every course, or, when
 /// reached with a [courseId], only that course's cohorts. With [enrolledOnly]
 /// it is the signed-in student's own list instead: `GET /cohorts` narrowed to
@@ -129,10 +148,14 @@ class _CohortListScreenState extends State<CohortListScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarColor: AppColors.surface,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        // The reference draws this screen the other way round from the rest of
+        // the app: a white page carrying faintly-tinted cards, rather than a
+        // grey page carrying white ones. The cards keep their own tint from
+        // `cohort_background.svg`, so only the page changes here.
+        backgroundColor: AppColors.surface,
         bottomNavigationBar: AppBottomNav(
           currentIndex: 1,
           items: [
@@ -150,6 +173,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
             ),
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
+              selectedAsset: _navCoursesSelectedAsset,
               label: CohortListStrings.navCourses,
               // The student's own list *is* the Хичээл tab, so there is
               // nowhere to go. Any other list was pushed from the course
@@ -185,25 +209,27 @@ class _CohortListScreenState extends State<CohortListScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppDimens.screenPadding,
-                        AppDimens.resetHeadingTop,
+                        _headingTop,
                         AppDimens.screenPadding,
-                        AppDimens.headingToForm,
+                        _headingToRule,
                       ),
                       // A top-level tab destination: the title stands alone, the
                       // way Figma draws it, with no back control.
                       child: Text(
                         CohortListStrings.heading,
-                        style: AppTypography.heading,
+                        style: AppTypography.heading.copyWith(
+                          fontSize: _headingSize,
+                          // The line box stays the 34 the token sets, so only
+                          // the glyphs grow and the heading's top edge does not
+                          // drift: the reference's ink is what was measured,
+                          // its leading was not.
+                          height: 34 / _headingSize,
+                        ),
                       ),
                     ),
                     // The header's own bottom rule — this screen had none
-                    // before; every card below already sits on
-                    // [AppColors.border] at [AppDimens.borderWidth], so the
-                    // divider reuses exactly that pairing.
-                    Container(
-                      height: AppDimens.borderWidth,
-                      color: AppColors.border,
-                    ),
+                    // before.
+                    Container(height: AppDimens.borderWidth, color: _ruleColor),
                     Expanded(child: _buildBody()),
                   ],
                 ),
@@ -376,7 +402,10 @@ class _CohortList extends StatelessWidget {
               // there are.
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: cohorts.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              // 16 between cards, matching the reference and the list's own
+              // 16pt gutter — the gap was 12 before this was measured.
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppDimens.screenPadding),
               itemBuilder: (context, index) {
                 final cohort = cohorts[index];
                 final enrolled =

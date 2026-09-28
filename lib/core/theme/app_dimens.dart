@@ -136,9 +136,11 @@ abstract final class AppDimens {
   // --- Bottom navigation -----------------------------------------------
 
   /// Height of the app-wide bottom navigation bar's tap area, excluding the
-  /// device's own bottom safe-area inset. A typical tab-bar height rather
-  /// than one read off a Figma node — no frame for it has been measured yet.
-  static const double bottomNavHeight = 56;
+  /// device's own bottom safe-area inset. Measured off the Course Catalog
+  /// frame at 1:1 — the only Figma frame that draws the bar — where it runs
+  /// from its top rule down to the home-indicator inset. The bar is one shared
+  /// component, so this is the height on Home and Profile too.
+  static const double bottomNavHeight = 72;
 
   // --- Profile -------------------------------------------------------------
   //
