@@ -1,8 +1,11 @@
-/// Every word on the cohort list screen. No Figma reference exists for this
-/// screen — same situation as `CourseCatalogStrings`. The screen is the only
-/// caller, so wording it differently later is a single-file edit.
+/// Every word on the cohort list screen. The screen is the only caller, so
+/// wording it differently later is a single-file edit.
 abstract final class CohortListStrings {
-  static const String heading = 'Ангиуд';
+  /// Verbatim from the Figma "Course Catalog" frame, which titles this screen
+  /// in English while its own bottom bar stays Mongolian ("Хичээл") — the same
+  /// mixed-language treatment the Exercise Detail frames use. Not translated
+  /// to match the tab, because the reference does not.
+  static const String heading = 'Courses';
 
   static const String empty = 'Одоогоор товлогдсон анги алга байна';
 

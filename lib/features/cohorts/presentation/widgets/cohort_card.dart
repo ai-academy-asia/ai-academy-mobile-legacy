@@ -31,6 +31,34 @@ const double _badgeIconSize = 19.92;
 /// The status pill's height, from Figma.
 const double _pillHeight = 24;
 
+/// How strongly the status pill's own colour tints its fill, for a status the
+/// reference does not draw and whose fill therefore has no measured value.
+const double _pillTintOpacity = 0.12;
+
+/// The card's own surface and outline, sampled from the reference at 1:1 rather
+/// than taken from [AppColors]. The page is pure white here, so the card reads
+/// as a card by being a shade *cooler* than the page — `AppColors.surface`
+/// would make it invisible. The outline is likewise a touch warmer and darker
+/// than the global [AppColors.border] (`#E4E6EF`); both are kept local because
+/// the global tokens are shared with 25 other files.
+const Color _cardFill = Color(0xFFF8FAFF);
+const Color _cardBorder = Color(0xFFD6DBE1);
+
+/// The progress bar, measured off the reference: 8 tall (not the global
+/// [AppDimens.progressBarHeight] of 6, which other screens rely on), filled in
+/// the reference's blue and tracked in the same grey as the card's outline.
+const double _progressBarHeight = 8;
+const Color _progressFill = Color(0xFF2970FF);
+const Color _progressTrack = Color(0xFFD6DBE1);
+
+/// The status pills' fills and outlines, straight off the reference. These are
+/// not [AppColors.blue]/[AppColors.success] at an alpha — the reference uses
+/// its own flat pairs, and the hues differ from the app's semantic tokens.
+const Color _finishedInk = Color(0xFF0D99FF);
+const Color _finishedFill = Color(0xFFE5F4FF);
+const Color _runningInk = Color(0xFF14AE5C);
+const Color _runningFill = Color(0xFFEBFFEE);
+
 /// The badge row to the caption: 24 in Figma.
 const double _rowToCaptionGap = 24;
 
@@ -104,7 +132,7 @@ class CohortCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: _cardFill,
       borderRadius: BorderRadius.circular(AppDimens.cardRadius),
       child: InkWell(
         onTap: onTap,
@@ -114,7 +142,7 @@ class CohortCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             border: Border.all(
-              color: AppColors.border,
+              color: _cardBorder,
               width: AppDimens.borderWidth,
             ),
           ),
@@ -238,9 +266,9 @@ class _Progress extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
             value: percent / 100,
-            minHeight: AppDimens.progressBarHeight,
-            backgroundColor: AppColors.border,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.blue),
+            minHeight: _progressBarHeight,
+            backgroundColor: _progressTrack,
+            valueColor: const AlwaysStoppedAnimation<Color>(_progressFill),
           ),
         ),
       ],
@@ -309,13 +337,18 @@ class _AdultBadge extends StatelessWidget {
   }
 }
 
-/// The cohort's status, as an outlined capsule in the top-right corner —
-/// matching the reference's status pill. Only "open" is a confirmed value of
-/// [Cohort.status]; "active" and "finished" are the reference's other two
-/// pills, given the same deliberate-colour treatment ([AppColors.blue] for an
-/// in-progress cohort, [AppColors.textSecondary] for a past one) on the same
-/// unconfirmed-value basis "open" already was. Any other value falls back to
-/// that same neutral outline rather than a guessed colour.
+/// The cohort's status, as a tinted capsule in the top-right corner.
+///
+/// Colours are the reference's own, which are not the obvious semantic
+/// mapping: **finished is blue and both active and open are green**, rather
+/// than green-for-done. Taken from the frame as drawn rather than corrected,
+/// the same way every other value on this screen is — including the fills,
+/// which are flat sampled colours and not the outline colour at an alpha.
+///
+/// Only "open" is a confirmed value of [Cohort.status]; "active" and
+/// "finished" are the reference's other two pills, matched on the same
+/// unconfirmed-value basis "open" already was. Any other value falls back to a
+/// neutral outline rather than a guessed colour.
 class _StatusPill extends StatelessWidget {
   const _StatusPill(this.status);
 
@@ -323,11 +356,16 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status.toLowerCase()) {
-      'open' => AppColors.success,
-      'active' => AppColors.blue,
-      'finished' => AppColors.textSecondary,
-      _ => AppColors.textSecondary,
+    final (Color color, Color fill) = switch (status.toLowerCase()) {
+      'open' => (_runningInk, _runningFill),
+      'active' => (_runningInk, _runningFill),
+      'finished' => (_finishedInk, _finishedFill),
+      // Not a status the reference draws, so there is no fill to sample: the
+      // neutral outline gets the app's standard low-alpha wash of itself.
+      _ => (
+        AppColors.textSecondary,
+        AppColors.textSecondary.withValues(alpha: _pillTintOpacity),
+      ),
     };
 
     return Container(
@@ -337,6 +375,7 @@ class _StatusPill extends StatelessWidget {
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
+        color: fill,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color, width: AppDimens.borderWidth),
       ),
