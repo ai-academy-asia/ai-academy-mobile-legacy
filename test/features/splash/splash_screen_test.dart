@@ -2,8 +2,10 @@ import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_screen.dart';
+import 'package:aia_mobile/features/splash/presentation/splash_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
@@ -80,19 +82,66 @@ void main() {
   final closeToZero = closeTo(0, 0.001);
 
   group('layout', () {
-    testWidgets('shows a white screen with only the logo mark at t=0', (
+    testWidgets('shows the Figma background with only the mark visible at t=0', (
       tester,
     ) async {
       await pumpSplash(tester);
 
+      // The Figma Splash frame's own fill, not white.
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, AppColors.surface);
+      expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
 
       expect(find.byType(Image), findsOneWidget);
       expect(opacityOf(tester, SplashScreen.screenFadeKey), 1);
       expect(opacityOf(tester, SplashScreen.logoOpacityKey), 0);
       expect(widthFactorOf(tester, SplashScreen.textSlotKey), 0);
       expect(opacityOf(tester, SplashScreen.textOpacityKey), 0);
+    });
+
+    testWidgets('draws both Figma exports, at one shared height', (
+      tester,
+    ) async {
+      await pumpSplash(tester);
+
+      // The mark is the PNG export — the SVG one cannot be used, because
+      // flutter_svg paints nothing for its embedded-raster construction (see
+      // SplashAssets.mark).
+      final mark = tester.widget<Image>(find.byType(Image));
+      expect((mark.image as AssetImage).assetName, SplashAssets.mark);
+      expect(mark.height, 96);
+
+      // The wordmark is the vector export, not live text any more.
+      expect(find.byType(SvgPicture), findsOneWidget);
+      final wordmark = tester.widget<SvgPicture>(find.byType(SvgPicture));
+      expect(wordmark.height, 96);
+
+      // Regression guard: the retired live-text wordmark must not come back.
+      expect(find.text('AI academy\nAsia'), findsNothing);
+    });
+
+    testWidgets('the lockup is centred inside the safe area, not the frame', (
+      tester,
+    ) async {
+      // A notched iPhone's own insets — the Figma frame's 394 x 774 content
+      // area is 852 less exactly these.
+      const topInset = 44.0;
+      const bottomInset = 34.0;
+
+      await pumpSplash(tester);
+      tester.view.padding = FakeViewPadding(
+        top: topInset * tester.view.devicePixelRatio,
+        bottom: bottomInset * tester.view.devicePixelRatio,
+      );
+      // Land on the hold, where the whole lockup is at rest and fully opaque.
+      await tester.pump(const Duration(milliseconds: 4000));
+
+      final lockup = tester.getRect(find.byKey(SplashScreen.screenFadeKey));
+      final safeAreaCentre = (topInset + (852 - bottomInset)) / 2;
+
+      // Centred in the safe area — which sits below the frame's own centre.
+      expect(lockup.center.dy, closeTo(safeAreaCentre, 1));
+      expect(lockup.center.dy, greaterThan(852 / 2));
+      expect(lockup.center.dx, closeTo(394 / 2, 1));
     });
   });
 

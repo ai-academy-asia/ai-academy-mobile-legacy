@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../auth/presentation/login_screen.dart';
 import 'splash_strings.dart';
 
@@ -12,7 +13,7 @@ import 'splash_strings.dart';
 /// controller simply runs once and then hands off on its own:
 ///
 ///   * 0 – 17.1%: the icon fades and scales in, alone and centred — a blank
-///     [AppColors.surface] screen is the true first frame.
+///     [AppColors.surfaceSubtle] screen is the true first frame.
 ///   * 17.1 – 25.7%: an invisible slot beside the icon widens from nothing to
 ///     the wordmark's full width. Centred as a whole, the [Row] grows around
 ///     its own centre, so this is what reads as "the icon moves left" —
@@ -40,9 +41,19 @@ import 'splash_strings.dart';
 /// `pushReplacement` on an already-popped-from route is exactly the kind of
 /// bug worth foreclosing for free.
 ///
-/// The icon is the same bundled mark [HomeHeader] shows — see
-/// [SplashAssets.icon] — drawn directly rather than cropped from a combined
-/// image, since that combined export no longer exists.
+/// Both halves of the lockup are Figma exports — [SplashAssets.mark] and
+/// [SplashAssets.wordmark] — rather than a bundled icon beside live text, so
+/// the screen matches the Figma frame's own construction. The wordmark is
+/// outlined vector paths there, not a text layer, which is why nothing here
+/// uses `AppTypography.splashWordmark` any more; that token is untouched and
+/// still serves as `homeLogoWordmark`'s documented proportional parent.
+///
+/// Geometry comes from the Figma frame (394 x 852): the mark's ink measures
+/// ~96pt tall, and the lockup is centred **within the safe area** rather than
+/// the full frame — the frame's own 394 x 774 content area is 852 less the
+/// standard 44pt/34pt insets, and the artwork's measured centre matches that
+/// area's centre, not the frame's. `SafeArea` + `Center` reproduces it with
+/// no hand-tuned offset.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -162,41 +173,51 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) => Opacity(
-            key: SplashScreen.screenFadeKey,
-            opacity: _screenFade.value,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Opacity(
-                  key: SplashScreen.logoOpacityKey,
-                  opacity: _logoOpacity.value,
-                  child: Transform.scale(
-                    scale: _logoScale.value,
-                    child: const _LogoMark(),
-                  ),
-                ),
-                ClipRect(
-                  child: Align(
-                    key: SplashScreen.textSlotKey,
-                    alignment: Alignment.centerLeft,
-                    widthFactor: _textSlotFactor.value,
-                    child: Opacity(
-                      key: SplashScreen.textOpacityKey,
-                      opacity: _textOpacity.value,
-                      child: Transform.translate(
-                        offset: Offset(_textSlide.value, 0),
-                        child: const _Wordmark(),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Dark status-bar content on the light background, matching the Figma
+      // frame and the same treatment every other screen in this app applies.
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: AppColors.surfaceSubtle,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.surfaceSubtle,
+        body: SafeArea(
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) => Opacity(
+                key: SplashScreen.screenFadeKey,
+                opacity: _screenFade.value,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Opacity(
+                      key: SplashScreen.logoOpacityKey,
+                      opacity: _logoOpacity.value,
+                      child: Transform.scale(
+                        scale: _logoScale.value,
+                        child: const _LogoMark(),
                       ),
                     ),
-                  ),
+                    ClipRect(
+                      child: Align(
+                        key: SplashScreen.textSlotKey,
+                        alignment: Alignment.centerLeft,
+                        widthFactor: _textSlotFactor.value,
+                        child: Opacity(
+                          key: SplashScreen.textOpacityKey,
+                          opacity: _textOpacity.value,
+                          child: Transform.translate(
+                            offset: Offset(_textSlide.value, 0),
+                            child: const _Wordmark(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -205,37 +226,55 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// The bundled icon mark, at the same rendered height the splash's earlier,
-/// combined-image version measured out for it.
+/// The mark, from the Figma export — see [SplashAssets.mark].
+///
+/// [lockupHeight] is shared with [_Wordmark] rather than sized separately:
+/// both exports are drawn on the same 97-unit-tall canvas in Figma, with the
+/// wordmark's own ink centred inside it, so rendering the two at one height
+/// aligns them vertically by construction — no cross-axis nudge needed.
 class _LogoMark extends StatelessWidget {
   const _LogoMark();
 
-  /// The icon's rendered height on screen.
+  /// The lockup's rendered height.
   ///
-  /// `AppDimens.avatarSize` (44) is the closest existing icon-scale reference
-  /// in this app, so 48 reads as "one more icon at this app's usual glyph
-  /// size" rather than a one-off. The wordmark is sized to read well beside
-  /// it instead — see [AppTypography.splashWordmark].
-  static const double _renderedHeight = 48;
+  /// Measured off the Figma Splash frame: the mark's ink is ~96pt tall in a
+  /// 394 x 852 frame (24.6% of frame width). Not a token — no existing
+  /// `AppDimens` value is near this, and nothing else in the app draws a mark
+  /// at brand scale.
+  static const double lockupHeight = 96;
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(SplashAssets.icon, height: _renderedHeight);
+    return Image.asset(SplashAssets.mark, height: lockupHeight);
   }
 }
 
-/// "AI academy Asia", two lines, in the wordmark's own navy — see
-/// [SplashStrings].
+/// "AI academy / Asia", from the Figma export — see [SplashAssets.wordmark].
+///
+/// Carries the brand name as a semantics label: the artwork replaced live
+/// text, and without this the splash would announce nothing at all.
 class _Wordmark extends StatelessWidget {
   const _Wordmark();
+
+  /// Gap between the two exports' *canvases*, not between their ink.
+  ///
+  /// Both SVG/PNG canvases carry their own internal padding (~3pt on the
+  /// mark's trailing edge, ~5pt on the wordmark's leading edge), so this 12pt
+  /// renders as a ~20pt visual gap — against ~21pt measured in Figma, which
+  /// itself carries ±2pt of uncertainty because Figma's selection overlay
+  /// covered the wordmark's leading edge in the reference capture. Kept at
+  /// the pre-existing 12 rather than tuned to hit a figure inside its own
+  /// error bars.
+  static const double _gap = 12;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 12),
-      child: Text(
-        '${SplashStrings.wordmarkLine1}\n${SplashStrings.wordmarkLine2}',
-        style: AppTypography.splashWordmark,
+      padding: const EdgeInsets.only(left: _gap),
+      child: SvgPicture.asset(
+        SplashAssets.wordmark,
+        height: _LogoMark.lockupHeight,
+        semanticsLabel: SplashStrings.wordmarkSemanticsLabel,
       ),
     );
   }
