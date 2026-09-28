@@ -82,10 +82,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarColor: AppColors.surfaceSubtle,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        // The reference's own page fill (#F9FAFB), which `surfaceSubtle` holds
+        // exactly — same correction the login screen carries.
+        backgroundColor: AppColors.surfaceSubtle,
         // Same as login: the keyboard overlays rather than resizing, and the
         // scroll padding below keeps every field reachable regardless.
         resizeToAvoidBottomInset: false,
@@ -97,7 +99,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               listenable: _controller,
               builder: (context, _) => LayoutBuilder(
                 builder: (context, constraints) => SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: EdgeInsets.only(bottom: keyboardInset),
                   child: Align(
                     alignment: Alignment.topCenter,
@@ -110,18 +113,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           horizontal: AppDimens.screenPadding,
                         ),
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
                           child: IntrinsicHeight(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const SizedBox(height: AppDimens.resetHeadingTop),
+                                const SizedBox(
+                                  height: AppDimens.resetHeadingTop,
+                                ),
 
                                 Text(
                                   ResetPasswordStrings.title,
                                   style: AppTypography.heading,
                                 ),
-                                const SizedBox(height: AppDimens.titleToSupporting),
+                                const SizedBox(
+                                  height: AppDimens.titleToSupporting,
+                                ),
                                 Text(
                                   ResetPasswordStrings.supporting,
                                   style: AppTypography.cardSupporting,
@@ -129,6 +138,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 const SizedBox(height: AppDimens.headingToForm),
 
                                 _buildFields(),
+
+                                // The reference puts the message directly under
+                                // the confirm field, above the requirements —
+                                // see `Sign in - 10`.
+                                _buildMessageBand(),
                                 const SizedBox(height: AppDimens.headingToForm),
 
                                 PasswordRequirementsPanel(
@@ -136,8 +150,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                   strength: _controller.strength,
                                   evaluated: _controller.requirementsEvaluated,
                                 ),
-
-                                _buildMessageBand(),
 
                                 // The reference crop shows nothing below the
                                 // requirements, so the button takes the empty
@@ -147,7 +159,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 AppButton(
                                   label: ResetPasswordStrings.submit,
                                   loading: _controller.submitting,
-                                  onPressed: _controller.submitting ? null : _submit,
+                                  onPressed: _controller.submitting
+                                      ? null
+                                      : _submit,
                                 ),
                                 const SizedBox(height: AppDimens.cardPadding),
                               ],
@@ -165,6 +179,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ),
     );
   }
+
+  /// The reference sets the current-password field apart from the pair below
+  /// it: measured at 24pt here against [AppDimens.fieldGap]'s 12 between the
+  /// new password and its confirmation. Local rather than a token — login's
+  /// two fields sit at 12, so this is this screen's grouping, not a new
+  /// app-wide rhythm.
+  static const double _currentToNewGap = 24;
 
   Widget _buildFields() {
     final busy = _controller.submitting;
@@ -187,7 +208,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             enabled: !busy,
           ),
         ),
-        const SizedBox(height: AppDimens.fieldGap),
+        const SizedBox(height: _currentToNewGap),
 
         AppTextField(
           controller: _controller.newPassword,
@@ -227,27 +248,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-  /// Same band as login: one line of red, inside space the layout already
-  /// leaves, so an error never shifts what is under it.
+  /// One line of red directly under the confirm field, as `Sign in - 10`
+  /// draws it.
+  ///
+  /// Unlike login's equivalent, this takes no space of its own when there is
+  /// nothing to say: the reference shows the requirements panel sitting ~18pt
+  /// lower in the error state than in the resting one, so the message genuinely
+  /// pushes what is *below* it down. The three fields sit above it and never
+  /// move, which is the position the reference holds fixed.
   Widget _buildMessageBand() {
     final message = _controller.message;
+    if (message == null) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: AppDimens.formToButtons,
-      child: message == null
-          ? null
-          : Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  message,
-                  style: AppTypography.fieldError,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          message,
+          style: AppTypography.fieldError,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
     );
   }
 

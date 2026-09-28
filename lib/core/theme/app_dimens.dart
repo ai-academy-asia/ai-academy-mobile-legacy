@@ -96,7 +96,12 @@ abstract final class AppDimens {
   static const double titleToSupporting = 6;
 
   /// Height of the password strength meter.
-  static const double strengthBarHeight = 6;
+  ///
+  /// Measured at 8 on the reset-password reference (a 353 x 8 bar). Used only
+  /// by `PasswordRequirementsPanel`, so this is that screen's own measurement
+  /// rather than a shared bar height — `progressBarHeight` (6) is the separate
+  /// value the Home/Course-Learning progress bars use.
+  static const double strengthBarHeight = 8;
 
   /// One requirement row, sized to its 16pt icon and text line.
   static const double requirementRowHeight = 20;
