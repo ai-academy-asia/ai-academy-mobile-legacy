@@ -11,10 +11,15 @@ import 'widgets/assignment_tab.dart';
 import 'widgets/course_materials_tab.dart';
 import 'widgets/exercise_info_section.dart';
 import 'widgets/exercise_tabs.dart';
-import 'widgets/exercise_text_field.dart';
 import 'widgets/exercise_video_header.dart';
 import 'widgets/note_tab.dart';
 import 'widgets/quiz_preview_card.dart';
+
+/// Sampled off the reference frames at 1:1. The page is a shade lighter than
+/// the app-wide [AppColors.background], and the tab card's outline is lighter
+/// than the field outlines inside it (`exerciseBorderColor`).
+const Color _page = Color(0xFFF9FAFB);
+const Color _cardBorder = Color(0xFFEAEDF0);
 
 /// The Exercise Detail screen — reached directly from an unlocked module
 /// card on `CourseModuleListScreen`, or from either of its "Continue
@@ -107,15 +112,24 @@ class _CourseExerciseDetailScreenState
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
+      // Dark status-bar glyphs: the reference keeps the bar on the page's own
+      // light background and starts the video below it, rather than running
+      // the navy up behind it.
+      value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarColor: _page,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) => _buildBody(),
+        backgroundColor: _page,
+        // The reference's video header starts below the status bar, not
+        // under it — so the whole body is inset at the top. `bottom: false`
+        // keeps the scroll running to the screen's edge.
+        body: SafeArea(
+          bottom: false,
+          child: ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) => _buildBody(),
+          ),
         ),
       ),
     );
@@ -196,6 +210,7 @@ class _ExerciseDetailBody extends StatelessWidget {
               ExerciseVideoHeader(
                 durationLabel: exercise.durationLabel,
                 recordingBadgeLabel: exercise.recordingBadgeLabel,
+                hasVideo: exercise.hasVideo,
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -212,13 +227,15 @@ class _ExerciseDetailBody extends StatelessWidget {
                       expanded: descriptionExpanded,
                       onToggle: onToggleDescription,
                     ),
-                    const SizedBox(height: 8),
+                    // The reference leaves this much air between the
+                    // description's Read more control and the tab card.
+                    const SizedBox(height: 32),
                     Container(
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: exerciseBorderColor,
+                          color: _cardBorder,
                           width: AppDimens.borderWidth,
                         ),
                       ),

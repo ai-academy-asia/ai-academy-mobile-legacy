@@ -13,6 +13,15 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// as local widget state — there is no file to actually fetch and no backend
 /// download endpoint; see `CourseExerciseDetailScreen`'s own doc comment on
 /// what this issue defers.
+/// Solved from the reference frame at 1:1 — the glyph sits on a 32 tile and
+/// the row's two lines are a size apart, both lighter than the shared
+/// `cardHeading`/`cardSupporting` this screen inherits them from.
+const double _tileSize = 32;
+const double _glyphSize = 20;
+const Color _tileFill = Color(0xFFF5F5F5);
+const double _titleSize = 14;
+const double _sizeLabelSize = 13;
+
 class CourseMaterialCard extends StatelessWidget {
   const CourseMaterialCard({required this.material, super.key});
 
@@ -34,12 +43,23 @@ class CourseMaterialCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SvgPicture.asset(
-            'assets/images/course_learning/exercise_file.svg',
-            width: 32,
-            height: 32,
+          // The reference sets the file glyph on its own flat tile rather
+          // than on the card surface directly.
+          Container(
+            width: _tileSize,
+            height: _tileSize,
+            decoration: BoxDecoration(
+              color: _tileFill,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: SvgPicture.asset(
+              'assets/images/course_learning/exercise_file.svg',
+              width: _glyphSize,
+              height: _glyphSize,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -47,12 +67,20 @@ class CourseMaterialCard extends StatelessWidget {
               children: [
                 Text(
                   material.name,
-                  style: AppTypography.cardHeading.copyWith(fontSize: 14),
+                  style: AppTypography.cardHeading.copyWith(
+                    fontSize: _titleSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(material.sizeLabel, style: AppTypography.cardSupporting),
+                Text(
+                  material.sizeLabel,
+                  style: AppTypography.cardSupporting.copyWith(
+                    fontSize: _sizeLabelSize,
+                  ),
+                ),
               ],
             ),
           ),

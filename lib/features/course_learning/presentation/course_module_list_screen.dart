@@ -65,7 +65,7 @@ const double _certificationCtaWidth = 148;
 /// module cards use. Sampled at 1:1 — the reference has *no* blur around the
 /// button at all (the pixel beside its edge is pure white), so this is a
 /// zero-blur shadow of the button's own shape, not a glow.
-const Color _ctaDepth = Color(0xFF004FED);
+const Color _ctaDepth = AppColors.primaryDepth;
 const double _ctaDepthOffset = 4;
 
 /// Module cards: an 86-tall box every 102, so 16 of layout gap between boxes —

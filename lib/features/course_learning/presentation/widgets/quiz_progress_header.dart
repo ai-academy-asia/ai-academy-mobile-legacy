@@ -8,6 +8,11 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// `CourseQuizScreen`'s own header: a 40 x 40 close button, a progress bar
 /// tracking how many of the quiz's questions have been reached, and the
 /// "current/total" counter.
+/// Sampled off the Quiz frames at 1:1.
+const Color _progressFill = Color(0xFF2970FF);
+const Color _progressTrack = Color(0xFFEAEDF0);
+const Color _counterInk = Color(0xFF191919);
+
 class QuizProgressHeader extends StatelessWidget {
   const QuizProgressHeader({
     required this.current,
@@ -37,15 +42,18 @@ class QuizProgressHeader extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: total == 0 ? 0 : current / total,
                   minHeight: 8,
-                  color: AppColors.blue,
-                  backgroundColor: AppColors.border,
+                  color: _progressFill,
+                  backgroundColor: _progressTrack,
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Text(
               CourseLearningStrings.quizProgressCounter(current, total),
-              style: AppTypography.cardHeading.copyWith(fontSize: 13),
+              style: AppTypography.cardHeading.copyWith(
+                fontSize: 13,
+                color: _counterInk,
+              ),
             ),
           ],
         ),

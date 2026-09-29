@@ -41,7 +41,7 @@ class ExerciseTabs extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: 49,
+          height: 47,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -67,7 +67,7 @@ class ExerciseTabs extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1, color: AppColors.border),
+        const Divider(height: 1, color: Color(0xFFEAEDF0)),
       ],
     );
   }

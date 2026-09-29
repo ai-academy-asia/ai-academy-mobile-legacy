@@ -3,8 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../course_learning_strings.dart';
 import 'exercise_text_field.dart' show exerciseBorderColor;
 
 /// The reference's dark navy video placeholder — no thumbnail, no player,
@@ -45,10 +45,16 @@ class ExerciseVideoHeader extends StatelessWidget {
     required this.durationLabel,
     required this.recordingBadgeLabel,
     super.key,
+    this.hasVideo = true,
   });
 
   final String durationLabel;
   final String recordingBadgeLabel;
+
+  /// False draws the reference's "no recording yet" state: the same navy
+  /// area and back button, but one centred pill instead of the badge, the
+  /// play control and the duration.
+  final bool hasVideo;
 
   @override
   Widget build(BuildContext context) {
@@ -60,26 +66,33 @@ class ExerciseVideoHeader extends StatelessWidget {
         color: _videoBackground,
         child: Stack(
           children: [
-            Positioned(
-              top: topInset + 24,
-              left: AppDimens.screenPadding,
-              child: _RecordingBadge(label: recordingBadgeLabel),
-            ),
+            if (hasVideo) ...[
+              Positioned(
+                top: topInset + 24,
+                left: AppDimens.screenPadding,
+                child: _RecordingBadge(label: recordingBadgeLabel),
+              ),
+              const Center(child: _PlayButton()),
+              Positioned(
+                right: AppDimens.screenPadding,
+                bottom: 16,
+                child: Text(
+                  durationLabel,
+                  style: AppTypography.buttonLabel.copyWith(
+                    color: AppColors.onPrimary,
+                  ),
+                ),
+              ),
+            ] else
+              const Center(
+                child: _RecordingBadge(
+                  label: CourseLearningStrings.videoUnavailable,
+                ),
+              ),
             Positioned(
               top: topInset + AppDimens.screenPadding,
               left: AppDimens.screenPadding,
               child: const _VideoBackButton(),
-            ),
-            const Center(child: _PlayButton()),
-            Positioned(
-              right: AppDimens.screenPadding,
-              bottom: 16,
-              child: Text(
-                durationLabel,
-                style: AppTypography.buttonLabel.copyWith(
-                  color: AppColors.onPrimary,
-                ),
-              ),
             ),
           ],
         ),
@@ -128,8 +141,10 @@ class _VideoBackButton extends StatelessWidget {
           child: const SizedBox(
             width: 40,
             height: 40,
+            // A full left arrow with a shaft, not `AppIcons.caretLeft`'s
+            // bare chevron — the reference draws the arrow on this screen.
             child: Icon(
-              AppIcons.caretLeft,
+              Icons.arrow_back,
               size: 20,
               color: AppColors.textPrimary,
             ),

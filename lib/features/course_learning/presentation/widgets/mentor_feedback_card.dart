@@ -5,7 +5,6 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
-import 'exercise_text_field.dart';
 
 /// The Assignment tab's footer: "Mentor Feedback" / "No feedback yet" when
 /// [feedback] is null (unchanged from the tab's original, only-ever-empty
@@ -15,6 +14,42 @@ import 'exercise_text_field.dart';
 /// language (bordered card, avatar-with-initials, message, timestamp) rather
 /// than inventing a new one — same tab family, same kind of "someone left a
 /// message" content.
+/// Solved from the reference frame's ink widths at 1:1; local because
+/// `cardHeading`/`cardSupporting` are shared with other screens.
+const double _headingSize = 18;
+
+/// The feedback card's own outline and its avatar, measured at 1:1 — the
+/// outline is lighter than the field outlines (`exerciseBorderColor`) and the
+/// avatar is 40 across, not 36.
+const Color _cardBorder = Color(0xFFE5E7EB);
+const double _avatarRadius = 20;
+
+/// The feedback card's own inner rhythm, measured off `Exercise - 14` at 1:1:
+/// 20 of padding on every side, 23 of clear space under the avatar before the
+/// message, and 25 between the message and the timestamp. The gaps below are
+/// those less the leading each text box already carries.
+const double _cardPadding = 20;
+const double _avatarToMessage = 18;
+const double _messageToTimestamp = 18;
+
+/// The reference leaves 16 between the section divider and the heading's
+/// bounding box, which renders as 24 of clear space above its ink — the line
+/// box carries 8 of leading over the cap. Both states use this; they have
+/// drifted apart twice, so it lives in one place.
+const double _dividerToHeading = 16;
+
+/// One style for both states. The reference draws this heading dark in every
+/// frame that shows real feedback and in three of the four empty ones, so the
+/// empty state is not a lighter variant — it used to be, which is why the two
+/// branches had drifted apart.
+final TextStyle _heading = AppTypography.cardHeading.copyWith(
+  fontSize: _headingSize,
+  height: 26 / _headingSize,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+);
+const double _bodySize = 14;
+
 class MentorFeedbackCard extends StatelessWidget {
   const MentorFeedbackCard({super.key, this.feedback});
 
@@ -26,23 +61,24 @@ class MentorFeedbackCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final feedback = this.feedback;
     if (feedback == null) {
+      // Content-sized rather than a fixed 87: the reference's own gaps put
+      // the two lines exactly where it draws them, and a fixed height cannot
+      // also hold them there once their sizes are the reference's.
       return SizedBox(
         width: double.infinity,
-        height: 87,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              CourseLearningStrings.mentorFeedbackTitle,
-              style: AppTypography.cardHeading.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: _dividerToHeading),
+            Text(CourseLearningStrings.mentorFeedbackTitle, style: _heading),
+            const SizedBox(height: 9),
             Text(
               CourseLearningStrings.noFeedbackYet,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                fontSize: _bodySize,
+                height: 20 / _bodySize,
+              ),
             ),
           ],
         ),
@@ -63,21 +99,17 @@ class _PopulatedMentorFeedback extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          CourseLearningStrings.mentorFeedbackTitle,
-          style: AppTypography.cardHeading.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+        const SizedBox(height: _dividerToHeading),
+        Text(CourseLearningStrings.mentorFeedbackTitle, style: _heading),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(_cardPadding),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: exerciseBorderColor,
+              color: _cardBorder,
               width: AppDimens.borderWidth,
             ),
           ),
@@ -87,7 +119,7 @@ class _PopulatedMentorFeedback extends StatelessWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 18,
+                    radius: _avatarRadius,
                     backgroundColor: AppColors.blue,
                     child: Text(
                       feedback.mentorInitials,
@@ -103,7 +135,10 @@ class _PopulatedMentorFeedback extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(feedback.mentorName, style: AppTypography.cardHeading),
+                        Text(
+                          feedback.mentorName,
+                          style: AppTypography.cardHeading,
+                        ),
                         Text(
                           feedback.mentorRole,
                           style: AppTypography.cardSupporting,
@@ -113,14 +148,14 @@ class _PopulatedMentorFeedback extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _avatarToMessage),
               Text(
                 feedback.message,
                 style: AppTypography.settingsRowLabel.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: _messageToTimestamp),
               Text(
                 feedback.timestampLabel,
                 style: AppTypography.cardSupporting,

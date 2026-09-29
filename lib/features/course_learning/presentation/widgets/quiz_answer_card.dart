@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
-import 'exercise_text_field.dart' show exerciseBorderColor;
 
 enum QuizAnswerState { normal, selectedCorrect, selectedWrong }
+
+/// Sampled off the Quiz frames at 1:1. An unanswered row is outlined in
+/// [_border] and carries a flat band of the same colour beneath it, the same
+/// depth idiom the Course Learning cards use; a row the student has picked
+/// swaps the outline for its state colour and drops the band.
+const Color _border = Color(0xFFEAEDF0);
+const Color _correct = Color(0xFF14AE5C);
+const Color _wrong = Color(0xFFEF4444);
+const Color _letterInk = Color(0xFF8A8A8A);
+const Color _labelInk = Color(0xFF1A1A1A);
+const double _depthOffset = 4;
+const double _letterToLabel = 23;
+const double _stateIconBox = 24;
 
 /// One 361 x 56 option row on `CourseQuizScreen`: a letter (A/B/C/D), the
 /// option's own text, and — once the student has answered — a state icon on
@@ -31,10 +43,12 @@ class QuizAnswerCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   Color get _color => switch (state) {
-    QuizAnswerState.normal => exerciseBorderColor,
-    QuizAnswerState.selectedCorrect => AppColors.success,
-    QuizAnswerState.selectedWrong => AppColors.error,
+    QuizAnswerState.normal => _border,
+    QuizAnswerState.selectedCorrect => _correct,
+    QuizAnswerState.selectedWrong => _wrong,
   };
+
+  bool get _answered => state != QuizAnswerState.normal;
 
   @override
   Widget build(BuildContext context) {
@@ -53,39 +67,52 @@ class QuizAnswerCard extends StatelessWidget {
             height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
+              // Repeated here, not left to the `Material` behind: the band
+              // below is a zero-blur shadow, which paints the card's whole
+              // silhouette shifted down, so without an opaque background on
+              // this same decoration it covers the card itself.
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _color, width: AppDimens.borderWidth),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              // Only the unanswered rows sit on a band; the frames draw the
+              // picked one flat against the page.
+              boxShadow: _answered
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: _border,
+                        offset: Offset(0, _depthOffset),
+                      ),
+                    ],
             ),
             child: Row(
               children: [
                 Text(
                   letter,
-                  style: AppTypography.cardHeading.copyWith(
-                    color: state == QuizAnswerState.normal
-                        ? AppColors.textSecondary
-                        : _color,
-                  ),
+                  // The letter stays grey in every state — the frames do not
+                  // tint it with the answer's own colour.
+                  style: AppTypography.cardHeading.copyWith(color: _letterInk),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: _letterToLabel),
                 Expanded(
                   child: Text(
                     label,
                     style: AppTypography.settingsRowLabel.copyWith(
-                      color: AppColors.textPrimary,
+                      color: _labelInk,
                     ),
                   ),
                 ),
-                if (state == QuizAnswerState.selectedCorrect)
-                  const Icon(AppIcons.check, size: 24, color: AppColors.success)
-                else if (state == QuizAnswerState.selectedWrong)
-                  const Icon(AppIcons.xCircle, size: 24, color: AppColors.error),
+                // The design's own state glyphs, drawn at their natural 24
+                // box (the stroked artwork inside spans the 20 the frames
+                // measure). They carry their own ink, so no tint.
+                if (_answered)
+                  SvgPicture.asset(
+                    state == QuizAnswerState.selectedCorrect
+                        ? 'assets/images/course_learning/quiz_correct.svg'
+                        : 'assets/images/course_learning/quiz_incorrect.svg',
+                    width: _stateIconBox,
+                    height: _stateIconBox,
+                  ),
               ],
             ),
           ),

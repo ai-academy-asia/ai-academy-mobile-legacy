@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
@@ -10,6 +11,37 @@ import 'assignment_attachment_card.dart';
 import 'exercise_submit_button.dart';
 import 'exercise_text_field.dart';
 import 'mentor_feedback_card.dart';
+
+/// The success card's green tile, measured off the reference at 1:1. The
+/// fill is a flat sampled colour, not [AppColors.success] at an alpha —
+/// solving for one gives a different figure per channel, so the frame's own
+/// value is used.
+const double _successTileWidth = 44;
+const double _successTileHeight = 30;
+const Color _successTileFill = Color(0xFFCCEBDC);
+
+/// The pair of ticks spans the tile almost edge to edge in the reference, in
+/// a deeper green than [AppColors.success].
+const double _successCheckSize = 32;
+const Color _successCheckInk = Color(0xFF009951);
+
+/// Negative, so the pair reaches the tile's edges: two centred glyphs pull
+/// their ink *inward* as they grow, so a bigger size alone narrows the pair.
+const double _successCheckInset = -4;
+
+/// The outlined Resubmit pill, measured at 1:1.
+const String _resubmitIconAsset =
+    'assets/images/course_learning/exercise_resubmit.svg';
+const double _resubmitIconBox = 24;
+const double _resubmitLabelSize = 16;
+const Color _resubmitBorder = Color(0xFFD6DBE1);
+
+/// The submitted card's own rhythm, measured off the reference at 1:1:
+/// divider -> tile 31, tile -> message 41, message -> button 34. The gaps
+/// below are those less the leading each box already carries.
+const double _successTopGap = 8;
+const double _tileToMessage = 28;
+const double _messageToResubmit = 32;
 
 /// The three states this tab cycles through, all driven by sample data — see
 /// the class doc below for what each one shows.
@@ -105,15 +137,20 @@ class _AssignmentTabState extends State<AssignmentTab> {
     super.dispose();
   }
 
+  /// The description always counts; the link only when it is on screen —
+  /// the file area replaces it, and a field the student cannot see must not
+  /// be what holds Submit disabled.
   void _onTextChanged() {
     final hasContent =
-        _linkController.text.trim().isNotEmpty &&
-        _descriptionController.text.trim().isNotEmpty;
+        _descriptionController.text.trim().isNotEmpty &&
+        (widget.attachment != null || _linkController.text.trim().isNotEmpty);
     if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
   }
 
   bool get _readyToSubmit =>
-      _stage == _AssignmentStage.notSubmitted && _hasContent && _attachmentReady;
+      _stage == _AssignmentStage.notSubmitted &&
+      _hasContent &&
+      _attachmentReady;
 
   AssignmentMentorFeedback? get _latestFeedback {
     final sequence = widget.feedbackSequence;
@@ -142,28 +179,32 @@ class _AssignmentTabState extends State<AssignmentTab> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 13),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (_stage == _AssignmentStage.submitted)
             _AssignmentSuccessCard(onResubmit: _resubmit)
           else ...[
+            // The reference draws the file area and the link field as
+            // alternatives, never together: the frames with a drop area have
+            // no link row, and the frame with the link row has no file area.
             if (widget.attachment case final attachment?) ...[
               AssignmentAttachmentCard(
                 attachment: attachment,
                 onDownloaded: () => setState(() => _attachmentReady = true),
                 onRemoved: () => setState(() => _attachmentReady = false),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
+            ] else ...[
+              ExerciseTextField(
+                controller: _linkController,
+                placeholder: CourseLearningStrings.linkPlaceholder,
+                height: 53,
+                enabled: _stage == _AssignmentStage.notSubmitted,
+              ),
+              const SizedBox(height: 18),
             ],
-            ExerciseTextField(
-              controller: _linkController,
-              placeholder: CourseLearningStrings.linkPlaceholder,
-              height: 53,
-              enabled: _stage == _AssignmentStage.notSubmitted,
-            ),
-            const SizedBox(height: 12),
             ExerciseTextField(
               controller: _descriptionController,
               placeholder: CourseLearningStrings.descriptionPlaceholder,
@@ -172,7 +213,7 @@ class _AssignmentTabState extends State<AssignmentTab> {
               multiline: true,
               enabled: _stage == _AssignmentStage.notSubmitted,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
             ExerciseSubmitButton(
               label: _stage == _AssignmentStage.pendingReview
                   ? CourseLearningStrings.submitted
@@ -180,7 +221,7 @@ class _AssignmentTabState extends State<AssignmentTab> {
               onPressed: _readyToSubmit ? _submit : null,
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           const Divider(height: 1),
           MentorFeedbackCard(feedback: _latestFeedback),
         ],
@@ -201,30 +242,48 @@ class _AssignmentSuccessCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(
-          width: 48,
-          height: 48,
-          child: Stack(
+        // The submitted state sits lower under the tabs than the editable
+        // one does: the reference leaves 31 between the tab divider and the
+        // tile, where the fields start after 17.
+        const SizedBox(height: _successTopGap),
+        // The reference sets the double check on a soft green tile rather
+        // than on the card surface — 44 x 30, measured at 1:1.
+        Container(
+          width: _successTileWidth,
+          height: _successTileHeight,
+          decoration: BoxDecoration(
+            color: _successTileFill,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Stack(
             alignment: Alignment.center,
             children: [
               Positioned(
-                left: 2,
-                child: Icon(AppIcons.check, size: 26, color: AppColors.success),
+                left: _successCheckInset,
+                child: Icon(
+                  AppIcons.check,
+                  size: _successCheckSize,
+                  color: _successCheckInk,
+                ),
               ),
               Positioned(
-                right: 2,
-                child: Icon(AppIcons.check, size: 26, color: AppColors.success),
+                right: _successCheckInset,
+                child: Icon(
+                  AppIcons.check,
+                  size: _successCheckSize,
+                  color: _successCheckInk,
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: _tileToMessage),
         Text(
           CourseLearningStrings.assignmentSubmittedSuccess,
-          style: AppTypography.cardSupporting,
+          style: AppTypography.cardSupporting.copyWith(fontSize: 14),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: _messageToResubmit),
         _ResubmitButton(onTap: onResubmit),
       ],
     );
@@ -257,20 +316,30 @@ class _ResubmitButton extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: AppColors.border,
+                color: _resubmitBorder,
                 width: AppDimens.borderWidth,
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.refresh, size: 18, color: AppColors.textPrimary),
+                // The design's own retry glyph. Drawn at the asset's natural
+                // 24 square: it is stroked (not filled), so the artwork runs
+                // half a stroke past its path coordinates and lands on the
+                // reference's ~19 x 18 without being scaled to it. The asset
+                // carries its own ink (black at 90%, the same as
+                // [AppColors.textPrimary]), so it is not tinted.
+                SvgPicture.asset(
+                  _resubmitIconAsset,
+                  width: _resubmitIconBox,
+                  height: _resubmitIconBox,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   CourseLearningStrings.resubmit,
                   style: AppTypography.buttonLabel.copyWith(
                     color: AppColors.textPrimary,
-                    fontSize: 14,
+                    fontSize: _resubmitLabelSize,
                   ),
                 ),
               ],

@@ -5,19 +5,21 @@ import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
 
-/// The reference measures this section's body copy at ~18px. Every other
-/// style in `AppTypography` runs smaller than its own Figma measurement by
-/// design — see that file's own doc comment ("the scale was taken down about
-/// 15% on top of the measurement... If the screen ever looks *too* small on a
-/// real handset, this is the paragraph to come back to"). Scaling this
-/// measurement down by the same amount the rest of the app's type already is
-/// lands near 15px, which is what this uses, rather than introducing a
-/// visibly larger one-off size the rest of the screen's smaller type would
-/// sit oddly next to.
+/// Sizes below are solved from the reference frame's own ink widths at 1:1
+/// (a 393pt frame exported at 3x), not estimated: each string's rendered
+/// advance was matched against the width the frame draws it at. They are
+/// screen-local because the shared tokens they override — `cardHeading`,
+/// `cardSupporting`, `catalogSectionLabel` — are sampled from other frames
+/// and used by other screens.
+const double _captionSize = 12;
+const double _titleSize = 18;
+const double _bodySize = 14;
+const double _readMoreSize = 14;
+
 const TextStyle _bodyStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
-  fontSize: 15,
-  height: 22 / 15,
+  fontSize: _bodySize,
+  height: 20 / _bodySize,
   fontWeight: FontWeight.w400,
   color: AppColors.textSecondary,
 );
@@ -47,11 +49,20 @@ class ExerciseInfoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(exercise.moduleCaption, style: AppTypography.catalogSectionLabel),
+        Text(
+          exercise.moduleCaption,
+          style: AppTypography.catalogSectionLabel.copyWith(
+            fontSize: _captionSize,
+            height: 16 / _captionSize,
+          ),
+        ),
         const SizedBox(height: 4),
         Text(
           exercise.title,
-          style: AppTypography.heading.copyWith(fontSize: 24, height: 30 / 24),
+          style: AppTypography.heading.copyWith(
+            fontSize: _titleSize,
+            height: 26 / _titleSize,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -102,6 +113,7 @@ class _ReadMoreRow extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.cardHeading.copyWith(
+                  fontSize: _readMoreSize,
                   decoration: TextDecoration.underline,
                 ),
               ),

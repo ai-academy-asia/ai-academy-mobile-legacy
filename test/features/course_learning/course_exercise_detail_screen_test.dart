@@ -1,4 +1,3 @@
-import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
@@ -71,7 +70,7 @@ void main() {
     await tester.pump();
   }
 
-  Finder backButton() => find.byIcon(AppIcons.caretLeft);
+  Finder backButton() => find.byIcon(Icons.arrow_back);
 
   group('renders', () {
     testWidgets('the screen renders', (tester) async {
@@ -309,10 +308,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.bySemanticsLabel('Download'), findsOneWidget);
+        expect(find.text('Upload File'), findsOneWidget);
 
-        await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
-        await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+        // One field only: with an attachment the reference draws the file
+        // area in the link row's place, so the description is field 0.
+        await tester.enterText(find.byType(TextField).at(0), 'My submission.');
         await tester.pump();
 
         await tester.tap(find.text('Submit'));
@@ -336,7 +336,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Download'));
+      await tester.tap(find.text('Upload File'));
       await tester.pump(const Duration(milliseconds: 150));
 
       expect(find.text('Downloading...'), findsOneWidget);
@@ -346,7 +346,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pump();
 
-      expect(find.bySemanticsLabel('Download'), findsOneWidget);
+      expect(find.text('Upload File'), findsOneWidget);
       expect(find.text('Downloading...'), findsNothing);
     });
 
@@ -362,11 +362,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
-        await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+        // One field only: with an attachment the reference draws the file
+        // area in the link row's place, so the description is field 0.
+        await tester.enterText(find.byType(TextField).at(0), 'My submission.');
         await tester.pump();
 
-        await tester.tap(find.bySemanticsLabel('Download'));
+        await tester.tap(find.text('Upload File'));
         // Long enough for every simulated tick (10 x 150ms) to fire.
         await tester.pump(const Duration(milliseconds: 1600));
 
@@ -397,18 +398,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
-      await tester.enterText(find.byType(TextField).at(1), 'My submission.');
+      await tester.enterText(find.byType(TextField).at(0), 'My submission.');
       await tester.pump();
 
-      await tester.tap(find.bySemanticsLabel('Download'));
+      await tester.tap(find.text('Upload File'));
       await tester.pump(const Duration(milliseconds: 1600));
       expect(find.bySemanticsLabel('Remove'), findsOneWidget);
 
       await tester.tap(find.bySemanticsLabel('Remove'));
       await tester.pump();
 
-      expect(find.bySemanticsLabel('Download'), findsOneWidget);
+      expect(find.text('Upload File'), findsOneWidget);
 
       await tester.tap(find.text('Submit'));
       await tester.pump();
@@ -685,7 +685,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('1/2'), findsOneWidget);
-      expect(find.text('Pick the right answer (first question)'), findsOneWidget);
+      expect(
+        find.text('Pick the right answer (first question)'),
+        findsOneWidget,
+      );
 
       // `sampleQuiz()`'s question 1: "Wrong" is option B, "Right" (index 0)
       // is correct.
