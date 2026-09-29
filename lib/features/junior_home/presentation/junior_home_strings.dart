@@ -1,3 +1,4 @@
+import '../../course_learning/domain/course_learning_failure.dart';
 import '../domain/junior_learning_map.dart';
 
 /// Every word on the Junior Home screen.
@@ -24,6 +25,42 @@ abstract final class JuniorHomeStrings {
 
   /// The map as a whole, for a screen reader arriving at the scroll view.
   static const String learningMap = 'Learning map';
+
+  // --- Loading, empty and failure ------------------------------------------
+  //
+  // Mongolian, unlike the design copy above: the Figma pack has no loading,
+  // empty or error state for this screen, so rather than invent English
+  // wording each line is the **verbatim** string the app already shows for
+  // the same situation elsewhere (`HomeStrings`, `CohortListStrings`) — the
+  // same fact should read the same wherever the student meets it.
+
+  static const String retry = 'Дахин оролдох';
+
+  /// Shown when the student is enrolled in nothing. `HomeStrings.empty`'s own
+  /// wording, which the adult dashboard already uses for this exact case.
+  static const String empty = 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';
+
+  static const String sessionExpired =
+      'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
+  static const String networkError =
+      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
+  static const String serverError =
+      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
+  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+  static const String notEnrolled = 'Та энэ хөтөлбөрт бүртгэлгүй байна';
+  static const String notFound = 'Хөтөлбөр олдсонгүй';
+
+  /// One fixed string per [CourseLearningFailureKind] — the family this
+  /// screen's repository reports, because it reads the Course Learning
+  /// endpoint. Same shape as `HomeStrings.messageFor`.
+  static String messageFor(CourseLearningFailureKind kind) => switch (kind) {
+    CourseLearningFailureKind.sessionExpired => sessionExpired,
+    CourseLearningFailureKind.notEnrolled => notEnrolled,
+    CourseLearningFailureKind.notFound => notFound,
+    CourseLearningFailureKind.network => networkError,
+    CourseLearningFailureKind.server => serverError,
+    CourseLearningFailureKind.unexpected => unexpectedError,
+  };
 
   // --- Node accessibility --------------------------------------------------
   //
