@@ -16,6 +16,7 @@ Base URL `https://api.ai-academy.asia`, declared as `defaultBaseUrl` in each HTT
 | GET | `/cohorts` | none | `HttpCohortRepository` | `getJson` |
 | GET | `/me/cohorts` | Bearer | `HttpEnrolledCohortsRepository` | `getRaw` |
 | POST | `/cohorts/{cohort_id}/enroll` | Bearer | `HttpEnrollmentRepository` | `postWithoutBody` |
+| GET | `/me/courses/{course_slug}/learning` | Bearer | `HttpCourseLearningRepository.getCourseLearning` | `getRaw` |
 
 ## 2. Verified to exist, but NOT consumed by the app
 
@@ -36,7 +37,7 @@ Two entry points, split by failure family — not by accident:
 
 ## 4. Failure taxonomy
 
-Five failure types, each scoped to a domain so no caller has to `switch` over cases that cannot occur in its context.
+Six failure types, each scoped to a domain so no caller has to `switch` over cases that cannot occur in its context.
 
 | Type | Kinds |
 |---|---|
@@ -45,6 +46,7 @@ Five failure types, each scoped to a domain so no caller has to `switch` over ca
 | `CurrentUserFailure` (`auth`) | `rejected`, `network`, `server`, `unexpected` |
 | `EnrollmentFailure` (`enrollments`) | `rejected`, `network`, `server`, `unexpected` |
 | `HomeFailure` (`home`) | `network`, `server`, `unexpected` |
+| `CourseLearningFailure` (`course_learning`) | `sessionExpired`, `notEnrolled`, `notFound`, `network`, `server`, `unexpected` |
 
 `notFound` exists only on `ApiFailure` and only because a 404 on `GET /courses/{slug}` is a real, distinguishable outcome (stale link, removed course) a screen may want to word differently.
 
@@ -75,13 +77,15 @@ Facts that constrain any auth-adjacent work:
 
 ## 7. Sample-data boundary
 
-**`lib/features/course_learning/` is the only feature with no backend.** Its repository interface has three read methods and no write methods:
+**`lib/features/course_learning/` is now half-wired.** Its repository interface still has three read methods and no write methods, and only the first is integrated:
 
 ```dart
 Future<CourseLearningPath> getCourseLearning(String courseSlug);
 Future<List<Lesson>> getLessons(int moduleId);
 Future<CourseExercise> getExercise(int moduleId);
 ```
+
+`getCourseLearning` is served by `HttpCourseLearningRepository` against §1's endpoint, which is what `CourseModuleListScreen` uses by default. `getLessons` and `getExercise` have documented endpoints in `course_learning_api_contract_v1.md` §2.2/§2.3 but **no verified one**, so that repository delegates both to `SampleCourseLearningRepository` — `LessonListScreen` and `CourseExerciseDetailScreen` are still sample-driven, and `CourseExerciseDetailScreen` still defaults to the sample directly.
 
 `SampleCourseLearningRepository` ignores both `courseSlug` and `moduleId` — all content is fixed. Consequences to keep in mind:
 

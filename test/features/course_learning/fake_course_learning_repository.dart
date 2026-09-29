@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
@@ -21,6 +22,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
     this.path,
     this.hold = false,
+    this.failure,
     this.lessons,
     this.holdLessons = false,
     this.exercise,
@@ -34,6 +36,12 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
   /// When true, [getCourseLearning] blocks until [release] is called.
   bool hold;
+
+  /// Thrown by [getCourseLearning] instead of returning, so a controller test
+  /// can drive the error state the real `HttpCourseLearningRepository`
+  /// produces. Thrown *after* [hold] releases, so a test can watch `loading`
+  /// go true and then observe the failure.
+  CourseLearningFailure? failure;
 
   /// Every slug [getCourseLearning] was called with, in order.
   final List<String> calls = [];
@@ -53,6 +61,8 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
       _gate = Completer<void>();
       await _gate!.future;
     }
+
+    if (failure case final failure?) throw failure;
 
     return path ?? samplePath(courseSlug: courseSlug);
   }
@@ -148,12 +158,16 @@ CourseLearningPath samplePath({
       'Take a peek under the hood of generative AI and LLMs to understand how they work',
   int percentComplete = 30,
   List<CourseModule>? modules,
+  int? continueModuleId,
 }) => CourseLearningPath(
   courseSlug: courseSlug,
   courseTitle: courseTitle,
   description: description,
   illustrationAsset: 'assets/images/course_learning/how_ai_works.svg',
   percentComplete: percentComplete,
+  // Null by default, matching the sample repository: a path with no server
+  // answer is what every existing test was written against.
+  continueModuleId: continueModuleId,
   modules:
       modules ??
       [

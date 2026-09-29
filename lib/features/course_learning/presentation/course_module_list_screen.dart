@@ -5,7 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
-import '../data/sample_course_learning_repository.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
@@ -100,7 +101,9 @@ class CourseModuleListScreen extends StatefulWidget {
   /// `Course.slug` — which course's learning path to load.
   final String courseSlug;
 
-  /// Defaults to the sample data. Injected in tests.
+  /// Defaults to `HttpCourseLearningRepository` —
+  /// `GET /me/courses/{course_slug}/learning` against the signed-in student's
+  /// token. Injected in tests.
   final CourseLearningRepository? repository;
 
   @override
@@ -109,7 +112,7 @@ class CourseModuleListScreen extends StatefulWidget {
 
 class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
   late final CourseLearningRepository _repository =
-      widget.repository ?? SampleCourseLearningRepository();
+      widget.repository ?? HttpCourseLearningRepository();
   late final CourseLearningController _controller;
 
   @override
@@ -185,11 +188,18 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
   }
 
   Widget _buildBody() {
+    if (_controller.errorMessage case final message?) {
+      return _ErrorView(message: message, onRetry: () => _controller.load());
+    }
     final path = _controller.path;
-    if (_controller.loading && path == null) {
+    // Null with no error means the request is still in flight — or has not
+    // started, on the first frame before `initState`'s `load()` resolves.
+    // Read as "no data yet" rather than force-unwrapped: now that the
+    // repository is a real HTTP call, `path!` would be a crash path.
+    if (path == null) {
       return const _LoadingView();
     }
-    return _CourseLearningBody(path: path!, repository: _repository);
+    return _CourseLearningBody(path: path, repository: _repository);
   }
 }
 
@@ -211,26 +221,74 @@ class _LoadingView extends StatelessWidget {
   }
 }
 
+/// Shown when the learning path could not be loaded.
+///
+/// The Figma pack has **no error state for this screen**, so nothing here is
+/// measured off a reference the way the rest of this file is. Rather than
+/// design one, this is `CohortListScreen._ErrorView` reproduced: the same
+/// centred message in `cardSupporting`, the same 16 of air, the same outlined
+/// `AppButton` retry. Reused as a shape rather than extracted into a shared
+/// widget, which is the existing habit — `CourseCatalogScreen` and
+/// `CohortListScreen` already keep their own copies of it.
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              style: AppTypography.cardSupporting,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: CourseLearningStrings.retry,
+              variant: AppButtonVariant.outlined,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The module "Continue learning" should open.
 ///
-/// **A frontend placeholder, not a confirmed backend rule.**
-/// `course_learning_api_requirements_v1.md` explicitly defers "which rule
-/// selects the module/lesson" to backend confirmation — this exists only so
-/// the button has *somewhere* real to go against today's sample data, not as
-/// a claim about what the eventual rule will be.
+/// **The server chooses, when it has answered.**
+/// `CourseLearningPath.continueModuleId` is `continue.module_id` from
+/// `course_learning_api_contract_v1.md` §2.1, which states the selection is
+/// server-side and "replaces `_continueLearningTarget()`". So it wins
+/// outright, locked or not: the server picked it knowing more than this
+/// screen does.
 ///
-/// The rule: the first module that is neither completed nor locked — the
-/// "in progress, pick up here" case a real rule would presumably also pick.
-/// Today's sample data has no module in that state (see `CourseModule.
-/// locked`'s own doc comment on why), so this falls back to the most
-/// recently completed module instead, which is still a defensible "continue
-/// where you left off" reading. Null only if every module is locked, which
-/// the sample data never produces.
-CourseModule? _continueLearningTarget(List<CourseModule> modules) {
-  for (final module in modules) {
+/// The two fallbacks below are what is left of the old frontend placeholder,
+/// kept for the paths that have no server answer — the sample repository, and
+/// a response whose `continue` is `null` because nothing is unlocked. First
+/// the first module that is neither completed nor locked, then the most
+/// recently completed one, which is still a defensible "continue where you
+/// left off". Null only when every module is locked and none is complete.
+CourseModule? _continueLearningTarget(CourseLearningPath path) {
+  if (path.continueModuleId case final serverChoice?) {
+    for (final module in path.modules) {
+      if (module.id == serverChoice) return module;
+    }
+  }
+  for (final module in path.modules) {
     if (!module.completed && !module.locked) return module;
   }
-  for (final module in modules.reversed) {
+  for (final module in path.modules.reversed) {
     if (module.completed) return module;
   }
   return null;
@@ -272,19 +330,14 @@ class _CourseLearningBody extends StatelessWidget {
           _Hero(path: path),
           const SizedBox(height: 10),
           _ProgressCtaRow(
-            percentComplete: path.percentComplete,
-            modules: path.modules,
+            path: path,
             repository: repository,
             buttonWidth: _heroCtaWidth,
           ),
           const SizedBox(height: 48),
           _ModuleList(modules: path.modules, repository: repository),
           const SizedBox(height: 32),
-          _CertificationSection(
-            percentComplete: path.percentComplete,
-            modules: path.modules,
-            repository: repository,
-          ),
+          _CertificationSection(path: path, repository: repository),
         ],
       ),
     );
@@ -382,14 +435,15 @@ class _Hero extends StatelessWidget {
 /// approximate segment keeps the button's exact size exact everywhere.
 class _ProgressCtaRow extends StatelessWidget {
   const _ProgressCtaRow({
-    required this.percentComplete,
-    required this.modules,
+    required this.path,
     required this.repository,
     required this.buttonWidth,
   });
 
-  final int percentComplete;
-  final List<CourseModule> modules;
+  /// The whole path, not just its percentage: the button beside the bar needs
+  /// `continueModuleId` as well, and splitting the two into separate
+  /// parameters meant every caller passing both halves of the same object.
+  final CourseLearningPath path;
   final CourseLearningRepository repository;
 
   /// The reference draws this row twice at different widths and keeps the
@@ -405,7 +459,7 @@ class _ProgressCtaRow extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              value: percentComplete / 100,
+              value: path.percentComplete / 100,
               minHeight: _barHeight,
               backgroundColor: _progressTrack,
               valueColor: const AlwaysStoppedAnimation<Color>(_accent),
@@ -414,7 +468,7 @@ class _ProgressCtaRow extends StatelessWidget {
         ),
         const SizedBox(width: _barToPercent),
         Text(
-          CourseLearningStrings.percentComplete(percentComplete),
+          CourseLearningStrings.percentComplete(path.percentComplete),
           style: AppTypography.catalogSectionValue.copyWith(
             fontSize: 14,
             height: 20 / 14,
@@ -423,7 +477,7 @@ class _ProgressCtaRow extends StatelessWidget {
         ),
         const SizedBox(width: _percentToButton),
         _ContinueLearningButton(
-          modules: modules,
+          path: path,
           repository: repository,
           width: buttonWidth,
         ),
@@ -434,18 +488,18 @@ class _ProgressCtaRow extends StatelessWidget {
 
 class _ContinueLearningButton extends StatelessWidget {
   const _ContinueLearningButton({
-    required this.modules,
+    required this.path,
     required this.repository,
     required this.width,
   });
 
-  final List<CourseModule> modules;
+  final CourseLearningPath path;
   final CourseLearningRepository repository;
   final double width;
 
   @override
   Widget build(BuildContext context) {
-    final target = _continueLearningTarget(modules);
+    final target = _continueLearningTarget(path);
 
     return Semantics(
       button: true,
@@ -563,14 +617,9 @@ class _ModuleConnector extends StatelessWidget {
 /// width as everything above it, with its own padding standing in for the
 /// reference's edge-to-edge bleed.
 class _CertificationSection extends StatelessWidget {
-  const _CertificationSection({
-    required this.percentComplete,
-    required this.modules,
-    required this.repository,
-  });
+  const _CertificationSection({required this.path, required this.repository});
 
-  final int percentComplete;
-  final List<CourseModule> modules;
+  final CourseLearningPath path;
   final CourseLearningRepository repository;
 
   @override
@@ -629,8 +678,7 @@ class _CertificationSection extends StatelessWidget {
           const _CertificatePreview(),
           const SizedBox(height: 17),
           _ProgressCtaRow(
-            percentComplete: percentComplete,
-            modules: modules,
+            path: path,
             repository: repository,
             buttonWidth: _certificationCtaWidth,
           ),

@@ -1,3 +1,5 @@
+import '../domain/course_learning_failure.dart';
+
 /// Every word on the Course Learning screens.
 ///
 /// English, not Mongolian-first like the rest of the app's strings files: the
@@ -8,6 +10,45 @@
 /// copy the design never specified.
 abstract final class CourseLearningStrings {
   static const String back = 'Back';
+
+  // --- Failures ----------------------------------------------------------
+  //
+  // Mongolian, unlike the rest of this file: these are not design copy. The
+  // Figma pack has no error state for this screen, so rather than invent
+  // English wording for one, each line is the **verbatim** string the app
+  // already shows for the same failure elsewhere (`CohortListStrings`,
+  // `HomeStrings`, `EnrollmentStrings`) — the same fact should read the same
+  // wherever the student meets it.
+
+  static const String retry = 'Дахин оролдох';
+
+  static const String sessionExpired =
+      'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
+  static const String networkError =
+      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
+  static const String serverError =
+      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
+  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+
+  /// The contract's `403 not_enrolled` — the student is signed in, but not on
+  /// this course. Worded as its own case rather than folded into
+  /// [unexpectedError]: retrying will not fix it, and the student can act on
+  /// knowing which of the two it is.
+  static const String notEnrolled = 'Та энэ хөтөлбөрт бүртгэлгүй байна';
+
+  /// The contract's `404 course_not_found` — a slug that no longer resolves.
+  static const String notFound = 'Хөтөлбөр олдсонгүй';
+
+  /// One fixed string per [CourseLearningFailureKind], the same shape
+  /// `HomeStrings.messageFor` and `EnrollmentStrings.messageFor` use.
+  static String messageFor(CourseLearningFailureKind kind) => switch (kind) {
+    CourseLearningFailureKind.sessionExpired => sessionExpired,
+    CourseLearningFailureKind.notEnrolled => notEnrolled,
+    CourseLearningFailureKind.notFound => notFound,
+    CourseLearningFailureKind.network => networkError,
+    CourseLearningFailureKind.server => serverError,
+    CourseLearningFailureKind.unexpected => unexpectedError,
+  };
 
   /// Matches `HomeStrings.percentComplete`/`CohortListStrings.percentComplete`
   /// verbatim — the same fact, the same wording, on a card this feature does
