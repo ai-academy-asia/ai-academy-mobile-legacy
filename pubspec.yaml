@@ -86,6 +86,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/course_learning/
+    - assets/images/junior_home/
     - assets/icons/
 
   fonts:
