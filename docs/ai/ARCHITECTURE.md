@@ -50,7 +50,7 @@ Conventions that hold across the codebase:
 - The controller is created in `initState()` and disposed in `dispose()`; its constructor parameters (a slug, a module id) are **fixed for its lifetime**.
 - Screens render via a single `ListenableBuilder` around the body.
 - **Failures become `String? errorMessage` in the controller**, not exceptions thrown at the widget layer. Mapping from a typed failure to display copy happens in the controller, using that feature's `*_strings.dart`.
-- `course_learning`'s three controllers (`CourseLearningController`, `LessonListController`, `CourseExerciseDetailController`) have **no `errorMessage`** — there is no fallible source behind them yet. Adding a real repository there means adding an error state too.
+- `course_learning`'s remaining two controllers (`LessonListController`, `CourseExerciseDetailController`) have **no `errorMessage`** — there is no fallible source behind either one yet. Adding a real repository there means adding an error state too, which is exactly what `CourseLearningController` gained when `GET /me/courses/{course_slug}/learning` was wired up behind it.
 
 ## 3. Navigation
 

@@ -1,6 +1,8 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_module_card.dart';
 import 'package:flutter/material.dart';
@@ -202,6 +204,86 @@ void main() {
         find.byType(CourseExerciseDetailScreen),
       );
       expect(detail.moduleId, 2);
+    });
+
+    testWidgets('the server\'s own continue target wins over the fallback', (
+      tester,
+    ) async {
+      // `continue.module_id` from the API. Module 5 is locked and not
+      // completed, so neither fallback rule would ever reach it — which is
+      // what makes it proof the server's answer is the one being used.
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(path: samplePath(continueModuleId: 5)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continue learning').first);
+      await tester.pumpAndSettle();
+
+      final detail = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(detail.moduleId, 5);
+    });
+
+    testWidgets('a continue target no module matches falls back', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(path: samplePath(continueModuleId: 999)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continue learning').first);
+      await tester.pumpAndSettle();
+
+      final detail = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(detail.moduleId, 2);
+    });
+  });
+
+  group('failure', () {
+    testWidgets('shows the failure\'s own copy and a retry, not a crash', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          failure: const CourseLearningFailure(
+            CourseLearningFailureKind.notEnrolled,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.notEnrolled), findsOneWidget);
+      expect(find.text(CourseLearningStrings.retry), findsOneWidget);
+      // The page's own content is gone, not half-drawn over an error.
+      expect(find.byType(CourseModuleCard), findsNothing);
+      expect(find.text('Continue learning'), findsNothing);
+    });
+
+    testWidgets('retry re-requests and renders the path on success', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        failure: const CourseLearningFailure(CourseLearningFailureKind.network),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      expect(find.text(CourseLearningStrings.networkError), findsOneWidget);
+
+      repository.failure = null;
+      await tester.tap(find.text(CourseLearningStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, ['how-ai-works', 'how-ai-works']);
+      expect(find.text(CourseLearningStrings.networkError), findsNothing);
+      expect(find.byType(CourseModuleCard), findsNWidgets(5));
     });
   });
 

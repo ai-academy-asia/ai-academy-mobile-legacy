@@ -1,11 +1,10 @@
-import 'package:flutter/widgets.dart';
-
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import '../domain/course_quiz.dart';
 import '../domain/lesson.dart';
+import 'course_module_visuals.dart';
 
 /// Serves one hand-authored [CourseLearningPath], one hand-authored lesson
 /// list, and one hand-authored [CourseExercise], regardless of which
@@ -39,54 +38,39 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
       illustrationAsset: _asset('how_ai_works.svg'),
       percentComplete: 30,
       modules: [
-        CourseModule(
+        _module(
           id: 1,
           order: 1,
           title: 'Prediction and Probabilities',
           scheduleLabel: '08/04 • Да • 09:00',
-          iconAsset: _asset('module_ai.svg'),
-          accentColor: const Color(0xFF408CFF),
           completed: true,
-          locked: false,
         ),
-        CourseModule(
+        _module(
           id: 2,
           order: 2,
           title: 'Language Model Training',
           scheduleLabel: '08/04 • 09:00–11:00',
-          iconAsset: _asset('module_training.svg'),
-          accentColor: const Color(0xFFFFC640),
           completed: true,
-          locked: false,
         ),
-        CourseModule(
+        _module(
           id: 3,
           order: 3,
           title: 'Deep network models',
           scheduleLabel: '08/04 • 09:00–11:00',
-          iconAsset: _asset('module_neural_network.svg'),
-          accentColor: const Color(0xFFBF40FF),
-          completed: false,
           locked: true,
         ),
-        CourseModule(
+        _module(
           id: 4,
           order: 4,
           title: 'Neurons and Layers',
           scheduleLabel: '08/04 • 09:00–11:00',
-          iconAsset: _asset('module_brain.svg'),
-          accentColor: const Color(0xFFFF409C),
-          completed: false,
           locked: true,
         ),
-        CourseModule(
+        _module(
           id: 5,
           order: 5,
           title: 'Image Models',
           scheduleLabel: '08/04 • 09:00–11:00',
-          iconAsset: _asset('module_image.svg'),
-          accentColor: const Color(0xFF40FFA3),
-          completed: false,
           locked: true,
         ),
       ],
@@ -274,4 +258,34 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
   }
 
   static String _asset(String name) => 'assets/images/course_learning/$name';
+}
+
+/// One sample module, with its icon and accent taken from the shared palette
+/// instead of spelled out per entry.
+///
+/// The palette is where the real API path gets them too — the backend sends no
+/// icon or colour, so both paths map `order` onto
+/// `course_module_visuals.dart`. Going through it here as well is what keeps
+/// the sample screens and the live screens drawing the same five accents; the
+/// values were previously written out module by module in this file, which is
+/// exactly the shape that drifts once a second caller exists.
+CourseModule _module({
+  required int id,
+  required int order,
+  required String title,
+  required String scheduleLabel,
+  bool completed = false,
+  bool locked = false,
+}) {
+  final visuals = moduleVisualsFor(order);
+  return CourseModule(
+    id: id,
+    order: order,
+    title: title,
+    scheduleLabel: scheduleLabel,
+    iconAsset: visuals.iconAsset,
+    accentColor: visuals.accentColor,
+    completed: completed,
+    locked: locked,
+  );
 }
