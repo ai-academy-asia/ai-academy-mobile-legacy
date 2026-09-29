@@ -254,7 +254,9 @@ void main() {
       expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
       expect(find.byType(CourseModuleListScreen), findsNothing);
 
-      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      // Exercise Detail's own back control is the video header's arrow, not
+      // the caret the Module List uses.
+      await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.byType(CourseExerciseDetailScreen), findsNothing);

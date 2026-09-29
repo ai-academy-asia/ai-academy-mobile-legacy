@@ -184,11 +184,12 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         authorInitials: 'БП',
         authorName: 'Болд Батаа',
         authorLabel: 'Me',
+        // Quoted, as the reference frame draws it.
         message:
-            'Good foundation — improve validation '
+            '"Good foundation — improve validation '
             'accuracy before final submission. Look into '
             'hyperparameter tuning for the XGBoost '
-            'model.',
+            'model."',
         timestampLabel: 'Today, 14:20',
       ),
       assignmentFeedback: const [
@@ -196,10 +197,11 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
           mentorInitials: 'БП',
           mentorName: 'Б.Пүрэв',
           mentorRole: 'Lead Mentor',
+          // Quoted, as the reference frame draws it.
           message:
-              'Good foundation — improve validation accuracy before final '
+              '"Good foundation — improve validation accuracy before final '
               'submission. Look into hyperparameter tuning for the XGBoost '
-              'model.',
+              'model."',
           timestampLabel: 'Today, 14:20',
         ),
       ],

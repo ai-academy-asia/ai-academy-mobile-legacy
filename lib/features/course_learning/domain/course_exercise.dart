@@ -14,6 +14,7 @@ class CourseExercise {
     required this.durationLabel,
     required this.recordingBadgeLabel,
     required this.summary,
+    this.hasVideo = true,
     required this.extraSections,
     required this.materials,
     this.note,
@@ -36,6 +37,12 @@ class CourseExercise {
 
   /// The badge drawn over the video, e.g. "Live Classroom Recording".
   final String recordingBadgeLabel;
+
+  /// False when the recording is not up yet: the reference then fills the
+  /// video area with a single centred "not uploaded yet" pill and drops the
+  /// play control, the duration and the recording badge. Sample-data only,
+  /// like every other field here — no endpoint reports this.
+  final bool hasVideo;
 
   /// The paragraph shown in both the collapsed and expanded states — the
   /// collapsed view simply clips it to a few lines rather than holding a

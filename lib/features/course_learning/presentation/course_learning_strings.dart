@@ -62,7 +62,17 @@ abstract final class CourseLearningStrings {
   /// not a fabricated date/time.
   static const String noteJustNow = 'Just now';
 
+  /// Shown centred over the video area when a recording is not up yet —
+  /// the reference's own wording.
+  static const String videoUnavailable = 'Бичлэг хараахан оруугүй байна';
+
   // --- Assignment attachment ---------------------------------------------
+
+  /// The dashed drop area shown before a file is attached, and the accepted
+  /// types under it — both transcribed from the reference frames verbatim,
+  /// including the frame's own spacing inside the type list.
+  static const String uploadFile = 'Upload File';
+  static const String uploadFileTypes = 'File type:pdf, pkl,csv,ipynb, json';
 
   static const String downloadAttachment = 'Download';
   static const String downloadedAttachment = 'Downloaded';

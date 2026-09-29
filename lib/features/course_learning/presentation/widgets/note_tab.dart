@@ -26,6 +26,16 @@ const String _studentName = 'Болд Батаа';
 /// is no backend note endpoint — `course_learning_api_requirements_v1.md`
 /// lists create/get/update as all requiring backend confirmation — so
 /// nothing here survives leaving this screen instance.
+/// Measured off `Exercise - 26` at 1:1. The note card is the same 329 x 213
+/// box the Assignment tab's feedback card is, with the same 20 of padding and
+/// 40 avatar; the edit action sits 17 below it, outside the card's outline.
+const double _cardPadding = 20;
+const double _avatarRadius = 20;
+const double _avatarToMessage = 18;
+const double _messageToTimestamp = 18;
+const double _cardToEdit = 17;
+const Color _cardBorder = Color(0xFFE5E7EB);
+
 class NoteTab extends StatefulWidget {
   const NoteTab({required this.note, required this.onSave, super.key});
 
@@ -112,29 +122,37 @@ class _NoteTabState extends State<NoteTab> {
                 ExerciseSubmitButton(onPressed: _hasContent ? _submit : null),
               ],
             )
-          : _ExistingNoteCard(note: note!, onEdit: _startEditing),
+          // The reference ends the note card at the timestamp and sets the
+          // edit action below it, inside the tab rather than inside the card.
+          : Column(
+              children: [
+                _ExistingNoteCard(note: note!),
+                const SizedBox(height: _cardToEdit),
+                ExerciseSubmitButton(
+                  label: CourseLearningStrings.editNote,
+                  onPressed: _startEditing,
+                  muted: true,
+                ),
+              ],
+            ),
     );
   }
 }
 
 class _ExistingNoteCard extends StatelessWidget {
-  const _ExistingNoteCard({required this.note, required this.onEdit});
+  const _ExistingNoteCard({required this.note});
 
   final CourseExerciseNote note;
-  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(_cardPadding),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: exerciseBorderColor,
-          width: AppDimens.borderWidth,
-        ),
+        border: Border.all(color: _cardBorder, width: AppDimens.borderWidth),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +160,7 @@ class _ExistingNoteCard extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: _avatarRadius,
                 backgroundColor: AppColors.blue,
                 child: Text(
                   note.authorInitials,
@@ -163,20 +181,15 @@ class _ExistingNoteCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: _avatarToMessage),
           Text(
             note.message,
             style: AppTypography.settingsRowLabel.copyWith(
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _messageToTimestamp),
           Text(note.timestampLabel, style: AppTypography.cardSupporting),
-          const SizedBox(height: 16),
-          ExerciseSubmitButton(
-            label: CourseLearningStrings.editNote,
-            onPressed: onEdit,
-          ),
         ],
       ),
     );

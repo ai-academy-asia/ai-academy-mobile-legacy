@@ -273,6 +273,7 @@ CourseExercise sampleExercise({
   List<AssignmentMentorFeedback>? assignmentFeedback,
   CourseExerciseMaterial? assignmentAttachment,
   CourseQuiz? quiz,
+  bool hasVideo = true,
 }) => CourseExercise(
   moduleId: moduleId,
   moduleCaption: moduleCaption,
@@ -280,6 +281,7 @@ CourseExercise sampleExercise({
   durationLabel: durationLabel,
   recordingBadgeLabel: recordingBadgeLabel,
   summary: summary,
+  hasVideo: hasVideo,
   extraSections: extraSections,
   materials:
       materials ??
@@ -358,10 +360,10 @@ CourseExerciseNote sampleNote({
   String authorName = 'Болд Батаа',
   String authorLabel = 'Me',
   String message =
-      'Good foundation — improve validation '
+      '"Good foundation — improve validation '
       'accuracy before final submission. Look into '
       'hyperparameter tuning for the XGBoost '
-      'model.',
+      'model."',
   String timestampLabel = 'Today, 14:20',
 }) => CourseExerciseNote(
   authorInitials: authorInitials,

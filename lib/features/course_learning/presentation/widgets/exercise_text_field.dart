@@ -28,6 +28,12 @@ const Color exerciseBorderColor = Color(0xFFD6DBE1);
 /// `FloatingLabelBehavior.always`, not the rising-on-focus behaviour
 /// `AppTextField` uses, since the reference never shows it resting inside the
 /// box.
+/// Solved from the reference frame's ink widths at 1:1. Local to this screen:
+/// `fieldValue`/`fieldPlaceholder`/`fieldFloatingLabel` are the shared
+/// `AppTextField` styles that Login and Reset Password render with.
+const double _valueSize = 14;
+const double _labelSize = 12;
+
 class ExerciseTextField extends StatelessWidget {
   const ExerciseTextField({
     required this.controller,
@@ -73,14 +79,19 @@ class ExerciseTextField extends StatelessWidget {
         enabled: enabled,
         maxLines: multiline ? 6 : 1,
         textAlignVertical: TextAlignVertical.top,
-        style: AppTypography.fieldValue,
+        style: AppTypography.fieldValue.copyWith(fontSize: _valueSize),
         cursorColor: AppColors.borderFocused,
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: AppTypography.fieldPlaceholder,
+          hintStyle: AppTypography.fieldPlaceholder.copyWith(
+            fontSize: _valueSize,
+          ),
           labelText: label,
-          labelStyle: AppTypography.fieldPlaceholder,
+          labelStyle: AppTypography.fieldPlaceholder.copyWith(
+            fontSize: _valueSize,
+          ),
           floatingLabelStyle: AppTypography.fieldFloatingLabel.copyWith(
+            fontSize: _labelSize,
             color: AppColors.textSecondary,
           ),
           floatingLabelBehavior: label == null

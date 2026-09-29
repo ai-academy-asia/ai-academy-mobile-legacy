@@ -17,6 +17,13 @@ abstract final class AppColors {
   /// The deeper blue of the logo mark. Not used for interaction.
   static const Color blueDeep = Color(0xFF0262F8);
 
+  /// The flat band the design draws directly under a primary button — a
+  /// darker blue, no blur, offset down. Every CTA in the Course Learning
+  /// frames (Continue learning, Submit, Start quiz, Дахин quiz өгөх) sits on
+  /// one of these; [mutedDepth] is the same band for the disabled variant.
+  static const Color primaryDepth = Color(0xFF004FED);
+  static const Color mutedDepth = Color(0xFFE0E0E0);
+
   /// Violet terminal of the logo gradient.
   static const Color violet = Color(0xFF4316FF);
 

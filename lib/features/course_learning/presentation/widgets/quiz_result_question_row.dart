@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
+
+const String _correctAsset = 'assets/images/course_learning/quiz_correct.svg';
+const String _incorrectAsset =
+    'assets/images/course_learning/quiz_incorrect.svg';
+const double _stateIconBox = 24;
 
 /// One 56pt-tall row in `CourseQuizResultScreen`'s question list: the
 /// question's 1-based number, the reference's own generic "Асуулт" label
@@ -22,7 +26,9 @@ class QuizResultQuestionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 56,
+      // 55 here plus the 1pt divider between rows is the reference's 56
+      // pitch; at 56 the divider pushed each row a pixel further down.
+      height: 55,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
@@ -38,10 +44,12 @@ class QuizResultQuestionRow extends StatelessWidget {
                 style: AppTypography.settingsRowLabel,
               ),
             ),
-            Icon(
-              correct ? AppIcons.checkCircle : AppIcons.xCircle,
-              size: 24,
-              color: correct ? AppColors.success : AppColors.error,
+            // The design's own state glyphs — the same two assets the quiz
+            // answer rows use. They carry their own ink, so no tint.
+            SvgPicture.asset(
+              correct ? _correctAsset : _incorrectAsset,
+              width: _stateIconBox,
+              height: _stateIconBox,
             ),
           ],
         ),

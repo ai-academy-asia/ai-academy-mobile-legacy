@@ -28,6 +28,20 @@ import 'widgets/quiz_progress_header.dart';
 /// is answered, not whenever the Result screen later pops itself. That is
 /// invisible to the student either way, since Exercise Detail sits hidden
 /// beneath both screens the entire time.
+/// Sampled off the Quiz frames at 1:1. The page is a shade lighter than the
+/// app-wide [AppColors.background], and the CTA runs the full content column
+/// rather than the 329 the Exercise frames inset it to.
+const Color _page = Color(0xFFF9FAFB);
+const Color _titleInk = Color(0xFF191919);
+const double _titleSize = 18;
+const double _titleToOptions = 15;
+
+/// 12 of layout between the boxes; the 4 of band under each one overlaps it,
+/// leaving the 8 of white the frames draw.
+const double _optionGap = 12;
+const double _optionsToFeedback = 22;
+const double _ctaWidth = 361;
+
 class CourseQuizScreen extends StatefulWidget {
   const CourseQuizScreen({required this.quiz, super.key});
 
@@ -75,7 +89,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
     final selected = _selected;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _page,
       body: SafeArea(
         child: Column(
           children: [
@@ -97,11 +111,14 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
                   children: [
                     Text(
                       _question.prompt,
-                      style: AppTypography.heading.copyWith(fontSize: 22),
+                      style: AppTypography.heading.copyWith(
+                        fontSize: _titleSize,
+                        color: _titleInk,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: _titleToOptions),
                     for (var i = 0; i < _question.options.length; i++) ...[
-                      if (i != 0) const SizedBox(height: 12),
+                      if (i != 0) const SizedBox(height: _optionGap),
                       QuizAnswerCard(
                         letter: String.fromCharCode(65 + i),
                         label: _question.options[i],
@@ -116,7 +133,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
                       ),
                     ],
                     if (selected != null) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: _optionsToFeedback),
                       QuizFeedbackCard(
                         correct: selected == _question.correctOptionIndex,
                         correctLetter: String.fromCharCode(
@@ -135,6 +152,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
                 child: ExerciseSubmitButton(
                   label: CourseLearningStrings.quizContinue,
                   onPressed: selected == null ? null : _continue,
+                  width: _ctaWidth,
                 ),
               ),
             ),

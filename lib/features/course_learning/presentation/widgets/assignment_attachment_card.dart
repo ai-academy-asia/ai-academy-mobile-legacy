@@ -1,14 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
+import 'assignment_upload_dropzone.dart';
 import 'exercise_text_field.dart' show exerciseBorderColor;
+
+/// The completed file row's leading tile, sampled at 1:1 — the same flat grey
+/// square `CourseMaterialCard` uses, with the tick in the primary ink.
+const double _completeTileSize = 32;
+const Color _completeTileFill = Color(0xFFF5F5F5);
 
 enum _DownloadStage { idle, downloading, complete }
 
@@ -102,10 +107,10 @@ class _AssignmentAttachmentCardState extends State<AssignmentAttachmentCard> {
   @override
   Widget build(BuildContext context) {
     return switch (_stage) {
-      _DownloadStage.idle => _IdleRow(
-        attachment: widget.attachment,
-        onDownload: _start,
-      ),
+      // The reference's empty state is the dashed drop area, not a row for
+      // the attached file — tapping it begins the same simulated transfer the
+      // download row used to start, which is what the next two frames show.
+      _DownloadStage.idle => AssignmentUploadDropzone(onTap: _start),
       _DownloadStage.downloading => _DownloadingCard(
         attachment: widget.attachment,
         progress: _progress,
@@ -177,33 +182,6 @@ class _AttachmentRow extends StatelessWidget {
   }
 }
 
-class _IdleRow extends StatelessWidget {
-  const _IdleRow({required this.attachment, required this.onDownload});
-
-  final CourseExerciseMaterial attachment;
-  final VoidCallback onDownload;
-
-  @override
-  Widget build(BuildContext context) {
-    return _AttachmentRow(
-      leading: SvgPicture.asset(
-        'assets/images/course_learning/exercise_file.svg',
-        width: 32,
-        height: 32,
-      ),
-      title: attachment.name,
-      subtitle: attachment.sizeLabel,
-      trailing: _CircleIconButton(
-        label: CourseLearningStrings.downloadAttachment,
-        onTap: onDownload,
-        child: SvgPicture.asset(
-          'assets/images/course_learning/exercise_download.svg',
-        ),
-      ),
-    );
-  }
-}
-
 class _CompleteRow extends StatelessWidget {
   const _CompleteRow({required this.attachment, required this.onRemove});
 
@@ -213,20 +191,21 @@ class _CompleteRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _AttachmentRow(
+      // The reference sets the tick on the same flat grey tile the course
+      // material rows use, in the primary ink — not a green tile with a green
+      // tick, which is what this drew before.
       leading: Container(
-        width: 32,
-        height: 32,
+        width: _completeTileSize,
+        height: _completeTileSize,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.12),
+          color: _completeTileFill,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.check, size: 18, color: AppColors.success),
+        child: const Icon(Icons.check, size: 18, color: AppColors.textPrimary),
       ),
       title: CourseLearningStrings.attachmentComplete,
-      subtitle: CourseLearningStrings.attachmentTypeLabel(
-        attachment.sizeLabel,
-      ),
+      subtitle: CourseLearningStrings.attachmentTypeLabel(attachment.sizeLabel),
       trailing: _CircleIconButton(
         label: CourseLearningStrings.removeAttachment,
         onTap: onRemove,
