@@ -27,9 +27,11 @@ class CourseLearningBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      // 12 above, not the screen's 16: the reference puts this control's top
+      // edge 12 below the safe-area inset.
       padding: const EdgeInsets.fromLTRB(
         AppDimens.screenPadding,
-        AppDimens.screenPadding,
+        12,
         AppDimens.screenPadding,
         0,
       ),
