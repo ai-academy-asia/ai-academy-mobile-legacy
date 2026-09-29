@@ -1,7 +1,34 @@
+import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_controller.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_course_learning_repository.dart';
+
+/// Throws something that is *not* a `CourseLearningFailure`, to prove the
+/// controller's own `catch (_)` arm rather than only the typed one — a
+/// repository bug must not escape through `build`.
+class _ThrowingRepository implements CourseLearningRepository {
+  _ThrowingRepository(this._delegate);
+
+  final CourseLearningRepository _delegate;
+
+  @override
+  Future<CourseLearningPath> getCourseLearning(String courseSlug) =>
+      Future.error(StateError('something the controller has no case for'));
+
+  @override
+  Future<List<Lesson>> getLessons(int moduleId) =>
+      _delegate.getLessons(moduleId);
+
+  @override
+  Future<CourseExercise> getExercise(int moduleId) =>
+      _delegate.getExercise(moduleId);
+}
 
 void main() {
   test('starts idle, before load() is ever called', () {
@@ -61,6 +88,85 @@ void main() {
     await controller.load();
 
     expect(controller.path, path);
+  });
+
+  group('a failed load', () {
+    CourseLearningController controllerFailingWith(
+      CourseLearningFailureKind kind,
+    ) => CourseLearningController(
+      repository: FakeCourseLearningRepository(
+        failure: CourseLearningFailure(kind),
+      ),
+      courseSlug: 'summer-bootcamp-2027',
+    );
+
+    test('turns each failure kind into that kind\'s own copy', () async {
+      for (final kind in CourseLearningFailureKind.values) {
+        final controller = controllerFailingWith(kind);
+
+        await controller.load();
+
+        expect(
+          controller.errorMessage,
+          CourseLearningStrings.messageFor(kind),
+          reason: kind.name,
+        );
+      }
+    });
+
+    test('stops loading and holds no path', () async {
+      final controller = controllerFailingWith(
+        CourseLearningFailureKind.network,
+      );
+
+      await controller.load();
+
+      expect(controller.loading, isFalse);
+      expect(controller.path, isNull);
+    });
+
+    test('an unexpected exception still reaches the screen as copy', () async {
+      final repository = FakeCourseLearningRepository();
+      final controller = CourseLearningController(
+        repository: _ThrowingRepository(repository),
+        courseSlug: 'summer-bootcamp-2027',
+      );
+
+      await controller.load();
+
+      expect(controller.errorMessage, CourseLearningStrings.unexpectedError);
+      expect(controller.path, isNull);
+    });
+
+    test(
+      'a retry clears the message before the next attempt resolves',
+      () async {
+        final repository = FakeCourseLearningRepository(
+          failure: const CourseLearningFailure(
+            CourseLearningFailureKind.network,
+          ),
+        );
+        final controller = CourseLearningController(
+          repository: repository,
+          courseSlug: 'summer-bootcamp-2027',
+        );
+        await controller.load();
+        expect(controller.errorMessage, isNotNull);
+
+        // The retry succeeds: the message must not survive it.
+        repository.failure = null;
+        repository.hold = true;
+        final pending = controller.load();
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.errorMessage, isNull);
+        expect(controller.loading, isTrue);
+
+        repository.release();
+        await pending;
+        expect(controller.errorMessage, isNull);
+        expect(controller.path, isNotNull);
+      },
+    );
   });
 
   test('does not notify after being disposed', () async {
