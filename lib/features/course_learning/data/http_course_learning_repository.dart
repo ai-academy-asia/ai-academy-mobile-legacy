@@ -27,12 +27,15 @@ import 'sample_course_learning_repository.dart';
 /// ignores, because no screen draws it: `course.id`,
 /// `course.banner_image_url` (the design draws the bundled illustration, not
 /// the real course image), `enrollment_id`, `cohort_id`,
-/// `progress.completed_lessons`/`total_lessons`, `continue.lesson_id` (this
-/// app's module cards open an exercise, not a lesson — see §7 of the report
-/// on `LessonListScreen`), `certificate.status`, and each module's
+/// `progress.completed_lessons`/`total_lessons`, and each module's
 /// `lesson_count`/`completed_lessons`. Every one of them is a real field;
 /// none is modelled, because widening a model for data nothing renders is
 /// what `docs/ai/DATA_AND_API.md` §8.2 forbids.
+///
+/// `continue.lesson_id` and `certificate.status` *are* modelled, and were not
+/// until Junior Home asked for them — that screen holds the server's continue
+/// target whole and shows a certificate panel. They are read here rather than
+/// in a second repository so one place still owns this endpoint's parsing.
 ///
 /// A field the contract says the backend does *not* send stays client-side:
 /// the per-module icon and accent (`course_module_visuals.dart`) and the hero
@@ -218,7 +221,9 @@ CourseLearningPath _pathFromBody(String body) {
     description: _optionalLocalized(course, 'course.description') ?? '',
     illustrationAsset: HttpCourseLearningRepository.heroIllustrationAsset,
     percentComplete: _requirePercent(progress),
-    continueModuleId: _continueModuleId(decoded['continue']),
+    continueModuleId: _continueId(decoded['continue'], 'module_id'),
+    continueLessonId: _continueId(decoded['continue'], 'lesson_id'),
+    certificateStatus: _certificateStatus(decoded['certificate']),
     modules: [for (final entry in modules) _moduleFrom(entry)],
   );
 }
@@ -309,16 +314,28 @@ const List<String> _mongolianWeekdays = [
   'Ня',
 ];
 
-/// `continue.module_id` — the module "Continue learning" opens.
+/// One id out of `continue` — `module_id`, the module "Continue learning"
+/// opens, or `lesson_id`, the lesson inside it.
 ///
 /// Null when the response sends `continue: null` ("nothing is unlocked"), and
-/// also when the object carries no usable `module_id`: the screen has its own
-/// fallback for that, so a missing selection is not worth failing the whole
-/// page over.
-int? _continueModuleId(Object? value) {
+/// also when the object carries no usable id: the screen has its own fallback
+/// for that, so a missing selection is not worth failing the whole page over.
+int? _continueId(Object? value, String key) {
   if (value is! Map<String, dynamic>) return null;
-  final moduleId = value['module_id'];
-  return moduleId is num ? moduleId.toInt() : null;
+  final id = value[key];
+  return id is num ? id.toInt() : null;
+}
+
+/// `certificate.status`, passed through as the wire string.
+///
+/// Not validated against the contract's three values here: a status this
+/// client does not recognise is the caller's to handle, and failing the whole
+/// learning path over the certificate summary would take down a screen whose
+/// main content parsed fine. Null when the object or the field is absent.
+String? _certificateStatus(Object? value) {
+  if (value is! Map<String, dynamic>) return null;
+  final status = value['status'];
+  return status is String && status.isNotEmpty ? status : null;
 }
 
 /// `progress.percent`, clamped to the 0–100 the model promises.

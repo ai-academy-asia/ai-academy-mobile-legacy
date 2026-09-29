@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'fake_junior_home_repository.dart';
 
 /// A deterministic capture of Junior Home at the Figma frame's own size, for
 /// comparing against the reference export.
@@ -25,7 +26,7 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
-        home: const JuniorHomeScreen(),
+        home: JuniorHomeScreen(repository: FakeJuniorHomeRepository()),
       ),
     );
     await tester.pumpAndSettle();

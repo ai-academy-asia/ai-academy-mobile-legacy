@@ -4,10 +4,13 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
+import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/widgets/home_header.dart';
-import '../data/sample_junior_learning_map.dart';
-import '../domain/junior_learning_map.dart';
+import '../data/api_junior_home_repository.dart';
+import '../domain/junior_home_repository.dart';
+import 'junior_home_controller.dart';
 import 'junior_home_strings.dart';
 import 'widgets/junior_home_palette.dart';
 import 'widgets/junior_learning_map_view.dart';
@@ -25,22 +28,44 @@ import 'widgets/junior_learning_map_view.dart';
 /// adult app's — see [JuniorHomeStrings.navProgress], which also records why
 /// its spelling differs from the one Issue #98's text gives.
 ///
-/// **Not in this issue.** No repository, no route registration, and no
-/// adult/junior selection: the map comes from [sampleJuniorLearningMap] and
-/// the screen is constructed directly. The two inactive tabs are inert for
-/// the reason [AppBottomNavItem.onTap] documents — a Junior progress screen
-/// does not exist yet, and wiring these would be the routing this issue
-/// excludes.
-class JuniorHomeScreen extends StatelessWidget {
-  const JuniorHomeScreen({super.key, this.map});
+/// **Data.** The map is loaded from `GET /me/courses/{course_slug}/learning`
+/// through [ApiJuniorHomeRepository], which resolves the student's own course
+/// slug from the existing enrolled-cohort architecture. Loading, empty and
+/// failure states follow `HomeScreen`'s; the map's own visuals are unchanged.
+///
+/// **Not in this issue.** No route registration and no adult/junior
+/// selection. The two inactive tabs are inert for the reason
+/// [AppBottomNavItem.onTap] documents — a Junior progress screen does not
+/// exist yet.
+class JuniorHomeScreen extends StatefulWidget {
+  const JuniorHomeScreen({super.key, this.repository});
 
-  /// Defaults to the sample map. Injected in tests.
-  final JuniorLearningMap? map;
+  /// Defaults to the real API. Injected in tests.
+  final JuniorHomeRepository? repository;
+
+  @override
+  State<JuniorHomeScreen> createState() => _JuniorHomeScreenState();
+}
+
+class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
+  late final JuniorHomeController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = JuniorHomeController(
+      repository: widget.repository ?? ApiJuniorHomeRepository(),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final map = this.map ?? sampleJuniorLearningMap();
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -90,15 +115,102 @@ class JuniorHomeScreen extends StatelessWidget {
               Expanded(
                 child: ColoredBox(
                   color: JuniorPalette.mapField,
-                  child: Semantics(
-                    label: JuniorHomeStrings.learningMap,
-                    container: true,
-                    child: JuniorLearningMapView(map: map),
+                  child: ListenableBuilder(
+                    listenable: _controller,
+                    builder: (context, _) => _buildBody(),
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Loading, failure, empty, then the map — the order `HomeScreen` checks
+  /// them in. The success branch is the unchanged
+  /// [JuniorLearningMapView]: no visual on the map itself moved for this
+  /// integration.
+  Widget _buildBody() {
+    if (_controller.errorMessage case final message?) {
+      return _MapMessage(message: message, onRetry: () => _controller.load());
+    }
+    if (_controller.isEmpty) {
+      return const _MapMessage(message: JuniorHomeStrings.empty);
+    }
+    final map = _controller.map;
+    if (map == null) {
+      return const _MapLoading();
+    }
+    return Semantics(
+      label: JuniorHomeStrings.learningMap,
+      container: true,
+      child: JuniorLearningMapView(map: map),
+    );
+  }
+}
+
+/// The spinner, over the map's own sky so the band does not flash white
+/// before the scenery arrives.
+class _MapLoading extends StatelessWidget {
+  const _MapLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+      ),
+    );
+  }
+}
+
+/// A line of copy over the map, with a retry when there is something to
+/// retry.
+///
+/// The Figma pack draws no loading, empty or error state for Junior Home, so
+/// nothing here is measured off a reference the way the map is. It is
+/// `CohortListScreen._ErrorView`'s shape — centred message, 16 of air, an
+/// outlined `AppButton` — on the blue field instead of the page grey, which
+/// is the only change the darker background calls for.
+class _MapMessage extends StatelessWidget {
+  const _MapMessage({required this.message, this.onRetry});
+
+  final String message;
+
+  /// Null for the empty state: there is nothing to retry when the student is
+  /// simply enrolled in nothing.
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              style: AppTypography.cardSupporting.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              AppButton(
+                label: JuniorHomeStrings.retry,
+                variant: AppButtonVariant.outlined,
+                onPressed: onRetry,
+              ),
+            ],
+          ],
         ),
       ),
     );

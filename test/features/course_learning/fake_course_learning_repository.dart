@@ -159,6 +159,8 @@ CourseLearningPath samplePath({
   int percentComplete = 30,
   List<CourseModule>? modules,
   int? continueModuleId,
+  int? continueLessonId,
+  String? certificateStatus,
 }) => CourseLearningPath(
   courseSlug: courseSlug,
   courseTitle: courseTitle,
@@ -168,6 +170,8 @@ CourseLearningPath samplePath({
   // Null by default, matching the sample repository: a path with no server
   // answer is what every existing test was written against.
   continueModuleId: continueModuleId,
+  continueLessonId: continueLessonId,
+  certificateStatus: certificateStatus,
   modules:
       modules ??
       [

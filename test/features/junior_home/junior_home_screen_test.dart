@@ -1,4 +1,5 @@
 import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'fake_junior_home_repository.dart';
 
 /// Junior Home against the sample map it ships with.
 ///
@@ -27,6 +29,7 @@ void main() {
   Future<void> pumpScreen(
     WidgetTester tester, {
     JuniorLearningMap? map,
+    FakeJuniorHomeRepository? repository,
     Size size = const Size(393, 852),
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
@@ -34,7 +37,9 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
-        home: JuniorHomeScreen(map: map),
+        home: JuniorHomeScreen(
+          repository: repository ?? FakeJuniorHomeRepository(map: map),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -171,6 +176,92 @@ void main() {
         ),
       );
       expect(homeIcon.color, AppColors.blue);
+    });
+  });
+
+  group('data states', () {
+    testWidgets('shows a spinner while the map is loading', (tester) async {
+      final repository = FakeJuniorHomeRepository(hold: true);
+      useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: JuniorHomeScreen(repository: repository),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(JuniorLearningMapView), findsNothing);
+      // The chrome is there throughout — only the map band waits.
+      expect(find.byType(AppBottomNav), findsOneWidget);
+
+      repository.release();
+      await tester.pumpAndSettle();
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+
+    testWidgets('a failure shows that failure\'s copy and a retry', (
+      tester,
+    ) async {
+      final repository = FakeJuniorHomeRepository(
+        failure: const CourseLearningFailure(
+          CourseLearningFailureKind.notEnrolled,
+        ),
+      );
+      await pumpScreen(tester, repository: repository);
+
+      expect(find.text(JuniorHomeStrings.notEnrolled), findsOneWidget);
+      expect(find.text(JuniorHomeStrings.retry), findsOneWidget);
+      expect(find.byType(JuniorLearningMapView), findsNothing);
+
+      repository.failure = null;
+      await tester.tap(find.text(JuniorHomeStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, 2);
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+      expect(find.text(JuniorHomeStrings.notEnrolled), findsNothing);
+    });
+
+    testWidgets('enrolled in nothing shows the empty line, no retry', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        repository: FakeJuniorHomeRepository(empty: true),
+      );
+
+      expect(find.text(JuniorHomeStrings.empty), findsOneWidget);
+      // Nothing to retry — this is not a failure.
+      expect(find.text(JuniorHomeStrings.retry), findsNothing);
+      expect(find.byType(JuniorLearningMapView), findsNothing);
+    });
+
+    testWidgets('the map is drawn from the repository, not a constant', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        map: const JuniorLearningMap(
+          progress: JuniorCourseProgress(
+            title: 'Corporate Leaders AI',
+            percentComplete: 72,
+          ),
+          nodes: [JuniorMapNode(id: 9, state: JuniorNodeState.completed)],
+          certificate: JuniorCertificate(
+            track: 'Junior',
+            courseName: 'Corporate Leaders AI',
+            description: 'Earn a Certificate of completion',
+          ),
+        ),
+      );
+
+      expect(find.text('Corporate Leaders AI'), findsNWidgets(2));
+      expect(find.text('72%'), findsOneWidget);
+      // The old hardcoded sample values are gone.
+      expect(find.text('40%'), findsNothing);
+      expect(find.text('Prediction and Probabilities'), findsNothing);
     });
   });
 

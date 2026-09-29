@@ -23,6 +23,8 @@ class CourseLearningPath {
     required this.percentComplete,
     required this.modules,
     this.continueModuleId,
+    this.continueLessonId,
+    this.certificateStatus,
   });
 
   /// Which course this path belongs to — `Course.slug`, the one identifier
@@ -50,4 +52,21 @@ class CourseLearningPath {
   /// unlocked, and because the sample path has no server to ask. The screen
   /// falls back to its own rule then — see `_continueLearningTarget`.
   final int? continueModuleId;
+
+  /// `continue.lesson_id` — the lesson inside [continueModuleId] the server
+  /// picked. Null under the same conditions [continueModuleId] is.
+  ///
+  /// Carried but not yet opened by anything: the module list screen navigates
+  /// by module, and no screen takes a lesson id yet. Modelled because Junior
+  /// Home's domain is asked to hold the server's continue target whole rather
+  /// than half of it.
+  final int? continueLessonId;
+
+  /// `certificate.status` — `not_eligible`, `eligible` or `issued`, the three
+  /// values §2.9 of the contract lists.
+  ///
+  /// Kept as the wire string rather than an enum here because this feature's
+  /// own screens do not branch on it; the caller that does — Junior Home —
+  /// parses it into its own type. Null when the response omits the object.
+  final String? certificateStatus;
 }
