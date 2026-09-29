@@ -15,6 +15,65 @@ import 'course_learning_strings.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/course_module_card.dart';
 
+/// Everything below is measured off the Figma reference frame at 1:1 — a
+/// 393 x 1391 page with a 44pt status-bar inset — rather than taken from the
+/// shared tokens, which are sampled from the Login/Home/Catalog frames and do
+/// not match this one. `test/features/course_learning/
+/// course_module_list_screenshot_test.dart` captures the screen at that exact
+/// frame so these can be re-checked against the PNG.
+
+/// The page, and the wash behind the hero: a light blue that clears to the
+/// page colour 75 down from the top of the safe area.
+const Color _page = Color(0xFFFFFFFF);
+const Color _heroTint = Color(0xFFE8F3FF);
+const double _heroTintHeight = 75;
+
+/// Outlines, the band under each module card, and the connector between them.
+const Color _border = Color(0xFFEAEDF0);
+const Color _primaryInk = Color(0xFF191919);
+const Color _secondaryInk = Color(0xFF7D7D7E);
+const Color _progressTrack = Color(0xFFD6DBE1);
+const Color _accent = Color(0xFF2970FF);
+const Color _certificationFill = Color(0xFFF9FAFB);
+
+/// The illustration's box. Larger than the 86 x 75 the frame measures because
+/// `how_ai_works.svg` carries roughly 9% of empty margin inside its own
+/// viewBox, and `BoxFit.contain` fits the viewBox, not the artwork: at a box
+/// of exactly 86 x 75 the drawing came out 78 x 69. These are the sizes that
+/// put the *drawn* illustration on the reference's bounds.
+const double _illustrationWidth = 95;
+const double _illustrationHeight = 82;
+
+/// The reference starts the illustration above the text column's first line.
+/// Applied as a paint-time offset so it does not also make the hero row taller,
+/// which would push the progress row down.
+const double _illustrationRise = -6;
+
+/// The progress/CTA row. The bar flexes; everything right of it is fixed, so
+/// the same widget lands the button on the frame's x213 in both the hero (a
+/// 361-wide container) and the certification card (329 wide) — which is why
+/// the button's width differs between the two and is passed in.
+const double _barHeight = 8;
+const double _barToPercent = 13;
+const double _percentToButton = 31;
+const double _ctaHeight = 40;
+const double _ctaRadius = 20;
+const double _heroCtaWidth = 164;
+const double _certificationCtaWidth = 148;
+
+/// The button's depth: a flat darker-blue band under it, the same idiom the
+/// module cards use. Sampled at 1:1 — the reference has *no* blur around the
+/// button at all (the pixel beside its edge is pure white), so this is a
+/// zero-blur shadow of the button's own shape, not a glow.
+const Color _ctaDepth = Color(0xFF004FED);
+const double _ctaDepthOffset = 4;
+
+/// Module cards: an 86-tall box every 102, so 16 of layout gap between boxes —
+/// 4 of which the card's own band fills, leaving the reference's 12 of white.
+const double _moduleGap = 16;
+const double _connectorHeight = 12;
+const double _connectorWidth = 2;
+
 /// The Course Learning overview — reached directly from a Home/Cohort course
 /// card, or from `CourseDetailScreen`'s own "Continue learning" entry point.
 ///
@@ -73,45 +132,52 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarColor: _page,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        // The reference's tint sits in the page background itself, not on a
-        // shape behind the hero's content: no radius, no edges, no card. A
-        // second pass here wrapped `_Hero` in its own rounded, tinted box,
-        // which read as a floating card rather than a page tint — this
-        // instead paints a plain, edge-to-edge, un-rounded gradient behind
-        // the whole `SafeArea`, faded out well before the progress row so it
-        // reads as "upper page background", not "the whole screen is blue".
-        body: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0x0D296CFF), AppColors.background],
-              stops: [0.0, 0.22],
-            ),
-          ),
-          child: SafeArea(
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) => Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: AppDimens.maxContentWidth,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const CourseLearningBackButton(),
-                      Expanded(child: _buildBody()),
-                    ],
+        backgroundColor: _page,
+        // The reference's wash is a fixed 75pt band at the top of the safe
+        // area, not a fraction of the page: as a gradient over the whole body
+        // it stretched with the viewport and tinted a third of a tall screen.
+        // A fixed-height band behind the content keeps it the same 75
+        // everywhere, which is what the frame measures.
+        body: SafeArea(
+          child: Stack(
+            children: [
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: _heroTintHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [_heroTint, _page],
+                    ),
                   ),
                 ),
               ),
-            ),
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) => Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppDimens.maxContentWidth,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const CourseLearningBackButton(),
+                        Expanded(child: _buildBody()),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -196,7 +262,7 @@ class _CourseLearningBody extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         AppDimens.screenPadding,
-        8,
+        18,
         AppDimens.screenPadding,
         AppDimens.screenPadding,
       ),
@@ -204,15 +270,16 @@ class _CourseLearningBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _Hero(path: path),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           _ProgressCtaRow(
             percentComplete: path.percentComplete,
             modules: path.modules,
             repository: repository,
+            buttonWidth: _heroCtaWidth,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 48),
           _ModuleList(modules: path.modules, repository: repository),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           _CertificationSection(
             percentComplete: path.percentComplete,
             modules: path.modules,
@@ -249,17 +316,37 @@ class _Hero extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(path.courseTitle, style: AppTypography.heading),
-              const SizedBox(height: AppDimens.titleToSupporting),
-              Text(path.description, style: AppTypography.statLabel),
+              Text(
+                path.courseTitle,
+                style: AppTypography.heading.copyWith(
+                  fontSize: 18,
+                  height: 26 / 18,
+                  color: _primaryInk,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                path.description,
+                style: AppTypography.statLabel.copyWith(
+                  fontSize: 12,
+                  height: 18 / 12,
+                  color: _secondaryInk,
+                ),
+              ),
             ],
           ),
         ),
         const SizedBox(width: 16),
-        SizedBox(
-          width: 94,
-          height: 82,
-          child: SvgPicture.asset(path.illustrationAsset, fit: BoxFit.contain),
+        Transform.translate(
+          offset: const Offset(0, _illustrationRise),
+          child: SizedBox(
+            width: _illustrationWidth,
+            height: _illustrationHeight,
+            child: SvgPicture.asset(
+              path.illustrationAsset,
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
       ],
     );
@@ -298,42 +385,48 @@ class _ProgressCtaRow extends StatelessWidget {
     required this.percentComplete,
     required this.modules,
     required this.repository,
+    required this.buttonWidth,
   });
 
   final int percentComplete;
   final List<CourseModule> modules;
   final CourseLearningRepository repository;
 
+  /// The reference draws this row twice at different widths and keeps the
+  /// button's *left* edge on x213 both times, so the button is what changes
+  /// size between them, not the gaps.
+  final double buttonWidth;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: percentComplete / 100,
-                    minHeight: AppDimens.progressBarHeight,
-                    backgroundColor: AppColors.border,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.blue,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                CourseLearningStrings.percentComplete(percentComplete),
-                style: AppTypography.catalogSectionValue,
-              ),
-            ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: percentComplete / 100,
+              minHeight: _barHeight,
+              backgroundColor: _progressTrack,
+              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+            ),
           ),
         ),
-        const SizedBox(width: 16),
-        _ContinueLearningButton(modules: modules, repository: repository),
+        const SizedBox(width: _barToPercent),
+        Text(
+          CourseLearningStrings.percentComplete(percentComplete),
+          style: AppTypography.catalogSectionValue.copyWith(
+            fontSize: 14,
+            height: 20 / 14,
+            color: _primaryInk,
+          ),
+        ),
+        const SizedBox(width: _percentToButton),
+        _ContinueLearningButton(
+          modules: modules,
+          repository: repository,
+          width: buttonWidth,
+        ),
       ],
     );
   }
@@ -343,10 +436,12 @@ class _ContinueLearningButton extends StatelessWidget {
   const _ContinueLearningButton({
     required this.modules,
     required this.repository,
+    required this.width,
   });
 
   final List<CourseModule> modules;
   final CourseLearningRepository repository;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -356,42 +451,40 @@ class _ContinueLearningButton extends StatelessWidget {
       button: true,
       label: CourseLearningStrings.continueLearning,
       child: DecoratedBox(
-        // The Figma button reads visibly "lifted" — a soft, blue-toned shadow
-        // under it, not the flat fill an unshadowed `Material` gives. Painted
-        // on a wrapping `DecoratedBox` rather than raising `Material`'s own
-        // `elevation`, whose default shadow is a neutral grey, not this
-        // blue-tinted one, and which would also change the ink surface's
-        // shape handling. The box adds no size of its own, so the button's
-        // 164.5 x 40 footprint is unchanged; the shadow paints outside it.
+        // The button's depth is a flat band of a darker blue along its bottom,
+        // not a glow: beside the button's edge the reference is pure white, so
+        // there is no blur to reproduce. A zero-blur shadow of the button's own
+        // rounded rect, offset down, gives exactly that band — the same way
+        // `CourseModuleCard` draws its own. Painted on a wrapping
+        // `DecoratedBox` rather than via `Material.elevation`, whose shadow is
+        // a neutral blurred grey; the box adds no size, so the button's
+        // footprint is unchanged and the band paints below it.
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.blue.withValues(alpha: 0.35),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+          borderRadius: BorderRadius.circular(_ctaRadius),
+          boxShadow: const [
+            BoxShadow(color: _ctaDepth, offset: Offset(0, _ctaDepthOffset)),
           ],
         ),
         child: Material(
-          color: AppColors.blue,
-          borderRadius: BorderRadius.circular(20),
+          color: _accent,
+          borderRadius: BorderRadius.circular(_ctaRadius),
           child: InkWell(
             onTap: target == null
                 ? null
                 : () => _openExerciseDetail(context, target, repository),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(_ctaRadius),
             splashColor: Colors.white24,
             highlightColor: Colors.white10,
-            child: const SizedBox(
-              width: 164.5,
-              height: 40,
-              child: Center(
+            child: SizedBox(
+              width: width,
+              height: _ctaHeight,
+              child: const Center(
                 child: Text(
                   CourseLearningStrings.continueLearning,
                   style: TextStyle(
                     fontFamily: AppTypography.fontFamily,
-                    fontSize: 13,
+                    fontSize: 14,
+                    height: 20 / 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.onPrimary,
                   ),
@@ -432,16 +525,29 @@ class _ModuleList extends StatelessWidget {
   }
 }
 
+/// The rule between two module cards.
+///
+/// It runs down the *centre of the page* — the reference puts it on x196.5,
+/// the content column's own midpoint, not under the icon tile where an earlier
+/// pass had it. The gap it sits in is [_moduleGap] tall, and the card above
+/// fills the first 4 of that with its own band, so the rule is bottom-aligned
+/// and [_connectorHeight] long: it meets the band above and the next card
+/// below, with no white break at either end.
 class _ModuleConnector extends StatelessWidget {
   const _ModuleConnector();
 
   @override
   Widget build(BuildContext context) {
-    // Centred under the 56pt icon column, which sits `AppDimens.cardPadding`
-    // in from the card's own edge.
-    return Padding(
-      padding: const EdgeInsets.only(left: AppDimens.cardPadding + 56 / 2 - 1),
-      child: Container(width: 2, height: 16, color: AppColors.border),
+    return const SizedBox(
+      height: _moduleGap,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SizedBox(
+          width: _connectorWidth,
+          height: _connectorHeight,
+          child: ColoredBox(color: _border),
+        ),
+      ),
     );
   }
 }
@@ -472,22 +578,11 @@ class _CertificationSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSubtle,
+        color: _certificationFill,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(
-          color: AppColors.border,
-          width: AppDimens.borderWidth,
-        ),
-        // Its own tuning, not `CourseModuleCard`'s shadow reused verbatim:
-        // a larger, quieter card reads right with a wider, fainter spread
-        // rather than the module rows' tighter one.
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: _border, width: AppDimens.borderWidth),
+        // No shadow: unlike the module cards, the reference draws nothing
+        // below this panel's bottom edge — the row under it is plain page.
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,12 +596,23 @@ class _CertificationSection extends StatelessWidget {
                   children: [
                     Text(
                       CourseLearningStrings.certificationLabel,
-                      style: AppTypography.catalogSectionLabel,
+                      style: AppTypography.catalogSectionLabel.copyWith(
+                        fontSize: 12,
+                        height: 16 / 12,
+                        color: _secondaryInk,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    // The label's and heading's line boxes sit all but flush
+                    // in the reference; the air between their ink is the
+                    // boxes' own leading.
+                    const SizedBox(height: 1),
                     Text(
                       CourseLearningStrings.certificationTitle,
-                      style: AppTypography.catalogTitle,
+                      style: AppTypography.catalogTitle.copyWith(
+                        fontSize: 18,
+                        height: 26 / 18,
+                        color: _primaryInk,
+                      ),
                     ),
                   ],
                 ),
@@ -521,11 +627,12 @@ class _CertificationSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const _CertificatePreview(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 17),
           _ProgressCtaRow(
             percentComplete: percentComplete,
             modules: modules,
             repository: repository,
+            buttonWidth: _certificationCtaWidth,
           ),
         ],
       ),

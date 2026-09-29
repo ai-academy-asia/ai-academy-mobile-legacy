@@ -5,6 +5,7 @@ import 'package:aia_mobile/features/course_learning/presentation/course_module_l
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_module_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_course_learning_repository.dart';
@@ -71,6 +72,11 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pump();
   }
+
+  /// Finds an [SvgPicture] by a fragment of its asset path.
+  Finder svgAsset(String fragment) => find.byWidgetPredicate(
+    (w) => w is SvgPicture && w.bytesLoader.toString().contains(fragment),
+  );
 
   Finder backButton() => find.byIcon(AppIcons.caretLeft);
 
@@ -154,8 +160,10 @@ void main() {
         await pumpScreen(tester, FakeCourseLearningRepository());
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(AppIcons.check), findsNWidgets(2));
-        expect(find.byIcon(Icons.lock_outline), findsNWidgets(3));
+        // Both glyphs are the design's own artwork. The completed badge is
+        // disc and tick in one asset, not a font glyph on a coloured circle.
+        expect(svgAsset('course_detail_completed_check'), findsNWidgets(2));
+        expect(svgAsset('course_detail_lock'), findsNWidgets(3));
       },
     );
   });
@@ -270,6 +278,120 @@ void main() {
 
       repository.release();
       await tester.pumpAndSettle();
+    });
+  });
+
+  group('Figma reference geometry', () {
+    // Measured off the 393 x 1391 reference frame at 1:1. The screenshot test
+    // beside this one captures the whole page at that frame; these pin the
+    // handful of values most likely to drift silently.
+
+    testWidgets('module cards are 86 tall, 361 wide, 102 apart', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      final cards = [
+        for (var i = 0; i < 5; i++)
+          tester.getRect(find.byType(CourseModuleCard).at(i)),
+      ];
+      for (final card in cards) {
+        expect(card.width, 361);
+        expect(card.height, 86);
+      }
+      // 86 of card and 16 of gap — 4 of which the card's own band fills.
+      for (var i = 1; i < cards.length; i++) {
+        expect(cards[i].top - cards[i - 1].top, 102);
+      }
+    });
+
+    testWidgets('the connector runs down the centre of the content', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      // Four rules, one between each pair of cards — and on the content
+      // column's midpoint, not under the icon tile.
+      final rules = find.byWidgetPredicate(
+        (w) => w is SizedBox && w.width == 2 && w.height == 12,
+      );
+      expect(rules, findsNWidgets(4));
+
+      final card = tester.getRect(find.byType(CourseModuleCard).first);
+      for (var i = 0; i < 4; i++) {
+        expect(tester.getRect(rules.at(i)).center.dx, card.center.dx);
+      }
+    });
+
+    testWidgets('the progress bar is 8 tall in the reference colours', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      // Two of them: the hero's and the certification panel's.
+      final bars = find.byType(LinearProgressIndicator);
+      expect(bars, findsNWidgets(2));
+      for (var i = 0; i < 2; i++) {
+        final bar = tester.widget<LinearProgressIndicator>(bars.at(i));
+        expect(bar.minHeight, 8);
+        expect(bar.backgroundColor, const Color(0xFFD6DBE1));
+        expect(bar.valueColor!.value, const Color(0xFF2970FF));
+        expect(bar.value, closeTo(0.30, 0.001));
+      }
+    });
+
+    testWidgets('both CTAs are 40 tall and land on the frame\'s x213', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      final buttons = find.text('Continue learning');
+      expect(buttons, findsNWidgets(2));
+      for (var i = 0; i < 2; i++) {
+        final rect = tester.getRect(
+          find
+              .ancestor(of: buttons.at(i), matching: find.byType(SizedBox))
+              .first,
+        );
+        expect(rect.height, 40);
+        // The reference keeps the button's left edge on x213 in both places
+        // and lets its width change instead.
+        expect(rect.left, closeTo(213, 1));
+      }
+    });
+
+    testWidgets('a locked module keeps the full 56 tile and dims its title', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      expect(svgAsset('course_detail_lock'), findsNWidgets(3));
+      final tile = tester.getSize(
+        find
+            .ancestor(
+              of: svgAsset('course_detail_lock').first,
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(tile, const Size(56, 56));
+
+      expect(
+        tester.widget<Text>(find.text('Deep network models')).style!.color,
+        const Color(0xFFB5B5B5),
+      );
+      expect(
+        tester
+            .widget<Text>(find.text('Prediction and Probabilities'))
+            .style!
+            .color,
+        const Color(0xFF191919),
+      );
     });
   });
 }
