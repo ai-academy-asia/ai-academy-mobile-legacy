@@ -8,26 +8,20 @@ import '../course_learning_strings.dart';
 import 'exercise_submit_button.dart';
 import 'exercise_text_field.dart';
 
-/// The Figma sample's own student identity — the same "БП" / "Болд Батаа"
-/// `SampleCourseLearningRepository` already gives the one pre-existing note,
-/// and `ProfileStrings.name`'s own sample student. A newly-left note is
-/// authored by that same student, not a different, invented one.
-const String _studentInitials = 'БП';
-const String _studentName = 'Болд Батаа';
-
 /// The Note tab: an editable textarea when there is no saved note yet, or
-/// when the student is editing one, or the saved note — with the mentor's
-/// reply already alongside it — once one exists and isn't being edited.
+/// when the student is editing one, or the saved note once one exists and
+/// isn't being edited.
 ///
-/// **Sample/local state only.** [note] is the tab's own idea of "the current
-/// note", not the fixed sample value `CourseExercise.note` — [onSave] hands
-/// a new one back up to `CourseExerciseDetailScreen`, which is what makes
-/// "submit, then switch tabs and back" still show what was just saved.
-/// `PUT /me/lessons/{id}/note` is not integrated, so nothing here survives
-/// leaving this screen instance.
+/// **Saving is the caller's.** [onSave] is handed the trimmed text and
+/// answers whether it was saved; the note then shown is whatever
+/// `CourseExerciseDetailScreen` passes back down as [note] — the
+/// repository's answer, with its own author and timestamp, never one built
+/// here. While [saving], Submit is off; if the save fails, the textarea
+/// stays open with what was typed, and [errorMessage] is shown under it in
+/// the Login screen's own `fieldError` treatment — the Figma pack has no
+/// saving or error state for this tab to follow instead.
 ///
-/// **Read-only when [onSave] is null** — a note loaded from the backend,
-/// which nothing here can save back. The layout is the same; only the
+/// **Read-only when [onSave] is null.** The layout is the same; only the
 /// controls are off: an existing note keeps its card with the edit action
 /// drawn disabled, and with no note the textarea and submit are drawn
 /// disabled.
@@ -40,15 +34,29 @@ const double _avatarToMessage = 18;
 const double _messageToTimestamp = 18;
 const double _cardToEdit = 17;
 const Color _cardBorder = Color(0xFFE5E7EB);
+const double _fieldToError = 8;
 
 class NoteTab extends StatefulWidget {
-  const NoteTab({required this.note, this.onSave, super.key});
+  const NoteTab({
+    required this.note,
+    this.onSave,
+    this.saving = false,
+    this.errorMessage,
+    super.key,
+  });
 
   final CourseExerciseNote? note;
 
-  /// Called with the note to hold from now on — a first submission or a
-  /// saved edit, both go through this. Null makes the tab read-only.
-  final ValueChanged<CourseExerciseNote>? onSave;
+  /// Called with the text to save — a first submission or a saved edit, both
+  /// go through this — and answers whether it was saved. Null makes the tab
+  /// read-only.
+  final Future<bool> Function(String content)? onSave;
+
+  /// True while a save is in flight: Submit is drawn disabled.
+  final bool saving;
+
+  /// Why the last save failed, or null.
+  final String? errorMessage;
 
   @override
   State<NoteTab> createState() => _NoteTabState();
@@ -62,6 +70,11 @@ class _NoteTabState extends State<NoteTab> {
   late bool _editing = widget.note == null;
 
   bool _hasContent = false;
+
+  /// True once a submit from this tab has failed, until the next one — so
+  /// [NoteTab.errorMessage] is shown under the attempt it belongs to, not
+  /// carried into a later edit.
+  bool _submitFailed = false;
 
   @override
   void initState() {
@@ -83,37 +96,34 @@ class _NoteTabState extends State<NoteTab> {
 
   void _startEditing() {
     _controller.text = widget.note?.message ?? '';
-    setState(() => _editing = true);
+    setState(() {
+      _editing = true;
+      _submitFailed = false;
+    });
   }
 
-  void _submit() {
-    final message = _controller.text.trim();
-    if (message.isEmpty) return;
+  Future<void> _submit() async {
+    final content = _controller.text.trim();
+    if (content.isEmpty) return;
 
     final onSave = widget.onSave;
     if (onSave == null) return;
 
-    final existing = widget.note;
-    onSave(
-      CourseExerciseNote(
-        authorInitials: existing?.authorInitials ?? _studentInitials,
-        authorName: existing?.authorName ?? _studentName,
-        authorLabel:
-            existing?.authorLabel ?? CourseLearningStrings.noteAuthorMe,
-        message: message,
-        // No real clock reading behind this — "Just now" is honest about
-        // what actually happened (this session, this instant) rather than
-        // fabricating a formatted date/time nothing here can confirm.
-        timestampLabel: CourseLearningStrings.noteJustNow,
-      ),
-    );
-    setState(() => _editing = false);
+    setState(() => _submitFailed = false);
+    final saved = await onSave(content);
+    if (!mounted) return;
+    setState(() {
+      // A failed save keeps the textarea open with what was typed.
+      if (saved) _editing = false;
+      _submitFailed = !saved;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final note = widget.note;
     final readOnly = widget.onSave == null;
+    final errorMessage = _submitFailed ? widget.errorMessage : null;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -128,9 +138,18 @@ class _NoteTabState extends State<NoteTab> {
                   multiline: true,
                   enabled: !readOnly,
                 ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: _fieldToError),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(errorMessage, style: AppTypography.fieldError),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 ExerciseSubmitButton(
-                  onPressed: !readOnly && _hasContent ? _submit : null,
+                  onPressed: !readOnly && _hasContent && !widget.saving
+                      ? _submit
+                      : null,
                 ),
               ],
             )

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -71,6 +72,32 @@ Future<http.Response> getRaw({
   Map<String, String> headers = const {},
 }) => _send(
   () => client.get(url, headers: {HttpHeaders.acceptHeader: 'application/json', ...headers}),
+  timeout,
+);
+
+/// The transport for an authenticated PUT with a JSON body —
+/// `PUT /me/lessons/{id}/note` is the first caller. The body is encoded here
+/// and sent as `application/json`.
+///
+/// Returns the response for **every** status, for the reason [getRaw] gives:
+/// an authenticated caller reads its own 401, and here its own 400 codes too.
+/// Only a request that never completed is thrown, as [ApiFailureKind.network].
+Future<http.Response> putJsonRaw({
+  required http.Client client,
+  required Uri url,
+  required Map<String, Object?> body,
+  required Duration timeout,
+  Map<String, String> headers = const {},
+}) => _send(
+  () => client.put(
+    url,
+    headers: {
+      HttpHeaders.contentTypeHeader: 'application/json',
+      HttpHeaders.acceptHeader: 'application/json',
+      ...headers,
+    },
+    body: jsonEncode(body),
+  ),
   timeout,
 );
 

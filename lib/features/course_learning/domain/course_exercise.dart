@@ -8,8 +8,9 @@ import 'lesson.dart';
 ///
 /// From the backend, the read-only content is real: [lessonId], [moduleId],
 /// [moduleCaption], [title], [type], [durationLabel], [hasVideo], [summary],
-/// [extraSections], [completed], the file [materials] and the [note]. What
-/// the screen can do *with* it is narrower — see [simulatesWrites]. The quiz
+/// [extraSections], [completed], the file [materials] and the [note] — which
+/// is also saved back, through `CourseLearningRepository.saveNote`. The
+/// assignment cannot be — see [simulatesWrites]. The quiz
 /// (§2.7 sends a summary, not questions) and the assignment workflow (§2.6)
 /// are not integrated, so a backend lesson carries no [quiz], no
 /// [assignmentFeedback] and no [assignmentAttachment].
@@ -78,13 +79,13 @@ class CourseExercise {
   /// draws it yet.
   final bool completed;
 
-  /// True for the sample exercise, whose note save and assignment submit are
-  /// local simulations that never leave the device.
+  /// True for the sample exercise, whose assignment submit is a local
+  /// simulation that never leaves the device.
   ///
-  /// False for a lesson loaded from the backend: neither
-  /// `PUT /me/lessons/{id}/note` nor the assignment submission API is
-  /// integrated, so the screen shows the Note tab read-only and the
-  /// Assignment tab disabled rather than let an edit look saved.
+  /// False for a lesson loaded from the backend: the assignment submission
+  /// API is not integrated, so the screen shows the Assignment tab disabled
+  /// rather than let a submission look sent. The note is not governed by
+  /// this — every repository saves it through `saveNote`.
   final bool simulatesWrites;
 
   /// The student's own note on this exercise. Null when none has been left
@@ -112,6 +113,28 @@ class CourseExercise {
   /// This exercise's quiz, shown on the Quiz tab. Null means there is no
   /// quiz for this exercise — `QuizTab` then renders nothing.
   final CourseQuiz? quiz;
+
+  /// This exercise with [note] in place of its own — what a successful
+  /// `saveNote` leaves the screen holding.
+  CourseExercise withNote(CourseExerciseNote note) => CourseExercise(
+    lessonId: lessonId,
+    moduleId: moduleId,
+    moduleCaption: moduleCaption,
+    title: title,
+    type: type,
+    durationLabel: durationLabel,
+    recordingBadgeLabel: recordingBadgeLabel,
+    summary: summary,
+    hasVideo: hasVideo,
+    extraSections: extraSections,
+    materials: materials,
+    completed: completed,
+    simulatesWrites: simulatesWrites,
+    note: note,
+    assignmentFeedback: assignmentFeedback,
+    assignmentAttachment: assignmentAttachment,
+    quiz: quiz,
+  );
 }
 
 /// One heading-and-body block in the expanded description, optionally

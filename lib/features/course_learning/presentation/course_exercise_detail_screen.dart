@@ -33,23 +33,24 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// The module cards still open the sample exercise — see
 /// `CourseModuleListScreen`'s own doc comment.
 ///
-/// **Backend lessons are read-only here.** The content is real; the writes
-/// are not integrated, so for a lesson whose
-/// [CourseExercise.simulatesWrites] is false the Note tab shows the note
-/// without letting it be edited, the Assignment tab is disabled, and the
-/// quiz card does not draw (the lesson detail carries a quiz summary, not
-/// questions). The layout is unchanged either way. The sample exercise keeps
-/// the local simulations described below, which the Figma states and the
-/// goldens were built against.
+/// **The note is the one write.** Every lesson's Note tab saves through
+/// `CourseLearningRepository.saveNote` — `PUT /me/lessons/{id}/note` for a
+/// backend lesson, a local simulation for the sample. The other writes are
+/// not integrated, so for a lesson whose [CourseExercise.simulatesWrites] is
+/// false the Assignment tab is disabled and the quiz card does not draw (the
+/// lesson detail carries a quiz summary, not questions). The layout is
+/// unchanged either way. The sample exercise keeps the local simulations
+/// described below, which the Figma states and the goldens were built
+/// against.
 ///
 /// **Scope.** The description's expanded/collapsed toggle is UI-only, same
 /// as before. The Assignment tab cycles through submit → pending review →
 /// "submitted successfully", entirely as local widget state, gated on an
 /// attached reference file being (simulated-)downloaded when the exercise
-/// has one; see `AssignmentTab`'s own doc comment. The Note tab similarly
-/// cycles between empty, editing and saved, held in this screen's own state
-/// (see `_note`) so it survives a tab switch; see `NoteTab`'s own doc
-/// comment. The Course materials tab's download button flips to a checked
+/// has one; see `AssignmentTab`'s own doc comment. The Note tab cycles
+/// between empty, editing and saved; the saved note is held on the
+/// controller's exercise, so it survives a tab switch; see `NoteTab`'s own
+/// doc comment. The Course materials tab's download button flips to a checked
 /// "downloaded" state on tap, also local only — see `CourseMaterialCard`'s
 /// own doc comment.
 ///
@@ -58,11 +59,10 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// full screens (`CourseQuizScreen`, `CourseQuizResultScreen`) on top of
 /// this one — matching the reference, which draws the quiz as its own
 /// preview card and its own screens, not a fourth tab. Its score is held
-/// here (see `_quizResult`) for the same reason `_note` is: the student
-/// pops back to this screen after finishing it, and the preview card needs
-/// to keep showing that result. None of this reaches a backend: the
-/// Assignment, Note, Materials-download and Quiz endpoints the contract
-/// documents are not integrated yet.
+/// here (see `_quizResult`): the student pops back to this screen after
+/// finishing it, and the preview card needs to keep showing that result.
+/// None of this reaches a backend: the Assignment, Materials-download and
+/// Quiz endpoints the contract documents are not integrated yet.
 /// Still out of scope, reserved for a separate future issue: a real file
 /// *upload* (as opposed to the download this issue adds) against an actual
 /// file, and the certificate. Every widget that would eventually carry that
@@ -97,18 +97,10 @@ class _CourseExerciseDetailScreenState
   bool _descriptionExpanded = false;
   ExerciseTab _selectedTab = ExerciseTab.assignment;
 
-  /// The Note tab's current note — seeded once from the loaded sample
-  /// exercise (see [_buildBody]), then replaced whenever `NoteTab` saves a
-  /// new one. Held here, not inside `NoteTab` itself, so a note survives
-  /// switching to another tab and back — the same reason [_selectedTab]
-  /// and [_descriptionExpanded] live here rather than in a child.
-  CourseExerciseNote? _note;
-
   /// The Quiz's last completed attempt — null until the student finishes it
-  /// at least once. Held here, not inside `QuizPreviewCard`, for the same
-  /// reason [_note] is: `CourseQuizScreen`/`CourseQuizResultScreen` are
-  /// pushed on top of this screen, so their result has to survive popping
-  /// back to it.
+  /// at least once. Held here, not inside `QuizPreviewCard`:
+  /// `CourseQuizScreen`/`CourseQuizResultScreen` are pushed on top of this
+  /// screen, so their result has to survive popping back to it.
   ({int correct, int total})? _quizResult;
 
   @override
@@ -173,10 +165,6 @@ class _CourseExerciseDetailScreenState
       );
     }
 
-    // Seeded exactly once, the first time the exercise loads — `_note`
-    // then holds whatever `NoteTab` last saved, not the original sample.
-    _note ??= exercise.note;
-
     return _ExerciseDetailBody(
       exercise: exercise,
       descriptionExpanded: _descriptionExpanded,
@@ -184,12 +172,12 @@ class _CourseExerciseDetailScreenState
           setState(() => _descriptionExpanded = !_descriptionExpanded),
       selectedTab: _selectedTab,
       onSelectTab: (tab) => setState(() => _selectedTab = tab),
-      note: _note,
-      // Only the sample's note save is simulated; a backend note is shown
-      // read-only rather than edited into something that is never saved.
-      onSaveNote: exercise.simulatesWrites
-          ? (note) => setState(() => _note = note)
-          : null,
+      // Held on the controller's exercise, not in `NoteTab`, so a saved
+      // note survives switching to another tab and back.
+      note: exercise.note,
+      onSaveNote: _controller.saveNote,
+      savingNote: _controller.savingNote,
+      noteSaveErrorMessage: _controller.noteSaveErrorMessage,
       quizResult: _quizResult,
       onQuizResult: (result) => setState(() => _quizResult = result),
     );
@@ -205,6 +193,8 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.onSelectTab,
     required this.note,
     required this.onSaveNote,
+    required this.savingNote,
+    required this.noteSaveErrorMessage,
     required this.quizResult,
     required this.onQuizResult,
   });
@@ -215,7 +205,9 @@ class _ExerciseDetailBody extends StatelessWidget {
   final ExerciseTab selectedTab;
   final ValueChanged<ExerciseTab> onSelectTab;
   final CourseExerciseNote? note;
-  final ValueChanged<CourseExerciseNote>? onSaveNote;
+  final Future<bool> Function(String content) onSaveNote;
+  final bool savingNote;
+  final String? noteSaveErrorMessage;
   final ({int correct, int total})? quizResult;
   final ValueChanged<({int correct, int total})> onQuizResult;
 
@@ -276,6 +268,8 @@ class _ExerciseDetailBody extends StatelessWidget {
                             exercise: exercise,
                             note: note,
                             onSaveNote: onSaveNote,
+                            savingNote: savingNote,
+                            noteSaveErrorMessage: noteSaveErrorMessage,
                           ),
                         ],
                       ),
@@ -304,12 +298,16 @@ class _TabContent extends StatelessWidget {
     required this.exercise,
     required this.note,
     required this.onSaveNote,
+    required this.savingNote,
+    required this.noteSaveErrorMessage,
   });
 
   final ExerciseTab tab;
   final CourseExercise exercise;
   final CourseExerciseNote? note;
-  final ValueChanged<CourseExerciseNote>? onSaveNote;
+  final Future<bool> Function(String content) onSaveNote;
+  final bool savingNote;
+  final String? noteSaveErrorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +322,12 @@ class _TabContent extends StatelessWidget {
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,
       ),
-      ExerciseTab.note => NoteTab(note: note, onSave: onSaveNote),
+      ExerciseTab.note => NoteTab(
+        note: note,
+        onSave: onSaveNote,
+        saving: savingNote,
+        errorMessage: noteSaveErrorMessage,
+      ),
     };
   }
 }

@@ -15,8 +15,8 @@ import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 /// real `SampleCourseLearningRepository` never actually awaits anything —
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
-/// [getCourseLearning], [getLessons] and [getExercise] are tracked
-/// independently, same reasoning as `FakeCourseRepository`'s
+/// [getCourseLearning], [getLessons], [getExercise] and [saveNote] are
+/// tracked independently, same reasoning as `FakeCourseRepository`'s
 /// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
@@ -29,6 +29,9 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.exercise,
     this.holdExercise = false,
     this.exerciseFailure,
+    this.savedNote,
+    this.holdSave = false,
+    this.saveFailure,
   });
 
   // --- getCourseLearning ---------------------------------------------------
@@ -139,6 +142,46 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     if (exerciseFailure case final failure?) throw failure;
 
     return exercise ?? sampleExercise(lessonId: lessonId);
+  }
+
+  // --- saveNote ----------------------------------------------------------
+
+  /// Returned on success. Unset, the saved note is what
+  /// `SampleCourseLearningRepository.saveNote` answers — the sample student,
+  /// the saved text, "Just now" — which every sample-flow test and golden
+  /// was written against.
+  CourseExerciseNote? savedNote;
+
+  /// When true, [saveNote] blocks until [releaseSave] is called.
+  bool holdSave;
+
+  /// Thrown by [saveNote] instead of returning, after [holdSave] releases.
+  /// Settable between calls, so a retry can succeed.
+  CourseLearningFailure? saveFailure;
+
+  /// Every `(lessonId, content)` [saveNote] was called with, in order.
+  final List<(int, String)> saveCalls = [];
+
+  Completer<void>? _saveGate;
+
+  void releaseSave() {
+    final gate = _saveGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<CourseExerciseNote> saveNote(int lessonId, String content) async {
+    saveCalls.add((lessonId, content));
+
+    if (holdSave) {
+      _saveGate = Completer<void>();
+      await _saveGate!.future;
+    }
+
+    if (saveFailure case final failure?) throw failure;
+
+    return savedNote ??
+        sampleNote(message: content, timestampLabel: 'Just now');
   }
 }
 

@@ -179,11 +179,218 @@ void main() {
 
     await pending;
   });
+
+  group('saveNote', () {
+    const serverNote = CourseExerciseNote(
+      authorInitials: 'СД',
+      authorName: 'Сараа Дорж',
+      authorLabel: 'Me',
+      message: 'Saved on the server.',
+      timestampLabel: 'Today, 15:04',
+    );
+
+    Future<CourseExerciseDetailController> loaded(
+      FakeCourseLearningRepository repository,
+    ) async {
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+      await controller.load();
+      return controller;
+    }
+
+    test('starts not saving, with no save error', () async {
+      final controller = await loaded(FakeCourseLearningRepository());
+
+      expect(controller.savingNote, isFalse);
+      expect(controller.noteSaveErrorMessage, isNull);
+    });
+
+    test('reports saving while the request is in flight', () async {
+      final repository = FakeCourseLearningRepository(holdSave: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.saveNote('A note');
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.savingNote, isTrue);
+
+      repository.releaseSave();
+      await pending;
+      expect(controller.savingNote, isFalse);
+    });
+
+    test('a second save while one is in flight is ignored', () async {
+      final repository = FakeCourseLearningRepository(holdSave: true);
+      final controller = await loaded(repository);
+
+      final first = controller.saveNote('First');
+      await Future<void>.delayed(Duration.zero);
+      expect(await controller.saveNote('Second'), isFalse);
+
+      repository.releaseSave();
+      await first;
+      expect(repository.saveCalls, [(204, 'First')]);
+    });
+
+    test('success replaces the note with the repository\'s answer', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(lessonId: 204, title: 'Давталт'),
+        savedNote: serverNote,
+      );
+      final controller = await loaded(repository);
+
+      final saved = await controller.saveNote('A note');
+
+      expect(saved, isTrue);
+      expect(repository.saveCalls, [(204, 'A note')]);
+      expect(controller.exercise!.note, serverNote);
+      // The rest of the lesson is untouched.
+      expect(controller.exercise!.title, 'Давталт');
+      expect(controller.errorMessage, isNull);
+      expect(controller.noteSaveErrorMessage, isNull);
+    });
+
+    test('a failure becomes its own copy, and keeps the old note', () async {
+      for (final kind in CourseLearningFailureKind.values) {
+        final repository = FakeCourseLearningRepository(
+          saveFailure: CourseLearningFailure(kind),
+        );
+        final controller = await loaded(repository);
+        final before = controller.exercise!.note;
+
+        final saved = await controller.saveNote('A note');
+
+        expect(saved, isFalse, reason: kind.name);
+        expect(
+          controller.noteSaveErrorMessage,
+          CourseLearningStrings.messageFor(kind),
+          reason: kind.name,
+        );
+        expect(controller.exercise!.note, before, reason: kind.name);
+        // A failed save is not a failed load: the lesson stays.
+        expect(controller.errorMessage, isNull, reason: kind.name);
+        expect(controller.savingNote, isFalse, reason: kind.name);
+      }
+    });
+
+    test('the two validation codes read as their own copy', () async {
+      final repository = FakeCourseLearningRepository(
+        saveFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.contentRequired,
+        ),
+      );
+      final controller = await loaded(repository);
+
+      await controller.saveNote(' ');
+      expect(
+        controller.noteSaveErrorMessage,
+        CourseLearningStrings.noteContentRequired,
+      );
+
+      repository.saveFailure = const CourseLearningFailure(
+        CourseLearningFailureKind.contentTooLong,
+      );
+      await controller.saveNote('x' * 5001);
+      expect(
+        controller.noteSaveErrorMessage,
+        CourseLearningStrings.noteContentTooLong,
+      );
+    });
+
+    test('an unexpected error reads as the generic copy', () async {
+      final controller = await loaded(_ThrowingRepository.onSave());
+
+      expect(await controller.saveNote('A note'), isFalse);
+      expect(
+        controller.noteSaveErrorMessage,
+        CourseLearningStrings.unexpectedError,
+      );
+    });
+
+    test('a retry clears the error as it starts, and can succeed', () async {
+      final repository = FakeCourseLearningRepository(
+        savedNote: serverNote,
+        saveFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      final controller = await loaded(repository);
+      await controller.saveNote('A note');
+      expect(controller.noteSaveErrorMessage, isNotNull);
+
+      repository
+        ..saveFailure = null
+        ..holdSave = true;
+      final pending = controller.saveNote('A note');
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.noteSaveErrorMessage, isNull);
+
+      repository.releaseSave();
+      expect(await pending, isTrue);
+      expect(controller.exercise!.note, serverNote);
+    });
+
+    test('with no lesson loaded, nothing is sent', () async {
+      final repository = FakeCourseLearningRepository();
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+
+      expect(await controller.saveNote('A note'), isFalse);
+      expect(repository.saveCalls, isEmpty);
+    });
+
+    test('does not notify after being disposed', () async {
+      final repository = FakeCourseLearningRepository(holdSave: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.saveNote('A note');
+      controller.dispose();
+      repository.releaseSave();
+
+      // Would throw "used after being disposed" if the guard were missing.
+      await pending;
+    });
+
+    test('does not notify after being disposed, on failure either', () async {
+      final repository = FakeCourseLearningRepository(
+        holdSave: true,
+        saveFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.server,
+        ),
+      );
+      final controller = await loaded(repository);
+
+      final pending = controller.saveNote('A note');
+      controller.dispose();
+      repository.releaseSave();
+
+      await pending;
+    });
+  });
 }
 
-/// Throws something that is not a `CourseLearningFailure`.
+/// Throws something that is not a `CourseLearningFailure` — from
+/// [getExercise] by default, or, built with [_ThrowingRepository.onSave],
+/// from [saveNote] only.
 class _ThrowingRepository extends FakeCourseLearningRepository {
+  _ThrowingRepository() : _throwOnSave = false;
+
+  _ThrowingRepository.onSave() : _throwOnSave = true;
+
+  final bool _throwOnSave;
+
   @override
-  Future<CourseExercise> getExercise(int lessonId) async =>
-      throw StateError('boom');
+  Future<CourseExercise> getExercise(int lessonId) async {
+    if (_throwOnSave) return super.getExercise(lessonId);
+    throw StateError('boom');
+  }
+
+  @override
+  Future<CourseExerciseNote> saveNote(int lessonId, String content) async {
+    if (!_throwOnSave) return super.saveNote(lessonId, content);
+    throw StateError('boom');
+  }
 }

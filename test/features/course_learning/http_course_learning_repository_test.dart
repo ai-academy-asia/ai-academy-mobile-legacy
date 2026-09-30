@@ -1557,4 +1557,302 @@ void main() {
       });
     });
   });
+
+  // §2.5: PUT /me/lessons/{lesson_id}/note — the student's note, saved.
+  group('saveNote', () {
+    /// 2026-08-06, 15:00 local — the "today" saved timestamps are read
+    /// against.
+    final now = DateTime(2026, 8, 6, 15);
+
+    /// The contract's §2.5 note object.
+    Map<String, Object?> noteBody({
+      String content = 'Суурь тохиолдлыг санах',
+      Object? updatedAt,
+      Object? author = const {'name': 'Сараа Дорж', 'initials': 'СД'},
+    }) => {
+      'id': 51,
+      'content': content,
+      'created_at': '2026-08-01T01:00:00+00:00',
+      'updated_at':
+          updatedAt ?? DateTime(2026, 8, 6, 14, 20).toUtc().toIso8601String(),
+      'author': author,
+    };
+
+    HttpCourseLearningRepository noteRepository(
+      Future<http.Response> Function(http.Request request) handler, {
+      AuthSessionStore? sessionStore,
+    }) => HttpCourseLearningRepository(
+      client: MockClient(handler),
+      sessionStore: sessionStore ?? signedIn(),
+      clock: () => now,
+    );
+
+    Future<CourseExerciseNote> savedFrom(Object? body, [int status = 201]) =>
+        noteRepository(
+          (_) async => jsonResponse(body, status),
+        ).saveNote(204, 'Суурь тохиолдлыг санах');
+
+    Future<CourseLearningFailure> saveFailureFrom(
+      HttpCourseLearningRepository repository,
+    ) async {
+      try {
+        await repository.saveNote(204, 'A note');
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    Future<CourseLearningFailure> failureForStatus(
+      int status, [
+      Object? body = const {},
+    ]) => saveFailureFrom(
+      noteRepository((_) async => jsonResponse(body, status)),
+    );
+
+    group('the request', () {
+      test(
+        'PUTs the content as JSON to the lesson\'s note, with the token',
+        () async {
+          late http.Request sent;
+          final repository = noteRepository((request) async {
+            sent = request;
+            return jsonResponse(noteBody(), 201);
+          });
+
+          await repository.saveNote(204, 'Суурь тохиолдлыг санах');
+
+          expect(sent.method, 'PUT');
+          expect(
+            sent.url.toString(),
+            'https://api.ai-academy.asia/me/lessons/204/note',
+          );
+          expect(
+            sent.headers[HttpHeaders.authorizationHeader],
+            'Bearer tok-123',
+          );
+          expect(
+            sent.headers[HttpHeaders.contentTypeHeader],
+            startsWith('application/json'),
+          );
+          expect(sent.headers[HttpHeaders.acceptHeader], 'application/json');
+          // Decoded as UTF-8, so the Mongolian survives the round trip.
+          expect(jsonDecode(sent.body), {'content': 'Суурь тохиолдлыг санах'});
+        },
+      );
+
+      test('signed out: sends nothing and asks for sign-in', () async {
+        var requests = 0;
+        final repository = noteRepository((_) async {
+          requests++;
+          return jsonResponse(noteBody(), 201);
+        }, sessionStore: AuthSessionStore());
+
+        final failure = await saveFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('an expired session: sends nothing', () async {
+        var requests = 0;
+        final store = AuthSessionStore()
+          ..save(
+            const AuthSession(
+              accessToken: 'old',
+              expiresIn: Duration(hours: 1),
+            ),
+            now: DateTime(2000),
+          );
+        final repository = noteRepository((_) async {
+          requests++;
+          return jsonResponse(noteBody(), 201);
+        }, sessionStore: store);
+
+        final failure = await saveFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+    });
+
+    group('the saved note', () {
+      test('201 (first save) reads the server\'s note', () async {
+        final note = await savedFrom(noteBody(), 201);
+
+        expect(note.message, 'Суурь тохиолдлыг санах');
+        expect(note.authorName, 'Сараа Дорж');
+        expect(note.authorInitials, 'СД');
+        expect(note.authorLabel, 'Me');
+      });
+
+      test('200 (an update) reads the same way', () async {
+        final note = await savedFrom(noteBody(content: 'Revised'), 200);
+
+        expect(note.message, 'Revised');
+        expect(note.authorName, 'Сараа Дорж');
+      });
+
+      test('is timestamped from updated_at, against today', () async {
+        final note = await savedFrom(noteBody());
+
+        expect(note.timestampLabel, 'Today, 14:20');
+      });
+
+      test('an updated_at on another day is dated MM/dd', () async {
+        final note = await savedFrom(
+          noteBody(
+            updatedAt: DateTime(2026, 8, 1, 9, 5).toUtc().toIso8601String(),
+          ),
+        );
+
+        expect(note.timestampLabel, '08/01, 09:05');
+      });
+    });
+
+    group('status mapping', () {
+      test('400 content_required is its own kind', () async {
+        final failure = await failureForStatus(400, {
+          'error': 'content_required',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.contentRequired);
+      });
+
+      test('400 content_too_long is its own kind', () async {
+        final failure = await failureForStatus(400, {
+          'error': 'content_too_long',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.contentTooLong);
+      });
+
+      test('any other 400, or an unreadable one, is unexpected', () async {
+        for (final body in <Object?>[
+          {'error': 'invalid_field'},
+          {'detail': 'no code'},
+          'not an object',
+        ]) {
+          final failure = await failureForStatus(400, body);
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.unexpected,
+            reason: '$body',
+          );
+        }
+
+        final failure = await saveFailureFrom(
+          noteRepository((_) async => http.Response('<html>', 400)),
+        );
+        expect(failure.kind, CourseLearningFailureKind.unexpected);
+      });
+
+      test('401 is a dead session, and the token is forgotten', () async {
+        final store = signedIn();
+        final failure = await saveFailureFrom(
+          noteRepository(
+            (_) async => jsonResponse({'error': 'token_expired'}, 401),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(store.isSignedIn, isFalse);
+      });
+
+      test('403 is not_enrolled, and keeps the token', () async {
+        final store = signedIn();
+        final failure = await saveFailureFrom(
+          noteRepository(
+            (_) async => jsonResponse({'error': 'not_enrolled'}, 403),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.notEnrolled);
+        expect(store.isSignedIn, isTrue);
+      });
+
+      test('404 lesson_not_found is not found', () async {
+        final failure = await failureForStatus(404, {
+          'error': 'lesson_not_found',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.notFound);
+      });
+
+      test('409 lesson_locked is locked', () async {
+        final failure = await failureForStatus(409, {'error': 'lesson_locked'});
+
+        expect(failure.kind, CourseLearningFailureKind.locked);
+      });
+
+      test('5xx is a server fault', () async {
+        for (final status in [500, 502, 503]) {
+          final failure = await failureForStatus(status);
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: 'HTTP $status',
+          );
+        }
+      });
+
+      test('a request that never completes is a network failure', () async {
+        final failure = await saveFailureFrom(
+          noteRepository((_) async => throw const SocketException('off')),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.network);
+      });
+    });
+
+    group('a malformed answer is a server fault', () {
+      test('not JSON', () async {
+        final failure = await saveFailureFrom(
+          noteRepository((_) async => http.Response('<html>', 201)),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('not an object', () async {
+        for (final body in <Object?>[null, [], 'note']) {
+          final failure = await saveFailureFrom(
+            noteRepository((_) async => jsonResponse(body, 201)),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('no author', () async {
+        final failure = await saveFailureFrom(
+          noteRepository(
+            (_) async => jsonResponse(noteBody(author: null), 201),
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+        expect(failure.detail, contains('author'));
+      });
+
+      test('an updated_at that is not a timestamp', () async {
+        final failure = await saveFailureFrom(
+          noteRepository(
+            (_) async => jsonResponse(noteBody(updatedAt: 'yesterday'), 201),
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+        expect(failure.detail, contains('note.updated_at'));
+      });
+    });
+  });
 }
