@@ -8,6 +8,7 @@ import '../domain/auth_session_store.dart';
 import '../domain/current_user.dart';
 import '../domain/current_user_failure.dart';
 import '../domain/current_user_repository.dart';
+import '../domain/user_type.dart';
 
 /// Reads the signed-in user's own account against the AI Academy API.
 ///
@@ -121,6 +122,9 @@ CurrentUser _currentUserFromBody(String body) {
     isActive: _requireBool(decoded, 'is_active'),
     mustChangePassword: _requireBool(decoded, 'must_change_password'),
     profile: _profileFrom(_requireObject(decoded, 'profile')),
+    // Read leniently, unlike the fields above: a response without it still
+    // serves Profile and Home, and routing falls back to today's behaviour.
+    userType: UserType.fromApi(decoded['user_type']),
   );
 }
 

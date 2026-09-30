@@ -1,5 +1,11 @@
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/auth/domain/current_user.dart';
+import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
+import 'package:aia_mobile/features/auth/domain/user_type.dart';
+import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_strings.dart';
@@ -7,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../profile/fake_current_user_repository.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
 /// without it, text is measured in the fallback font.
@@ -41,6 +49,8 @@ void main() {
   Future<void> pumpSplash(
     WidgetTester tester, {
     List<NavigatorObserver> observers = const [],
+    AuthSessionStore? sessionStore,
+    FakeCurrentUserRepository? currentUser,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = const Size(393, 852) * 3;
@@ -52,8 +62,16 @@ void main() {
         initialRoute: '/',
         navigatorObservers: observers,
         routes: {
-          '/': (_) => const SplashScreen(),
+          // Never the app-wide store: a test must not see a token another
+          // test left.
+          '/': (_) => SplashScreen(
+            sessionStore: sessionStore ?? AuthSessionStore(),
+            currentUserRepository: currentUser,
+          ),
           SplashScreen.nextRoute: (_) => const LoginScreen(),
+          // Stand-ins: the real homes would reach for the API.
+          HomeRoutes.adult: (_) => const Text('adult home'),
+          HomeRoutes.junior: (_) => const Text('junior home'),
         },
       ),
     );
@@ -82,21 +100,22 @@ void main() {
   final closeToZero = closeTo(0, 0.001);
 
   group('layout', () {
-    testWidgets('shows the Figma background with only the mark visible at t=0', (
-      tester,
-    ) async {
-      await pumpSplash(tester);
+    testWidgets(
+      'shows the Figma background with only the mark visible at t=0',
+      (tester) async {
+        await pumpSplash(tester);
 
-      // The Figma Splash frame's own fill, not white.
-      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
+        // The Figma Splash frame's own fill, not white.
+        final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+        expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
 
-      expect(find.byType(Image), findsOneWidget);
-      expect(opacityOf(tester, SplashScreen.screenFadeKey), 1);
-      expect(opacityOf(tester, SplashScreen.logoOpacityKey), 0);
-      expect(widthFactorOf(tester, SplashScreen.textSlotKey), 0);
-      expect(opacityOf(tester, SplashScreen.textOpacityKey), 0);
-    });
+        expect(find.byType(Image), findsOneWidget);
+        expect(opacityOf(tester, SplashScreen.screenFadeKey), 1);
+        expect(opacityOf(tester, SplashScreen.logoOpacityKey), 0);
+        expect(widthFactorOf(tester, SplashScreen.textSlotKey), 0);
+        expect(opacityOf(tester, SplashScreen.textOpacityKey), 0);
+      },
+    );
 
     testWidgets('draws both Figma exports, at one shared height', (
       tester,
@@ -280,6 +299,152 @@ void main() {
 
       final navigator = tester.state<NavigatorState>(find.byType(Navigator));
       expect(navigator.canPop(), isFalse);
+    });
+  });
+
+  group('session restoration', () {
+    AuthSessionStore signedIn() =>
+        AuthSessionStore()..save(const AuthSession(accessToken: 'tok'));
+
+    CurrentUser accountOf(UserType userType) => CurrentUser(
+      id: 9,
+      actorId: 5,
+      actorType: 'student',
+      email: 'student@example.mn',
+      role: 'student',
+      isActive: true,
+      mustChangePassword: false,
+      // `ui_mode` deliberately disagrees with `user_type` in the adult case
+      // below: routing must follow `user_type`.
+      profile: const UserProfile(
+        id: 5,
+        firstName: 'A',
+        lastName: 'B',
+        phone: '99123456',
+        uiMode: 'kids',
+      ),
+      userType: userType,
+    );
+
+    Future<void> runToHandOff(WidgetTester tester) async {
+      await tester.pump(SplashScreen.duration);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a held child session lands on Junior Home', (tester) async {
+      final currentUser = FakeCurrentUserRepository(
+        user: accountOf(UserType.child),
+      );
+      await pumpSplash(
+        tester,
+        sessionStore: signedIn(),
+        currentUser: currentUser,
+      );
+
+      await runToHandOff(tester);
+
+      expect(currentUser.callCount, 1);
+      expect(find.text('junior home'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    testWidgets('a held adult session lands on the adult dashboard', (
+      tester,
+    ) async {
+      final currentUser = FakeCurrentUserRepository(
+        user: accountOf(UserType.adult),
+      );
+      await pumpSplash(
+        tester,
+        sessionStore: signedIn(),
+        currentUser: currentUser,
+      );
+
+      await runToHandOff(tester);
+
+      expect(find.text('adult home'), findsOneWidget);
+      expect(find.text('junior home'), findsNothing);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    for (final type in [UserType.teacher, UserType.staff]) {
+      testWidgets('a held ${type.name} session keeps the /home landing', (
+        tester,
+      ) async {
+        await pumpSplash(
+          tester,
+          sessionStore: signedIn(),
+          currentUser: FakeCurrentUserRepository(user: accountOf(type)),
+        );
+
+        await runToHandOff(tester);
+
+        expect(find.text('adult home'), findsOneWidget);
+      });
+    }
+
+    testWidgets('waits for the full animation before leaving', (tester) async {
+      await pumpSplash(
+        tester,
+        sessionStore: signedIn(),
+        currentUser: FakeCurrentUserRepository(user: accountOf(UserType.child)),
+      );
+
+      await tester.pump(const Duration(milliseconds: 6500));
+
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(find.text('junior home'), findsNothing);
+    });
+
+    testWidgets('no held session goes to Login without asking /auth/me', (
+      tester,
+    ) async {
+      final currentUser = FakeCurrentUserRepository(
+        user: accountOf(UserType.child),
+      );
+      await pumpSplash(tester, currentUser: currentUser);
+
+      await runToHandOff(tester);
+
+      expect(currentUser.callCount, 0);
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('an expired session goes to Login without asking /auth/me', (
+      tester,
+    ) async {
+      final store = AuthSessionStore()
+        ..save(
+          const AuthSession(accessToken: 'old', expiresIn: Duration(hours: 1)),
+          now: DateTime(2000),
+        );
+      final currentUser = FakeCurrentUserRepository(
+        user: accountOf(UserType.child),
+      );
+      await pumpSplash(tester, sessionStore: store, currentUser: currentUser);
+
+      await runToHandOff(tester);
+
+      expect(currentUser.callCount, 0);
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('a refused /auth/me falls back to Login', (tester) async {
+      await pumpSplash(
+        tester,
+        sessionStore: signedIn(),
+        currentUser: FakeCurrentUserRepository(
+          failure: const CurrentUserFailure(
+            CurrentUserFailureKind.sessionExpired,
+          ),
+        ),
+      );
+
+      await runToHandOff(tester);
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.text('junior home'), findsNothing);
+      expect(find.text('adult home'), findsNothing);
     });
   });
 }

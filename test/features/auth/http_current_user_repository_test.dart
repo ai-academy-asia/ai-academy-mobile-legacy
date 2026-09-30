@@ -5,6 +5,7 @@ import 'package:aia_mobile/features/auth/data/http_current_user_repository.dart'
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
+import 'package:aia_mobile/features/auth/domain/user_type.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -66,6 +67,7 @@ void main() {
     String lastName = 'TestStudent',
     String phone = '99123456',
     String uiMode = 'kids',
+    String? userType = 'child',
   }) => jsonEncode({
     'actor_id': actorId,
     'actor_type': actorType,
@@ -81,6 +83,7 @@ void main() {
       'ui_mode': uiMode,
     },
     'role': role,
+    'user_type': ?userType,
   });
 
   group('the request', () {
@@ -165,6 +168,30 @@ void main() {
       expect(user.profile.lastName, 'TestStudent');
       expect(user.profile.phone, '99123456');
       expect(user.profile.uiMode, 'kids');
+      expect(user.displayName, 'CRUD TestStudent');
+      expect(user.userType, UserType.child);
+    });
+
+    test('reads user_type, not ui_mode, for the app experience', () async {
+      // `ui_mode` still says kids, but the backend's decision is `adult`.
+      final repository = repositoryReturning(
+        (_) async => http.Response(validBody(uiMode: 'kids', userType: 'adult'), 200),
+      );
+
+      final user = await repository.getCurrentUser();
+
+      expect(user.userType, UserType.adult);
+      expect(user.profile.uiMode, 'kids');
+    });
+
+    test('a response without user_type still parses, as unknown', () async {
+      final repository = repositoryReturning(
+        (_) async => http.Response(validBody(userType: null), 200),
+      );
+
+      final user = await repository.getCurrentUser();
+
+      expect(user.userType, UserType.unknown);
       expect(user.displayName, 'CRUD TestStudent');
     });
 

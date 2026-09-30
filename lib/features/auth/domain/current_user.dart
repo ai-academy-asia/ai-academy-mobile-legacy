@@ -1,3 +1,5 @@
+import 'user_type.dart';
+
 /// The signed-in user's own account, as the confirmed `GET /auth/me` response
 /// carries it:
 ///
@@ -15,8 +17,11 @@
 ///         "phone": "99123456",
 ///         "ui_mode": "kids"
 ///       },
-///       "role": "student"
+///       "role": "student",
+///       "user_type": "child"
 ///     }
+///
+/// `user_type` is `mobile_api_v1_1.md` §1's addition to that response.
 class CurrentUser {
   const CurrentUser({
     required this.id,
@@ -27,6 +32,7 @@ class CurrentUser {
     required this.isActive,
     required this.mustChangePassword,
     required this.profile,
+    this.userType = UserType.unknown,
   });
 
   final int id;
@@ -37,6 +43,10 @@ class CurrentUser {
   final bool isActive;
   final bool mustChangePassword;
   final UserProfile profile;
+
+  /// Which app experience this account opens. [UserType.unknown] when the
+  /// response carried none.
+  final UserType userType;
 
   /// The name the profile header shows: first and last name, space-joined.
   String get displayName => '${profile.firstName} ${profile.lastName}'.trim();
