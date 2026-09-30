@@ -24,7 +24,9 @@ Hard prohibitions:
 - **NEVER create a branch before the Issue exists.**
 - **NEVER work directly on `main`.**
 - **NEVER auto-merge a PR.** Merging is the human developer's decision.
-- Never commit or push unless the task explicitly asks for it (`CLAUDE.md`). When a task ends without that instruction, leave the work uncommitted and report the changed files.
+- **NEVER force push, and never push to `main`.**
+- **Manual task:** never commit or push unless the task explicitly asks for it (`CLAUDE.md`). When a task ends without that instruction, leave the work uncommitted and report the changed files.
+- **Agentic Issue task** (the request names a GitHub Issue as the task, e.g. "Implement Issue #129"): steps 9–11 are part of the task — the agent commits, pushes the feature branch and opens the PR, then stops. Step 12 stays human. The stage-by-stage lifecycle is in [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md).
 
 Branch naming follows the existing history: `feat/…`, `fix/…`, `chore/…`, `docs/…`, or `feature/<issue-number>-<slug>`. Commit subjects are lowercase, type-prefixed and imperative — e.g. `feat: implement exercise detail quiz flow`, `docs: re-audit course learning backend APIs`.
 
