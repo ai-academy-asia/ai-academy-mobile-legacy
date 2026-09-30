@@ -1,96 +1,73 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_dimens.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/app_button.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
+import 'home_palette.dart';
+import 'home_pill_button.dart';
+import 'home_stat_card.dart';
 
 /// "Дараанийн төлөлт" — what the student owes next.
 ///
-/// Two states, exactly as the reference draws them:
+/// As a **tile** it carries the pay action, in the states the reference
+/// draws:
 ///
 ///   * **due** — a white card like every other, the countdown in blue, and the
-///     pay action flat: there is nothing to settle yet.
-///   * **overdue** — the card tinted and outlined in [AppColors.error], the
-///     status in red, and the pay action live in brand blue. Red states the
-///     problem; blue offers the way out, which is the one rule the palette
-///     documents about its action colour.
+///     pay action muted: there is nothing to settle yet.
+///   * **overdue** — the card tinted and outlined in red, the status in red,
+///     and the pay action live in blue. Red states the problem; blue offers
+///     the way out.
+///
+/// As a **row** it is a summary with a "Дэлгэрэнгүй" (details) action, as in
+/// the default frame and under the overdue tile in the contract frame.
 class PaymentCard extends StatelessWidget {
-  const PaymentCard({required this.payment, super.key, this.onPay});
+  const PaymentCard({
+    required this.payment,
+    super.key,
+    this.layout = HomeStatLayout.tile,
+    this.onPay,
+    this.onDetails,
+  });
 
   final PaymentStatus payment;
+  final HomeStatLayout layout;
 
-  /// What the pay action does. Only ever pressable while the payment is
-  /// overdue — the reference draws it flat otherwise.
+  /// What the tile's pay action does. Only ever pressable while the payment
+  /// is overdue — the reference draws it muted otherwise.
   final VoidCallback? onPay;
+
+  /// What the row's details action does.
+  final VoidCallback? onDetails;
 
   @override
   Widget build(BuildContext context) {
     final overdue = payment.isOverdue;
+    final isTile = layout == HomeStatLayout.tile;
+    final tinted = overdue && isTile;
 
-    return Container(
-      padding: const EdgeInsets.all(AppDimens.cardPadding),
-      decoration: BoxDecoration(
-        color: overdue
-            ? AppColors.error.withValues(alpha: 0.06)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(
-          color: overdue
-              ? AppColors.error.withValues(alpha: 0.35)
-              : AppColors.border,
-          width: AppDimens.borderWidth,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              width: AppDimens.statIconTile,
-              height: AppDimens.statIconTile,
-              decoration: BoxDecoration(
-                color: AppColors.blue.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-              ),
-              child: const Icon(
-                Icons.payments_outlined,
-                size: 20,
-                color: AppColors.blue,
-              ),
+    return HomeStatCard(
+      layout: layout,
+      icon: AppIcons.money,
+      label: HomeStrings.paymentLabel,
+      value: overdue
+          ? HomeStrings.paymentOverdue
+          : HomeStrings.paymentDueIn(payment.daysUntilDue!),
+      valueColor: overdue ? HomePalette.overdueInk : HomePalette.accent,
+      fill: tinted ? HomePalette.overdueFill : AppColors.surface,
+      outline: tinted ? HomePalette.overdueOutline : HomePalette.border,
+      action: isTile
+          ? HomePillButton(
+              label: HomeStrings.payAction,
+              height: statActionHeight,
+              onPressed: overdue ? onPay : null,
+            )
+          : HomePillButton(
+              label: HomeStrings.details,
+              variant: HomePillVariant.secondary,
+              height: statActionHeight,
+              onPressed: onDetails,
             ),
-          ),
-          const SizedBox(height: 14),
-
-          Text(
-            HomeStrings.paymentLabel,
-            style: AppTypography.statLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            overdue
-                ? HomeStrings.paymentOverdue
-                : HomeStrings.paymentDueIn(payment.daysUntilDue!),
-            style: AppTypography.statValue.copyWith(
-              color: overdue ? AppColors.error : AppColors.blue,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 14),
-          AppButton(
-            label: HomeStrings.payAction,
-            onPressed: overdue ? onPay : null,
-          ),
-        ],
-      ),
     );
   }
 }

@@ -6,14 +6,18 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../home_strings.dart';
+import 'home_palette.dart';
 
 /// "Та гэрээ хийгдээгүй байна" — the warning the dashboard shows while the
 /// student's e-contract is unsigned.
 ///
-/// The one amber element on the screen, in [AppColors.warning] at low alpha
-/// so it reads as a notice rather than an error: a refused payment is red,
-/// this is a task still open. Drawn as a single tappable row with a trailing
-/// caret, the same shape `ContactManagerCard` uses on the login screen.
+/// The one amber element on the screen, in the reference's own flat amber
+/// pair ([HomePalette.contractFill] under [HomePalette.contractOutline]) so
+/// it reads as a notice rather than an error: a late payment is red, this is
+/// a task still open. Drawn as a single tappable row — an outlined icon tile,
+/// two lines, a trailing caret — the same shape `ContactManagerCard` uses on
+/// the login screen. 80 tall in the reference: 16 of padding around a 48pt
+/// pair of lines.
 class ContractBanner extends StatelessWidget {
   const ContractBanner({super.key, this.onTap});
 
@@ -22,60 +26,55 @@ class ContractBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppDimens.homeCardRadius);
+
     return Semantics(
       button: onTap != null,
       label: HomeStrings.contractTitle,
       child: Material(
-        color: AppColors.warning.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+        color: HomePalette.contractFill,
+        borderRadius: radius,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+          borderRadius: radius,
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16 - AppDimens.borderWidth),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-              border: Border.all(
-                color: AppColors.warning.withValues(alpha: 0.4),
-                width: AppDimens.borderWidth,
-              ),
+              borderRadius: radius,
+              border: Border.all(color: HomePalette.contractOutline),
             ),
             child: Row(
               children: [
                 Container(
-                  width: AppDimens.statIconTile,
-                  height: AppDimens.statIconTile,
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: HomePalette.contractOutline),
                   ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      HomeIcons.contract,
-                      width: 20,
-                      height: 20,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.warning,
-                        BlendMode.srcIn,
-                      ),
-                    ),
+                  child: SvgPicture.asset(
+                    HomeIcons.contract,
+                    width: 24,
+                    height: 24,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+                const SizedBox(width: 16),
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         HomeStrings.contractTitle,
-                        style: AppTypography.cardHeading,
+                        style: _titleStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      SizedBox(height: 4),
                       Text(
                         HomeStrings.contractSupporting,
-                        style: AppTypography.statLabel,
+                        style: _supportingStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -85,7 +84,7 @@ class ContractBanner extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Icon(
                   AppIcons.caretRight,
-                  size: AppDimens.caretSize,
+                  size: 24,
                   color: AppColors.textSecondary,
                 ),
               ],
@@ -96,3 +95,23 @@ class ContractBanner extends StatelessWidget {
     );
   }
 }
+
+/// 16 bold on a 24 line.
+const TextStyle _titleStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 16,
+  height: 24 / 16,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+/// 14 regular on a 20 line.
+const TextStyle _supportingStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w400,
+  color: AppColors.textSecondary,
+  leadingDistribution: TextLeadingDistribution.even,
+);

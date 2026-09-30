@@ -59,4 +59,19 @@ abstract final class AppIcons {
 
   /// "Профайл" (Profile) tab — Phosphor "User".
   static const IconData user = IconData(0xe4c2, fontFamily: _family);
+
+  // --- Home dashboard ----------------------------------------------------
+  //
+  // Same confirmation standard as the tab-bar glyphs above: codepoints from
+  // Phosphor's "Regular" stylesheet, each rendered from this bundled font to
+  // check the glyph is the one the Figma layer names.
+
+  /// "Дараанийн төлөлт" card — Phosphor "Money".
+  static const IconData money = IconData(0xe588, fontFamily: _family);
+
+  /// "Хичээлийн ирц" card — Phosphor "CalendarCheck".
+  static const IconData calendarCheck = IconData(0xe712, fontFamily: _family);
+
+  /// The attendance action's leading glyph — Phosphor "QrCode".
+  static const IconData qrCode = IconData(0xe3e6, fontFamily: _family);
 }

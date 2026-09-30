@@ -295,11 +295,12 @@ abstract final class AppTypography {
   /// brand wordmark [splashWordmark] draws, scaled down to fit
   /// [AppDimens.headerLogoHeight] (32) rather than the splash screen's own
   /// 48pt lockup. Same family, weight and [AppColors.navy] colour as
-  /// [splashWordmark]; only the size drops, proportionally, to match.
+  /// [splashWordmark]. Measured off the Adult Home frames at 1:1: 11pt, the
+  /// two lines' caps 13.6 apart.
   static const TextStyle homeLogoWordmark = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 13,
-    height: 1.2,
+    fontSize: 11,
+    height: 13.6 / 11,
     fontWeight: FontWeight.w800,
     color: AppColors.navy,
     leadingDistribution: TextLeadingDistribution.even,
