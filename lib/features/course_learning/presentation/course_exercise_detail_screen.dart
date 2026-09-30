@@ -33,11 +33,13 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// The module cards still open the sample exercise — see
 /// `CourseModuleListScreen`'s own doc comment.
 ///
-/// **The note is the one write.** Every lesson's Note tab saves through
+/// **What reaches the backend.** Every lesson's Note tab saves through
 /// `CourseLearningRepository.saveNote` — `PUT /me/lessons/{id}/note` for a
-/// backend lesson, a local simulation for the sample. The other writes are
-/// not integrated, so for a lesson whose [CourseExercise.simulatesWrites] is
-/// false the Assignment tab is disabled and the quiz card does not draw (the
+/// backend lesson, a local simulation for the sample. For a lesson whose
+/// [CourseExercise.simulatesWrites] is false, a material's download button
+/// fetches a fresh link (`GET /me/materials/{id}/download`) and opens it
+/// outside the app. The other writes are not integrated, so for such a
+/// lesson the Assignment tab is disabled and the quiz card does not draw (the
 /// lesson detail carries a quiz summary, not questions). The layout is
 /// unchanged either way. The sample exercise keeps the local simulations
 /// described below, which the Figma states and the goldens were built
@@ -50,9 +52,9 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// has one; see `AssignmentTab`'s own doc comment. The Note tab cycles
 /// between empty, editing and saved; the saved note is held on the
 /// controller's exercise, so it survives a tab switch; see `NoteTab`'s own
-/// doc comment. The Course materials tab's download button flips to a checked
-/// "downloaded" state on tap, also local only — see `CourseMaterialCard`'s
-/// own doc comment.
+/// doc comment. On the sample, the Course materials tab's download button
+/// flips to a checked "downloaded" state on tap, local only — see
+/// `CourseMaterialCard`'s own doc comment.
 ///
 /// **The Quiz is not one of this card's tabs.** It is a separate
 /// `QuizPreviewCard` below the tab card, and starting it pushes two more
@@ -61,8 +63,8 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// preview card and its own screens, not a fourth tab. Its score is held
 /// here (see `_quizResult`): the student pops back to this screen after
 /// finishing it, and the preview card needs to keep showing that result.
-/// None of this reaches a backend: the Assignment, Materials-download and
-/// Quiz endpoints the contract documents are not integrated yet.
+/// None of this reaches a backend: the Assignment and Quiz endpoints the
+/// contract documents are not integrated yet.
 /// Still out of scope, reserved for a separate future issue: a real file
 /// *upload* (as opposed to the download this issue adds) against an actual
 /// file, and the certificate. Every widget that would eventually carry that
@@ -75,6 +77,7 @@ class CourseExerciseDetailScreen extends StatefulWidget {
     required this.lessonId,
     super.key,
     this.repository,
+    this.openUrl,
   });
 
   /// `Lesson.id` — which lesson to load.
@@ -84,6 +87,11 @@ class CourseExerciseDetailScreen extends StatefulWidget {
   /// `GET /me/lessons/{lesson_id}` against the signed-in student's token.
   /// Injected in tests, and by the callers that still show sample content.
   final CourseLearningRepository? repository;
+
+  /// Opens a material's download link outside the app. Defaults to
+  /// `openExternalUrl`; injected in tests, which must not reach the
+  /// platform.
+  final Future<bool> Function(Uri url)? openUrl;
 
   @override
   State<CourseExerciseDetailScreen> createState() =>
@@ -109,6 +117,7 @@ class _CourseExerciseDetailScreenState
     _controller = CourseExerciseDetailController(
       repository: widget.repository ?? HttpCourseLearningRepository(),
       lessonId: widget.lessonId,
+      openUrl: widget.openUrl,
     )..load();
   }
 
@@ -178,6 +187,14 @@ class _CourseExerciseDetailScreenState
       onSaveNote: _controller.saveNote,
       savingNote: _controller.savingNote,
       noteSaveErrorMessage: _controller.noteSaveErrorMessage,
+      // The sample's materials have no stored file: its button keeps the
+      // local toggle rather than asking for a link that does not exist.
+      onDownloadMaterial: exercise.simulatesWrites
+          ? null
+          : _controller.downloadMaterial,
+      isDownloadingMaterial: _controller.isDownloadingMaterial,
+      isMaterialOpened: _controller.isMaterialOpened,
+      materialDownloadErrorMessage: _controller.materialDownloadErrorMessage,
       quizResult: _quizResult,
       onQuizResult: (result) => setState(() => _quizResult = result),
     );
@@ -195,6 +212,10 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.onSaveNote,
     required this.savingNote,
     required this.noteSaveErrorMessage,
+    required this.onDownloadMaterial,
+    required this.isDownloadingMaterial,
+    required this.isMaterialOpened,
+    required this.materialDownloadErrorMessage,
     required this.quizResult,
     required this.onQuizResult,
   });
@@ -208,6 +229,10 @@ class _ExerciseDetailBody extends StatelessWidget {
   final Future<bool> Function(String content) onSaveNote;
   final bool savingNote;
   final String? noteSaveErrorMessage;
+  final ValueChanged<int>? onDownloadMaterial;
+  final bool Function(int materialId) isDownloadingMaterial;
+  final bool Function(int materialId) isMaterialOpened;
+  final String? Function(int materialId) materialDownloadErrorMessage;
   final ({int correct, int total})? quizResult;
   final ValueChanged<({int correct, int total})> onQuizResult;
 
@@ -270,6 +295,11 @@ class _ExerciseDetailBody extends StatelessWidget {
                             onSaveNote: onSaveNote,
                             savingNote: savingNote,
                             noteSaveErrorMessage: noteSaveErrorMessage,
+                            onDownloadMaterial: onDownloadMaterial,
+                            isDownloadingMaterial: isDownloadingMaterial,
+                            isMaterialOpened: isMaterialOpened,
+                            materialDownloadErrorMessage:
+                                materialDownloadErrorMessage,
                           ),
                         ],
                       ),
@@ -300,6 +330,10 @@ class _TabContent extends StatelessWidget {
     required this.onSaveNote,
     required this.savingNote,
     required this.noteSaveErrorMessage,
+    required this.onDownloadMaterial,
+    required this.isDownloadingMaterial,
+    required this.isMaterialOpened,
+    required this.materialDownloadErrorMessage,
   });
 
   final ExerciseTab tab;
@@ -308,6 +342,10 @@ class _TabContent extends StatelessWidget {
   final Future<bool> Function(String content) onSaveNote;
   final bool savingNote;
   final String? noteSaveErrorMessage;
+  final ValueChanged<int>? onDownloadMaterial;
+  final bool Function(int materialId) isDownloadingMaterial;
+  final bool Function(int materialId) isMaterialOpened;
+  final String? Function(int materialId) materialDownloadErrorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -321,6 +359,10 @@ class _TabContent extends StatelessWidget {
       ),
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,
+        onDownload: onDownloadMaterial,
+        isDownloading: isDownloadingMaterial,
+        isDownloaded: isMaterialOpened,
+        errorMessageFor: materialDownloadErrorMessage,
       ),
       ExerciseTab.note => NoteTab(
         note: note,

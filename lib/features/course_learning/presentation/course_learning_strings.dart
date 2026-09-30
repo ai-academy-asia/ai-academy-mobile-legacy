@@ -39,6 +39,11 @@ abstract final class CourseLearningStrings {
   /// The contract's `404 course_not_found` — a slug that no longer resolves.
   static const String notFound = 'Хөтөлбөр олдсонгүй';
 
+  /// §2.4's `404 material_not_found` — worded after [notFound], which names
+  /// the course rather than the file and so would read wrong under a
+  /// material row.
+  static const String materialNotFound = 'Файл олдсонгүй';
+
   /// §2.5's two note-save rules. The Figma pack has no copy for either, so
   /// both follow the Login screen's own validation wording
   /// (`LoginStrings.passwordRequired`, `LoginStrings.passwordTooShort`).

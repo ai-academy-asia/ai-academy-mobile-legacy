@@ -190,7 +190,7 @@ That is the scaffold default, left in place. **Release builds are signed with de
 | Orientations (iPhone) | Portrait, LandscapeLeft, LandscapeRight — **no** upside-down |
 | Scene support | `UIApplicationSceneManifest` present; `UIApplicationSupportsMultipleScenes` declared |
 | Entitlements | **None** — no `.entitlements` file exists |
-| CocoaPods | **No `Podfile`** — the dependency set (`http`, `flutter_svg`, `cupertino_icons`) is plugin-free, so none is generated |
+| CocoaPods | **No `Podfile` committed yet.** Until `url_launcher` (lesson material download) the dependency set was plugin-free; it is the first plugin, so the next iOS build generates a `Podfile` and wires Pods into `Runner.xcodeproj` |
 | Custom permission keys | **None** in `Info.plist` — no camera/photo/location usage descriptions |
 
 That last row matters: `home/widgets/program_card.dart` renders an `Icons.qr_code_scanner` affordance, but **there is no camera permission declared and no scanning implemented** — the icon is UI only.

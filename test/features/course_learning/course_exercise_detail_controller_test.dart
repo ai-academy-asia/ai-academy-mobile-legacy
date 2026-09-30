@@ -370,6 +370,204 @@ void main() {
       await pending;
     });
   });
+
+  group('downloadMaterial', () {
+    /// A loaded controller whose opener records what it was handed.
+    Future<(CourseExerciseDetailController, List<Uri>)> loaded(
+      FakeCourseLearningRepository repository, {
+      Future<bool> Function(Uri url)? openUrl,
+    }) async {
+      final opened = <Uri>[];
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+        openUrl:
+            openUrl ??
+            (url) async {
+              opened.add(url);
+              return true;
+            },
+      );
+      await controller.load();
+      return (controller, opened);
+    }
+
+    test('starts idle for every material', () async {
+      final (controller, _) = await loaded(FakeCourseLearningRepository());
+
+      expect(controller.isDownloadingMaterial(1), isFalse);
+      expect(controller.isMaterialOpened(1), isFalse);
+      expect(controller.materialDownloadErrorMessage(1), isNull);
+    });
+
+    test('fetches the link and opens its URL', () async {
+      final repository = FakeCourseLearningRepository();
+      final (controller, opened) = await loaded(repository);
+
+      final result = await controller.downloadMaterial(88);
+
+      expect(result, isTrue);
+      expect(repository.downloadCalls, [88]);
+      expect(opened, [sampleDownload(materialId: 88).url]);
+      expect(controller.isMaterialOpened(88), isTrue);
+      expect(controller.isMaterialOpened(1), isFalse);
+      expect(controller.materialDownloadErrorMessage(88), isNull);
+    });
+
+    test('reports that material in flight, and only that one', () async {
+      final repository = FakeCourseLearningRepository(holdDownload: true);
+      final (controller, _) = await loaded(repository);
+
+      final pending = controller.downloadMaterial(88);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.isDownloadingMaterial(88), isTrue);
+      expect(controller.isDownloadingMaterial(1), isFalse);
+
+      repository.releaseDownload();
+      await pending;
+      expect(controller.isDownloadingMaterial(88), isFalse);
+    });
+
+    test('a second tap on the same material in flight is ignored', () async {
+      final repository = FakeCourseLearningRepository(holdDownload: true);
+      final (controller, _) = await loaded(repository);
+
+      final first = controller.downloadMaterial(88);
+      await Future<void>.delayed(Duration.zero);
+      expect(await controller.downloadMaterial(88), isFalse);
+
+      repository.releaseDownload();
+      await first;
+      expect(repository.downloadCalls, [88]);
+    });
+
+    test('a failure becomes its own copy, and opens nothing', () async {
+      for (final kind in CourseLearningFailureKind.values) {
+        final repository = FakeCourseLearningRepository(
+          downloadFailure: CourseLearningFailure(kind),
+        );
+        final (controller, opened) = await loaded(repository);
+
+        final result = await controller.downloadMaterial(88);
+
+        expect(result, isFalse, reason: kind.name);
+        expect(
+          controller.materialDownloadErrorMessage(88),
+          kind == CourseLearningFailureKind.notFound
+              ? CourseLearningStrings.materialNotFound
+              : CourseLearningStrings.messageFor(kind),
+          reason: kind.name,
+        );
+        expect(opened, isEmpty, reason: kind.name);
+        expect(controller.isMaterialOpened(88), isFalse, reason: kind.name);
+        expect(
+          controller.isDownloadingMaterial(88),
+          isFalse,
+          reason: kind.name,
+        );
+        // A failed download is not a failed load: the lesson stays.
+        expect(controller.errorMessage, isNull, reason: kind.name);
+        expect(controller.exercise, isNotNull, reason: kind.name);
+      }
+    });
+
+    test('a link the OS will not open reads as the generic copy', () async {
+      final (controller, _) = await loaded(
+        FakeCourseLearningRepository(),
+        openUrl: (_) async => false,
+      );
+
+      expect(await controller.downloadMaterial(88), isFalse);
+      expect(controller.isMaterialOpened(88), isFalse);
+      expect(
+        controller.materialDownloadErrorMessage(88),
+        CourseLearningStrings.unexpectedError,
+      );
+    });
+
+    test('an opener that throws reads as the generic copy', () async {
+      final (controller, _) = await loaded(
+        FakeCourseLearningRepository(),
+        openUrl: (_) async => throw StateError('no channel'),
+      );
+
+      expect(await controller.downloadMaterial(88), isFalse);
+      expect(
+        controller.materialDownloadErrorMessage(88),
+        CourseLearningStrings.unexpectedError,
+      );
+    });
+
+    test('a failure is kept per material', () async {
+      final repository = FakeCourseLearningRepository(
+        downloadFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      final (controller, _) = await loaded(repository);
+
+      await controller.downloadMaterial(1);
+      repository.downloadFailure = null;
+      await controller.downloadMaterial(2);
+
+      expect(
+        controller.materialDownloadErrorMessage(1),
+        CourseLearningStrings.networkError,
+      );
+      expect(controller.materialDownloadErrorMessage(2), isNull);
+      expect(controller.isMaterialOpened(2), isTrue);
+    });
+
+    test('a retry clears the error as it starts, and can succeed', () async {
+      final repository = FakeCourseLearningRepository(
+        downloadFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.server,
+        ),
+      );
+      final (controller, _) = await loaded(repository);
+      await controller.downloadMaterial(88);
+      expect(controller.materialDownloadErrorMessage(88), isNotNull);
+
+      repository
+        ..downloadFailure = null
+        ..holdDownload = true;
+      final pending = controller.downloadMaterial(88);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.materialDownloadErrorMessage(88), isNull);
+
+      repository.releaseDownload();
+      expect(await pending, isTrue);
+      expect(controller.isMaterialOpened(88), isTrue);
+    });
+
+    test('does not notify after being disposed', () async {
+      final repository = FakeCourseLearningRepository(holdDownload: true);
+      final (controller, _) = await loaded(repository);
+
+      final pending = controller.downloadMaterial(88);
+      controller.dispose();
+      repository.releaseDownload();
+
+      // Would throw "used after being disposed" if the guard were missing.
+      await pending;
+    });
+
+    test('does not notify after being disposed, on failure either', () async {
+      final repository = FakeCourseLearningRepository(
+        holdDownload: true,
+        downloadFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.server,
+        ),
+      );
+      final (controller, _) = await loaded(repository);
+
+      final pending = controller.downloadMaterial(88);
+      controller.dispose();
+      repository.releaseDownload();
+
+      await pending;
+    });
+  });
 }
 
 /// Throws something that is not a `CourseLearningFailure` — from

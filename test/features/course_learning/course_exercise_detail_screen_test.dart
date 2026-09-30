@@ -43,6 +43,7 @@ void main() {
     FakeCourseLearningRepository? repository, {
     int lessonId = 2,
     Size size = const Size(393, 852),
+    Future<bool> Function(Uri url)? openUrl,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -63,6 +64,7 @@ void main() {
                     builder: (_) => CourseExerciseDetailScreen(
                       lessonId: lessonId,
                       repository: repository,
+                      openUrl: openUrl,
                     ),
                   ),
                 ),
@@ -460,6 +462,31 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Downloaded'));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+    });
+
+    testWidgets('the sample asks for no link and opens nothing', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository();
+      final opened = <Uri>[];
+      await pumpScreen(
+        tester,
+        repository,
+        openUrl: (url) async {
+          opened.add(url);
+          return true;
+        },
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Course materials'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Download').first);
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+      expect(repository.downloadCalls, isEmpty);
+      expect(opened, isEmpty);
     });
   });
 
@@ -1069,6 +1096,147 @@ void main() {
       // The lesson itself stays on screen — only the save failed.
       expect(find.text(CourseLearningStrings.retry), findsNothing);
       expect(find.text('Давталт'), findsOneWidget);
+    });
+
+    group('material download', () {
+      /// Materials 1 and 2 (`sampleExercise`'s default pair) on a backend
+      /// lesson, the tab already open.
+      Future<List<Uri>> openMaterials(
+        WidgetTester tester,
+        FakeCourseLearningRepository repository, {
+        bool launches = true,
+      }) async {
+        final opened = <Uri>[];
+        await pumpScreen(
+          tester,
+          repository,
+          lessonId: 204,
+          openUrl: (url) async {
+            opened.add(url);
+            return launches;
+          },
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(CourseLearningStrings.courseMaterialsTab));
+        await tester.pumpAndSettle();
+        return opened;
+      }
+
+      testWidgets('fetches the material\'s link and opens it', (tester) async {
+        final repository = backendLesson();
+        final opened = await openMaterials(tester, repository);
+
+        await tester.tap(find.bySemanticsLabel('Download').last);
+        await tester.pumpAndSettle();
+
+        expect(repository.downloadCalls, [2]);
+        expect(opened, [sampleDownload(materialId: 2).url]);
+        // Only that row is checked.
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+        expect(find.bySemanticsLabel('Download'), findsOneWidget);
+      });
+
+      testWidgets('shows a spinner while the link is in flight', (
+        tester,
+      ) async {
+        final repository = backendLesson()..holdDownload = true;
+        final opened = await openMaterials(tester, repository);
+
+        await tester.tap(find.bySemanticsLabel('Download').first);
+        await tester.pump();
+
+        expect(find.bySemanticsLabel('Downloading'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(CourseMaterialCard).first,
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
+        // A second tap while in flight asks for nothing more.
+        await tester.tap(find.bySemanticsLabel('Downloading'));
+        await tester.pump();
+        expect(repository.downloadCalls, [1]);
+        expect(opened, isEmpty);
+
+        repository.releaseDownload();
+        await tester.pumpAndSettle();
+        expect(find.bySemanticsLabel('Downloading'), findsNothing);
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+      });
+
+      testWidgets(
+        'a failure shows its copy under the row, and can be retried',
+        (tester) async {
+          final repository = backendLesson()
+            ..downloadFailure = const CourseLearningFailure(
+              CourseLearningFailureKind.server,
+            );
+          final opened = await openMaterials(tester, repository);
+
+          await tester.tap(find.bySemanticsLabel('Download').first);
+          await tester.pumpAndSettle();
+
+          expect(find.text(CourseLearningStrings.serverError), findsOneWidget);
+          expect(find.bySemanticsLabel('Download'), findsNWidgets(2));
+          expect(opened, isEmpty);
+
+          repository.downloadFailure = null;
+          await tester.tap(find.bySemanticsLabel('Download').first);
+          await tester.pumpAndSettle();
+
+          expect(find.text(CourseLearningStrings.serverError), findsNothing);
+          expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+        },
+      );
+
+      testWidgets('a 404 reads as the file not being found', (tester) async {
+        final repository = backendLesson()
+          ..downloadFailure = const CourseLearningFailure(
+            CourseLearningFailureKind.notFound,
+          );
+        await openMaterials(tester, repository);
+
+        await tester.tap(find.bySemanticsLabel('Download').first);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.materialNotFound),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a link the OS will not open is not "downloaded"', (
+        tester,
+      ) async {
+        final repository = backendLesson();
+        final opened = await openMaterials(tester, repository, launches: false);
+
+        await tester.tap(find.bySemanticsLabel('Download').first);
+        await tester.pumpAndSettle();
+
+        expect(opened, hasLength(1));
+        expect(find.bySemanticsLabel('Downloaded'), findsNothing);
+        expect(
+          find.text(CourseLearningStrings.unexpectedError),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('an opened material stays checked across a tab switch', (
+        tester,
+      ) async {
+        await openMaterials(tester, backendLesson());
+
+        await tester.tap(find.bySemanticsLabel('Download').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(CourseLearningStrings.noteTab));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(CourseLearningStrings.courseMaterialsTab));
+        await tester.pumpAndSettle();
+
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+      });
     });
   });
 

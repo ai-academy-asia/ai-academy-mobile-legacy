@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_repos
 import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
+import 'package:aia_mobile/features/course_learning/domain/material_download.dart';
 
 /// A repository the tests drive by hand.
 ///
@@ -15,8 +16,8 @@ import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 /// real `SampleCourseLearningRepository` never actually awaits anything —
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
-/// [getCourseLearning], [getLessons], [getExercise] and [saveNote] are
-/// tracked independently, same reasoning as `FakeCourseRepository`'s
+/// [getCourseLearning], [getLessons], [getExercise], [saveNote] and
+/// [getMaterialDownload] are tracked independently, same reasoning as `FakeCourseRepository`'s
 /// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
@@ -32,6 +33,9 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.savedNote,
     this.holdSave = false,
     this.saveFailure,
+    this.download,
+    this.holdDownload = false,
+    this.downloadFailure,
   });
 
   // --- getCourseLearning ---------------------------------------------------
@@ -183,7 +187,53 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     return savedNote ??
         sampleNote(message: content, timestampLabel: 'Just now');
   }
+
+  // --- getMaterialDownload -----------------------------------------------
+
+  /// Returned on success. Defaults to [sampleDownload] for the material
+  /// asked for.
+  MaterialDownload? download;
+
+  /// When true, [getMaterialDownload] blocks until [releaseDownload] is
+  /// called.
+  bool holdDownload;
+
+  /// Thrown by [getMaterialDownload] instead of returning, after
+  /// [holdDownload] releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? downloadFailure;
+
+  /// Every material id [getMaterialDownload] was called with, in order.
+  final List<int> downloadCalls = [];
+
+  Completer<void>? _downloadGate;
+
+  void releaseDownload() {
+    final gate = _downloadGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<MaterialDownload> getMaterialDownload(int materialId) async {
+    downloadCalls.add(materialId);
+
+    if (holdDownload) {
+      _downloadGate = Completer<void>();
+      await _downloadGate!.future;
+    }
+
+    if (downloadFailure case final failure?) throw failure;
+
+    return download ?? sampleDownload(materialId: materialId);
+  }
 }
+
+/// A §2.4 download answer for [materialId] — a stand-in pre-signed URL.
+MaterialDownload sampleDownload({int materialId = 1}) => MaterialDownload(
+  url: Uri.parse('https://files.example.test/materials/$materialId.pdf?sig=x'),
+  expiresAt: DateTime.utc(2026, 8, 6, 1, 5),
+  fileName: 'material-$materialId.pdf',
+  sizeBytes: 10485760,
+);
 
 /// A minimal module, every field overridable, for a test that only cares
 /// about one or two of them.

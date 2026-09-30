@@ -12,6 +12,7 @@ import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import '../domain/lesson.dart';
+import '../domain/material_download.dart';
 import 'course_module_visuals.dart';
 
 /// Reads one course's learning path — hero, progress, module list — one
@@ -21,6 +22,7 @@ import 'course_module_visuals.dart';
 ///     GET https://api.ai-academy.asia/me/modules/{module_id}/lessons
 ///     GET https://api.ai-academy.asia/me/lessons/{lesson_id}
 ///     PUT https://api.ai-academy.asia/me/lessons/{lesson_id}/note
+///     GET https://api.ai-academy.asia/me/materials/{material_id}/download
 ///     Authorization: Bearer <access_token>
 ///
 /// The lessons shape is `course_learning_api_contract_v1.md` §2.2's, read in
@@ -133,6 +135,18 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
       'content': content,
     });
     return _savedNoteFrom(body, now: _clock());
+  }
+
+  /// §2.4 `GET /me/materials/{material_id}/download` — a pre-signed link for
+  /// one material. See [_downloadFromBody].
+  ///
+  /// 404 (`material_not_found`) reads as [CourseLearningFailureKind.notFound]
+  /// and 503 (`storage_error`) as [CourseLearningFailureKind.server], through
+  /// the same [_failureForStatus] every endpoint here uses.
+  @override
+  Future<MaterialDownload> getMaterialDownload(int materialId) async {
+    final body = await _authorizedGet('/me/materials/$materialId/download');
+    return _downloadFromBody(body);
   }
 
   Future<String> _authorizedGet(String path) => _authorizedRequest(
@@ -593,6 +607,65 @@ CourseExerciseNote _savedNoteFrom(String body, {required DateTime now}) {
     );
   }
   return _noteFrom(decoded, now: now)!;
+}
+
+/// §2.4's download answer — `{"url", "expires_at", "file_name",
+/// "size_bytes"}` — read in full.
+///
+/// `url` must be an absolute `http(s)` URL: it is handed straight to the OS
+/// to open, so anything else is a server fault rather than something to try.
+MaterialDownload _downloadFromBody(String body) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'malformed JSON: ${e.message}',
+    );
+  }
+
+  if (decoded is! Map<String, dynamic>) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'response was not a JSON object',
+    );
+  }
+
+  final rawUrl = _requireString(decoded, 'download.url');
+  final url = Uri.tryParse(rawUrl);
+  if (url == null ||
+      !url.hasAuthority ||
+      (url.scheme != 'https' && url.scheme != 'http')) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'download.url: not an http(s) URL ("$rawUrl")',
+    );
+  }
+
+  final rawExpiresAt = _requireString(decoded, 'download.expires_at');
+  final expiresAt = DateTime.tryParse(rawExpiresAt);
+  if (expiresAt == null) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'download.expires_at: not a timestamp ("$rawExpiresAt")',
+    );
+  }
+
+  final sizeBytes = _requireInt(decoded, 'download.size_bytes');
+  if (sizeBytes < 0) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'download.size_bytes: expected 0 or more, got $sizeBytes',
+    );
+  }
+
+  return MaterialDownload(
+    url: url,
+    expiresAt: expiresAt,
+    fileName: _requireString(decoded, 'download.file_name'),
+    sizeBytes: sizeBytes,
+  );
 }
 
 /// §2.5's note, or null — inside the lesson detail, and as the whole body of

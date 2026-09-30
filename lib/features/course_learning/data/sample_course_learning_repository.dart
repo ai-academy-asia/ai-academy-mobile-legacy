@@ -1,9 +1,11 @@
 import '../domain/course_exercise.dart';
+import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import '../domain/course_quiz.dart';
 import '../domain/lesson.dart';
+import '../domain/material_download.dart';
 import 'course_module_visuals.dart';
 
 /// Serves one hand-authored [CourseLearningPath], one hand-authored lesson
@@ -180,8 +182,9 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         ),
       ],
       completed: false,
-      // The sample's assignment submit is a local simulation — what the Figma
-      // states were built against. (Its note save is too: see [saveNote].)
+      // The sample's assignment submit and material download are local
+      // simulations — what the Figma states were built against. (Its note
+      // save is too: see [saveNote].)
       simulatesWrites: true,
       note: const CourseExerciseNote(
         authorInitials: 'БП',
@@ -288,6 +291,19 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
       authorLabel: 'Me',
       message: content,
       timestampLabel: 'Just now',
+    );
+  }
+
+  /// The sample's materials are names and sizes only — there is no stored
+  /// file behind any of them, so there is no link to hand out. Never reached
+  /// from the sample exercise itself: with [CourseExercise.simulatesWrites]
+  /// set, the Course materials tab keeps its local "downloaded" toggle and
+  /// asks for no link.
+  @override
+  Future<MaterialDownload> getMaterialDownload(int materialId) async {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.notFound,
+      detail: 'sample material $materialId has no stored file',
     );
   }
 
