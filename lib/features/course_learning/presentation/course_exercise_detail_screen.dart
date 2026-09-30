@@ -38,16 +38,19 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// backend lesson, a local simulation for the sample. For a lesson whose
 /// [CourseExercise.simulatesWrites] is false, a material's download button
 /// fetches a fresh link (`GET /me/materials/{id}/download`) and opens it
-/// outside the app. The other writes are not integrated, so for such a
-/// lesson the Assignment tab is disabled and the quiz card does not draw (the
-/// lesson detail carries a quiz summary, not questions). The layout is
+/// outside the app, and — when the lesson has an assignment — the Assignment
+/// tab submits a link through `POST /me/assignments/{id}/submissions`. With
+/// no assignment its tab is disabled; and the quiz is not integrated, so the
+/// quiz card does not draw (the lesson detail carries a quiz summary, not
+/// questions). The layout is
 /// unchanged either way. The sample exercise keeps the local simulations
 /// described below, which the Figma states and the goldens were built
 /// against.
 ///
 /// **Scope.** The description's expanded/collapsed toggle is UI-only, same
-/// as before. The Assignment tab cycles through submit → pending review →
-/// "submitted successfully", entirely as local widget state, gated on an
+/// as before. On the sample, the Assignment tab cycles through submit →
+/// pending review → "submitted successfully", entirely as local widget
+/// state, gated on an
 /// attached reference file being (simulated-)downloaded when the exercise
 /// has one; see `AssignmentTab`'s own doc comment. The Note tab cycles
 /// between empty, editing and saved; the saved note is held on the
@@ -63,8 +66,8 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// preview card and its own screens, not a fourth tab. Its score is held
 /// here (see `_quizResult`): the student pops back to this screen after
 /// finishing it, and the preview card needs to keep showing that result.
-/// None of this reaches a backend: the Assignment and Quiz endpoints the
-/// contract documents are not integrated yet.
+/// None of this reaches a backend: the Quiz endpoints the contract documents
+/// are not integrated yet.
 /// Still out of scope, reserved for a separate future issue: a real file
 /// *upload* (as opposed to the download this issue adds) against an actual
 /// file, and the certificate. Every widget that would eventually carry that
@@ -185,6 +188,9 @@ class _CourseExerciseDetailScreenState
       // note survives switching to another tab and back.
       note: exercise.note,
       onSaveNote: _controller.saveNote,
+      onSubmitAssignment: _controller.submitAssignment,
+      submittingAssignment: _controller.submittingAssignment,
+      assignmentSubmitErrorMessage: _controller.assignmentSubmitErrorMessage,
       savingNote: _controller.savingNote,
       noteSaveErrorMessage: _controller.noteSaveErrorMessage,
       // The sample's materials have no stored file: its button keeps the
@@ -210,6 +216,9 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.onSelectTab,
     required this.note,
     required this.onSaveNote,
+    required this.onSubmitAssignment,
+    required this.submittingAssignment,
+    required this.assignmentSubmitErrorMessage,
     required this.savingNote,
     required this.noteSaveErrorMessage,
     required this.onDownloadMaterial,
@@ -227,6 +236,10 @@ class _ExerciseDetailBody extends StatelessWidget {
   final ValueChanged<ExerciseTab> onSelectTab;
   final CourseExerciseNote? note;
   final Future<bool> Function(String content) onSaveNote;
+  final Future<bool> Function({required String link, String? description})
+  onSubmitAssignment;
+  final bool submittingAssignment;
+  final String? assignmentSubmitErrorMessage;
   final bool savingNote;
   final String? noteSaveErrorMessage;
   final ValueChanged<int>? onDownloadMaterial;
@@ -293,6 +306,10 @@ class _ExerciseDetailBody extends StatelessWidget {
                             exercise: exercise,
                             note: note,
                             onSaveNote: onSaveNote,
+                            onSubmitAssignment: onSubmitAssignment,
+                            submittingAssignment: submittingAssignment,
+                            assignmentSubmitErrorMessage:
+                                assignmentSubmitErrorMessage,
                             savingNote: savingNote,
                             noteSaveErrorMessage: noteSaveErrorMessage,
                             onDownloadMaterial: onDownloadMaterial,
@@ -328,6 +345,9 @@ class _TabContent extends StatelessWidget {
     required this.exercise,
     required this.note,
     required this.onSaveNote,
+    required this.onSubmitAssignment,
+    required this.submittingAssignment,
+    required this.assignmentSubmitErrorMessage,
     required this.savingNote,
     required this.noteSaveErrorMessage,
     required this.onDownloadMaterial,
@@ -340,6 +360,10 @@ class _TabContent extends StatelessWidget {
   final CourseExercise exercise;
   final CourseExerciseNote? note;
   final Future<bool> Function(String content) onSaveNote;
+  final Future<bool> Function({required String link, String? description})
+  onSubmitAssignment;
+  final bool submittingAssignment;
+  final String? assignmentSubmitErrorMessage;
   final bool savingNote;
   final String? noteSaveErrorMessage;
   final ValueChanged<int>? onDownloadMaterial;
@@ -354,9 +378,15 @@ class _TabContent extends StatelessWidget {
         feedbackSequence: exercise.assignmentFeedback,
         attachment: exercise.assignmentAttachment,
         submission: exercise.assignment?.submission,
-        // The submission API is not integrated: a backend lesson's tab is
-        // drawn, but nothing in it can be submitted.
-        enabled: exercise.simulatesWrites,
+        // The sample simulates; a backend lesson can submit only when it
+        // has an assignment to submit to.
+        enabled: exercise.simulatesWrites || exercise.assignment != null,
+        onSubmit: !exercise.simulatesWrites && exercise.assignment != null
+            ? (link, description) =>
+                  onSubmitAssignment(link: link, description: description)
+            : null,
+        submitting: submittingAssignment,
+        errorMessage: assignmentSubmitErrorMessage,
       ),
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,

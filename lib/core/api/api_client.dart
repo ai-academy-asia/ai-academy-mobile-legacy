@@ -101,6 +101,28 @@ Future<http.Response> putJsonRaw({
   timeout,
 );
 
+/// The transport for an authenticated POST with a JSON body —
+/// `POST /me/assignments/{id}/submissions` is the first caller. The POST twin
+/// of [putJsonRaw], and returns every status for the same reason.
+Future<http.Response> postJsonRaw({
+  required http.Client client,
+  required Uri url,
+  required Map<String, Object?> body,
+  required Duration timeout,
+  Map<String, String> headers = const {},
+}) => _send(
+  () => client.post(
+    url,
+    headers: {
+      HttpHeaders.contentTypeHeader: 'application/json',
+      HttpHeaders.acceptHeader: 'application/json',
+      ...headers,
+    },
+    body: jsonEncode(body),
+  ),
+  timeout,
+);
+
 /// Runs [request], turning one that never completed into
 /// [ApiFailureKind.network] — so each transport above states the try/catch
 /// once rather than restating it.

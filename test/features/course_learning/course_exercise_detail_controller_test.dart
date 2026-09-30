@@ -394,6 +394,271 @@ void main() {
     });
   });
 
+  group('submitAssignment', () {
+    const assignment = CourseAssignment(id: 17);
+
+    Future<CourseExerciseDetailController> loaded(
+      FakeCourseLearningRepository repository,
+    ) async {
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+      await controller.load();
+      return controller;
+    }
+
+    FakeCourseLearningRepository withAssignment({
+      CourseAssignment? assignment = assignment,
+      bool holdSubmit = false,
+      AssignmentSubmission? submission,
+      CourseLearningFailure? submitFailure,
+    }) => FakeCourseLearningRepository(
+      exercise: sampleExercise(
+        lessonId: 204,
+        title: 'Давталт',
+        simulatesWrites: false,
+        assignment: assignment,
+      ),
+      holdSubmit: holdSubmit,
+      submission: submission,
+      submitFailure: submitFailure,
+    );
+
+    test('starts not submitting, with no submit error', () async {
+      final controller = await loaded(withAssignment());
+
+      expect(controller.submittingAssignment, isFalse);
+      expect(controller.assignmentSubmitErrorMessage, isNull);
+    });
+
+    test('reports submitting while the request is in flight', () async {
+      final repository = withAssignment(holdSubmit: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.submitAssignment(link: 'https://x.test');
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.submittingAssignment, isTrue);
+
+      repository.releaseSubmit();
+      await pending;
+      expect(controller.submittingAssignment, isFalse);
+    });
+
+    test('sends the trimmed link and description to the assignment', () async {
+      final repository = withAssignment();
+      final controller = await loaded(repository);
+
+      await controller.submitAssignment(
+        link: '  https://x.test  ',
+        description: '  Тайлбар  ',
+      );
+      await controller.submitAssignment(
+        link: 'https://y.test',
+        description: ' ',
+      );
+
+      expect(repository.submitCalls, [
+        (17, 'https://x.test', 'Тайлбар'),
+        // Blank is no description at all.
+        (17, 'https://y.test', null),
+      ]);
+    });
+
+    test('success holds the server\'s submission, not a local one', () async {
+      final server = sampleSubmission(
+        id: 999,
+        version: 3,
+        link: 'https://server.test/as-stored',
+        feedback: const AssignmentMentorFeedback(
+          mentorInitials: 'ДБ',
+          mentorName: 'Дорж Бат',
+          mentorRole: 'Lead Mentor',
+          message: 'Сайн.',
+          timestampLabel: 'Today, 14:20',
+        ),
+      );
+      final controller = await loaded(withAssignment(submission: server));
+
+      final result = await controller.submitAssignment(link: 'https://x.test');
+
+      expect(result, isTrue);
+      expect(controller.exercise!.assignment!.id, 17);
+      expect(controller.exercise!.assignment!.submission, same(server));
+      // The rest of the lesson is untouched.
+      expect(controller.exercise!.title, 'Давталт');
+      expect(controller.errorMessage, isNull);
+    });
+
+    test('a resubmission replaces the latest submission', () async {
+      final first = sampleSubmission(id: 301, version: 1);
+      final repository = withAssignment(
+        assignment: CourseAssignment(id: 17, submission: first),
+      )..submission = sampleSubmission(id: 302, version: 2);
+      final controller = await loaded(repository);
+
+      await controller.submitAssignment(link: 'https://x.test');
+
+      final latest = controller.exercise!.assignment!.submission!;
+      expect(latest.id, 302);
+      expect(latest.version, 2);
+      expect(repository.submitCalls.single.$1, 17);
+    });
+
+    test('a failure becomes its own copy and keeps the old state', () async {
+      for (final kind in CourseLearningFailureKind.values) {
+        final previous = sampleSubmission(id: 301);
+        final controller = await loaded(
+          withAssignment(
+            assignment: CourseAssignment(id: 17, submission: previous),
+            submitFailure: CourseLearningFailure(kind),
+          ),
+        );
+
+        final result = await controller.submitAssignment(link: 'https://x');
+
+        expect(result, isFalse, reason: kind.name);
+        expect(
+          controller.assignmentSubmitErrorMessage,
+          kind == CourseLearningFailureKind.notFound
+              ? CourseLearningStrings.assignmentNotFound
+              : CourseLearningStrings.messageFor(kind),
+          reason: kind.name,
+        );
+        expect(
+          controller.exercise!.assignment!.submission,
+          same(previous),
+          reason: kind.name,
+        );
+        expect(controller.errorMessage, isNull, reason: kind.name);
+        expect(controller.submittingAssignment, isFalse, reason: kind.name);
+      }
+    });
+
+    test('the four submission rules read as their own copy', () async {
+      final expected = {
+        CourseLearningFailureKind.submissionEmpty:
+            CourseLearningStrings.submissionEmpty,
+        CourseLearningFailureKind.invalidLink:
+            CourseLearningStrings.invalidLink,
+        CourseLearningFailureKind.descriptionTooLong:
+            CourseLearningStrings.descriptionTooLong,
+        CourseLearningFailureKind.pastDue: CourseLearningStrings.pastDue,
+      };
+      for (final MapEntry(key: kind, value: copy) in expected.entries) {
+        final controller = await loaded(
+          withAssignment(submitFailure: CourseLearningFailure(kind)),
+        );
+
+        await controller.submitAssignment(link: 'https://x');
+
+        expect(
+          controller.assignmentSubmitErrorMessage,
+          copy,
+          reason: kind.name,
+        );
+      }
+      // past_due is not the lesson-locked copy.
+      expect(
+        CourseLearningStrings.pastDue,
+        isNot(
+          CourseLearningStrings.messageFor(CourseLearningFailureKind.locked),
+        ),
+      );
+    });
+
+    test('a retry clears the error as it starts, and can succeed', () async {
+      final repository = withAssignment(
+        submitFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      final controller = await loaded(repository);
+      await controller.submitAssignment(link: 'https://x');
+      expect(controller.assignmentSubmitErrorMessage, isNotNull);
+
+      repository
+        ..submitFailure = null
+        ..holdSubmit = true;
+      final pending = controller.submitAssignment(link: 'https://x');
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.assignmentSubmitErrorMessage, isNull);
+
+      repository.releaseSubmit();
+      expect(await pending, isTrue);
+      expect(controller.exercise!.assignment!.submission, isNotNull);
+    });
+
+    test('a second submit while one is in flight is ignored', () async {
+      final repository = withAssignment(holdSubmit: true);
+      final controller = await loaded(repository);
+
+      final first = controller.submitAssignment(link: 'https://x');
+      await Future<void>.delayed(Duration.zero);
+      expect(await controller.submitAssignment(link: 'https://y'), isFalse);
+
+      repository.releaseSubmit();
+      await first;
+      expect(repository.submitCalls, hasLength(1));
+    });
+
+    test('with no assignment, nothing is sent', () async {
+      final repository = withAssignment(assignment: null);
+      final controller = await loaded(repository);
+
+      expect(await controller.submitAssignment(link: 'https://x'), isFalse);
+      expect(repository.submitCalls, isEmpty);
+    });
+
+    test('with no lesson loaded, nothing is sent', () async {
+      final repository = withAssignment();
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+
+      expect(await controller.submitAssignment(link: 'https://x'), isFalse);
+      expect(repository.submitCalls, isEmpty);
+    });
+
+    test('an unexpected error reads as the generic copy', () async {
+      final controller = await loaded(_ThrowingRepository.onSubmit());
+
+      expect(await controller.submitAssignment(link: 'https://x'), isFalse);
+      expect(
+        controller.assignmentSubmitErrorMessage,
+        CourseLearningStrings.unexpectedError,
+      );
+    });
+
+    test('does not notify after being disposed', () async {
+      final repository = withAssignment(holdSubmit: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.submitAssignment(link: 'https://x');
+      controller.dispose();
+      repository.releaseSubmit();
+
+      await pending;
+    });
+
+    test('does not notify after being disposed, on failure either', () async {
+      final repository = withAssignment(
+        holdSubmit: true,
+        submitFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.server,
+        ),
+      );
+      final controller = await loaded(repository);
+
+      final pending = controller.submitAssignment(link: 'https://x');
+      controller.dispose();
+      repository.releaseSubmit();
+
+      await pending;
+    });
+  });
+
   group('downloadMaterial', () {
     /// A loaded controller whose opener records what it was handed.
     Future<(CourseExerciseDetailController, List<Uri>)> loaded(
@@ -594,24 +859,52 @@ void main() {
 }
 
 /// Throws something that is not a `CourseLearningFailure` — from
-/// [getExercise] by default, or, built with [_ThrowingRepository.onSave],
-/// from [saveNote] only.
+/// [getExercise] by default, or, built with [_ThrowingRepository.onSave] or
+/// [_ThrowingRepository.onSubmit], from that call only.
 class _ThrowingRepository extends FakeCourseLearningRepository {
-  _ThrowingRepository() : _throwOnSave = false;
+  _ThrowingRepository() : _throwOn = _Throw.load;
 
-  _ThrowingRepository.onSave() : _throwOnSave = true;
+  _ThrowingRepository.onSave() : _throwOn = _Throw.save;
 
-  final bool _throwOnSave;
+  _ThrowingRepository.onSubmit()
+    : _throwOn = _Throw.submit,
+      super(
+        exercise: sampleExercise(
+          lessonId: 204,
+          simulatesWrites: false,
+          assignment: const CourseAssignment(id: 17),
+        ),
+      );
+
+  final _Throw _throwOn;
 
   @override
   Future<CourseExercise> getExercise(int lessonId) async {
-    if (_throwOnSave) return super.getExercise(lessonId);
+    if (_throwOn != _Throw.load) return super.getExercise(lessonId);
     throw StateError('boom');
   }
 
   @override
   Future<CourseExerciseNote> saveNote(int lessonId, String content) async {
-    if (!_throwOnSave) return super.saveNote(lessonId, content);
+    if (_throwOn != _Throw.save) return super.saveNote(lessonId, content);
+    throw StateError('boom');
+  }
+
+  @override
+  Future<AssignmentSubmission> submitAssignment(
+    int assignmentId, {
+    required String link,
+    String? description,
+  }) async {
+    if (_throwOn != _Throw.submit) {
+      return super.submitAssignment(
+        assignmentId,
+        link: link,
+        description: description,
+      );
+    }
     throw StateError('boom');
   }
 }
+
+enum _Throw { load, save, submit }

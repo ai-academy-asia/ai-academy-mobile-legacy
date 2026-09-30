@@ -6,8 +6,8 @@ import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_repository.dart';
 import 'course_learning_strings.dart';
 
-/// Loads one lesson's content, saves the student's note on it, and opens its
-/// materials' downloads.
+/// Loads one lesson's content, saves the student's note on it, opens its
+/// materials' downloads, and submits its assignment link.
 ///
 /// Same `ChangeNotifier`/`_disposed`-guard shape as `CourseLearningController`,
 /// [errorMessage] included: `GET /me/lessons/{lesson_id}` is a real fallible
@@ -40,6 +40,8 @@ class CourseExerciseDetailController extends ChangeNotifier {
   final Set<int> _downloadingMaterialIds = {};
   final Set<int> _openedMaterialIds = {};
   final Map<int, String> _materialDownloadErrors = {};
+  bool _submittingAssignment = false;
+  String? _assignmentSubmitErrorMessage;
 
   bool get loading => _loading;
   CourseExercise? get exercise => _exercise;
@@ -50,6 +52,13 @@ class CourseExerciseDetailController extends ChangeNotifier {
   /// User-facing copy for the last failed [saveNote], or null. Kept apart
   /// from [errorMessage]: a failed save leaves the loaded lesson on screen.
   String? get noteSaveErrorMessage => _noteSaveErrorMessage;
+
+  /// True while a [submitAssignment] is in flight.
+  bool get submittingAssignment => _submittingAssignment;
+
+  /// User-facing copy for the last failed [submitAssignment], or null. Kept
+  /// apart from [errorMessage], like [noteSaveErrorMessage].
+  String? get assignmentSubmitErrorMessage => _assignmentSubmitErrorMessage;
 
   /// True while [downloadMaterial] is fetching or opening [materialId]'s
   /// link.
@@ -121,6 +130,55 @@ class CourseExerciseDetailController extends ChangeNotifier {
       return false;
     } finally {
       _savingNote = false;
+      _notify();
+    }
+  }
+
+  /// Submits [link] (and [description], when not blank) to the loaded
+  /// lesson's assignment — a first submission or a resubmission, the same
+  /// call. On success the loaded exercise holds the submission the server
+  /// answered with, and this answers true. On failure the exercise is
+  /// untouched, [assignmentSubmitErrorMessage] says why (404 with this
+  /// feature's own "assignment not found" line), and this answers false.
+  /// Ignored (false) with no assignment loaded or a submit already in
+  /// flight.
+  Future<bool> submitAssignment({
+    required String link,
+    String? description,
+  }) async {
+    final assignment = _exercise?.assignment;
+    if (assignment == null || _submittingAssignment) return false;
+
+    _submittingAssignment = true;
+    _assignmentSubmitErrorMessage = null;
+    _notify();
+
+    final trimmedDescription = description?.trim();
+    try {
+      final submission = await _repository.submitAssignment(
+        assignment.id,
+        link: link.trim(),
+        description: trimmedDescription == null || trimmedDescription.isEmpty
+            ? null
+            : trimmedDescription,
+      );
+      // Re-read, as `saveNote` does: a reload may have replaced the exercise.
+      final current = _exercise;
+      if (current != null) {
+        _exercise = current.withAssignmentSubmission(submission);
+      }
+      return true;
+    } on CourseLearningFailure catch (failure) {
+      _assignmentSubmitErrorMessage =
+          failure.kind == CourseLearningFailureKind.notFound
+          ? CourseLearningStrings.assignmentNotFound
+          : CourseLearningStrings.messageFor(failure.kind);
+      return false;
+    } catch (_) {
+      _assignmentSubmitErrorMessage = CourseLearningStrings.unexpectedError;
+      return false;
+    } finally {
+      _submittingAssignment = false;
       _notify();
     }
   }

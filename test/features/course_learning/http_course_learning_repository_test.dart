@@ -2376,6 +2376,339 @@ void main() {
       });
     });
   });
+
+  // §2.6: POST /me/assignments/{assignment_id}/submissions — a link.
+  group('submitAssignment', () {
+    /// 2026-08-06, 15:00 local — the "today" feedback is labelled against.
+    final now = DateTime(2026, 8, 6, 15);
+
+    /// The contract's §2.6 submission object, as a submit answers.
+    Map<String, Object?> submissionBody({
+      Object? feedback,
+      Object? version = 1,
+    }) => {
+      'id': 301,
+      'version': version,
+      'status': 'submitted',
+      'link': 'https://github.com/student/loops',
+      'description': 'Давталтын дасгал',
+      'file': null,
+      'submitted_at': '2026-08-06T03:00:00+00:00',
+      'score': null,
+      'feedback': feedback,
+    };
+
+    HttpCourseLearningRepository submitRepository(
+      Future<http.Response> Function(http.Request request) handler, {
+      AuthSessionStore? sessionStore,
+    }) => HttpCourseLearningRepository(
+      client: MockClient(handler),
+      sessionStore: sessionStore ?? signedIn(),
+      clock: () => now,
+    );
+
+    Future<CourseLearningFailure> submitFailureFrom(
+      HttpCourseLearningRepository repository,
+    ) async {
+      try {
+        await repository.submitAssignment(17, link: 'https://x.test');
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    Future<CourseLearningFailure> failureForStatus(
+      int status, [
+      Object? body = const {},
+    ]) => submitFailureFrom(
+      submitRepository((_) async => jsonResponse(body, status)),
+    );
+
+    group('the request', () {
+      test(
+        'POSTs the link as JSON to the assignment, with the token',
+        () async {
+          late http.Request sent;
+          final repository = submitRepository((request) async {
+            sent = request;
+            return jsonResponse(submissionBody(), 201);
+          });
+
+          await repository.submitAssignment(
+            17,
+            link: 'https://github.com/student/loops',
+            description: 'Давталтын дасгал',
+          );
+
+          expect(sent.method, 'POST');
+          expect(
+            sent.url.toString(),
+            'https://api.ai-academy.asia/me/assignments/17/submissions',
+          );
+          expect(
+            sent.headers[HttpHeaders.authorizationHeader],
+            'Bearer tok-123',
+          );
+          expect(
+            sent.headers[HttpHeaders.contentTypeHeader],
+            startsWith('application/json'),
+          );
+          expect(sent.headers[HttpHeaders.acceptHeader], 'application/json');
+          expect(jsonDecode(sent.body), {
+            'link': 'https://github.com/student/loops',
+            'description': 'Давталтын дасгал',
+            'file_id': null,
+          });
+        },
+      );
+
+      test('file_id is always sent, and null — no upload here', () async {
+        late http.Request sent;
+        final repository = submitRepository((request) async {
+          sent = request;
+          return jsonResponse(submissionBody(), 201);
+        });
+
+        await repository.submitAssignment(17, link: 'https://x.test');
+
+        final body = jsonDecode(sent.body) as Map<String, dynamic>;
+        expect(body.containsKey('file_id'), isTrue);
+        expect(body['file_id'], isNull);
+        // No description is sent as null, not left out.
+        expect(body.containsKey('description'), isTrue);
+        expect(body['description'], isNull);
+      });
+
+      test('signed out: sends nothing and asks for sign-in', () async {
+        var requests = 0;
+        final repository = submitRepository((_) async {
+          requests++;
+          return jsonResponse(submissionBody(), 201);
+        }, sessionStore: AuthSessionStore());
+
+        final failure = await submitFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('an expired session: sends nothing', () async {
+        var requests = 0;
+        final store = AuthSessionStore()
+          ..save(
+            const AuthSession(
+              accessToken: 'old',
+              expiresIn: Duration(hours: 1),
+            ),
+            now: DateTime(2000),
+          );
+        final repository = submitRepository((_) async {
+          requests++;
+          return jsonResponse(submissionBody(), 201);
+        }, sessionStore: store);
+
+        final failure = await submitFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+    });
+
+    group('the answer', () {
+      test('201 reads the new submission', () async {
+        final submission = await submitRepository(
+          (_) async => jsonResponse(submissionBody(version: 2), 201),
+        ).submitAssignment(17, link: 'https://x.test');
+
+        expect(submission.id, 301);
+        expect(submission.version, 2);
+        expect(submission.status, AssignmentSubmissionStatus.submitted);
+        expect(submission.link, 'https://github.com/student/loops');
+        expect(submission.description, 'Давталтын дасгал');
+        expect(submission.submittedAt, DateTime.utc(2026, 8, 6, 3));
+        expect(submission.feedback, isNull);
+      });
+
+      test(
+        'feedback in the answer is read like the lesson detail\'s',
+        () async {
+          final submission = await submitRepository(
+            (_) async => jsonResponse(
+              submissionBody(
+                feedback: {
+                  'message': 'Сайн.',
+                  'created_at': DateTime(
+                    2026,
+                    8,
+                    6,
+                    14,
+                    20,
+                  ).toUtc().toIso8601String(),
+                  'mentor': {
+                    'id': 4,
+                    'name': 'Дорж Бат',
+                    'initials': 'ДБ',
+                    'role': 'teacher',
+                  },
+                },
+              ),
+              201,
+            ),
+          ).submitAssignment(17, link: 'https://x.test');
+
+          final feedback = submission.feedback!;
+          expect(feedback.mentorName, 'Дорж Бат');
+          expect(feedback.mentorRole, 'Lead Mentor');
+          expect(feedback.timestampLabel, 'Today, 14:20');
+        },
+      );
+    });
+
+    group('status mapping', () {
+      test('the three 400 codes are their own kinds', () async {
+        final expected = {
+          'submission_empty': CourseLearningFailureKind.submissionEmpty,
+          'invalid_link': CourseLearningFailureKind.invalidLink,
+          'description_too_long': CourseLearningFailureKind.descriptionTooLong,
+        };
+        for (final MapEntry(key: code, value: kind) in expected.entries) {
+          final failure = await failureForStatus(400, {'error': code});
+
+          expect(failure.kind, kind, reason: code);
+        }
+      });
+
+      test('an undocumented 400 code is unexpected, not guessed at', () async {
+        for (final code in ['file_required', 'submission_conflict']) {
+          final failure = await failureForStatus(400, {'error': code});
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.unexpected,
+            reason: code,
+          );
+        }
+      });
+
+      test('409 past_due is its own kind, not locked', () async {
+        final failure = await failureForStatus(409, {'error': 'past_due'});
+
+        expect(failure.kind, CourseLearningFailureKind.pastDue);
+      });
+
+      test('409 lesson_locked, or any other 409, is still locked', () async {
+        for (final body in <Object?>[
+          {'error': 'lesson_locked'},
+          {'error': 'submission_conflict'},
+          'not json',
+        ]) {
+          final failure = await failureForStatus(409, body);
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.locked,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('401 is a dead session, and the token is forgotten', () async {
+        final store = signedIn();
+        final failure = await submitFailureFrom(
+          submitRepository(
+            (_) async => jsonResponse({'error': 'token_expired'}, 401),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(store.isSignedIn, isFalse);
+      });
+
+      test('403 is not_enrolled, and keeps the token', () async {
+        final store = signedIn();
+        final failure = await submitFailureFrom(
+          submitRepository(
+            (_) async => jsonResponse({'error': 'not_enrolled'}, 403),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.notEnrolled);
+        expect(store.isSignedIn, isTrue);
+      });
+
+      test('404 assignment_not_found is not found', () async {
+        final failure = await failureForStatus(404, {
+          'error': 'assignment_not_found',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.notFound);
+      });
+
+      test('5xx is a server fault', () async {
+        for (final status in [500, 503]) {
+          final failure = await failureForStatus(status);
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: 'HTTP $status',
+          );
+        }
+      });
+
+      test('a request that never completes is a network failure', () async {
+        final failure = await submitFailureFrom(
+          submitRepository((_) async => throw const SocketException('off')),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.network);
+      });
+    });
+
+    group('a malformed answer is a server fault', () {
+      test('not JSON', () async {
+        final failure = await submitFailureFrom(
+          submitRepository((_) async => http.Response('<html>', 201)),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('not an object', () async {
+        for (final body in <Object?>[null, [], 'ok']) {
+          final failure = await submitFailureFrom(
+            submitRepository((_) async => jsonResponse(body, 201)),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('a submission without its required fields', () async {
+        for (final field in ['id', 'version', 'status', 'submitted_at']) {
+          final failure = await submitFailureFrom(
+            submitRepository(
+              (_) async => jsonResponse(submissionBody()..remove(field), 201),
+            ),
+          );
+
+          expect(failure.kind, CourseLearningFailureKind.server, reason: field);
+          expect(
+            failure.detail,
+            contains('assignment.submission.$field'),
+            reason: field,
+          );
+        }
+      });
+    });
+  });
 }
 
 /// Sentinel for `feedbackBody(mentor: ...)`: "the caller did not pass one"

@@ -16,8 +16,8 @@ import 'package:aia_mobile/features/course_learning/domain/material_download.dar
 /// real `SampleCourseLearningRepository` never actually awaits anything —
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
-/// [getCourseLearning], [getLessons], [getExercise], [saveNote] and
-/// [getMaterialDownload] are tracked independently, same reasoning as `FakeCourseRepository`'s
+/// [getCourseLearning], [getLessons], [getExercise], [saveNote],
+/// [getMaterialDownload] and [submitAssignment] are tracked independently, same reasoning as `FakeCourseRepository`'s
 /// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
@@ -36,6 +36,9 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.download,
     this.holdDownload = false,
     this.downloadFailure,
+    this.submission,
+    this.holdSubmit = false,
+    this.submitFailure,
   });
 
   // --- getCourseLearning ---------------------------------------------------
@@ -225,7 +228,70 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
     return download ?? sampleDownload(materialId: materialId);
   }
+
+  // --- submitAssignment --------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleSubmission] carrying the link
+  /// and description it was sent.
+  AssignmentSubmission? submission;
+
+  /// When true, [submitAssignment] blocks until [releaseSubmit] is called.
+  bool holdSubmit;
+
+  /// Thrown by [submitAssignment] instead of returning, after [holdSubmit]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? submitFailure;
+
+  /// Every `(assignmentId, link, description)` [submitAssignment] was called
+  /// with, in order.
+  final List<(int, String, String?)> submitCalls = [];
+
+  Completer<void>? _submitGate;
+
+  void releaseSubmit() {
+    final gate = _submitGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<AssignmentSubmission> submitAssignment(
+    int assignmentId, {
+    required String link,
+    String? description,
+  }) async {
+    submitCalls.add((assignmentId, link, description));
+
+    if (holdSubmit) {
+      _submitGate = Completer<void>();
+      await _submitGate!.future;
+    }
+
+    if (submitFailure case final failure?) throw failure;
+
+    return submission ??
+        sampleSubmission(link: link, description: description);
+  }
 }
+
+/// A §2.6 submission, as a submit answers — unreviewed unless a test passes
+/// [feedback].
+AssignmentSubmission sampleSubmission({
+  int id = 301,
+  int version = 1,
+  String? link = 'https://github.com/student/loops',
+  String? description,
+  AssignmentMentorFeedback? feedback,
+}) => AssignmentSubmission(
+  id: id,
+  version: version,
+  status: feedback == null
+      ? AssignmentSubmissionStatus.submitted
+      : AssignmentSubmissionStatus.reviewed,
+  submittedAt: DateTime.utc(2026, 8, 5, 3),
+  link: link,
+  description: description,
+  feedback: feedback,
+);
 
 /// A §2.4 download answer for [materialId] — a stand-in pre-signed URL.
 MaterialDownload sampleDownload({int materialId = 1}) => MaterialDownload(
