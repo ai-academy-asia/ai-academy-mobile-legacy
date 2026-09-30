@@ -25,6 +25,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.failure,
     this.lessons,
     this.holdLessons = false,
+    this.lessonsFailure,
     this.exercise,
     this.holdExercise = false,
   });
@@ -75,6 +76,10 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   /// When true, [getLessons] blocks until [releaseLessons] is called.
   bool holdLessons;
 
+  /// Thrown by [getLessons] instead of returning, after [holdLessons]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? lessonsFailure;
+
   /// Every module id [getLessons] was called with, in order.
   final List<int> lessonCalls = [];
 
@@ -93,6 +98,8 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
       _lessonsGate = Completer<void>();
       await _lessonsGate!.future;
     }
+
+    if (lessonsFailure case final failure?) throw failure;
 
     return lessons ?? sampleLessons(moduleId: moduleId);
   }
@@ -229,6 +236,7 @@ Lesson sampleLesson({
   int moduleId = 2,
   int order = 2,
   String title = 'Nesting loops',
+  LessonType type = LessonType.recording,
   String durationLabel = '24:15',
   bool completed = false,
   bool locked = false,
@@ -237,6 +245,7 @@ Lesson sampleLesson({
   moduleId: moduleId,
   order: order,
   title: title,
+  type: type,
   durationLabel: durationLabel,
   completed: completed,
   locked: locked,

@@ -89,6 +89,7 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         moduleId: moduleId,
         order: 1,
         title: 'Introduction to loops',
+        type: LessonType.recording,
         durationLabel: '12:30',
         completed: true,
         locked: false,
@@ -102,6 +103,7 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         // comment on that gap), so the one lesson a student can actually
         // open shows content consistent with what it opens.
         title: 'Nesting loops',
+        type: LessonType.recording,
         durationLabel: '24:15',
         completed: false,
         locked: false,
@@ -111,6 +113,7 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         moduleId: moduleId,
         order: 3,
         title: 'Practice: matrix traversal',
+        type: LessonType.recording,
         durationLabel: '18:40',
         completed: false,
         locked: true,

@@ -1,5 +1,7 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/lesson_list_item.dart';
@@ -35,7 +37,7 @@ void main() {
 
   Future<void> pumpScreen(
     WidgetTester tester,
-    FakeCourseLearningRepository repository, {
+    FakeCourseLearningRepository? repository, {
     int moduleId = 2,
     String moduleTitle = 'Language Model Training',
     Size size = const Size(393, 852),
@@ -155,6 +157,67 @@ void main() {
 
       repository.releaseLessons();
       await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(LessonListItem), findsNWidgets(3));
+    });
+  });
+
+  group('failure', () {
+    testWidgets('shows the failure\'s own copy and a retry, not a crash', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          lessonsFailure: const CourseLearningFailure(
+            CourseLearningFailureKind.notFound,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.notFound), findsOneWidget);
+      expect(find.text(CourseLearningStrings.retry), findsOneWidget);
+      // The list is gone, not half-drawn under the error.
+      expect(find.byType(LessonListItem), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      // The back button stays, so the student is never stranded.
+      expect(backButton(), findsOneWidget);
+    });
+
+    testWidgets('retry re-requests and renders the lessons on success', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        lessonsFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      expect(find.text(CourseLearningStrings.networkError), findsOneWidget);
+
+      repository.lessonsFailure = null;
+      await tester.tap(find.text(CourseLearningStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(repository.lessonCalls, [2, 2]);
+      expect(find.text(CourseLearningStrings.networkError), findsNothing);
+      expect(find.byType(LessonListItem), findsNWidgets(3));
+    });
+  });
+
+  group('default repository', () {
+    testWidgets('is the HTTP one, not the sample', (tester) async {
+      // No session is held in a test, so the HTTP repository refuses before
+      // sending anything — its session-expired copy is the proof. The sample
+      // repository would have drawn three lessons instead.
+      await pumpScreen(tester, null);
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.sessionExpired), findsOneWidget);
+      expect(find.byType(LessonListItem), findsNothing);
     });
   });
 }
