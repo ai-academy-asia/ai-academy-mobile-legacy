@@ -1,9 +1,9 @@
 /// Everything the Home dashboard draws, in one value.
 ///
 /// **Every section is nullable and the screen draws each only when its field
-/// is set.** That is deliberate. The API has confirmed endpoints for the
-/// student's cohorts and their schedule, and none at all for modules,
-/// attendance, payments or the e-contract — see
+/// is set.** That is deliberate. The API has confirmed response shapes for
+/// the student's cohorts, their schedule and the course's learning path, and
+/// none for attendance, payments or the e-contract — see
 /// `EnrolledHomeDashboardRepository`, which documents exactly which endpoint
 /// each missing section is waiting on. Rather than invent those contracts, or
 /// ship the reference's sample numbers ("2 of 5", "1/20", "3 хоног") as
@@ -110,12 +110,12 @@ class EnrolledProgram {
 
 /// How far through the course the student is.
 ///
-/// [percent] is the only field every source can fill: it is also the shape
-/// `Enrollment.progressPct` — the one progress figure the API confirms — sends,
-/// with no module count behind it. [completed]/[total] are set only when a
-/// source reports an actual count (a modules endpoint, if one is ever added);
-/// until then they stay null rather than being guessed at from a percentage,
-/// and the screen leaves the "Modules X of Y" line off while still drawing the
+/// [percent] is the only field every source can fill. `GET /me/courses/{slug}
+/// /learning` fills all three — its server-computed `progress.percent`, and
+/// a count of its modules' server-sent `completed` flags. The fallback,
+/// `/me/cohorts`' `progress_pct`, is a bare percentage, so then
+/// [completed]/[total] stay null rather than being guessed at from it, and
+/// the screen leaves the "Modules X of Y" line off while still drawing the
 /// percentage and the bar from [percent]. See `EnrolledHomeDashboardRepository`.
 class ModuleProgress {
   const ModuleProgress({required this.percent, this.completed, this.total});

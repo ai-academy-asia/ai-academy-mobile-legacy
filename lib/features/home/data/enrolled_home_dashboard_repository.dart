@@ -5,6 +5,8 @@ import '../../cohorts/data/http_cohort_repository.dart';
 import '../../cohorts/domain/cohort.dart';
 import '../../cohorts/domain/cohort_course_resolver.dart';
 import '../../cohorts/domain/cohort_repository.dart';
+import '../../course_learning/data/http_course_learning_repository.dart';
+import '../../course_learning/domain/course_learning_repository.dart';
 import '../../courses/data/http_course_repository.dart';
 import '../../courses/domain/course.dart';
 import '../../courses/domain/course_repository.dart';
@@ -37,24 +39,29 @@ import '../domain/lesson_schedule.dart';
 ///     comment). Best-effort, same treatment as [_uiMode]: a failure here
 ///     falls back to the cohort's own slug rather than failing the whole
 ///     dashboard over a resolution nicety.
+///   * `GET /me/courses/{course_slug}/learning` — through
+///     [CourseLearningRepository], once the slug is resolved, for
+///     [EnrolledProgram.progress]: the server's `progress.percent`, and the
+///     "Modules X of Y" count taken from the server's own per-module
+///     `completed` flags (contract §2.1). Best-effort, like [_uiMode]: a
+///     failure falls back to the `/me/cohorts` `progress_pct` above.
 ///
 /// ## What is deliberately missing
 ///
-/// The reference also shows a module count ("2 of 5"), an attendance tally, a
-/// payment state and an e-contract warning. **No endpoint in this API reports
-/// any of them**, so every one of those sections is left null rather than
-/// filled with the reference's sample numbers. Each is waiting on exactly one
-/// thing:
+/// The reference also shows an attendance tally, a payment state and an
+/// e-contract warning. None is filled here, so each section is left null
+/// rather than drawn with the reference's sample numbers:
 ///
-///   * the module count — a lessons/modules endpoint. `progress_pct` names a
-///     percentage, not a count, so [ModuleProgress.completed]/[.total] stay
-///     null even once [ModuleProgress.percent] has a real value — see that
-///     class's own doc comment.
-///   * attendance — an attendance endpoint. `Course.hasAttendance` and
-///     `attendanceMethod` hint one is planned; neither is a tally.
-///   * payment — an invoice/payment endpoint. Only catalog *prices* exist.
-///   * contract — a contract endpoint. `Course.hasContractTemplate` says a
-///     template exists, not whether this student signed.
+///   * attendance — `mobile_api_v1_1.md` lists `GET /me/attendance`, but
+///     documents no response shape to map.
+///   * payment — likewise `GET /me/ledger` and `GET /me/invoices`: listed,
+///     no documented response shape.
+///   * contract — no endpoint. `Course.hasContractTemplate` says a template
+///     exists, not whether this student signed.
+///
+/// The module count is missing only when the learning call fails: the
+/// `/me/cohorts` fallback names a percentage, not a count, so
+/// [ModuleProgress.completed]/[.total] stay null then.
 ///
 /// When one lands, it is set here and the section it feeds starts drawing;
 /// nothing above this class changes.
@@ -64,17 +71,20 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     CohortRepository? cohorts,
     CurrentUserRepository? currentUser,
     CourseRepository? courses,
+    CourseLearningRepository? courseLearning,
     DateTime Function()? clock,
   }) : _enrolledCohorts = enrolledCohorts ?? HttpEnrolledCohortsRepository(),
        _cohorts = cohorts ?? HttpCohortRepository(),
        _currentUser = currentUser ?? HttpCurrentUserRepository(),
        _courses = courses ?? HttpCourseRepository(),
+       _courseLearning = courseLearning ?? HttpCourseLearningRepository(),
        _clock = clock ?? DateTime.now;
 
   final EnrolledCohortsRepository _enrolledCohorts;
   final CohortRepository _cohorts;
   final CurrentUserRepository _currentUser;
   final CourseRepository _courses;
+  final CourseLearningRepository _courseLearning;
   final DateTime Function() _clock;
 
   @override
@@ -120,15 +130,16 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         courseSlug: courseSlug,
         status: cohort.status,
         uiMode: await _uiMode(),
-        // Null exactly when the entry named this cohort with no
-        // `progress_pct` — the module count still has no source, so
-        // `ModuleProgress.completed`/`.total` stay unset either way; see the
-        // class doc.
-        progress: progressPct == null
-            ? null
-            : ModuleProgress(
-                percent: progressPct.round().clamp(0, 100).toInt(),
-              ),
+        // The learning path's own figures when that call answers; otherwise
+        // the `/me/cohorts` percentage alone, and null exactly when that
+        // entry carried no `progress_pct` either. See the class doc.
+        progress:
+            await _learningProgress(courseSlug) ??
+            (progressPct == null
+                ? null
+                : ModuleProgress(
+                    percent: progressPct.round().clamp(0, 100).toInt(),
+                  )),
         nextLesson: nextLessonFor(cohort: cohort, now: _clock()),
       ),
     );
@@ -163,6 +174,32 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     try {
       final uiMode = (await _currentUser.getCurrentUser()).profile.uiMode;
       return uiMode.isEmpty ? null : uiMode;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The course's progress as `GET /me/courses/{slug}/learning` reports it,
+  /// or null when that call fails for any reason.
+  ///
+  /// Nothing here is computed from lessons: `percent` is the server's
+  /// `progress.percent`, and the module count only tallies the server's own
+  /// per-module `completed` flags. A path with no modules gives no count, so
+  /// the card draws the percentage alone rather than "0 of 0".
+  ///
+  /// Its own failure handling, same reasoning as [_uiMode]: the cohort card
+  /// still draws without it, on the `/me/cohorts` percentage.
+  Future<ModuleProgress?> _learningProgress(String courseSlug) async {
+    try {
+      final path = await _courseLearning.getCourseLearning(courseSlug);
+      final modules = path.modules;
+      return ModuleProgress(
+        percent: path.percentComplete,
+        completed: modules.isEmpty
+            ? null
+            : modules.where((module) => module.completed).length,
+        total: modules.isEmpty ? null : modules.length,
+      );
     } catch (_) {
       return null;
     }
