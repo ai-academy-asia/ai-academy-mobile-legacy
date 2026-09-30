@@ -31,9 +31,8 @@ import 'widgets/lesson_list_item.dart';
 /// same heading style, the same card treatment via `LessonListItem`) rather
 /// than inventing a new visual language for a screen nothing has designed.
 ///
-/// An unlocked lesson opens the existing `CourseExerciseDetailScreen`,
-/// unchanged — see `CourseLearningRepository.getExercise`'s doc comment on
-/// why that is still keyed by module rather than by `Lesson.id`.
+/// An unlocked lesson opens `CourseExerciseDetailScreen` for that lesson's
+/// own `Lesson.id`.
 class LessonListScreen extends StatefulWidget {
   const LessonListScreen({
     required this.moduleId,
@@ -123,7 +122,6 @@ class _LessonListScreenState extends State<LessonListScreen> {
       moduleTitle: widget.moduleTitle,
       lessons: _controller.lessons,
       repository: _repository,
-      moduleId: widget.moduleId,
     );
   }
 }
@@ -192,13 +190,11 @@ class _LessonListBody extends StatelessWidget {
     required this.moduleTitle,
     required this.lessons,
     required this.repository,
-    required this.moduleId,
   });
 
   final String moduleTitle;
   final List<Lesson> lessons;
   final CourseLearningRepository repository;
-  final int moduleId;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +223,7 @@ class _LessonListBody extends StatelessWidget {
                   : () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => CourseExerciseDetailScreen(
-                          moduleId: moduleId,
+                          lessonId: lesson.id,
                           repository: repository,
                         ),
                       ),

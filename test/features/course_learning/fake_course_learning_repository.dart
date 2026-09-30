@@ -28,6 +28,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.lessonsFailure,
     this.exercise,
     this.holdExercise = false,
+    this.exerciseFailure,
   });
 
   // --- getCourseLearning ---------------------------------------------------
@@ -112,7 +113,11 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   /// When true, [getExercise] blocks until [releaseExercise] is called.
   bool holdExercise;
 
-  /// Every module id [getExercise] was called with, in order.
+  /// Thrown by [getExercise] instead of returning, after [holdExercise]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? exerciseFailure;
+
+  /// Every lesson id [getExercise] was called with, in order.
   final List<int> exerciseCalls = [];
 
   Completer<void>? _exerciseGate;
@@ -123,15 +128,17 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   }
 
   @override
-  Future<CourseExercise> getExercise(int moduleId) async {
-    exerciseCalls.add(moduleId);
+  Future<CourseExercise> getExercise(int lessonId) async {
+    exerciseCalls.add(lessonId);
 
     if (holdExercise) {
       _exerciseGate = Completer<void>();
       await _exerciseGate!.future;
     }
 
-    return exercise ?? sampleExercise(moduleId: moduleId);
+    if (exerciseFailure case final failure?) throw failure;
+
+    return exercise ?? sampleExercise(lessonId: lessonId);
   }
 }
 
@@ -278,9 +285,11 @@ List<Lesson> sampleLessons({int moduleId = 2, List<Lesson>? lessons}) =>
 /// The Figma "Nesting loops" sample, note included by default — pass
 /// `note: null` for the empty/edit-state fixture.
 CourseExercise sampleExercise({
+  int lessonId = 2,
   int moduleId = 2,
   String moduleCaption = 'Modules 2',
   String title = 'Nesting loops',
+  LessonType type = LessonType.recording,
   String durationLabel = '24:15',
   String recordingBadgeLabel = 'Live Classroom Recording',
   String summary =
@@ -307,10 +316,16 @@ CourseExercise sampleExercise({
   CourseExerciseMaterial? assignmentAttachment,
   CourseQuiz? quiz,
   bool hasVideo = true,
+  bool completed = false,
+  // The sample's local simulations — what every existing screen test and
+  // golden was written against.
+  bool simulatesWrites = true,
 }) => CourseExercise(
+  lessonId: lessonId,
   moduleId: moduleId,
   moduleCaption: moduleCaption,
   title: title,
+  type: type,
   durationLabel: durationLabel,
   recordingBadgeLabel: recordingBadgeLabel,
   summary: summary,
@@ -328,6 +343,8 @@ CourseExercise sampleExercise({
   // `sampleQuiz()` in.
   assignmentAttachment: assignmentAttachment,
   quiz: quiz,
+  completed: completed,
+  simulatesWrites: simulatesWrites,
 );
 
 /// Sentinel distinguishing "the caller did not pass `note`" (default to

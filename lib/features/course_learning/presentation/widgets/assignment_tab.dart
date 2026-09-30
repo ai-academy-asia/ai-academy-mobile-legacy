@@ -83,12 +83,20 @@ enum _AssignmentStage {
 /// Feedback card below is sourced from `CourseExercise.assignmentFeedback`'s
 /// canned entries. A real file *upload* and the certificate remain out of
 /// scope — see `CourseExerciseDetailScreen`'s own doc comment.
+///
+/// **Disabled when [enabled] is false** — a lesson loaded from the backend,
+/// whose submission API is not integrated. The same fields and button are
+/// drawn, all of them off, so nothing can look submitted.
 class AssignmentTab extends StatefulWidget {
   const AssignmentTab({
     required this.feedbackSequence,
     this.attachment,
+    this.enabled = true,
     super.key,
   });
+
+  /// False draws the tab with every control off. See the class doc.
+  final bool enabled;
 
   /// `CourseExercise.assignmentFeedback` — the canned responses this tab
   /// walks through, one per submit/resubmit.
@@ -148,6 +156,7 @@ class _AssignmentTabState extends State<AssignmentTab> {
   }
 
   bool get _readyToSubmit =>
+      widget.enabled &&
       _stage == _AssignmentStage.notSubmitted &&
       _hasContent &&
       _attachmentReady;
@@ -201,7 +210,8 @@ class _AssignmentTabState extends State<AssignmentTab> {
                 controller: _linkController,
                 placeholder: CourseLearningStrings.linkPlaceholder,
                 height: 53,
-                enabled: _stage == _AssignmentStage.notSubmitted,
+                enabled:
+                    widget.enabled && _stage == _AssignmentStage.notSubmitted,
               ),
               const SizedBox(height: 18),
             ],
@@ -211,7 +221,8 @@ class _AssignmentTabState extends State<AssignmentTab> {
               floatingLabel: CourseLearningStrings.descriptionFloatingLabel,
               height: 104,
               multiline: true,
-              enabled: _stage == _AssignmentStage.notSubmitted,
+              enabled:
+                  widget.enabled && _stage == _AssignmentStage.notSubmitted,
             ),
             const SizedBox(height: 32),
             ExerciseSubmitButton(

@@ -1,29 +1,44 @@
 import 'course_quiz.dart';
+import 'lesson.dart';
 
-/// One module's exercise/lesson content — the Figma "Exercise Detail" screen.
+/// One lesson's content — the Figma "Exercise Detail" screen.
 ///
-/// **Sample data only.** Same status as `CourseModule`: no backend endpoint
-/// for exercise/lesson content, assignments, materials, notes or quizzes
-/// exists yet — every field here is this app's own choice for local sample
-/// data, not a claim about a future API's shape.
+/// Filled by `HttpCourseLearningRepository` from `GET /me/lessons/{lesson_id}`
+/// (`course_learning_api_contract_v1.md` §2.3), or by the sample repository.
+///
+/// From the backend, the read-only content is real: [lessonId], [moduleId],
+/// [moduleCaption], [title], [type], [durationLabel], [hasVideo], [summary],
+/// [extraSections], [completed], the file [materials] and the [note]. What
+/// the screen can do *with* it is narrower — see [simulatesWrites]. The quiz
+/// (§2.7 sends a summary, not questions) and the assignment workflow (§2.6)
+/// are not integrated, so a backend lesson carries no [quiz], no
+/// [assignmentFeedback] and no [assignmentAttachment].
 class CourseExercise {
   const CourseExercise({
+    required this.lessonId,
     required this.moduleId,
     required this.moduleCaption,
     required this.title,
+    required this.type,
     required this.durationLabel,
     required this.recordingBadgeLabel,
     required this.summary,
     this.hasVideo = true,
     required this.extraSections,
     required this.materials,
+    required this.completed,
+    required this.simulatesWrites,
     this.note,
     this.assignmentFeedback = const [],
     this.assignmentAttachment,
     this.quiz,
   });
 
-  /// Which module this exercise belongs to — `CourseModule.id`.
+  /// Which lesson this is — `Lesson.id`, the key Exercise Detail is loaded
+  /// by.
+  final int lessonId;
+
+  /// Which module the lesson belongs to — `module.id`.
   final int moduleId;
 
   /// The card's caption, e.g. "Modules 2" — the same "Modules N" wording
@@ -32,16 +47,20 @@ class CourseExercise {
 
   final String title;
 
+  /// The lesson's `type`.
+  final LessonType type;
+
   /// The video's running time, e.g. "24:15".
   final String durationLabel;
 
-  /// The badge drawn over the video, e.g. "Live Classroom Recording".
+  /// The badge drawn over the video, e.g. "Live Classroom Recording". Empty
+  /// when the lesson's [type] has no badge copy, which leaves the badge off.
   final String recordingBadgeLabel;
 
-  /// False when the recording is not up yet: the reference then fills the
-  /// video area with a single centred "not uploaded yet" pill and drops the
-  /// play control, the duration and the recording badge. Sample-data only,
-  /// like every other field here — no endpoint reports this.
+  /// False when the recording is not up yet — from the backend, when
+  /// `video` is `null`. The reference then fills the video area with a
+  /// single centred "not uploaded yet" pill and drops the play control, the
+  /// duration and the recording badge.
   final bool hasVideo;
 
   /// The paragraph shown in both the collapsed and expanded states — the
@@ -54,6 +73,19 @@ class CourseExercise {
   final List<CourseExerciseSection> extraSections;
 
   final List<CourseExerciseMaterial> materials;
+
+  /// Whether the student has completed the lesson — server-sent. No control
+  /// draws it yet.
+  final bool completed;
+
+  /// True for the sample exercise, whose note save and assignment submit are
+  /// local simulations that never leave the device.
+  ///
+  /// False for a lesson loaded from the backend: neither
+  /// `PUT /me/lessons/{id}/note` nor the assignment submission API is
+  /// integrated, so the screen shows the Note tab read-only and the
+  /// Assignment tab disabled rather than let an edit look saved.
+  final bool simulatesWrites;
 
   /// The student's own note on this exercise. Null when none has been left
   /// yet — the Note tab's empty/edit state.

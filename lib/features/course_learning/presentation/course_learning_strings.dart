@@ -45,6 +45,9 @@ abstract final class CourseLearningStrings {
     CourseLearningFailureKind.sessionExpired => sessionExpired,
     CourseLearningFailureKind.notEnrolled => notEnrolled,
     CourseLearningFailureKind.notFound => notFound,
+    // No copy exists for a locked lesson yet; the generic line stands in
+    // rather than inventing one. Normal navigation never opens one.
+    CourseLearningFailureKind.locked => unexpectedError,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,

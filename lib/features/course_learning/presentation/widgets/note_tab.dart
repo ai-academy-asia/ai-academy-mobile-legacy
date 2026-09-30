@@ -22,10 +22,15 @@ const String _studentName = 'Болд Батаа';
 /// **Sample/local state only.** [note] is the tab's own idea of "the current
 /// note", not the fixed sample value `CourseExercise.note` — [onSave] hands
 /// a new one back up to `CourseExerciseDetailScreen`, which is what makes
-/// "submit, then switch tabs and back" still show what was just saved. There
-/// is no backend note endpoint — `course_learning_api_requirements_v1.md`
-/// lists create/get/update as all requiring backend confirmation — so
-/// nothing here survives leaving this screen instance.
+/// "submit, then switch tabs and back" still show what was just saved.
+/// `PUT /me/lessons/{id}/note` is not integrated, so nothing here survives
+/// leaving this screen instance.
+///
+/// **Read-only when [onSave] is null** — a note loaded from the backend,
+/// which nothing here can save back. The layout is the same; only the
+/// controls are off: an existing note keeps its card with the edit action
+/// drawn disabled, and with no note the textarea and submit are drawn
+/// disabled.
 /// Measured off `Exercise - 26` at 1:1. The note card is the same 329 x 213
 /// box the Assignment tab's feedback card is, with the same 20 of padding and
 /// 40 avatar; the edit action sits 17 below it, outside the card's outline.
@@ -37,13 +42,13 @@ const double _cardToEdit = 17;
 const Color _cardBorder = Color(0xFFE5E7EB);
 
 class NoteTab extends StatefulWidget {
-  const NoteTab({required this.note, required this.onSave, super.key});
+  const NoteTab({required this.note, this.onSave, super.key});
 
   final CourseExerciseNote? note;
 
   /// Called with the note to hold from now on — a first submission or a
-  /// saved edit, both go through this.
-  final ValueChanged<CourseExerciseNote> onSave;
+  /// saved edit, both go through this. Null makes the tab read-only.
+  final ValueChanged<CourseExerciseNote>? onSave;
 
   @override
   State<NoteTab> createState() => _NoteTabState();
@@ -85,8 +90,11 @@ class _NoteTabState extends State<NoteTab> {
     final message = _controller.text.trim();
     if (message.isEmpty) return;
 
+    final onSave = widget.onSave;
+    if (onSave == null) return;
+
     final existing = widget.note;
-    widget.onSave(
+    onSave(
       CourseExerciseNote(
         authorInitials: existing?.authorInitials ?? _studentInitials,
         authorName: existing?.authorName ?? _studentName,
@@ -105,6 +113,7 @@ class _NoteTabState extends State<NoteTab> {
   @override
   Widget build(BuildContext context) {
     final note = widget.note;
+    final readOnly = widget.onSave == null;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -117,9 +126,12 @@ class _NoteTabState extends State<NoteTab> {
                   floatingLabel: CourseLearningStrings.descriptionFloatingLabel,
                   height: 118,
                   multiline: true,
+                  enabled: !readOnly,
                 ),
                 const SizedBox(height: 16),
-                ExerciseSubmitButton(onPressed: _hasContent ? _submit : null),
+                ExerciseSubmitButton(
+                  onPressed: !readOnly && _hasContent ? _submit : null,
+                ),
               ],
             )
           // The reference ends the note card at the timestamp and sets the
@@ -130,7 +142,7 @@ class _NoteTabState extends State<NoteTab> {
                 const SizedBox(height: _cardToEdit),
                 ExerciseSubmitButton(
                   label: CourseLearningStrings.editNote,
-                  onPressed: _startEditing,
+                  onPressed: readOnly ? null : _startEditing,
                   muted: true,
                 ),
               ],

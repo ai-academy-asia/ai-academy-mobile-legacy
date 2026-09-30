@@ -13,18 +13,19 @@ import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import '../domain/lesson.dart';
 import 'course_module_visuals.dart';
-import 'sample_course_learning_repository.dart';
 
-/// Reads one course's learning path — hero, progress, module list — and one
-/// module's lessons against the AI Academy API.
+/// Reads one course's learning path — hero, progress, module list — one
+/// module's lessons, and one lesson's content against the AI Academy API.
 ///
 ///     GET https://api.ai-academy.asia/me/courses/{course_slug}/learning
 ///     GET https://api.ai-academy.asia/me/modules/{module_id}/lessons
+///     GET https://api.ai-academy.asia/me/lessons/{lesson_id}
 ///     Authorization: Bearer <access_token>
 ///
 /// The lessons shape is `course_learning_api_contract_v1.md` §2.2's, read in
-/// full — see [Lesson]. Exercise Detail ([getExercise]) is not integrated
-/// yet and still serves sample content.
+/// full — see [Lesson]. The lesson-detail shape is §2.3's, read for the
+/// content Exercise Detail draws — see [CourseExercise] for what is and is
+/// not integrated.
 ///
 /// The learning path's shape is the one §2.1 documents, and **only** the
 /// fields with a slot in today's Figma-built UI
@@ -60,12 +61,12 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     http.Client? client,
     Uri? baseUrl,
     AuthSessionStore? sessionStore,
-    CourseLearningRepository? unintegrated,
+    DateTime Function()? clock,
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? http.Client(),
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance,
-       _unintegrated = unintegrated ?? SampleCourseLearningRepository();
+       _clock = clock ?? DateTime.now;
 
   static const String defaultBaseUrl = 'https://api.ai-academy.asia';
 
@@ -80,7 +81,10 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
   final http.Client _client;
   final Uri _baseUrl;
   final AuthSessionStore _sessionStore;
-  final CourseLearningRepository _unintegrated;
+
+  /// What "today" is when a note's timestamp is labelled. Injected in tests.
+  final DateTime Function() _clock;
+
   final Duration timeout;
 
   @override
@@ -105,13 +109,17 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     return _lessonsFromBody(body);
   }
 
-  /// §2.3 onwards — **not integrated**. Exercise Detail stays on the sample
-  /// content until its own issue wires `GET /me/lessons/{id}`: the screen is
-  /// keyed by module, not lesson, and has no error state to show a failure
-  /// in. Injectable so a test can prove the delegation rather than infer it.
+  /// §2.3 `GET /me/lessons/{lesson_id}` — one lesson's content. See
+  /// [_exerciseFromBody].
+  ///
+  /// 404 (`lesson_not_found`) reads as [CourseLearningFailureKind.notFound],
+  /// 403 (`not_enrolled`) as [CourseLearningFailureKind.notEnrolled] and 409
+  /// (`lesson_locked`) as [CourseLearningFailureKind.locked].
   @override
-  Future<CourseExercise> getExercise(int moduleId) =>
-      _unintegrated.getExercise(moduleId);
+  Future<CourseExercise> getExercise(int lessonId) async {
+    final body = await _authorizedGet('/me/lessons/$lessonId');
+    return _exerciseFromBody(body, now: _clock());
+  }
 
   /// The session guard, request and status mapping every endpoint here
   /// shares. Returns the body of a 2xx; throws [CourseLearningFailure]
@@ -181,6 +189,12 @@ CourseLearningFailure? _failureForStatus(int statusCode) {
     return const CourseLearningFailure(
       CourseLearningFailureKind.notFound,
       detail: 'HTTP 404',
+    );
+  }
+  if (statusCode == 409) {
+    return const CourseLearningFailure(
+      CourseLearningFailureKind.locked,
+      detail: 'HTTP 409',
     );
   }
   if (statusCode >= 500) {
@@ -333,6 +347,217 @@ Lesson _lessonFrom(Object? entry, int moduleId) {
     completed: _requireBool(entry, 'lesson.completed'),
     locked: _requireBool(entry, 'lesson.locked'),
   );
+}
+
+/// The badge copy for a `recording` lesson — the one type the design names a
+/// badge for ("Live Classroom Recording", the sample's own label). `video`
+/// and `reading` have no copy, so their badge is left off rather than
+/// invented.
+const String _recordingBadgeLabel = 'Live Classroom Recording';
+
+/// Who a note's author is to the student reading it — always themselves, as
+/// §2.5's note is the signed-in student's own. The same "Me" the sample and
+/// `NoteTab` use.
+const String _noteAuthorLabel = 'Me';
+
+/// §2.3's body into a [CourseExercise].
+///
+/// Read: `id`, `module.id`/`module.order`, `title`, `type`,
+/// `duration_seconds`, `video`, `summary`, `sections`, `completed`,
+/// `materials` and `note`. Not read, because nothing here is integrated with
+/// them: `order` (the screen shows no lesson number), `module.title`, the
+/// video's `embed_url` (no player yet — only whether a video exists),
+/// `assignment` and `quiz`. Every list keeps the server's order.
+CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'malformed JSON: ${e.message}',
+    );
+  }
+
+  if (decoded is! Map<String, dynamic>) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'response was not a JSON object',
+    );
+  }
+
+  final module = _requireObject(decoded, 'module');
+  final type = LessonType.fromApi(_requireString(decoded, 'lesson.type'));
+
+  return CourseExercise(
+    lessonId: _requireInt(decoded, 'lesson.id'),
+    moduleId: _requireInt(module, 'module.id'),
+    // "Modules N", the caption `CourseModuleCard` draws — built from
+    // `module.order` on the client, as §2.3 says.
+    moduleCaption: 'Modules ${_requireInt(module, 'module.order')}',
+    title: _requireLocalized(decoded, 'lesson.title'),
+    type: type,
+    durationLabel: _durationLabel(
+      _requireInt(decoded, 'lesson.duration_seconds'),
+    ),
+    recordingBadgeLabel: type == LessonType.recording
+        ? _recordingBadgeLabel
+        : '',
+    hasVideo: _hasVideo(decoded),
+    // Required, but an empty summary is a content gap the screen renders
+    // around rather than a response it cannot draw.
+    summary: _localizedOrEmpty(decoded, 'lesson.summary'),
+    extraSections: [
+      for (final entry in _requireList(decoded, 'lesson.sections'))
+        _sectionFrom(entry),
+    ],
+    materials: [
+      for (final entry in _requireList(decoded, 'lesson.materials'))
+        ?_fileMaterialFrom(entry),
+    ],
+    completed: _requireBool(decoded, 'lesson.completed'),
+    // Neither the note save nor the assignment submission is integrated.
+    simulatesWrites: false,
+    note: _noteFrom(decoded['note'], now: now),
+  );
+}
+
+/// `video` is `{embed_url}` or `null`; only its presence is read.
+bool _hasVideo(Map<String, dynamic> json) {
+  if (!json.containsKey('video')) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'lesson.video: missing (expected an object or null)',
+    );
+  }
+  final video = json['video'];
+  if (video == null) return false;
+  if (video is Map<String, dynamic>) return true;
+  throw CourseLearningFailure(
+    CourseLearningFailureKind.server,
+    detail:
+        'lesson.video: expected an object or null, got ${video.runtimeType}',
+  );
+}
+
+CourseExerciseSection _sectionFrom(Object? entry) {
+  if (entry is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'a section was not a JSON object (got ${entry.runtimeType})',
+    );
+  }
+  return CourseExerciseSection(
+    title: _requireLocalized(entry, 'section.title'),
+    body: _localizedOrEmpty(entry, 'section.body'),
+    bullets: [
+      for (final bullet in _requireList(entry, 'section.bullets'))
+        _bulletText(bullet),
+    ],
+  );
+}
+
+String _bulletText(Object? bullet) {
+  if (bullet is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail:
+          'section.bullets: expected {"mn", "en"} objects, got '
+          '${bullet.runtimeType}',
+    );
+  }
+  return _requireLocalized({'bullet': bullet}, 'section.bullet');
+}
+
+/// A §2.4 material, if it is a file — the one kind the materials tab can
+/// show, as a name, a size and a download button.
+///
+/// A `link` has no size and nothing to download, and an unrecognised
+/// `type` has no known shape: both are left out rather than drawn with a
+/// control that cannot work for them. Neither fails the lesson.
+CourseExerciseMaterial? _fileMaterialFrom(Object? entry) {
+  if (entry is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'a material was not a JSON object (got ${entry.runtimeType})',
+    );
+  }
+  if (_requireString(entry, 'material.type') != 'file') return null;
+
+  return CourseExerciseMaterial(
+    id: _requireInt(entry, 'material.id'),
+    name: _requireString(entry, 'material.title'),
+    sizeLabel: _sizeLabel(_requireInt(entry, 'material.size_bytes')),
+  );
+}
+
+/// `size_bytes` as the material row draws it — "10 MB", the sample's own
+/// shape. Binary units (10485760 is "10 MB"); one decimal below 10 of a
+/// unit when it is not whole ("1.5 MB"), none otherwise.
+String _sizeLabel(int bytes) {
+  if (bytes < 0) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'material.size_bytes: expected 0 or more, got $bytes',
+    );
+  }
+  const units = ['B', 'KB', 'MB', 'GB'];
+  var value = bytes.toDouble();
+  var unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  final whole = value == value.roundToDouble();
+  final text = whole || value >= 10
+      ? value.round().toString()
+      : value.toStringAsFixed(1);
+  return '$text ${units[unit]}';
+}
+
+/// §2.5's note, or null. Read-only here — see
+/// [CourseExercise.simulatesWrites].
+CourseExerciseNote? _noteFrom(Object? note, {required DateTime now}) {
+  if (note == null) return null;
+  if (note is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'note: expected an object or null, got ${note.runtimeType}',
+    );
+  }
+  final author = _requireObject(note, 'author');
+  final updatedAt = _requireString(note, 'note.updated_at');
+  final parsed = DateTime.tryParse(updatedAt);
+  if (parsed == null) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'note.updated_at: not a timestamp ("$updatedAt")',
+    );
+  }
+
+  return CourseExerciseNote(
+    authorInitials: _requireString(author, 'note.author.initials'),
+    authorName: _requireString(author, 'note.author.name'),
+    authorLabel: _noteAuthorLabel,
+    message: _requireString(note, 'note.content'),
+    timestampLabel: _timestampLabel(parsed.toLocal(), now: now),
+  );
+}
+
+/// "Today, 14:20" — the contract's §0 example of what the client formats a
+/// timestamp as, and the sample's own label — for a time on [now]'s
+/// calendar day; "08/06, 14:20" otherwise, the `MM/dd` the module schedule
+/// label already uses.
+String _timestampLabel(DateTime local, {required DateTime now}) {
+  String two(int value) => value.toString().padLeft(2, '0');
+  final time = '${two(local.hour)}:${two(local.minute)}';
+  final sameDay =
+      local.year == now.year &&
+      local.month == now.month &&
+      local.day == now.day;
+  return sameDay
+      ? 'Today, $time'
+      : '${two(local.month)}/${two(local.day)}, $time';
 }
 
 /// `duration_seconds` as the lesson row draws it: `M:SS` under an hour,
@@ -526,6 +751,30 @@ String _requireLocalized(Map<String, dynamic> json, String label) {
     );
   }
   return text;
+}
+
+/// A localised field that must be present — as an object or `null` — but
+/// whose text may be empty: `""` when neither language carries any.
+String _localizedOrEmpty(Map<String, dynamic> json, String label) {
+  final key = label.split('.').last;
+  if (!json.containsKey(key)) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: '$label: missing',
+    );
+  }
+  return _optionalLocalized(json, label) ?? '';
+}
+
+List<Object?> _requireList(Map<String, dynamic> json, String label) {
+  final value = json[label.split('.').last];
+  if (value is! List) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: '$label: expected a list, got ${value.runtimeType}',
+    );
+  }
+  return value;
 }
 
 String? _optionalLocalized(Map<String, dynamic> json, String label) {

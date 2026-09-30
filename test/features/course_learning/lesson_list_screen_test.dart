@@ -134,6 +134,30 @@ void main() {
       expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
     });
 
+    testWidgets('a lesson opens Exercise Detail with its own lesson id', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        lessons: [
+          sampleLesson(id: 204, moduleId: 31, title: 'First'),
+          sampleLesson(id: 205, moduleId: 31, order: 3, title: 'Second'),
+        ],
+      );
+      await pumpScreen(tester, repository, moduleId: 31);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Second'));
+      await tester.pumpAndSettle();
+
+      // The lesson's id, never the module's — through the same repository.
+      final detail = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(detail.lessonId, 205);
+      expect(detail.repository, same(repository));
+      expect(repository.exerciseCalls, [205]);
+    });
+
     testWidgets('the back button pops the screen', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();

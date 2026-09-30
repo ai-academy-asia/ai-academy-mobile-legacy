@@ -28,6 +28,11 @@ import 'course_module_visuals.dart';
 /// Exercise Detail screen, which is why its subject (general AI/ML) does not
 /// match this exercise's own.
 class SampleCourseLearningRepository implements CourseLearningRepository {
+  /// The sample lesson Exercise Detail's sample content stands for —
+  /// "Nesting loops", id 2 in [getLessons]. What the dev preview route and
+  /// the Module List's sample module-card destination open with.
+  static const int previewLessonId = 2;
+
   @override
   Future<CourseLearningPath> getCourseLearning(String courseSlug) async {
     return CourseLearningPath(
@@ -122,11 +127,14 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
   }
 
   @override
-  Future<CourseExercise> getExercise(int moduleId) async {
+  Future<CourseExercise> getExercise(int lessonId) async {
     return CourseExercise(
-      moduleId: moduleId,
+      lessonId: lessonId,
+      // "Modules 2" below — the sample's one module.
+      moduleId: 2,
       moduleCaption: 'Modules 2',
       title: 'Nesting loops',
+      type: LessonType.recording,
       durationLabel: '24:15',
       recordingBadgeLabel: 'Live Classroom Recording',
       summary:
@@ -171,6 +179,10 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
           sizeLabel: '12 MB',
         ),
       ],
+      completed: false,
+      // The sample's note save and assignment submit are local simulations —
+      // what the Figma states were built against.
+      simulatesWrites: true,
       note: const CourseExerciseNote(
         authorInitials: 'БП',
         authorName: 'Болд Батаа',

@@ -57,6 +57,9 @@ abstract final class JuniorHomeStrings {
     CourseLearningFailureKind.sessionExpired => sessionExpired,
     CourseLearningFailureKind.notEnrolled => notEnrolled,
     CourseLearningFailureKind.notFound => notFound,
+    // `locked` is §2.3's lesson-detail 409, which the learning path this
+    // screen reads never answers with; the switch just has to be total.
+    CourseLearningFailureKind.locked => unexpectedError,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,

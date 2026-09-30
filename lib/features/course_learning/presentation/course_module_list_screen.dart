@@ -7,6 +7,7 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
+import '../data/sample_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
@@ -83,13 +84,18 @@ const double _connectorWidth = 2;
 /// spots where no existing app-wide pattern covered what the reference draws
 /// at all (the card shadows, the hero's tint).
 ///
-/// An unlocked module card opens `CourseExerciseDetailScreen` directly — the
-/// Figma flow has no Lesson List step between them. (`LessonListScreen`
-/// itself still exists, with its own tests, for when a real per-lesson
-/// backend contract lands; it is simply not reachable from this screen's
-/// normal navigation today.) Locked modules stay genuinely inert (`onTap:
-/// null`). Both "Continue learning" buttons open the same screen, for the
-/// module the server selected — see [_continueLearningTarget].
+/// Both "Continue learning" buttons open `CourseExerciseDetailScreen` for the
+/// lesson the server selected — `continue.lesson_id`, see
+/// [_continueLessonId] — loaded from `GET /me/lessons/{lesson_id}`.
+///
+/// An unlocked module card also opens `CourseExerciseDetailScreen` directly —
+/// the Figma flow has no Lesson List step between them — but still with the
+/// **sample** exercise, exactly as before. Exercise Detail is keyed by
+/// lesson, a module card knows only its module, and the contract names no
+/// lesson for one; picking one on the client would be inventing a rule. So
+/// the card keeps its previous destination until that flow is decided (see
+/// [_openSampleExerciseDetail]). `LessonListScreen` is integrated but not
+/// reachable from here. Locked modules stay genuinely inert (`onTap: null`).
 class CourseModuleListScreen extends StatefulWidget {
   const CourseModuleListScreen({
     required this.courseSlug,
@@ -263,7 +269,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// The module "Continue learning" should open: the one
+/// The module the server's continue target is in: the one
 /// `CourseLearningPath.continueModuleId` names, and nothing else.
 ///
 /// `course_learning_api_contract_v1.md` §2.1 makes the selection
@@ -282,16 +288,46 @@ CourseModule? _continueLearningTarget(CourseLearningPath path) {
   return null;
 }
 
+/// The lesson "Continue learning" opens: `continue.lesson_id`, exactly as the
+/// server sent it — but only while its `continue.module_id` names a listed
+/// module ([_continueLearningTarget]), so the two halves of the server's
+/// answer agree. Null otherwise, which leaves both buttons drawn but inert;
+/// no lesson is ever chosen on the client.
+int? _continueLessonId(CourseLearningPath path) {
+  if (_continueLearningTarget(path) == null) return null;
+  return path.continueLessonId;
+}
+
 void _openExerciseDetail(
   BuildContext context,
-  CourseModule module,
+  int lessonId,
   CourseLearningRepository repository,
 ) {
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => CourseExerciseDetailScreen(
-        moduleId: module.id,
+        lessonId: lessonId,
         repository: repository,
+      ),
+    ),
+  );
+}
+
+/// Where an unlocked module card leads — unchanged by the lesson-detail
+/// integration: the sample exercise, which is what the card showed before
+/// (the repository it used then served sample content for every module).
+///
+/// Deliberately the sample repository and its own lesson id, not this
+/// screen's repository: no lesson id exists for a module card to pass, and
+/// sending the module's id where a lesson's is expected would load the wrong
+/// lesson, or none. Replacing this is the job of the issue that decides how
+/// a module card reaches a lesson.
+void _openSampleExerciseDetail(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => CourseExerciseDetailScreen(
+        lessonId: SampleCourseLearningRepository.previewLessonId,
+        repository: SampleCourseLearningRepository(),
       ),
     ),
   );
@@ -487,7 +523,7 @@ class _ContinueLearningButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final target = _continueLearningTarget(path);
+    final lessonId = _continueLessonId(path);
 
     return Semantics(
       button: true,
@@ -511,9 +547,9 @@ class _ContinueLearningButton extends StatelessWidget {
           color: _accent,
           borderRadius: BorderRadius.circular(_ctaRadius),
           child: InkWell(
-            onTap: target == null
+            onTap: lessonId == null
                 ? null
-                : () => _openExerciseDetail(context, target, repository),
+                : () => _openExerciseDetail(context, lessonId, repository),
             borderRadius: BorderRadius.circular(_ctaRadius),
             splashColor: Colors.white24,
             highlightColor: Colors.white10,
@@ -558,7 +594,7 @@ class _ModuleList extends StatelessWidget {
             module: modules[i],
             onTap: modules[i].locked
                 ? null
-                : () => _openExerciseDetail(context, modules[i], repository),
+                : () => _openSampleExerciseDetail(context),
           ),
           if (i != modules.length - 1) const _ModuleConnector(),
         ],
