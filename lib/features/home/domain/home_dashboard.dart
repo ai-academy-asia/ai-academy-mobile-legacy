@@ -1,9 +1,9 @@
 /// Everything the Home dashboard draws, in one value.
 ///
 /// **Every section is nullable and the screen draws each only when its field
-/// is set.** That is deliberate. The API has confirmed response shapes for
-/// the student's cohorts, their schedule and the course's learning path, and
-/// none for attendance, payments or the e-contract — see
+/// is set.** That is deliberate. The API has verified response shapes for
+/// the student's cohorts, their schedule, the course's learning path, the
+/// ledger and attendance, and no endpoint at all for the e-contract — see
 /// `EnrolledHomeDashboardRepository`, which documents exactly which endpoint
 /// each missing section is waiting on. Rather than invent those contracts, or
 /// ship the reference's sample numbers ("2 of 5", "1/20", "3 хоног") as
@@ -168,10 +168,22 @@ class PaymentStatus {
 
 /// How many of the cohort's lessons the student has attended.
 class AttendanceSummary {
-  const AttendanceSummary({required this.attended, required this.total});
+  const AttendanceSummary({
+    required this.attended,
+    required this.total,
+    this._percent,
+  });
 
   final int attended;
   final int total;
 
-  int get percent => total <= 0 ? 0 : ((attended / total) * 100).round();
+  /// The percentage a source reported, when it reported one.
+  final int? _percent;
+
+  /// The source's own percentage — `GET /me/attendance`'s `summary.percent`,
+  /// which `EnrolledHomeDashboardRepository` always passes. Worked out from
+  /// [attended]/[total] only for a summary built without one (the screen's
+  /// sample data).
+  int get percent =>
+      _percent ?? (total <= 0 ? 0 : ((attended / total) * 100).round());
 }
