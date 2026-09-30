@@ -60,6 +60,12 @@ abstract final class CourseLearningStrings {
       'Тайлбар 5000 тэмдэгтээс ихгүй байх ёстой';
   static const String pastDue = 'Даалгавар илгээх хугацаа дууссан';
 
+  /// §2.8's two upload rules. No Figma copy exists for either; both follow
+  /// the wording of the other rules above.
+  static const String unsupportedFileType =
+      'Энэ төрлийн файл оруулах боломжгүй';
+  static const String fileTooLarge = 'Файлын хэмжээ 20 MB-аас ихгүй байх ёстой';
+
   /// §2.6's `404 assignment_not_found` — worded after [materialNotFound], for
   /// the same reason: [notFound] names the course.
   static const String assignmentNotFound = 'Даалгавар олдсонгүй';
@@ -79,6 +85,8 @@ abstract final class CourseLearningStrings {
     CourseLearningFailureKind.invalidLink => invalidLink,
     CourseLearningFailureKind.descriptionTooLong => descriptionTooLong,
     CourseLearningFailureKind.pastDue => pastDue,
+    CourseLearningFailureKind.unsupportedFileType => unsupportedFileType,
+    CourseLearningFailureKind.fileTooLarge => fileTooLarge,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,

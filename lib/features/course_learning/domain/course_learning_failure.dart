@@ -66,6 +66,13 @@ enum CourseLearningFailureKind {
   /// other 409 is still [locked].
   pastDue,
 
+  /// HTTP 400 `unsupported_file_type` — §2.8's upload is not one of the
+  /// accepted types.
+  unsupportedFileType,
+
+  /// HTTP 413 `file_too_large` — §2.8's upload is over its 20 MB.
+  fileTooLarge,
+
   /// The request never completed — no connectivity, DNS failure, timeout.
   network,
 

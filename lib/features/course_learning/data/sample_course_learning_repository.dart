@@ -6,6 +6,7 @@ import '../domain/course_module.dart';
 import '../domain/course_quiz.dart';
 import '../domain/lesson.dart';
 import '../domain/material_download.dart';
+import '../domain/uploaded_file.dart';
 import 'course_module_visuals.dart';
 
 /// Serves one hand-authored [CourseLearningPath], one hand-authored lesson
@@ -320,6 +321,20 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
     throw CourseLearningFailure(
       CourseLearningFailureKind.notFound,
       detail: 'sample assignment $assignmentId is not on the backend',
+    );
+  }
+
+  /// The sample has no backend to store a file on, so nothing is uploaded:
+  /// this fails, as `unexpected`, rather than answer with a stored file that
+  /// does not exist. Nothing in the app calls it yet.
+  @override
+  Future<UploadedFile> uploadFile({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.unexpected,
+      detail: 'the sample has nowhere to upload "$fileName" to',
     );
   }
 

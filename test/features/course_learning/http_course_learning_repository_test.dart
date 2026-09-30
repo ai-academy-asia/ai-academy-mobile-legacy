@@ -9,6 +9,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_failu
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
+import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -2709,8 +2710,334 @@ void main() {
       });
     });
   });
+
+  // §2.8: POST /me/files — one multipart part, `file`.
+  group('uploadFile', () {
+    /// The contract's §2.8 answer.
+    Map<String, Object?> fileBody({
+      Object? id = 77,
+      Object? fileName = 'report.pdf',
+      Object? contentType = 'application/pdf',
+      Object? sizeBytes = 482133,
+    }) => {
+      'id': id,
+      'file_name': fileName,
+      'content_type': contentType,
+      'size_bytes': sizeBytes,
+    };
+
+    /// Deliberately not UTF-8, with CR/LF inside, so the part's bytes can
+    /// only match if they were sent exactly.
+    const bytes = <int>[0x25, 0x50, 0x44, 0x46, 0x00, 0xFF, 0x0D, 0x0A, 0x80];
+
+    Future<UploadedFile> upload(
+      HttpCourseLearningRepository repository, {
+      String fileName = 'report.pdf',
+    }) => repository.uploadFile(fileName: fileName, bytes: bytes);
+
+    Future<CourseLearningFailure> uploadFailureFrom(
+      HttpCourseLearningRepository repository,
+    ) async {
+      try {
+        await upload(repository);
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    Future<CourseLearningFailure> failureForStatus(
+      int status, [
+      Object? body = const {},
+    ]) => uploadFailureFrom(
+      repositoryReturning((_) async => jsonResponse(body, status)),
+    );
+
+    group('the request', () {
+      test('POSTs one multipart part, `file`, with the token', () async {
+        late http.Request sent;
+        final repository = repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(fileBody(), 201);
+        });
+
+        await upload(repository, fileName: 'Даалгавар 1.pdf');
+
+        expect(sent.method, 'POST');
+        expect(sent.url.toString(), 'https://api.ai-academy.asia/me/files');
+        expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+        expect(sent.headers[HttpHeaders.acceptHeader], 'application/json');
+
+        final parts = _multipartParts(sent);
+        expect(parts, hasLength(1));
+        final part = parts.single;
+        expect(part.disposition, contains('form-data'));
+        expect(part.disposition, contains('name="file"'));
+        expect(part.filename, 'Даалгавар 1.pdf');
+        expect(part.bytes, bytes);
+      });
+
+      test('the content type is multipart/form-data with a boundary', () async {
+        late http.Request sent;
+        final repository = repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(fileBody(), 201);
+        });
+
+        await upload(repository);
+
+        expect(
+          sent.headers[HttpHeaders.contentTypeHeader],
+          startsWith('multipart/form-data; boundary='),
+        );
+      });
+
+      test('signed out: sends nothing and asks for sign-in', () async {
+        var requests = 0;
+        final repository = repositoryReturning((_) async {
+          requests++;
+          return jsonResponse(fileBody(), 201);
+        }, sessionStore: AuthSessionStore());
+
+        final failure = await uploadFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('an expired session: sends nothing', () async {
+        var requests = 0;
+        final store = AuthSessionStore()
+          ..save(
+            const AuthSession(
+              accessToken: 'old',
+              expiresIn: Duration(hours: 1),
+            ),
+            now: DateTime(2000),
+          );
+        final repository = repositoryReturning((_) async {
+          requests++;
+          return jsonResponse(fileBody(), 201);
+        }, sessionStore: store);
+
+        final failure = await uploadFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('runs under uploadTimeout, not the JSON timeout', () async {
+        HttpCourseLearningRepository slowServer({
+          required Duration timeout,
+          required Duration uploadTimeout,
+        }) => HttpCourseLearningRepository(
+          client: MockClient((_) async {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+            return jsonResponse(fileBody(), 201);
+          }),
+          sessionStore: signedIn(),
+          timeout: timeout,
+          uploadTimeout: uploadTimeout,
+        );
+
+        // A JSON budget the answer would miss does not apply to an upload…
+        final file = await upload(
+          slowServer(
+            timeout: const Duration(milliseconds: 10),
+            uploadTimeout: const Duration(seconds: 5),
+          ),
+        );
+        expect(file.id, 77);
+
+        // …and an upload budget it misses is a network failure.
+        final failure = await uploadFailureFrom(
+          slowServer(
+            timeout: const Duration(seconds: 5),
+            uploadTimeout: const Duration(milliseconds: 10),
+          ),
+        );
+        expect(failure.kind, CourseLearningFailureKind.network);
+      });
+
+      test('the upload budget defaults to three minutes', () {
+        expect(
+          HttpCourseLearningRepository().uploadTimeout,
+          const Duration(minutes: 3),
+        );
+        expect(
+          HttpCourseLearningRepository().timeout,
+          const Duration(seconds: 15),
+        );
+      });
+    });
+
+    group('the answer', () {
+      test('201 reads the stored file in full', () async {
+        final file = await upload(
+          repositoryReturning((_) async => jsonResponse(fileBody(), 201)),
+        );
+
+        expect(file.id, 77);
+        expect(file.fileName, 'report.pdf');
+        expect(file.contentType, 'application/pdf');
+        expect(file.sizeBytes, 482133);
+      });
+    });
+
+    group('status mapping', () {
+      test('400 unsupported_file_type is its own kind', () async {
+        final failure = await failureForStatus(400, {
+          'error': 'unsupported_file_type',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.unsupportedFileType);
+      });
+
+      test('413 file_too_large is its own kind', () async {
+        final failure = await failureForStatus(413, {
+          'error': 'file_too_large',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.fileTooLarge);
+      });
+
+      test('an undocumented 400 code is unexpected', () async {
+        final failure = await failureForStatus(400, {'error': 'virus_found'});
+
+        expect(failure.kind, CourseLearningFailureKind.unexpected);
+      });
+
+      test('a 413 without its code is unexpected, not guessed at', () async {
+        for (final body in <Object?>[
+          {'error': 'payload_too_large'},
+          'Request Entity Too Large',
+        ]) {
+          final failure = await failureForStatus(413, body);
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.unexpected,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('401 is a dead session, and the token is forgotten', () async {
+        final store = signedIn();
+        final failure = await uploadFailureFrom(
+          repositoryReturning(
+            (_) async => jsonResponse({'error': 'token_expired'}, 401),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(store.isSignedIn, isFalse);
+      });
+
+      test('502 storage_error is a server fault', () async {
+        final failure = await failureForStatus(502, {'error': 'storage_error'});
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('503 storage_error is a server fault', () async {
+        final failure = await failureForStatus(503, {'error': 'storage_error'});
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('a request that never completes is a network failure', () async {
+        final failure = await uploadFailureFrom(
+          repositoryReturning((_) async => throw const SocketException('off')),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.network);
+      });
+    });
+
+    group('a malformed 201 is a server fault', () {
+      test('not JSON', () async {
+        final failure = await uploadFailureFrom(
+          repositoryReturning((_) async => http.Response('<html>', 201)),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('not an object', () async {
+        for (final body in <Object?>[null, [], 'ok']) {
+          final failure = await uploadFailureFrom(
+            repositoryReturning((_) async => jsonResponse(body, 201)),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('a missing or mistyped field', () async {
+        final cases = <String, Map<String, Object?>>{
+          'file.id': fileBody(id: null),
+          'file.id ': fileBody(id: '77'),
+          'file.file_name': fileBody(fileName: null),
+          'file.content_type': fileBody(contentType: 42),
+          'file.size_bytes': fileBody(sizeBytes: null),
+          'file.size_bytes ': fileBody(sizeBytes: -1),
+        };
+        for (final MapEntry(key: field, value: body) in cases.entries) {
+          final failure = await uploadFailureFrom(
+            repositoryReturning((_) async => jsonResponse(body, 201)),
+          );
+
+          expect(failure.kind, CourseLearningFailureKind.server, reason: field);
+          expect(failure.detail, contains(field.trim()), reason: field);
+        }
+      });
+    });
+  });
 }
 
 /// Sentinel for `feedbackBody(mentor: ...)`: "the caller did not pass one"
 /// (use the contract's mentor) versus an explicit `null` (a fault).
 const Object _defaultMentor = Object();
+
+/// One part of a `multipart/form-data` body, as the server would read it.
+typedef _Part = ({String disposition, String? filename, List<int> bytes});
+
+/// Splits [request]'s body on its boundary — read from the content type the
+/// client actually sent — into its parts. Decoded as latin1, which maps every
+/// byte to one character and back, so a part's bytes compare exactly.
+List<_Part> _multipartParts(http.Request request) {
+  final contentType = request.headers[HttpHeaders.contentTypeHeader]!;
+  final boundary = RegExp(r'boundary=(.+)$').firstMatch(contentType)!.group(1)!;
+  final body = latin1.decode(request.bodyBytes);
+
+  final parts = <_Part>[];
+  for (final chunk in body.split('--$boundary')) {
+    // The preamble before the first boundary, and the closing `--`.
+    if (chunk.isEmpty || chunk.startsWith('--')) continue;
+    final split = chunk.indexOf('\r\n\r\n');
+    final head = chunk.substring(0, split);
+    // Each part ends with the CRLF that precedes the next boundary.
+    final content = chunk.substring(split + 4, chunk.length - 2);
+    final disposition = head
+        .split('\r\n')
+        .firstWhere(
+          (line) => line.toLowerCase().startsWith('content-disposition'),
+        );
+    // The filename header is UTF-8 on the wire; re-read it as such.
+    final rawName = RegExp(
+      r'filename="([^"]*)"',
+    ).firstMatch(disposition)?.group(1);
+    parts.add((
+      disposition: disposition,
+      filename: rawName == null ? null : utf8.decode(latin1.encode(rawName)),
+      bytes: latin1.encode(content),
+    ));
+  }
+  return parts;
+}

@@ -4,6 +4,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_path.
 import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/domain/material_download.dart';
+import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_controller.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +49,12 @@ class _ThrowingRepository implements CourseLearningRepository {
     link: link,
     description: description,
   );
+
+  @override
+  Future<UploadedFile> uploadFile({
+    required String fileName,
+    required List<int> bytes,
+  }) => _delegate.uploadFile(fileName: fileName, bytes: bytes);
 }
 
 void main() {

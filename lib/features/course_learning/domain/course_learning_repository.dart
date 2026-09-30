@@ -2,14 +2,15 @@ import 'course_exercise.dart';
 import 'course_learning_path.dart';
 import 'lesson.dart';
 import 'material_download.dart';
+import 'uploaded_file.dart';
 
 /// A course's learning overview — modules, progress, the lot — plus each
 /// module's own lessons and each lesson's content.
 ///
 /// `HttpCourseLearningRepository` serves all three from
 /// `course_learning_api_contract_v1.md` §2.1–2.3, saves a lesson's note
-/// through §2.5, fetches a material's download link through §2.4 and submits
-/// an assignment link through §2.6,
+/// through §2.5, fetches a material's download link through §2.4, submits
+/// an assignment link through §2.6 and uploads a student file through §2.8,
 /// throwing `CourseLearningFailure`;
 /// `SampleCourseLearningRepository` serves hand-authored content for tests
 /// and the dev preview.
@@ -18,7 +19,8 @@ import 'material_download.dart';
 /// `getCourses()`/`getCourseDetail(slug)` split: one for the overview list,
 /// one for a module's own lessons, one for a lesson's exercise detail — plus
 /// the Exercise Detail screen's actions: the note save, a material's download
-/// link and an assignment submission.
+/// link and an assignment submission — and the file upload a submission will
+/// attach.
 abstract interface class CourseLearningRepository {
   /// [courseSlug] is `Course.slug` — the one identifier this feature borrows
   /// from the confirmed course contract rather than inventing its own.
@@ -50,5 +52,14 @@ abstract interface class CourseLearningRepository {
     int assignmentId, {
     required String link,
     String? description,
+  });
+
+  /// Uploads [bytes] as a student file named [fileName] and returns it as
+  /// stored — §2.8 `POST /me/files`. The returned `UploadedFile.id` is what a
+  /// submission later sends as `file_id`. The backend alone decides which
+  /// types and sizes it accepts.
+  Future<UploadedFile> uploadFile({
+    required String fileName,
+    required List<int> bytes,
   });
 }
