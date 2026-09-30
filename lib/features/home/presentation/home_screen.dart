@@ -16,20 +16,25 @@ import 'home_strings.dart';
 import 'widgets/attendance_card.dart';
 import 'widgets/contract_banner.dart';
 import 'widgets/home_header.dart';
+import 'widgets/home_palette.dart';
 import 'widgets/payment_card.dart';
 import 'widgets/program_card.dart';
 
 /// The student's dashboard — the app's Home tab.
 ///
-/// Built against the Figma Home frames, which are four states of this one
-/// screen rather than four screens: a scheduled lesson with the attendance
-/// action flat, an unsigned e-contract, a payment either due or overdue, and
-/// a lesson under way with its "Live" badge and the action live. Each is a
-/// different [HomeDashboard], not a different layout — the sections are the
-/// same and each draws only when it has data.
+/// Built against the four Figma Adult Home frames, which are states of this
+/// one screen rather than four screens: statistics as full-width rows; an
+/// unsigned e-contract with an overdue payment; statistics as side-by-side
+/// tiles with the pay action muted; and a lesson under way with its "Live"
+/// badge and the attendance action live. Each is a different
+/// [HomeDashboard] — the live state comes from the clock, the arrangement of
+/// the statistic cards from [HomeDashboard.stats] — and each section draws
+/// only when it has data.
 ///
 /// Composition, top to bottom: the brand header, the cohort card, the
-/// contract warning, and the payment and attendance statistics side by side.
+/// contract warning, then the statistic cards in the order the dashboard
+/// lists them. The `home_screenshot_test.dart` goldens capture all four
+/// frames at their own 393pt width.
 ///
 /// **On the empty sections.** The API has no endpoint for modules,
 /// attendance, payments or contracts, so in the app as it stands only the
@@ -85,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const AppBottomNavItem(
               icon: AppIcons.house,
               label: HomeStrings.navHome,
+              selectedAsset: HomeIcons.navHomeSelected,
               // Already here.
             ),
             AppBottomNavItem(
@@ -115,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const HomeHeader(),
                     Container(
                       height: AppDimens.borderWidth,
-                      color: AppColors.border,
+                      color: HomePalette.headerRule,
                     ),
                     Expanded(child: _buildBody()),
                   ],
@@ -163,79 +169,110 @@ class _DashboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     final program = dashboard.program;
     final contract = dashboard.contract;
-    final payment = dashboard.payment;
-    final attendance = dashboard.attendance;
 
-    // None of these four actions has a destination in the app yet, and each
-    // is given an empty callback rather than null for the reason Profile's
+    // None of these actions has a destination in the app yet, and each is
+    // given an empty callback rather than null for the reason Profile's
     // log-out button documents: null renders the disabled treatment, and the
     // reference draws every one of them in full contrast. Wiring them up is a
     // separate issue per destination.
     void noDestinationYet() {}
 
+    final sections = <Widget>[
+      if (program != null)
+        ProgramCard(
+          program: program,
+          live: program.nextLesson?.isLiveAt(now) ?? false,
+          onRegisterAttendance: noDestinationYet,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  CourseModuleListScreen(courseSlug: program.courseSlug),
+            ),
+          ),
+        ),
+      if (contract != null && !contract.signed)
+        ContractBanner(onTap: noDestinationYet),
+      ..._statRows(dashboard.stats, noDestinationYet),
+    ];
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       color: AppColors.blue,
-      child: ListView(
+      child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
-          16,
+          _sectionGap,
           AppDimens.screenPadding,
           24,
         ),
         // Always scrollable, so pull-to-refresh works even on a short
         // dashboard that fits the viewport.
         physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          if (program != null)
-            ProgramCard(
-              program: program,
-              live: program.nextLesson?.isLiveAt(now) ?? false,
-              onRegisterAttendance: noDestinationYet,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      CourseModuleListScreen(courseSlug: program.courseSlug),
-                ),
-              ),
-            ),
-
-          if (contract != null && !contract.signed) ...[
-            const SizedBox(height: 12),
-            ContractBanner(onTap: noDestinationYet),
-          ],
-
-          if (payment != null || attendance != null) ...[
-            const SizedBox(height: 12),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (payment != null)
-                    Expanded(
-                      child: PaymentCard(
-                        payment: payment,
-                        onPay: noDestinationYet,
-                      ),
-                    ),
-                  if (payment != null && attendance != null)
-                    const SizedBox(width: 12),
-                  if (attendance != null)
-                    Expanded(
-                      child: AttendanceCard(
-                        attendance: attendance,
-                        onDetails: noDestinationYet,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ],
+        itemCount: sections.length,
+        itemBuilder: (_, index) => sections[index],
+        separatorBuilder: (_, _) => const SizedBox(height: _sectionGap),
       ),
     );
   }
+
+  /// Lays [stats] out in order: each full-width row on its own, and tiles two
+  /// to a line. A tile left without a partner keeps its half width rather
+  /// than stretching into a shape the reference never draws.
+  static List<Widget> _statRows(
+    List<HomeStat> stats,
+    VoidCallback noDestinationYet,
+  ) {
+    Widget card(HomeStat stat) => switch (stat) {
+      PaymentStat(:final payment, :final layout) => PaymentCard(
+        payment: payment,
+        layout: layout,
+        onPay: noDestinationYet,
+        onDetails: noDestinationYet,
+      ),
+      AttendanceStat(:final attendance, :final layout) => AttendanceCard(
+        attendance: attendance,
+        layout: layout,
+        onDetails: noDestinationYet,
+      ),
+    };
+
+    final rows = <Widget>[];
+    for (var i = 0; i < stats.length; i++) {
+      final stat = stats[i];
+      if (stat.layout == HomeStatLayout.row) {
+        rows.add(card(stat));
+        continue;
+      }
+
+      final partner =
+          i + 1 < stats.length && stats[i + 1].layout == HomeStatLayout.tile
+          ? stats[++i]
+          : null;
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: card(stat)),
+              const SizedBox(width: _tileGap),
+              Expanded(
+                child: partner == null ? const SizedBox() : card(partner),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return rows;
+  }
 }
+
+/// Between the header rule and the first card, and between every card: 16
+/// in each of the reference frames.
+const double _sectionGap = 16;
+
+/// Between two tiles on one line — each 176 wide inside the 361 column.
+const double _tileGap = 8;
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();

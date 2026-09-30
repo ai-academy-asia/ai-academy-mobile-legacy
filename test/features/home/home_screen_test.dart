@@ -6,6 +6,7 @@ import 'package:aia_mobile/features/home/presentation/home_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/attendance_card.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/contract_banner.dart';
+import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/payment_card.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/program_card.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
@@ -77,8 +78,13 @@ void main() {
       progress: const ModuleProgress(percent: 40, completed: 2, total: 5),
       nextLesson: sampleLesson(start: lessonStart),
     ),
-    payment: const PaymentStatus.dueIn(3),
-    attendance: const AttendanceSummary(attended: 1, total: 20),
+    stats: const [
+      PaymentStat(PaymentStatus.dueIn(3), layout: HomeStatLayout.tile),
+      AttendanceStat(
+        AttendanceSummary(attended: 1, total: 20),
+        layout: HomeStatLayout.tile,
+      ),
+    ],
   );
 
   group('cohort card', () {
@@ -329,8 +335,8 @@ void main() {
       expect(find.byType(PaymentCard), findsOneWidget);
       expect(find.text(HomeStrings.paymentDueIn(3)), findsOneWidget);
 
-      final pay = tester.widget<AppButton>(
-        find.widgetWithText(AppButton, HomeStrings.payAction),
+      final pay = tester.widget<HomePillButton>(
+        find.widgetWithText(HomePillButton, HomeStrings.payAction),
       );
       expect(pay.onPressed, isNull);
     });
@@ -341,17 +347,42 @@ void main() {
         FakeHomeDashboardRepository(
           dashboard: HomeDashboard(
             program: sampleProgram(),
-            payment: const PaymentStatus.overdue(),
+            stats: const [
+              PaymentStat(PaymentStatus.overdue(), layout: HomeStatLayout.tile),
+            ],
           ),
         ),
       );
 
       expect(find.text(HomeStrings.paymentOverdue), findsOneWidget);
 
-      final pay = tester.widget<AppButton>(
-        find.widgetWithText(AppButton, HomeStrings.payAction),
+      final pay = tester.widget<HomePillButton>(
+        find.widgetWithText(HomePillButton, HomeStrings.payAction),
       );
       expect(pay.onPressed, isNotNull);
+    });
+
+    testWidgets('as a row, offers details instead of the pay action', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(
+            program: sampleProgram(),
+            stats: const [
+              PaymentStat(PaymentStatus.dueIn(3), layout: HomeStatLayout.row),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text(HomeStrings.paymentDueIn(3)), findsOneWidget);
+      expect(find.text(HomeStrings.payAction), findsNothing);
+      expect(
+        find.widgetWithText(HomePillButton, HomeStrings.details),
+        findsOneWidget,
+      );
     });
   });
 
@@ -367,7 +398,43 @@ void main() {
       // The reference prints "1/20 · 10%", which does not add up — 1 of 20 is
       // 5%. The percentage is computed from the tally rather than carried
       // alongside it, so it cannot drift from the figure beside it.
-      expect(find.text('1/20 · 5%'), findsOneWidget);
+      expect(find.text('1/20  · 5%'), findsOneWidget);
+    });
+  });
+
+  group('statistic layout', () {
+    testWidgets('pairs tiles side by side and stacks rows full width', (
+      tester,
+    ) async {
+      // The contract frame: an overdue tile beside the attendance tile, and
+      // the upcoming instalment as a row under them.
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(
+            program: sampleProgram(),
+            stats: const [
+              PaymentStat(PaymentStatus.overdue(), layout: HomeStatLayout.tile),
+              AttendanceStat(
+                AttendanceSummary(attended: 1, total: 20),
+                layout: HomeStatLayout.tile,
+              ),
+              PaymentStat(PaymentStatus.dueIn(3), layout: HomeStatLayout.row),
+            ],
+          ),
+        ),
+        size: const Size(393, 1073),
+      );
+
+      final overdue = tester.getRect(find.byType(PaymentCard).first);
+      final attendance = tester.getRect(find.byType(AttendanceCard));
+      final row = tester.getRect(find.byType(PaymentCard).last);
+
+      expect(overdue.top, attendance.top);
+      expect(overdue.width, attendance.width);
+      expect(attendance.left - overdue.right, 8);
+      expect(row.width, 393 - 2 * 16);
+      expect(row.top, greaterThan(overdue.bottom));
     });
   });
 

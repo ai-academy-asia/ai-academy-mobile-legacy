@@ -3,17 +3,55 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
+import 'home_palette.dart';
+import 'home_pill_button.dart';
+
+// Measured off the Figma Home frames at 1:1. Figma strokes sit inside the
+// frame and take no layout space, so every inset below is the reference's
+// less the 1pt border the Container here does account for.
+
+/// Space above the badge row and below the progress bar, and above the
+/// lesson heading and below the attendance action — 24 from the card's outer
+/// edge (and from the divider) in every frame.
+const double _sectionPaddingV = 24;
+
+/// Content sits 16 in from the card's outer edge.
+const double _paddingH = 16;
+
+/// The badge row, the caption, the progress row: 24 between each group.
+const double _groupGap = 24;
+
+/// The track badge and the status pill.
+const double _badgeHeight = 32;
+const double _pillHeight = 24;
+
+/// The progress row (the taller of its two lines), the gap under it, the bar.
+const double _progressRowHeight = 20;
+const double _barGap = 8;
+const double _barHeight = 8;
+
+/// The lesson heading's row is as tall as the "Live" pill, whether or not the
+/// pill is drawn, so the time under it never moves between states.
+const double _lessonHeadingHeight = 24;
+
+/// Time to the live prompt, and the last line to the action.
+const double _hintGap = 4;
+const double _actionGap = 16;
+
+/// The attendance action: 40 tall, not the statistic cards' 36.
+const double _actionHeight = 40;
 
 /// The cohort the student is studying in — the dashboard's headline card.
 ///
 /// Two stacked sections inside one rounded surface, split by a full-bleed
 /// rule, exactly as the reference draws it: the summary (track badge, status,
 /// cohort caption, course name, module progress) over the next lesson and its
-/// attendance action. The decorative shapes behind the summary are the same
-/// exported asset `CohortCard` uses, at the same low opacity — not redrawn.
+/// attendance action. The summary sits on a faint blue wash with the same
+/// exported shapes `CohortCard` draws, not redrawn.
 ///
 /// Each part is skipped when its data is absent rather than filled in with a
 /// placeholder: no progress means no bar, no scheduled lesson means the whole
@@ -44,164 +82,36 @@ class ProgramCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = program.progress;
     final nextLesson = program.nextLesson;
+    final radius = BorderRadius.circular(AppDimens.homeCardRadius);
 
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+      borderRadius: radius,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+        borderRadius: radius,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-            border: Border.all(
-              color: AppColors.border,
-              width: AppDimens.borderWidth,
-            ),
+            borderRadius: radius,
+            border: Border.all(color: HomePalette.border),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+            borderRadius: radius,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Opacity(
-                        opacity: 0.5,
-                        child: SvgPicture.asset(
-                          HomeIcons.cardBackground,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(AppDimens.cardPadding),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (program.uiMode case final uiMode?)
-                                _TrackBadge(uiMode)
-                              else
-                                const SizedBox.shrink(),
-                              _StatusPill(program.status),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          Text(
-                            program.cohortName,
-                            style: AppTypography.statLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: AppDimens.cardLineGap),
-                          Text(
-                            program.courseTitle,
-                            style: AppTypography.programTitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          if (progress case final progress?) ...[
-                            const SizedBox(height: 12),
-                            if (progress.completed != null &&
-                                progress.total != null)
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      HomeStrings.modules(
-                                        progress.completed!,
-                                        progress.total!,
-                                      ),
-                                      style: AppTypography.statLabel,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    HomeStrings.percentComplete(
-                                      progress.percent,
-                                    ),
-                                    style: AppTypography.catalogSectionValue,
-                                  ),
-                                ],
-                              )
-                            else
-                              // No module count to caption the bar with — only
-                              // `Enrollment.progressPct`, a bare percentage. Right
-                              // aligned to sit where the percent sits when the
-                              // count line is also drawn, rather than left-aligned
-                              // and out of place.
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  HomeStrings.percentComplete(progress.percent),
-                                  style: AppTypography.catalogSectionValue,
-                                ),
-                              ),
-                            const SizedBox(height: 8),
-                            _ProgressBar(fraction: progress.fraction),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
+                _Summary(program: program),
                 if (nextLesson != null) ...[
-                  Container(
-                    height: AppDimens.borderWidth,
-                    color: AppColors.border,
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: HomePalette.border,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppDimens.cardPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                HomeStrings.nextLesson,
-                                style: AppTypography.cardHeading,
-                              ),
-                            ),
-                            if (live) const _LiveBadge(),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          HomeStrings.lessonWindow(
-                            nextLesson.startsAt,
-                            nextLesson.endsAt,
-                          ),
-                          style: AppTypography.cardHeading.copyWith(
-                            color: AppColors.blue,
-                          ),
-                        ),
-                        if (live) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            HomeStrings.liveHint,
-                            style: AppTypography.settingsRowLabel,
-                          ),
-                        ],
-                        const SizedBox(height: 14),
-                        _AttendanceAction(
-                          onPressed: live ? onRegisterAttendance : null,
-                        ),
-                      ],
-                    ),
+                  _NextLessonSection(
+                    lesson: nextLesson,
+                    live: live,
+                    onRegisterAttendance: onRegisterAttendance,
                   ),
                 ],
               ],
@@ -213,8 +123,172 @@ class ProgramCard extends StatelessWidget {
   }
 }
 
-/// The module progress bar. A determinate [LinearProgressIndicator] rounded
-/// off at both ends, rather than a hand-rolled two-box stack.
+/// The card's upper half: badges, the cohort and its course, and progress.
+class _Summary extends StatelessWidget {
+  const _Summary({required this.program});
+
+  final EnrolledProgram program;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = program.progress;
+
+    return Stack(
+      children: [
+        // The decorative shapes, 1:1 from the top-left: a 12% blue tint with
+        // the white blocks cut out of it, which is also what shades the
+        // section from near-white at the leading edge to pale blue at the
+        // trailing one. Drawn at full strength on the card's white.
+        Positioned.fill(
+          child: SvgPicture.asset(
+            HomeIcons.cardBackground,
+            fit: BoxFit.none,
+            alignment: Alignment.topLeft,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            _paddingH - AppDimens.borderWidth,
+            _sectionPaddingV - AppDimens.borderWidth,
+            _paddingH - AppDimens.borderWidth,
+            _sectionPaddingV,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: _badgeHeight,
+                child: Row(
+                  // The pill hangs from the top of the badge row, as the
+                  // reference draws it, not centred on it.
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (program.uiMode case final uiMode?) _TrackBadge(uiMode),
+                    const Spacer(),
+                    _StatusPill(program.status),
+                  ],
+                ),
+              ),
+              const SizedBox(height: _groupGap),
+
+              Text(
+                program.cohortName,
+                style: _captionStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                program.courseTitle,
+                style: _titleStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              if (progress != null) ...[
+                const SizedBox(height: _groupGap),
+                SizedBox(
+                  height: _progressRowHeight,
+                  child: Row(
+                    children: [
+                      // No module count to caption the bar with — only
+                      // `Enrollment.progressPct`, a bare percentage — leaves
+                      // the percentage alone at the trailing edge, where it
+                      // sits when the count is also drawn.
+                      Expanded(
+                        child:
+                            progress.completed != null && progress.total != null
+                            ? Text(
+                                HomeStrings.modules(
+                                  progress.completed!,
+                                  progress.total!,
+                                ),
+                                style: _modulesStyle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        HomeStrings.percentComplete(progress.percent),
+                        style: _percentStyle,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: _barGap),
+                _ProgressBar(fraction: progress.fraction),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The card's lower half: when the cohort next meets, and the attendance
+/// action.
+class _NextLessonSection extends StatelessWidget {
+  const _NextLessonSection({
+    required this.lesson,
+    required this.live,
+    required this.onRegisterAttendance,
+  });
+
+  final NextLesson lesson;
+  final bool live;
+  final VoidCallback? onRegisterAttendance;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // The divider above takes its 1pt out of the top inset, the card's
+      // border its 1pt out of the bottom one.
+      padding: const EdgeInsets.fromLTRB(
+        _paddingH - AppDimens.borderWidth,
+        _sectionPaddingV - AppDimens.borderWidth,
+        _paddingH - AppDimens.borderWidth,
+        _sectionPaddingV - AppDimens.borderWidth,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: _lessonHeadingHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Expanded(
+                  child: Text(HomeStrings.nextLesson, style: _headingStyle),
+                ),
+                if (live) const _LiveBadge(),
+              ],
+            ),
+          ),
+          Text(
+            HomeStrings.lessonWindow(lesson.startsAt, lesson.endsAt),
+            style: _lessonTimeStyle,
+          ),
+          if (live) ...[
+            const SizedBox(height: _hintGap),
+            const Text(HomeStrings.liveHint, style: _hintStyle),
+          ],
+          const SizedBox(height: _actionGap),
+          HomePillButton(
+            label: HomeStrings.attendanceAction,
+            icon: AppIcons.qrCode,
+            height: _actionHeight,
+            onPressed: live ? onRegisterAttendance : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The module progress bar: 8 tall, fully rounded, filled in the frames'
+/// blue on the card's own outline grey — `CohortCard`'s bar.
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({required this.fraction});
 
@@ -223,12 +297,12 @@ class _ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(_barHeight / 2),
       child: LinearProgressIndicator(
         value: fraction,
-        minHeight: AppDimens.progressBarHeight,
-        backgroundColor: AppColors.border,
-        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.blue),
+        minHeight: _barHeight,
+        backgroundColor: HomePalette.border,
+        valueColor: const AlwaysStoppedAnimation<Color>(HomePalette.accent),
       ),
     );
   }
@@ -249,13 +323,12 @@ class _TrackBadge extends StatelessWidget {
     final isJunior = mode == 'junior' || mode == 'kids';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // 5 | 20 icon | 8 | label | 9.5, inside the 1pt outline.
+      height: _badgeHeight,
+      padding: const EdgeInsets.only(left: 5, right: 9.5),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border.all(
-          color: AppColors.border,
-          width: AppDimens.borderWidth,
-        ),
+        border: Border.all(color: HomePalette.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -263,10 +336,11 @@ class _TrackBadge extends StatelessWidget {
         children: [
           SvgPicture.asset(
             isJunior ? HomeIcons.junior : HomeIcons.adult,
-            height: 14,
+            width: 20,
+            height: 20,
           ),
-          const SizedBox(width: 4),
-          Text(_capitalize(uiMode), style: AppTypography.catalogTrackLabel),
+          const SizedBox(width: 8),
+          Text(_capitalize(uiMode), style: _badgeLabelStyle),
         ],
       ),
     );
@@ -283,26 +357,31 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status.toLowerCase()) {
-      'open' => AppColors.success,
-      'active' => AppColors.success,
-      'finished' => AppColors.textSecondary,
-      _ => AppColors.textSecondary,
+    final (Color outline, Color fill, Color ink) = switch (status
+        .toLowerCase()) {
+      'open' || 'active' => (
+        HomePalette.activeOutline,
+        HomePalette.activeFill,
+        HomePalette.activeInk,
+      ),
+      'finished' => (
+        HomePalette.liveOutline,
+        HomePalette.liveFill,
+        HomePalette.liveOutline,
+      ),
+      _ => (
+        AppColors.textSecondary,
+        AppColors.textSecondary.withValues(alpha: 0.12),
+        AppColors.textSecondary,
+      ),
     };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        // A soft tint behind the outline, not a bare border: the reference
-        // draws every pill on Home with a faint fill in its own colour.
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color, width: AppDimens.borderWidth),
-      ),
-      child: Text(
-        _capitalize(status),
-        style: AppTypography.catalogStatusLabel.copyWith(color: color),
-      ),
+    return _Capsule(
+      label: _capitalize(status),
+      outline: outline,
+      fill: fill,
+      ink: ink,
+      horizontalPadding: 15,
     );
   }
 }
@@ -313,72 +392,118 @@ class _LiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.blue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.blue, width: AppDimens.borderWidth),
-      ),
-      child: Text(
-        HomeStrings.live,
-        style: AppTypography.catalogStatusLabel.copyWith(color: AppColors.blue),
-      ),
+    return const _Capsule(
+      label: HomeStrings.live,
+      outline: HomePalette.liveOutline,
+      fill: HomePalette.liveFill,
+      ink: HomePalette.accent,
+      horizontalPadding: 11,
     );
   }
 }
 
-/// The attendance action.
-///
-/// Not [AppButton]: that widget draws a label alone, and the reference puts a
-/// QR glyph in front of this one. Everything else about it is `AppButton`'s —
-/// the same [AppDimens.buttonHeight], the same pill radius, the same blue
-/// when live and flat treatment when it cannot be pressed — so the two read
-/// as one control, not two button styles.
-class _AttendanceAction extends StatelessWidget {
-  const _AttendanceAction({required this.onPressed});
+/// A 24-tall outlined capsule with a 12pt bold label.
+class _Capsule extends StatelessWidget {
+  const _Capsule({
+    required this.label,
+    required this.outline,
+    required this.fill,
+    required this.ink,
+    required this.horizontalPadding,
+  });
 
-  final VoidCallback? onPressed;
+  final String label;
+  final Color outline;
+  final Color fill;
+  final Color ink;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onPressed != null;
-    final foreground = enabled ? AppColors.onPrimary : AppColors.disabled;
-
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: HomeStrings.attendanceAction,
-      child: Material(
-        color: enabled ? AppColors.blue : AppColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
-          splashColor: enabled ? Colors.white24 : null,
-          highlightColor: enabled ? Colors.white10 : null,
-          child: Ink(
-            height: AppDimens.buttonHeight,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.qr_code_scanner, size: 18, color: foreground),
-                const SizedBox(width: 8),
-                Text(
-                  HomeStrings.attendanceAction,
-                  style: AppTypography.buttonLabel.copyWith(color: foreground),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return Container(
+      height: _pillHeight,
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(_pillHeight / 2),
+        border: Border.all(color: outline),
       ),
+      child: Text(label, style: _capsuleStyle.copyWith(color: ink)),
     );
   }
 }
+
+// --- Type, read off the frames -------------------------------------------
+
+/// "Cohort 01" — 12 on an 18 line, `CohortCard`'s caption.
+final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
+  fontSize: 12,
+  height: 18 / 12,
+);
+
+/// "AI Engineer" — 18 bold on a 26 line, `CohortCard`'s title.
+final TextStyle _titleStyle = AppTypography.cardHeading.copyWith(
+  fontSize: 18,
+  height: 26 / 18,
+  fontWeight: FontWeight.w700,
+);
+
+final TextStyle _badgeLabelStyle = AppTypography.catalogTrackLabel.copyWith(
+  fontSize: 16,
+  height: 1,
+);
+
+final TextStyle _capsuleStyle = AppTypography.catalogStatusLabel.copyWith(
+  fontSize: 12,
+  height: 16 / 12,
+);
+
+/// "Modules 2 of 5 complete".
+final TextStyle _modulesStyle = AppTypography.cardSupporting.copyWith(
+  fontSize: 12,
+  height: 18 / 12,
+);
+
+/// "35% complete".
+const TextStyle _percentStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w500,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+/// "Дараагийн хичээл:".
+const TextStyle _headingStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+/// "08/04 • 09:00 – 11:00".
+const TextStyle _lessonTimeStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w500,
+  color: HomePalette.accent,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+/// "Хичээл эхлсэн та ирцээ бүртгүүлээрэй".
+const TextStyle _hintStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w500,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
 
 /// `"active"` -> `"Active"`. Values are shown verbatim otherwise — status and
 /// UI mode have no confirmed closed set, so this only tidies capitalisation.

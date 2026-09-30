@@ -11,12 +11,7 @@
 /// until a repository can fill them. Every one of them is built, styled and
 /// tested, and will appear unchanged the day a source exists.
 class HomeDashboard {
-  const HomeDashboard({
-    this.program,
-    this.contract,
-    this.payment,
-    this.attendance,
-  });
+  const HomeDashboard({this.program, this.contract, this.stats = const []});
 
   /// The cohort the student is studying in, with its progress and next lesson.
   final EnrolledProgram? program;
@@ -24,19 +19,52 @@ class HomeDashboard {
   /// Whether the student's e-contract is signed. Null when unknown.
   final ContractStatus? contract;
 
-  /// What the student owes next. Null when unknown.
-  final PaymentStatus? payment;
-
-  /// How much of the cohort the student has attended. Null when unknown.
-  final AttendanceSummary? attendance;
+  /// The payment and attendance cards under the cohort card, in the order
+  /// they are drawn. Empty when neither has a source.
+  ///
+  /// A list rather than one field per figure because the Figma Home frames
+  /// arrange the same figures differently from state to state — stacked
+  /// full-width rows in one, side-by-side tiles in another, and an overdue
+  /// payment tile *and* an upcoming-instalment row together in a third — and
+  /// nothing about the figures themselves says which. The source decides,
+  /// card by card, through [HomeStat.layout].
+  final List<HomeStat> stats;
 
   /// True when there is nothing at all to show — the student is enrolled in
   /// no cohort and no other section has a source.
-  bool get isEmpty =>
-      program == null &&
-      contract == null &&
-      payment == null &&
-      attendance == null;
+  bool get isEmpty => program == null && contract == null && stats.isEmpty;
+}
+
+/// How one [HomeStat] card is drawn.
+enum HomeStatLayout {
+  /// Half the content width, paired with the next tile in the list: icon on
+  /// top, figures under it, the card's action at the bottom.
+  tile,
+
+  /// The full content width: icon beside the figures, a "details" action
+  /// under them.
+  row,
+}
+
+/// One card in the dashboard's statistics section.
+sealed class HomeStat {
+  const HomeStat({required this.layout});
+
+  final HomeStatLayout layout;
+}
+
+/// "Дараанийн төлөлт" — what the student owes next.
+class PaymentStat extends HomeStat {
+  const PaymentStat(this.payment, {required super.layout});
+
+  final PaymentStatus payment;
+}
+
+/// "Хичээлийн ирц" — how much of the cohort the student has attended.
+class AttendanceStat extends HomeStat {
+  const AttendanceStat(this.attendance, {required super.layout});
+
+  final AttendanceSummary attendance;
 }
 
 /// The cohort the student is currently studying in.

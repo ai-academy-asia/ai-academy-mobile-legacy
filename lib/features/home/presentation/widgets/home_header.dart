@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../home_strings.dart';
+import 'home_palette.dart';
 
 /// The dashboard's header: the brand lockup, and the notification control at
 /// the trailing edge.
@@ -32,9 +33,13 @@ class HomeHeader extends StatelessWidget {
     return ColoredBox(
       color: AppColors.surface,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimens.screenPadding,
-          vertical: 10,
+        // 10 over the bell and 9 under it: the reference's rule sits 63 below
+        // the status bar, not 64.
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.screenPadding,
+          10,
+          AppDimens.screenPadding,
+          9,
         ),
         child: Row(
           children: [
@@ -70,10 +75,17 @@ class _BrandLockup extends StatelessWidget {
             height: AppDimens.headerLogoHeight,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 8),
-          Text(
-            '${HomeStrings.wordmarkLine1}\n${HomeStrings.wordmarkLine2}',
-            style: AppTypography.homeLogoWordmark,
+          const SizedBox(width: 3.5),
+          // The reference sets the two lines 4pt below the mark's centre —
+          // "Asia" sits on the mark's baseline — so the block is nudged down
+          // rather than centred. A paint-time offset, so the lockup keeps
+          // its 32pt footprint.
+          Transform.translate(
+            offset: const Offset(0, 4),
+            child: Text(
+              '${HomeStrings.wordmarkLine1}\n${HomeStrings.wordmarkLine2}',
+              style: AppTypography.homeLogoWordmark,
+            ),
           ),
         ],
       ),
@@ -98,7 +110,7 @@ class _NotificationButton extends StatelessWidget {
         color: AppColors.surface,
         shape: const CircleBorder(
           side: BorderSide(
-            color: AppColors.border,
+            color: HomePalette.border,
             width: AppDimens.borderWidth,
           ),
         ),
