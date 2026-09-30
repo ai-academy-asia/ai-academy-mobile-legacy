@@ -88,9 +88,8 @@ const double _connectorWidth = 2;
 /// itself still exists, with its own tests, for when a real per-lesson
 /// backend contract lands; it is simply not reachable from this screen's
 /// normal navigation today.) Locked modules stay genuinely inert (`onTap:
-/// null`). Both "Continue learning" buttons open the same screen, for
-/// whichever module [_continueLearningTarget] picks — see that function's
-/// own doc comment for what the rule is and, importantly, what it is not.
+/// null`). Both "Continue learning" buttons open the same screen, for the
+/// module the server selected — see [_continueLearningTarget].
 class CourseModuleListScreen extends StatefulWidget {
   const CourseModuleListScreen({
     required this.courseSlug,
@@ -264,32 +263,21 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// The module "Continue learning" should open.
+/// The module "Continue learning" should open: the one
+/// `CourseLearningPath.continueModuleId` names, and nothing else.
 ///
-/// **The server chooses, when it has answered.**
-/// `CourseLearningPath.continueModuleId` is `continue.module_id` from
-/// `course_learning_api_contract_v1.md` §2.1, which states the selection is
-/// server-side and "replaces `_continueLearningTarget()`". So it wins
-/// outright, locked or not: the server picked it knowing more than this
-/// screen does.
-///
-/// The two fallbacks below are what is left of the old frontend placeholder,
-/// kept for the paths that have no server answer — the sample repository, and
-/// a response whose `continue` is `null` because nothing is unlocked. First
-/// the first module that is neither completed nor locked, then the most
-/// recently completed one, which is still a defensible "continue where you
-/// left off". Null only when every module is locked and none is complete.
+/// `course_learning_api_contract_v1.md` §2.1 makes the selection
+/// **server-side** — `continue.module_id` "replaces
+/// `_continueLearningTarget()`" — so this only looks the server's choice up
+/// among the modules, locked or not. It never picks one itself: the
+/// contract sends `continue: null` exactly when nothing is unlocked, and a
+/// client rule would contradict that. Null then, or when the id names no
+/// listed module, which leaves both buttons drawn but inert.
 CourseModule? _continueLearningTarget(CourseLearningPath path) {
-  if (path.continueModuleId case final serverChoice?) {
-    for (final module in path.modules) {
-      if (module.id == serverChoice) return module;
-    }
-  }
+  final serverChoice = path.continueModuleId;
+  if (serverChoice == null) return null;
   for (final module in path.modules) {
-    if (!module.completed && !module.locked) return module;
-  }
-  for (final module in path.modules.reversed) {
-    if (module.completed) return module;
+    if (module.id == serverChoice) return module;
   }
   return null;
 }

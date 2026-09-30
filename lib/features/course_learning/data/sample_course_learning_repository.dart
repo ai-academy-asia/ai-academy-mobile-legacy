@@ -37,6 +37,10 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
           'Take a peek under the hood of generative AI and LLMs to understand how they work',
       illustrationAsset: _asset('how_ai_works.svg'),
       percentComplete: 30,
+      // The sample's own stand-in for the server's `continue.module_id` — the
+      // screen no longer picks one itself. Module 2 is the one it picked
+      // before: the most recently completed of the sample's five.
+      continueModuleId: 2,
       modules: [
         _module(
           id: 1,
@@ -260,6 +264,10 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
   static String _asset(String name) => 'assets/images/course_learning/$name';
 }
 
+/// Every sample module's lesson count — the length of the one hand-authored
+/// lesson list [SampleCourseLearningRepository.getLessons] serves.
+const int _sampleLessonCount = 3;
+
 /// One sample module, with its icon and accent taken from the shared palette
 /// instead of spelled out per entry.
 ///
@@ -285,6 +293,9 @@ CourseModule _module({
     scheduleLabel: scheduleLabel,
     iconAsset: visuals.iconAsset,
     accentColor: visuals.accentColor,
+    // Sample counts sized to the sample's own three-lesson list.
+    lessonCount: _sampleLessonCount,
+    completedLessons: completed ? _sampleLessonCount : 0,
     completed: completed,
     locked: locked,
   );

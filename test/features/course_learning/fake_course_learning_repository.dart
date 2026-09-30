@@ -137,6 +137,8 @@ CourseModule sampleModule({
   String scheduleLabel = '08/04 • Да • 09:00',
   String iconAsset = 'assets/images/course_learning/module_ai.svg',
   Color accentColor = const Color(0xFF408CFF),
+  int lessonCount = 3,
+  int? completedLessons,
   bool completed = false,
   bool locked = false,
 }) => CourseModule(
@@ -146,6 +148,10 @@ CourseModule sampleModule({
   scheduleLabel: scheduleLabel,
   iconAsset: iconAsset,
   accentColor: accentColor,
+  lessonCount: lessonCount,
+  // A completed module has completed every lesson, unless a test says
+  // otherwise.
+  completedLessons: completedLessons ?? (completed ? lessonCount : 0),
   completed: completed,
   locked: locked,
 );

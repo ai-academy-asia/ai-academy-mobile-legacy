@@ -49,8 +49,8 @@ class CourseLearningPath {
   /// last one when everything is done.
   ///
   /// Nullable because the contract sends `continue: null` when nothing is
-  /// unlocked, and because the sample path has no server to ask. The screen
-  /// falls back to its own rule then — see `_continueLearningTarget`.
+  /// unlocked. The screen never substitutes a choice of its own then — see
+  /// `_continueLearningTarget`.
   final int? continueModuleId;
 
   /// `continue.lesson_id` — the lesson inside [continueModuleId] the server
