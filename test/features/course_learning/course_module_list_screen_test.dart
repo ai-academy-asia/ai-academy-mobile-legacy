@@ -191,27 +191,27 @@ void main() {
     testWidgets('tapping Continue learning opens Exercise Detail directly', (
       tester,
     ) async {
-      await pumpScreen(tester, FakeCourseLearningRepository());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(path: samplePath(continueModuleId: 2)),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Continue learning').first);
       await tester.pumpAndSettle();
 
-      // No module is "available, not started" in the sample data (see
-      // CourseModule.locked's own doc comment), so the fallback picks the
-      // most recently completed module — "Language Model Training", id 2.
       final detail = tester.widget<CourseExerciseDetailScreen>(
         find.byType(CourseExerciseDetailScreen),
       );
       expect(detail.moduleId, 2);
     });
 
-    testWidgets('the server\'s own continue target wins over the fallback', (
+    testWidgets('opens the server\'s continue target, even a locked one', (
       tester,
     ) async {
       // `continue.module_id` from the API. Module 5 is locked and not
-      // completed, so neither fallback rule would ever reach it — which is
-      // what makes it proof the server's answer is the one being used.
+      // completed — no client rule would pick it, which is what makes it
+      // proof the server's answer is the one being used.
       await pumpScreen(
         tester,
         FakeCourseLearningRepository(path: samplePath(continueModuleId: 5)),
@@ -227,23 +227,31 @@ void main() {
       expect(detail.moduleId, 5);
     });
 
-    testWidgets('a continue target no module matches falls back', (
-      tester,
-    ) async {
-      await pumpScreen(
-        tester,
-        FakeCourseLearningRepository(path: samplePath(continueModuleId: 999)),
-      );
-      await tester.pumpAndSettle();
+    // The contract makes the continue target server-selected, so the screen
+    // never substitutes one: with no usable server answer both buttons stay
+    // drawn — the layout is unchanged — but open nothing.
+    for (final (label, continueModuleId) in [
+      ('continue: null', null),
+      ('a continue target no module matches', 999),
+    ]) {
+      testWidgets('$label leaves both buttons drawn but inert', (tester) async {
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(
+            path: samplePath(continueModuleId: continueModuleId),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Continue learning').first);
-      await tester.pumpAndSettle();
+        expect(find.text('Continue learning'), findsNWidgets(2));
+        for (var i = 0; i < 2; i++) {
+          await tester.tap(find.text('Continue learning').at(i));
+          await tester.pumpAndSettle();
+        }
 
-      final detail = tester.widget<CourseExerciseDetailScreen>(
-        find.byType(CourseExerciseDetailScreen),
-      );
-      expect(detail.moduleId, 2);
-    });
+        expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      });
+    }
   });
 
   group('failure', () {

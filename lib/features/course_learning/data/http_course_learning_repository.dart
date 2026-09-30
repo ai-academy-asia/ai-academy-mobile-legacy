@@ -26,11 +26,13 @@ import 'sample_course_learning_repository.dart';
 /// are read. What the contract also sends and this client deliberately
 /// ignores, because no screen draws it: `course.id`,
 /// `course.banner_image_url` (the design draws the bundled illustration, not
-/// the real course image), `enrollment_id`, `cohort_id`,
-/// `progress.completed_lessons`/`total_lessons`, and each module's
-/// `lesson_count`/`completed_lessons`. Every one of them is a real field;
-/// none is modelled, because widening a model for data nothing renders is
-/// what `docs/ai/DATA_AND_API.md` §8.2 forbids.
+/// the real course image), `enrollment_id`, `cohort_id` and
+/// `progress.completed_lessons`/`total_lessons` — the screen's progress row
+/// draws `progress.percent` alone. Every one of them is a real field.
+///
+/// Each module's `lesson_count`/`completed_lessons` *are* modelled, on
+/// [CourseModule], although no card draws them yet: they are the module's
+/// own server-sent counts, kept with it rather than dropped at the parse.
 ///
 /// `continue.lesson_id` and `certificate.status` *are* modelled, and were not
 /// until Junior Home asked for them — that screen holds the server's continue
@@ -246,6 +248,8 @@ CourseModule _moduleFrom(Object? entry) {
     scheduleLabel: _scheduleLabel(entry['schedule']),
     iconAsset: visuals.iconAsset,
     accentColor: visuals.accentColor,
+    lessonCount: _requireInt(entry, 'module.lesson_count'),
+    completedLessons: _requireInt(entry, 'module.completed_lessons'),
     // Server-sent, never derived — the contract is explicit that the client
     // must not compute either one.
     completed: _requireBool(entry, 'completed'),

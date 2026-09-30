@@ -4,9 +4,10 @@ import 'package:flutter/widgets.dart';
 /// overview screen lists it.
 ///
 /// Fields split two ways now that `GET /me/courses/{course_slug}/learning`
-/// backs this screen. [id], [order], [title], [completed] and [locked] come
-/// straight off the wire — the contract sends each one, and is explicit that
-/// the client must **not** derive [completed] or [locked] for itself.
+/// backs this screen. [id], [order], [title], [lessonCount],
+/// [completedLessons], [completed] and [locked] come straight off the wire —
+/// the contract sends each one, and is explicit that the client must **not**
+/// derive [completed] or [locked] for itself.
 /// [scheduleLabel] is formatted from the response's raw `schedule` object.
 /// [iconAsset] and [accentColor] have no wire field at all and never will:
 /// the contract states the backend sends no icon, image or colour, and that
@@ -20,6 +21,8 @@ class CourseModule {
     required this.scheduleLabel,
     required this.iconAsset,
     required this.accentColor,
+    required this.lessonCount,
+    required this.completedLessons,
     required this.completed,
     required this.locked,
   });
@@ -52,6 +55,15 @@ class CourseModule {
   /// `ProgramCard`'s status pill already uses (`color.withValues(alpha:
   /// ...)`) rather than a flat colour.
   final Color accentColor;
+
+  /// How many lessons the module holds — `lesson_count`. Not drawn by the
+  /// Figma module card; carried so the module's own counts are not dropped
+  /// between the wire and the screen.
+  final int lessonCount;
+
+  /// How many of them the student has completed — `completed_lessons`.
+  /// Server-sent, like [completed]; never tallied here.
+  final int completedLessons;
 
   final bool completed;
 

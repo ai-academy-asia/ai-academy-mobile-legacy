@@ -356,6 +356,8 @@ void main() {
               'order': 6,
               'title': {'en': 'Sixth'},
               'schedule': null,
+              'lesson_count': 0,
+              'completed_lessons': 0,
               'completed': false,
               'locked': false,
             },
@@ -367,6 +369,59 @@ void main() {
         path.modules.single.iconAsset,
         'assets/images/course_learning/module_ai.svg',
       );
+    });
+
+    test('reads each module\'s lesson_count and completed_lessons', () async {
+      final path = await pathFrom(contractBody());
+
+      expect(path.modules.map((m) => m.lessonCount), [4, 4]);
+      expect(path.modules.map((m) => m.completedLessons), [4, 0]);
+    });
+
+    test('keeps the server\'s module order, and each module\'s own data', () {
+      Map<String, Object?> module(int id, int order, String mn) => {
+        'id': id,
+        'order': order,
+        'title': {'mn': mn, 'en': 'Module $order'},
+        'schedule': null,
+        'lesson_count': order,
+        'completed_lessons': 0,
+        'completed': false,
+        'locked': false,
+      };
+
+      return pathFrom(
+        contractBody(
+          modules: [
+            module(40, 1, 'Нэг'),
+            module(41, 2, 'Хоёр'),
+            module(42, 3, 'Гурав'),
+          ],
+        ),
+      ).then((path) {
+        expect(path.modules.map((m) => m.id), [40, 41, 42]);
+        expect(path.modules.map((m) => m.order), [1, 2, 3]);
+        expect(path.modules.map((m) => m.title), ['Нэг', 'Хоёр', 'Гурав']);
+        expect(path.modules.map((m) => m.lessonCount), [1, 2, 3]);
+      });
+    });
+
+    test('a module title falls back to English when only "en" is sent', () {
+      final body = contractBody();
+      ((body['modules'] as List).first as Map<String, Object?>)['title'] = {
+        'en': 'How AI works',
+      };
+
+      return pathFrom(
+        body,
+      ).then((path) => expect(path.modules.first.title, 'How AI works'));
+    });
+
+    test('reads continue.lesson_id and certificate.status', () async {
+      final path = await pathFrom(contractBody());
+
+      expect(path.continueLessonId, 204);
+      expect(path.certificateStatus, 'not_eligible');
     });
 
     test('accepts an empty module list', () async {
@@ -493,6 +548,29 @@ void main() {
       final failure = await failureForBody(body);
 
       expect(failure.detail, contains('locked'));
+    });
+
+    test('a module missing lesson_count is a fault, named', () async {
+      final body = contractBody();
+      ((body['modules'] as List).first as Map<String, Object?>).remove(
+        'lesson_count',
+      );
+
+      final failure = await failureForBody(body);
+
+      expect(failure.kind, CourseLearningFailureKind.server);
+      expect(failure.detail, contains('module.lesson_count'));
+    });
+
+    test('a non-numeric completed_lessons is a fault, named', () async {
+      final body = contractBody();
+      ((body['modules'] as List).first
+              as Map<String, Object?>)['completed_lessons'] =
+          'four';
+
+      final failure = await failureForBody(body);
+
+      expect(failure.detail, contains('module.completed_lessons'));
     });
 
     test(
