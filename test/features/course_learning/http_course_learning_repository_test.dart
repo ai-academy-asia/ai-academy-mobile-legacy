@@ -1855,4 +1855,263 @@ void main() {
       });
     });
   });
+
+  // §2.4: GET /me/materials/{material_id}/download — a pre-signed link.
+  group('getMaterialDownload', () {
+    /// The contract's §2.4 download answer.
+    Map<String, Object?> downloadBody({
+      Object? url =
+          'https://s3.example.test/materials/88.pdf?X-Amz-Signature=x',
+      Object? expiresAt = '2026-08-06T01:05:00+00:00',
+      Object? fileName = 'week2-slides.pdf',
+      Object? sizeBytes = 10485760,
+    }) => {
+      'url': url,
+      'expires_at': expiresAt,
+      'file_name': fileName,
+      'size_bytes': sizeBytes,
+    };
+
+    Future<CourseLearningFailure> downloadFailureFrom(
+      HttpCourseLearningRepository repository,
+    ) async {
+      try {
+        await repository.getMaterialDownload(88);
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    Future<CourseLearningFailure> failureForStatus(
+      int status, [
+      Object? body = const {},
+    ]) => downloadFailureFrom(
+      repositoryReturning((_) async => jsonResponse(body, status)),
+    );
+
+    Future<CourseLearningFailure> failureForBody(Object? body) =>
+        downloadFailureFrom(
+          repositoryReturning((_) async => jsonResponse(body)),
+        );
+
+    group('the request', () {
+      test(
+        'GETs /me/materials/{material_id}/download with the token',
+        () async {
+          late http.Request sent;
+          final repository = repositoryReturning((request) async {
+            sent = request;
+            return jsonResponse(downloadBody());
+          });
+
+          await repository.getMaterialDownload(88);
+
+          expect(sent.method, 'GET');
+          expect(
+            sent.url.toString(),
+            'https://api.ai-academy.asia/me/materials/88/download',
+          );
+          expect(
+            sent.headers[HttpHeaders.authorizationHeader],
+            'Bearer tok-123',
+          );
+          expect(sent.headers[HttpHeaders.acceptHeader], 'application/json');
+          expect(sent.body, isEmpty);
+        },
+      );
+
+      test('signed out: sends nothing and asks for sign-in', () async {
+        var requests = 0;
+        final repository = repositoryReturning((_) async {
+          requests++;
+          return jsonResponse(downloadBody());
+        }, sessionStore: AuthSessionStore());
+
+        final failure = await downloadFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('an expired session: sends nothing', () async {
+        var requests = 0;
+        final store = AuthSessionStore()
+          ..save(
+            const AuthSession(
+              accessToken: 'old',
+              expiresIn: Duration(hours: 1),
+            ),
+            now: DateTime(2000),
+          );
+        final repository = repositoryReturning((_) async {
+          requests++;
+          return jsonResponse(downloadBody());
+        }, sessionStore: store);
+
+        final failure = await downloadFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+    });
+
+    group('the answer', () {
+      test('reads the pre-signed link in full', () async {
+        final download = await repositoryAnswering(
+          downloadBody(),
+        ).getMaterialDownload(88);
+
+        expect(
+          download.url,
+          Uri.parse(
+            'https://s3.example.test/materials/88.pdf?X-Amz-Signature=x',
+          ),
+        );
+        expect(download.expiresAt, DateTime.utc(2026, 8, 6, 1, 5));
+        expect(download.fileName, 'week2-slides.pdf');
+        expect(download.sizeBytes, 10485760);
+      });
+
+      test('an http link is accepted as well as https', () async {
+        final download = await repositoryAnswering(
+          downloadBody(url: 'http://minio.local/materials/88.pdf'),
+        ).getMaterialDownload(88);
+
+        expect(download.url.scheme, 'http');
+      });
+    });
+
+    group('status mapping', () {
+      test('401 is a dead session, and the token is forgotten', () async {
+        final store = signedIn();
+        final failure = await downloadFailureFrom(
+          repositoryReturning(
+            (_) async => jsonResponse({'error': 'token_expired'}, 401),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(store.isSignedIn, isFalse);
+      });
+
+      test('403 is not_enrolled, and keeps the token', () async {
+        final store = signedIn();
+        final failure = await downloadFailureFrom(
+          repositoryReturning(
+            (_) async => jsonResponse({'error': 'not_enrolled'}, 403),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.notEnrolled);
+        expect(store.isSignedIn, isTrue);
+      });
+
+      test('404 material_not_found is not found', () async {
+        final failure = await failureForStatus(404, {
+          'error': 'material_not_found',
+        });
+
+        expect(failure.kind, CourseLearningFailureKind.notFound);
+      });
+
+      test('409 reads as locked, as it does on every endpoint here', () async {
+        final failure = await failureForStatus(409, {'error': 'lesson_locked'});
+
+        expect(failure.kind, CourseLearningFailureKind.locked);
+      });
+
+      test('503 storage_error, and any 5xx, is a server fault', () async {
+        for (final status in [500, 502, 503]) {
+          final failure = await failureForStatus(status, {
+            'error': 'storage_error',
+          });
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: 'HTTP $status',
+          );
+        }
+      });
+
+      test('a request that never completes is a network failure', () async {
+        final failure = await downloadFailureFrom(
+          repositoryReturning((_) async => throw const SocketException('off')),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.network);
+      });
+    });
+
+    group('a malformed answer is a server fault', () {
+      test('not JSON', () async {
+        final failure = await downloadFailureFrom(
+          repositoryReturning((_) async => http.Response('<html>', 200)),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('not an object', () async {
+        for (final body in <Object?>[null, [], 'link']) {
+          final failure = await failureForBody(body);
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('no url, or not an http(s) one', () async {
+        for (final url in <Object?>[
+          null,
+          '',
+          42,
+          '/materials/88.pdf',
+          'ftp://files.example.test/88.pdf',
+          'javascript:alert(1)',
+        ]) {
+          final failure = await failureForBody(downloadBody(url: url));
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$url',
+          );
+          expect(failure.detail, contains('download.url'), reason: '$url');
+        }
+      });
+
+      test('an expires_at that is missing or not a timestamp', () async {
+        for (final expiresAt in <Object?>[null, 'in five minutes']) {
+          final failure = await failureForBody(
+            downloadBody(expiresAt: expiresAt),
+          );
+
+          expect(failure.kind, CourseLearningFailureKind.server);
+          expect(failure.detail, contains('download.expires_at'));
+        }
+      });
+
+      test('no file_name', () async {
+        final failure = await failureForBody(downloadBody(fileName: null));
+
+        expect(failure.detail, contains('download.file_name'));
+      });
+
+      test('a missing or negative size_bytes', () async {
+        for (final size in <Object?>[null, '10 MB', -1]) {
+          final failure = await failureForBody(downloadBody(sizeBytes: size));
+
+          expect(failure.kind, CourseLearningFailureKind.server);
+          expect(failure.detail, contains('download.size_bytes'));
+        }
+      });
+    });
+  });
 }

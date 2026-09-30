@@ -42,6 +42,12 @@ dependencies:
   # assets/icons/junior.svg) on the course catalog card.
   flutter_svg: ^2.2.1
 
+  # Opens a lesson material's pre-signed download URL
+  # (`GET /me/materials/{id}/download`) outside the app, where the OS shows
+  # or saves the file. The first plugin dependency — see
+  # docs/ai/ARCHITECTURE.md §9 on what that means for the iOS build.
+  url_launcher: ^6.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

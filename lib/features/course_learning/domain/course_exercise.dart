@@ -9,8 +9,9 @@ import 'lesson.dart';
 /// From the backend, the read-only content is real: [lessonId], [moduleId],
 /// [moduleCaption], [title], [type], [durationLabel], [hasVideo], [summary],
 /// [extraSections], [completed], the file [materials] and the [note] — which
-/// is also saved back, through `CourseLearningRepository.saveNote`. The
-/// assignment cannot be — see [simulatesWrites]. The quiz
+/// is also saved back, through `CourseLearningRepository.saveNote`. Each
+/// file material can be downloaded, through `getMaterialDownload`. The
+/// assignment cannot be submitted — see [simulatesWrites]. The quiz
 /// (§2.7 sends a summary, not questions) and the assignment workflow (§2.6)
 /// are not integrated, so a backend lesson carries no [quiz], no
 /// [assignmentFeedback] and no [assignmentAttachment].
@@ -79,13 +80,16 @@ class CourseExercise {
   /// draws it yet.
   final bool completed;
 
-  /// True for the sample exercise, whose assignment submit is a local
-  /// simulation that never leaves the device.
+  /// True for the sample exercise, whose assignment submit and material
+  /// download are local simulations that never leave the device — the
+  /// download button just flips to "downloaded".
   ///
   /// False for a lesson loaded from the backend: the assignment submission
   /// API is not integrated, so the screen shows the Assignment tab disabled
-  /// rather than let a submission look sent. The note is not governed by
-  /// this — every repository saves it through `saveNote`.
+  /// rather than let a submission look sent; and a material's download
+  /// button fetches a real link (`CourseLearningRepository.
+  /// getMaterialDownload`) and opens it. The note is not governed by this —
+  /// every repository saves it through `saveNote`.
   final bool simulatesWrites;
 
   /// The student's own note on this exercise. Null when none has been left
