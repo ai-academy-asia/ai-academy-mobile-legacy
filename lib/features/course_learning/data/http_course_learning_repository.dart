@@ -11,6 +11,7 @@ import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
+import '../domain/file_size_label.dart';
 import '../domain/lesson.dart';
 import '../domain/material_download.dart';
 import '../domain/uploaded_file.dart';
@@ -161,9 +162,11 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
   }
 
   /// §2.6 `POST /me/assignments/{assignment_id}/submissions` with
-  /// `{"link", "description", "file_id": null}` — a link submission, or a
-  /// resubmission (the same call). `201` answers with the new latest
-  /// submission, read by the same [_submissionFrom] the lesson detail uses.
+  /// `{"link", "description", "file_id"}` — a submission, or a resubmission
+  /// (the same call). All three keys are always sent, `null` for what the
+  /// student left out; [fileId] is a §2.8 upload's id. `201` answers with
+  /// the new latest submission, read by the same [_submissionFrom] the
+  /// lesson detail uses.
   ///
   /// 400 `submission_empty`/`invalid_link`/`description_too_long` and 409
   /// `past_due` read as their own [CourseLearningFailureKind]s; every other
@@ -171,12 +174,13 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
   @override
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
-    required String link,
+    String? link,
     String? description,
+    int? fileId,
   }) async {
     final body = await _authorizedPost(
       '/me/assignments/$assignmentId/submissions',
-      {'link': link, 'description': description, 'file_id': null},
+      {'link': link, 'description': description, 'file_id': fileId},
     );
     return _submissionFromBody(body, now: _clock());
   }
@@ -663,9 +667,8 @@ CourseExerciseMaterial? _fileMaterialFrom(Object? entry) {
   );
 }
 
-/// `size_bytes` as the material row draws it — "10 MB", the sample's own
-/// shape. Binary units (10485760 is "10 MB"); one decimal below 10 of a
-/// unit when it is not whole ("1.5 MB"), none otherwise.
+/// `size_bytes` as the material row draws it — see [fileSizeLabel]. A
+/// negative size is a server fault.
 String _sizeLabel(int bytes) {
   if (bytes < 0) {
     throw CourseLearningFailure(
@@ -673,18 +676,7 @@ String _sizeLabel(int bytes) {
       detail: 'material.size_bytes: expected 0 or more, got $bytes',
     );
   }
-  const units = ['B', 'KB', 'MB', 'GB'];
-  var value = bytes.toDouble();
-  var unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  final whole = value == value.roundToDouble();
-  final text = whole || value >= 10
-      ? value.round().toString()
-      : value.toStringAsFixed(1);
-  return '$text ${units[unit]}';
+  return fileSizeLabel(bytes);
 }
 
 /// §2.5's `PUT` answer — the note object itself, never `null`.
@@ -753,7 +745,8 @@ AssignmentSubmission _submissionFromBody(String body, {required DateTime now}) {
 /// §2.6's latest `submission`, or null — nothing submitted yet.
 ///
 /// Read: `id`, `version`, `status`, `link`, `description`, `submitted_at`
-/// and `feedback`. Not read: `file` (no upload yet) and `score` (the tab
+/// and `feedback`. Not read: `file` (the tab's submitted state draws no
+/// file, and this client has only ever seen it `null`) and `score` (the tab
 /// draws none).
 AssignmentSubmission? _submissionFrom(
   Object? submission, {

@@ -162,6 +162,16 @@ abstract final class CourseLearningStrings {
   /// is a pre-formatted display string rather than raw data.
   static String attachmentTypeLabel(String sizeLabel) => '$sizeLabel, PDF';
 
+  /// The same "1 MB, PDF" line for a file the student really uploaded: the
+  /// type is [fileName]'s own extension, upper-cased the way the reference
+  /// writes it. A name with no extension has no type to show, so the line is
+  /// the size alone.
+  static String uploadedFileLabel(String sizeLabel, String fileName) {
+    final dot = fileName.lastIndexOf('.');
+    if (dot <= 0 || dot == fileName.length - 1) return sizeLabel;
+    return '$sizeLabel, ${fileName.substring(dot + 1).toUpperCase()}';
+  }
+
   // --- Quiz preview/result card (Exercise Detail) ---------------------------
 
   static const String startQuiz = 'Start quiz';

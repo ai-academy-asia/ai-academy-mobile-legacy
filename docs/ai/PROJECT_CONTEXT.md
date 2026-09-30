@@ -20,9 +20,9 @@
 
 ### Runtime dependencies (deliberately few)
 
-`http ^1.6.0`, `flutter_svg ^2.2.1`, `cupertino_icons ^1.0.8`. Dev: `flutter_lints ^6.0.0`, `flutter_launcher_icons ^0.14.4` (build-time only).
+`http ^1.6.0`, `flutter_svg ^2.2.1`, `cupertino_icons ^1.0.8`, `url_launcher ^6.3.2` (opens a lesson material's download link), `file_selector ^1.1.0` (the OS document picker behind assignment file submission). Dev: `flutter_lints ^6.0.0`, `flutter_launcher_icons ^0.14.4` (build-time only).
 
-**There is no state-management package, no routing package, no DI container, no secure-storage package, no file-picker, and no HTTP interceptor layer.** Every one of those roles is filled by hand-written code described in [ARCHITECTURE.md](ARCHITECTURE.md). Adding a dependency is a decision that needs its own task and justification.
+**There is no state-management package, no routing package, no DI container, no secure-storage package, and no HTTP interceptor layer.** Every one of those roles is filled by hand-written code described in [ARCHITECTURE.md](ARCHITECTURE.md). Adding a dependency is a decision that needs its own task and justification.
 
 ## 2. Feature map and maturity
 
@@ -59,7 +59,6 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 
 - **Home dashboard sections** — module count, attendance tally, payment state and e-contract warning are left null because no endpoint reports them (`enrolled_home_dashboard_repository.dart` states this explicitly).
 - **Lesson video playback** — `ExerciseVideoHeader` renders a flat placeholder. There is no video URL field on any model and no player dependency.
-- **Student file upload** — `assets/images/course_learning/exercise_upload.svg` is bundled but referenced nowhere.
 - **Certificate** — the certification section renders two bundled PNGs. There is no per-student certificate status, availability or download.
 - **Lesson List screen** — built and tested, but nothing navigates to it; the design goes Module List → Exercise Detail directly.
 - **Profile rows** — Terms of Service, Privacy Policy, language and theme controls have no destination yet.

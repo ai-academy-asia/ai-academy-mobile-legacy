@@ -2464,7 +2464,7 @@ void main() {
         },
       );
 
-      test('file_id is always sent, and null — no upload here', () async {
+      test('file_id is always sent — null when no file is attached', () async {
         late http.Request sent;
         final repository = submitRepository((request) async {
           sent = request;
@@ -2479,6 +2479,45 @@ void main() {
         // No description is sent as null, not left out.
         expect(body.containsKey('description'), isTrue);
         expect(body['description'], isNull);
+      });
+
+      test('a file submission sends the upload\'s id as file_id', () async {
+        late http.Request sent;
+        final repository = submitRepository((request) async {
+          sent = request;
+          return jsonResponse(submissionBody(), 201);
+        });
+
+        await repository.submitAssignment(
+          17,
+          fileId: 77,
+          description: 'Тайлбар',
+        );
+
+        // The same three keys as a link submission; the link is null.
+        expect(jsonDecode(sent.body), {
+          'link': null,
+          'description': 'Тайлбар',
+          'file_id': 77,
+        });
+      });
+
+      test('a link and a file are sent together', () async {
+        late http.Request sent;
+        final repository = submitRepository((request) async {
+          sent = request;
+          return jsonResponse(submissionBody(), 201);
+        });
+
+        await repository.submitAssignment(
+          17,
+          link: 'https://x.test',
+          fileId: 77,
+        );
+
+        final body = jsonDecode(sent.body) as Map<String, dynamic>;
+        expect(body['link'], 'https://x.test');
+        expect(body['file_id'], 77);
       });
 
       test('signed out: sends nothing and asks for sign-in', () async {

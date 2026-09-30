@@ -42,12 +42,14 @@ class _ThrowingRepository implements CourseLearningRepository {
   @override
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
-    required String link,
+    String? link,
     String? description,
+    int? fileId,
   }) => _delegate.submitAssignment(
     assignmentId,
     link: link,
     description: description,
+    fileId: fileId,
   );
 
   @override

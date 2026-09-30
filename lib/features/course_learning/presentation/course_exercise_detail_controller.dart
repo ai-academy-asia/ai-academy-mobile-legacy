@@ -1,13 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/open_external_url.dart';
+import '../../../core/utils/pick_local_file.dart';
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_repository.dart';
+import '../domain/uploaded_file.dart';
 import 'course_learning_strings.dart';
 
 /// Loads one lesson's content, saves the student's note on it, opens its
-/// materials' downloads, and submits its assignment link.
+/// materials' downloads, uploads the file its assignment submission carries,
+/// and submits that assignment.
 ///
 /// Same `ChangeNotifier`/`_disposed`-guard shape as `CourseLearningController`,
 /// [errorMessage] included: `GET /me/lessons/{lesson_id}` is a real fallible
@@ -18,13 +21,19 @@ class CourseExerciseDetailController extends ChangeNotifier {
     required this._repository,
     required this.lessonId,
     Future<bool> Function(Uri url)? openUrl,
-  }) : _openUrl = openUrl ?? openExternalUrl;
+    Future<PickedFile?> Function()? pickFile,
+  }) : _openUrl = openUrl ?? openExternalUrl,
+       _pickFile = pickFile ?? pickLocalFile;
 
   final CourseLearningRepository _repository;
 
   /// Hands a material's download link to the OS — [openExternalUrl] unless a
   /// test injects its own. Answers whether the link was opened.
   final Future<bool> Function(Uri url) _openUrl;
+
+  /// Asks the student for a file — [pickLocalFile] unless a test injects its
+  /// own. Answers null when they chose none.
+  final Future<PickedFile?> Function() _pickFile;
 
   /// Which lesson this controller loads — `Lesson.id`. Fixed for the
   /// controller's lifetime, same reasoning as `CourseLearningController.
@@ -42,6 +51,14 @@ class CourseExerciseDetailController extends ChangeNotifier {
   final Map<int, String> _materialDownloadErrors = {};
   bool _submittingAssignment = false;
   String? _assignmentSubmitErrorMessage;
+  bool _pickingAssignmentFile = false;
+  int? _assignmentFileUploadSizeBytes;
+  UploadedFile? _assignmentFile;
+  String? _assignmentFileErrorMessage;
+
+  /// Bumped whenever an upload in flight stops being wanted — a cancel — so
+  /// its answer is dropped when it arrives.
+  int _assignmentFileUploadGeneration = 0;
 
   bool get loading => _loading;
   CourseExercise? get exercise => _exercise;
@@ -59,6 +76,22 @@ class CourseExerciseDetailController extends ChangeNotifier {
   /// User-facing copy for the last failed [submitAssignment], or null. Kept
   /// apart from [errorMessage], like [noteSaveErrorMessage].
   String? get assignmentSubmitErrorMessage => _assignmentSubmitErrorMessage;
+
+  /// True while an assignment file's upload is in flight.
+  bool get uploadingAssignmentFile => _assignmentFileUploadSizeBytes != null;
+
+  /// How large the file being uploaded is, or null when none is. The
+  /// repository reports no progress, so this total is all there is to show.
+  int? get assignmentFileUploadSizeBytes => _assignmentFileUploadSizeBytes;
+
+  /// The uploaded file the next [submitAssignment] will attach, or null.
+  /// Dropped once a submission has carried it.
+  UploadedFile? get assignmentFile => _assignmentFile;
+
+  /// User-facing copy for the last failed [pickAndUploadAssignmentFile], or
+  /// null. Its own line, so it shows under the file area rather than under
+  /// the form's Submit.
+  String? get assignmentFileErrorMessage => _assignmentFileErrorMessage;
 
   /// True while [downloadMaterial] is fetching or opening [materialId]'s
   /// link.
@@ -134,34 +167,127 @@ class CourseExerciseDetailController extends ChangeNotifier {
     }
   }
 
-  /// Submits [link] (and [description], when not blank) to the loaded
-  /// lesson's assignment — a first submission or a resubmission, the same
-  /// call. On success the loaded exercise holds the submission the server
-  /// answered with, and this answers true. On failure the exercise is
-  /// untouched, [assignmentSubmitErrorMessage] says why (404 with this
-  /// feature's own "assignment not found" line), and this answers false.
-  /// Ignored (false) with no assignment loaded or a submit already in
-  /// flight.
-  Future<bool> submitAssignment({
-    required String link,
-    String? description,
-  }) async {
+  /// Asks the student for a file and uploads it (§2.8 `POST /me/files`), so
+  /// the next [submitAssignment] can attach it. Answers true once
+  /// [assignmentFile] holds the stored file.
+  ///
+  /// Answers false, changing nothing, when the student picks no file. A
+  /// failure leaves [assignmentFile] as it was and puts copy in
+  /// [assignmentFileErrorMessage]: the repository's failure by kind, or the
+  /// generic line when the picker or the file could not be read. Which types
+  /// and sizes are acceptable is the backend's answer, not checked here.
+  /// Ignored (false) with no assignment loaded, or while a pick, an upload
+  /// or a submit is already in flight.
+  Future<bool> pickAndUploadAssignmentFile() async {
+    if (_exercise?.assignment == null ||
+        _pickingAssignmentFile ||
+        uploadingAssignmentFile ||
+        _submittingAssignment) {
+      return false;
+    }
+
+    _pickingAssignmentFile = true;
+    _assignmentFileErrorMessage = null;
+    _notify();
+
+    final PickedFile? picked;
+    try {
+      picked = await _pickFile();
+    } catch (_) {
+      _assignmentFileErrorMessage = CourseLearningStrings.unexpectedError;
+      return false;
+    } finally {
+      _pickingAssignmentFile = false;
+      _notify();
+    }
+    if (picked == null) return false;
+
+    final generation = ++_assignmentFileUploadGeneration;
+    _assignmentFileUploadSizeBytes = picked.bytes.length;
+    _notify();
+
+    try {
+      final file = await _repository.uploadFile(
+        fileName: picked.name,
+        bytes: picked.bytes,
+      );
+      // Cancelled meanwhile: the stored file is simply never attached, and
+      // §2.8 has the backend delete one nobody attaches.
+      if (generation != _assignmentFileUploadGeneration) return false;
+      _assignmentFile = file;
+      return true;
+    } on CourseLearningFailure catch (failure) {
+      if (generation == _assignmentFileUploadGeneration) {
+        _assignmentFileErrorMessage = CourseLearningStrings.messageFor(
+          failure.kind,
+        );
+      }
+      return false;
+    } catch (_) {
+      if (generation == _assignmentFileUploadGeneration) {
+        _assignmentFileErrorMessage = CourseLearningStrings.unexpectedError;
+      }
+      return false;
+    } finally {
+      if (generation == _assignmentFileUploadGeneration) {
+        _assignmentFileUploadSizeBytes = null;
+        _notify();
+      }
+    }
+  }
+
+  /// Stops waiting for the upload in flight: its answer, whenever it comes,
+  /// is dropped. The request itself cannot be recalled. Ignored with no
+  /// upload in flight.
+  void cancelAssignmentFileUpload() {
+    if (!uploadingAssignmentFile) return;
+    _assignmentFileUploadGeneration++;
+    _assignmentFileUploadSizeBytes = null;
+    _notify();
+  }
+
+  /// Drops [assignmentFile], so the next submission carries no file. Ignored
+  /// while a submit is in flight — that submit is already sending it.
+  void removeAssignmentFile() {
+    if (_assignmentFile == null || _submittingAssignment) return;
+    _assignmentFile = null;
+    _notify();
+  }
+
+  /// Submits [link] and [description] (each when not blank) and
+  /// [assignmentFile] (when one is uploaded) to the loaded lesson's
+  /// assignment — a first submission or a resubmission, the same call. On
+  /// success the loaded exercise holds the submission the server answered
+  /// with, [assignmentFile] is dropped — it is attached now — and this
+  /// answers true. On failure the exercise and the file are untouched,
+  /// [assignmentSubmitErrorMessage] says why (404 with this feature's own
+  /// "assignment not found" line), and this answers false. Ignored (false)
+  /// with no assignment loaded, or while a submit or an upload is in flight.
+  Future<bool> submitAssignment({String? link, String? description}) async {
     final assignment = _exercise?.assignment;
-    if (assignment == null || _submittingAssignment) return false;
+    if (assignment == null ||
+        _submittingAssignment ||
+        uploadingAssignmentFile) {
+      return false;
+    }
 
     _submittingAssignment = true;
     _assignmentSubmitErrorMessage = null;
     _notify();
 
-    final trimmedDescription = description?.trim();
+    String? orNull(String? text) {
+      final trimmed = text?.trim();
+      return trimmed == null || trimmed.isEmpty ? null : trimmed;
+    }
+
     try {
       final submission = await _repository.submitAssignment(
         assignment.id,
-        link: link.trim(),
-        description: trimmedDescription == null || trimmedDescription.isEmpty
-            ? null
-            : trimmedDescription,
+        link: orNull(link),
+        description: orNull(description),
+        fileId: _assignmentFile?.id,
       );
+      _assignmentFile = null;
       // Re-read, as `saveNote` does: a reload may have replaced the exercise.
       final current = _exercise;
       if (current != null) {

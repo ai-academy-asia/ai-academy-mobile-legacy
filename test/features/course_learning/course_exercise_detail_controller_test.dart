@@ -1,5 +1,7 @@
+import 'package:aia_mobile/core/utils/pick_local_file.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_controller.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -856,11 +858,360 @@ void main() {
       await pending;
     });
   });
+
+  group('assignment file', () {
+    const picked = PickedFile(name: 'report.pdf', bytes: [1, 2, 3, 4]);
+
+    FakeCourseLearningRepository withAssignment({
+      CourseAssignment? assignment = const CourseAssignment(id: 17),
+      bool holdUpload = false,
+      CourseLearningFailure? uploadFailure,
+      CourseLearningFailure? submitFailure,
+    }) => FakeCourseLearningRepository(
+      exercise: sampleExercise(
+        lessonId: 204,
+        simulatesWrites: false,
+        assignment: assignment,
+      ),
+      holdUpload: holdUpload,
+      uploadFailure: uploadFailure,
+      submitFailure: submitFailure,
+    );
+
+    Future<CourseExerciseDetailController> loaded(
+      FakeCourseLearningRepository repository, {
+      Future<PickedFile?> Function()? pickFile,
+    }) async {
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+        pickFile: pickFile ?? () async => picked,
+      );
+      await controller.load();
+      return controller;
+    }
+
+    test('starts with no file, no upload and no error', () async {
+      final controller = await loaded(withAssignment());
+
+      expect(controller.assignmentFile, isNull);
+      expect(controller.uploadingAssignmentFile, isFalse);
+      expect(controller.assignmentFileUploadSizeBytes, isNull);
+      expect(controller.assignmentFileErrorMessage, isNull);
+    });
+
+    test('uploads the picked file and holds what the server stored', () async {
+      final stored = sampleUploadedFile(id: 501, fileName: 'as-stored.pdf');
+      final repository = withAssignment()..uploadedFile = stored;
+      final controller = await loaded(repository);
+
+      expect(await controller.pickAndUploadAssignmentFile(), isTrue);
+
+      expect(repository.uploadCalls.single.$1, 'report.pdf');
+      expect(repository.uploadCalls.single.$2, [1, 2, 3, 4]);
+      expect(controller.assignmentFile, same(stored));
+      expect(controller.uploadingAssignmentFile, isFalse);
+      expect(controller.assignmentFileErrorMessage, isNull);
+    });
+
+    test('reports the upload, and its size, while it is in flight', () async {
+      final repository = withAssignment(holdUpload: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.uploadingAssignmentFile, isTrue);
+      expect(controller.assignmentFileUploadSizeBytes, 4);
+      expect(controller.assignmentFile, isNull);
+
+      repository.releaseUpload();
+      expect(await pending, isTrue);
+      expect(controller.uploadingAssignmentFile, isFalse);
+      expect(controller.assignmentFile, isNotNull);
+    });
+
+    test('picking nothing uploads nothing and is not an error', () async {
+      final repository = withAssignment();
+      final controller = await loaded(repository, pickFile: () async => null);
+
+      expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+
+      expect(repository.uploadCalls, isEmpty);
+      expect(controller.assignmentFile, isNull);
+      expect(controller.assignmentFileErrorMessage, isNull);
+    });
+
+    test('a picker that fails reads as the generic copy', () async {
+      final repository = withAssignment();
+      final controller = await loaded(
+        repository,
+        pickFile: () async => throw StateError('no picker'),
+      );
+
+      expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+
+      expect(repository.uploadCalls, isEmpty);
+      expect(
+        controller.assignmentFileErrorMessage,
+        CourseLearningStrings.unexpectedError,
+      );
+    });
+
+    for (final (kind, copy) in [
+      (
+        CourseLearningFailureKind.unsupportedFileType,
+        CourseLearningStrings.unsupportedFileType,
+      ),
+      (
+        CourseLearningFailureKind.fileTooLarge,
+        CourseLearningStrings.fileTooLarge,
+      ),
+      (CourseLearningFailureKind.network, CourseLearningStrings.networkError),
+      (CourseLearningFailureKind.server, CourseLearningStrings.serverError),
+      (
+        CourseLearningFailureKind.sessionExpired,
+        CourseLearningStrings.sessionExpired,
+      ),
+    ]) {
+      test('an upload refused as ${kind.name} becomes its own copy', () async {
+        final controller = await loaded(
+          withAssignment(uploadFailure: CourseLearningFailure(kind)),
+        );
+
+        expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+
+        expect(controller.assignmentFileErrorMessage, copy);
+        expect(controller.assignmentFile, isNull);
+        expect(controller.uploadingAssignmentFile, isFalse);
+        // The lesson stays on screen.
+        expect(controller.errorMessage, isNull);
+        expect(controller.exercise, isNotNull);
+      });
+    }
+
+    test('an unexpected upload error reads as the generic copy', () async {
+      final controller = await loaded(_ThrowingRepository.onUpload());
+
+      expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+
+      expect(
+        controller.assignmentFileErrorMessage,
+        CourseLearningStrings.unexpectedError,
+      );
+      expect(controller.uploadingAssignmentFile, isFalse);
+    });
+
+    test('a retry clears the last error and can succeed', () async {
+      final repository = withAssignment(
+        uploadFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      final controller = await loaded(repository);
+      await controller.pickAndUploadAssignmentFile();
+      expect(controller.assignmentFileErrorMessage, isNotNull);
+
+      repository.uploadFailure = null;
+      expect(await controller.pickAndUploadAssignmentFile(), isTrue);
+
+      expect(controller.assignmentFileErrorMessage, isNull);
+      expect(controller.assignmentFile, isNotNull);
+    });
+
+    test('a failed replacement keeps the file already uploaded', () async {
+      final repository = withAssignment();
+      final controller = await loaded(repository);
+      await controller.pickAndUploadAssignmentFile();
+      final first = controller.assignmentFile;
+
+      repository.uploadFailure = const CourseLearningFailure(
+        CourseLearningFailureKind.fileTooLarge,
+      );
+      expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+
+      expect(controller.assignmentFile, same(first));
+    });
+
+    test('a second pick is ignored while an upload is in flight', () async {
+      final repository = withAssignment(holdUpload: true);
+      final controller = await loaded(repository);
+
+      final first = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+
+      repository.releaseUpload();
+      await first;
+      expect(repository.uploadCalls, hasLength(1));
+    });
+
+    test('is ignored with no assignment to attach a file to', () async {
+      final repository = withAssignment(assignment: null);
+      final controller = await loaded(repository);
+
+      expect(await controller.pickAndUploadAssignmentFile(), isFalse);
+      expect(repository.uploadCalls, isEmpty);
+    });
+
+    test('cancel drops the upload, and its answer when it comes', () async {
+      final repository = withAssignment(holdUpload: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      controller.cancelAssignmentFileUpload();
+      expect(controller.uploadingAssignmentFile, isFalse);
+
+      repository.releaseUpload();
+      expect(await pending, isFalse);
+      expect(controller.assignmentFile, isNull);
+      expect(controller.assignmentFileErrorMessage, isNull);
+    });
+
+    test('a cancelled upload that then fails shows no error', () async {
+      final repository = withAssignment(
+        holdUpload: true,
+        uploadFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.server,
+        ),
+      );
+      final controller = await loaded(repository);
+
+      final pending = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      controller.cancelAssignmentFileUpload();
+      repository.releaseUpload();
+      await pending;
+
+      expect(controller.assignmentFileErrorMessage, isNull);
+    });
+
+    test('a new upload after a cancel is not undone by the old one', () async {
+      final repository = withAssignment(holdUpload: true);
+      final controller = await loaded(repository);
+
+      final first = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      controller.cancelAssignmentFileUpload();
+
+      repository.holdUpload = false;
+      expect(await controller.pickAndUploadAssignmentFile(), isTrue);
+      final second = controller.assignmentFile;
+
+      repository.releaseUpload();
+      await first;
+      expect(controller.assignmentFile, same(second));
+      expect(controller.uploadingAssignmentFile, isFalse);
+    });
+
+    test('remove drops the uploaded file', () async {
+      final controller = await loaded(withAssignment());
+      await controller.pickAndUploadAssignmentFile();
+
+      controller.removeAssignmentFile();
+
+      expect(controller.assignmentFile, isNull);
+    });
+
+    test('a submit sends the uploaded file\'s id as file_id', () async {
+      final repository = withAssignment()
+        ..uploadedFile = sampleUploadedFile(id: 501);
+      final controller = await loaded(repository);
+      await controller.pickAndUploadAssignmentFile();
+
+      expect(await controller.submitAssignment(description: 'Тайлбар'), isTrue);
+
+      // A file alone: no link is sent at all.
+      expect(repository.submitCalls, [(17, null, 'Тайлбар')]);
+      expect(repository.submitFileIds, [501]);
+    });
+
+    test('a link and a file go in the same submission', () async {
+      final repository = withAssignment()
+        ..uploadedFile = sampleUploadedFile(id: 501);
+      final controller = await loaded(repository);
+      await controller.pickAndUploadAssignmentFile();
+
+      await controller.submitAssignment(link: ' https://x.test ');
+
+      expect(repository.submitCalls, [(17, 'https://x.test', null)]);
+      expect(repository.submitFileIds, [501]);
+    });
+
+    test('a submit with no file sends a null file_id', () async {
+      final repository = withAssignment();
+      final controller = await loaded(repository);
+
+      await controller.submitAssignment(link: 'https://x.test');
+
+      expect(repository.submitFileIds, [null]);
+    });
+
+    test('an accepted submission drops the file it carried', () async {
+      final repository = withAssignment();
+      final controller = await loaded(repository);
+      await controller.pickAndUploadAssignmentFile();
+
+      await controller.submitAssignment();
+      expect(controller.assignmentFile, isNull);
+
+      // So a resubmission does not send the same file again.
+      await controller.submitAssignment(link: 'https://x.test');
+      expect(repository.submitFileIds.last, isNull);
+    });
+
+    test('a refused submission keeps the file for the retry', () async {
+      final repository = withAssignment(
+        submitFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.pastDue,
+        ),
+      )..uploadedFile = sampleUploadedFile(id: 501);
+      final controller = await loaded(repository);
+      await controller.pickAndUploadAssignmentFile();
+
+      expect(await controller.submitAssignment(), isFalse);
+
+      expect(controller.assignmentFile!.id, 501);
+      expect(
+        controller.assignmentSubmitErrorMessage,
+        CourseLearningStrings.pastDue,
+      );
+    });
+
+    test('a submit is ignored while the file is still uploading', () async {
+      final repository = withAssignment(holdUpload: true);
+      final controller = await loaded(repository);
+
+      final upload = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        await controller.submitAssignment(link: 'https://x.test'),
+        isFalse,
+      );
+      expect(repository.submitCalls, isEmpty);
+
+      repository.releaseUpload();
+      await upload;
+    });
+
+    test('does not notify after being disposed mid-upload', () async {
+      final repository = withAssignment(holdUpload: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.pickAndUploadAssignmentFile();
+      await Future<void>.delayed(Duration.zero);
+      controller.dispose();
+
+      repository.releaseUpload();
+      await pending;
+    });
+  });
 }
 
 /// Throws something that is not a `CourseLearningFailure` — from
-/// [getExercise] by default, or, built with [_ThrowingRepository.onSave] or
-/// [_ThrowingRepository.onSubmit], from that call only.
+/// [getExercise] by default, or, built with [_ThrowingRepository.onSave],
+/// [_ThrowingRepository.onSubmit] or [_ThrowingRepository.onUpload], from
+/// that call only.
 class _ThrowingRepository extends FakeCourseLearningRepository {
   _ThrowingRepository() : _throwOn = _Throw.load;
 
@@ -868,6 +1219,16 @@ class _ThrowingRepository extends FakeCourseLearningRepository {
 
   _ThrowingRepository.onSubmit()
     : _throwOn = _Throw.submit,
+      super(
+        exercise: sampleExercise(
+          lessonId: 204,
+          simulatesWrites: false,
+          assignment: const CourseAssignment(id: 17),
+        ),
+      );
+
+  _ThrowingRepository.onUpload()
+    : _throwOn = _Throw.upload,
       super(
         exercise: sampleExercise(
           lessonId: 204,
@@ -893,18 +1254,31 @@ class _ThrowingRepository extends FakeCourseLearningRepository {
   @override
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
-    required String link,
+    String? link,
     String? description,
+    int? fileId,
   }) async {
     if (_throwOn != _Throw.submit) {
       return super.submitAssignment(
         assignmentId,
         link: link,
         description: description,
+        fileId: fileId,
       );
+    }
+    throw StateError('boom');
+  }
+
+  @override
+  Future<UploadedFile> uploadFile({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    if (_throwOn != _Throw.upload) {
+      return super.uploadFile(fileName: fileName, bytes: bytes);
     }
     throw StateError('boom');
   }
 }
 
-enum _Throw { load, save, submit }
+enum _Throw { load, save, submit, upload }

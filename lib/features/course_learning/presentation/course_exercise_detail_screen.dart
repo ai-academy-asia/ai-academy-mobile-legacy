@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/pick_local_file.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_repository.dart';
+import '../domain/uploaded_file.dart';
 import 'course_exercise_detail_controller.dart';
 import 'course_learning_strings.dart';
 import 'widgets/assignment_tab.dart';
@@ -39,8 +41,10 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// [CourseExercise.simulatesWrites] is false, a material's download button
 /// fetches a fresh link (`GET /me/materials/{id}/download`) and opens it
 /// outside the app, and — when the lesson has an assignment — the Assignment
-/// tab submits a link through `POST /me/assignments/{id}/submissions`. With
-/// no assignment its tab is disabled; and the quiz is not integrated, so the
+/// tab submits a link, a file or both through
+/// `POST /me/assignments/{id}/submissions`, the file picked on the device and
+/// uploaded first through `POST /me/files`. With no assignment its tab is
+/// disabled; and the quiz is not integrated, so the
 /// quiz card does not draw (the lesson detail carries a quiz summary, not
 /// questions). The layout is
 /// unchanged either way. The sample exercise keeps the local simulations
@@ -68,9 +72,8 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// finishing it, and the preview card needs to keep showing that result.
 /// None of this reaches a backend: the Quiz endpoints the contract documents
 /// are not integrated yet.
-/// Still out of scope, reserved for a separate future issue: a real file
-/// *upload* (as opposed to the download this issue adds) against an actual
-/// file, and the certificate. Every widget that would eventually carry that
+/// Still out of scope, reserved for a separate future issue: the
+/// certificate. Every widget that would eventually carry a not-yet-built
 /// behaviour (the play button) is already in place and wired to nothing, the
 /// same `_noDestinationYet`-style placeholder `CourseModuleListScreen` uses
 /// for its own not-yet-built destinations, so this structure does not need
@@ -81,6 +84,7 @@ class CourseExerciseDetailScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.openUrl,
+    this.pickFile,
   });
 
   /// `Lesson.id` — which lesson to load.
@@ -95,6 +99,10 @@ class CourseExerciseDetailScreen extends StatefulWidget {
   /// `openExternalUrl`; injected in tests, which must not reach the
   /// platform.
   final Future<bool> Function(Uri url)? openUrl;
+
+  /// Asks the student for the file an assignment submission uploads.
+  /// Defaults to `pickLocalFile`; injected in tests, for the same reason.
+  final Future<PickedFile?> Function()? pickFile;
 
   @override
   State<CourseExerciseDetailScreen> createState() =>
@@ -121,6 +129,7 @@ class _CourseExerciseDetailScreenState
       repository: widget.repository ?? HttpCourseLearningRepository(),
       lessonId: widget.lessonId,
       openUrl: widget.openUrl,
+      pickFile: widget.pickFile,
     )..load();
   }
 
@@ -191,6 +200,12 @@ class _CourseExerciseDetailScreenState
       onSubmitAssignment: _controller.submitAssignment,
       submittingAssignment: _controller.submittingAssignment,
       assignmentSubmitErrorMessage: _controller.assignmentSubmitErrorMessage,
+      onPickAssignmentFile: _controller.pickAndUploadAssignmentFile,
+      onCancelAssignmentFileUpload: _controller.cancelAssignmentFileUpload,
+      onRemoveAssignmentFile: _controller.removeAssignmentFile,
+      assignmentFileUploadSizeBytes: _controller.assignmentFileUploadSizeBytes,
+      assignmentFile: _controller.assignmentFile,
+      assignmentFileErrorMessage: _controller.assignmentFileErrorMessage,
       savingNote: _controller.savingNote,
       noteSaveErrorMessage: _controller.noteSaveErrorMessage,
       // The sample's materials have no stored file: its button keeps the
@@ -219,6 +234,12 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.onSubmitAssignment,
     required this.submittingAssignment,
     required this.assignmentSubmitErrorMessage,
+    required this.onPickAssignmentFile,
+    required this.onCancelAssignmentFileUpload,
+    required this.onRemoveAssignmentFile,
+    required this.assignmentFileUploadSizeBytes,
+    required this.assignmentFile,
+    required this.assignmentFileErrorMessage,
     required this.savingNote,
     required this.noteSaveErrorMessage,
     required this.onDownloadMaterial,
@@ -236,10 +257,16 @@ class _ExerciseDetailBody extends StatelessWidget {
   final ValueChanged<ExerciseTab> onSelectTab;
   final CourseExerciseNote? note;
   final Future<bool> Function(String content) onSaveNote;
-  final Future<bool> Function({required String link, String? description})
+  final Future<bool> Function({String? link, String? description})
   onSubmitAssignment;
   final bool submittingAssignment;
   final String? assignmentSubmitErrorMessage;
+  final VoidCallback onPickAssignmentFile;
+  final VoidCallback onCancelAssignmentFileUpload;
+  final VoidCallback onRemoveAssignmentFile;
+  final int? assignmentFileUploadSizeBytes;
+  final UploadedFile? assignmentFile;
+  final String? assignmentFileErrorMessage;
   final bool savingNote;
   final String? noteSaveErrorMessage;
   final ValueChanged<int>? onDownloadMaterial;
@@ -310,6 +337,15 @@ class _ExerciseDetailBody extends StatelessWidget {
                             submittingAssignment: submittingAssignment,
                             assignmentSubmitErrorMessage:
                                 assignmentSubmitErrorMessage,
+                            onPickAssignmentFile: onPickAssignmentFile,
+                            onCancelAssignmentFileUpload:
+                                onCancelAssignmentFileUpload,
+                            onRemoveAssignmentFile: onRemoveAssignmentFile,
+                            assignmentFileUploadSizeBytes:
+                                assignmentFileUploadSizeBytes,
+                            assignmentFile: assignmentFile,
+                            assignmentFileErrorMessage:
+                                assignmentFileErrorMessage,
                             savingNote: savingNote,
                             noteSaveErrorMessage: noteSaveErrorMessage,
                             onDownloadMaterial: onDownloadMaterial,
@@ -348,6 +384,12 @@ class _TabContent extends StatelessWidget {
     required this.onSubmitAssignment,
     required this.submittingAssignment,
     required this.assignmentSubmitErrorMessage,
+    required this.onPickAssignmentFile,
+    required this.onCancelAssignmentFileUpload,
+    required this.onRemoveAssignmentFile,
+    required this.assignmentFileUploadSizeBytes,
+    required this.assignmentFile,
+    required this.assignmentFileErrorMessage,
     required this.savingNote,
     required this.noteSaveErrorMessage,
     required this.onDownloadMaterial,
@@ -360,10 +402,16 @@ class _TabContent extends StatelessWidget {
   final CourseExercise exercise;
   final CourseExerciseNote? note;
   final Future<bool> Function(String content) onSaveNote;
-  final Future<bool> Function({required String link, String? description})
+  final Future<bool> Function({String? link, String? description})
   onSubmitAssignment;
   final bool submittingAssignment;
   final String? assignmentSubmitErrorMessage;
+  final VoidCallback onPickAssignmentFile;
+  final VoidCallback onCancelAssignmentFileUpload;
+  final VoidCallback onRemoveAssignmentFile;
+  final int? assignmentFileUploadSizeBytes;
+  final UploadedFile? assignmentFile;
+  final String? assignmentFileErrorMessage;
   final bool savingNote;
   final String? noteSaveErrorMessage;
   final ValueChanged<int>? onDownloadMaterial;
@@ -373,20 +421,28 @@ class _TabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The sample simulates; a backend lesson can submit — and upload —
+    // only when it has an assignment to submit to.
+    final submitsToBackend =
+        !exercise.simulatesWrites && exercise.assignment != null;
     return switch (tab) {
       ExerciseTab.assignment => AssignmentTab(
         feedbackSequence: exercise.assignmentFeedback,
         attachment: exercise.assignmentAttachment,
         submission: exercise.assignment?.submission,
-        // The sample simulates; a backend lesson can submit only when it
-        // has an assignment to submit to.
         enabled: exercise.simulatesWrites || exercise.assignment != null,
-        onSubmit: !exercise.simulatesWrites && exercise.assignment != null
+        onSubmit: submitsToBackend
             ? (link, description) =>
                   onSubmitAssignment(link: link, description: description)
             : null,
         submitting: submittingAssignment,
         errorMessage: assignmentSubmitErrorMessage,
+        onPickFile: submitsToBackend ? onPickAssignmentFile : null,
+        onCancelFileUpload: onCancelAssignmentFileUpload,
+        onRemoveFile: onRemoveAssignmentFile,
+        fileUploadSizeBytes: assignmentFileUploadSizeBytes,
+        uploadedFile: assignmentFile,
+        fileErrorMessage: assignmentFileErrorMessage,
       ),
       ExerciseTab.materials => CourseMaterialsTab(
         materials: exercise.materials,

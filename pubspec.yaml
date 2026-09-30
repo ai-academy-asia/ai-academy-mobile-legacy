@@ -48,6 +48,11 @@ dependencies:
   # docs/ai/ARCHITECTURE.md §9 on what that means for the iOS build.
   url_launcher: ^6.3.2
 
+  # Opens the OS document picker so a student can choose the file an
+  # assignment submission uploads (`POST /me/files`). First-party, like
+  # `url_launcher`; needs no permission or Info.plist key on either platform.
+  file_selector: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

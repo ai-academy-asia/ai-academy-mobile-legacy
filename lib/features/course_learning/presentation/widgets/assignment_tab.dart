@@ -6,6 +6,8 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
+import '../../domain/file_size_label.dart';
+import '../../domain/uploaded_file.dart';
 import '../course_learning_strings.dart';
 import 'assignment_attachment_card.dart';
 import 'exercise_submit_button.dart';
@@ -85,8 +87,8 @@ enum _AssignmentStage {
 /// is real (the fields own working `TextEditingController`s); "submitting"
 /// only ever advances this widget's own [_AssignmentStage], and the Mentor
 /// Feedback card below is sourced from `CourseExercise.assignmentFeedback`'s
-/// canned entries. A real file *upload* and the certificate remain out of
-/// scope — see `CourseExerciseDetailScreen`'s own doc comment.
+/// canned entries. The certificate remains out of scope — see
+/// `CourseExerciseDetailScreen`'s own doc comment.
 ///
 /// **Disabled when [enabled] is false** — a backend lesson with no
 /// assignment to submit to. The same fields and button are drawn, all of
@@ -106,6 +108,16 @@ enum _AssignmentStage {
 /// [errorMessage] under it, in the Login screen's own `fieldError`
 /// treatment (the Figma pack has no error state here). Resubmit reopens the
 /// form filled with the latest submission's link and description.
+///
+/// **[onPickFile] adds the real file area** — a backend assignment's, above
+/// the link field. §2.6 takes a link, a file or both, and nothing the
+/// backend sends says which an assignment expects, so both are offered and
+/// Submit needs either. The reference only ever draws one of the two (see
+/// the note in `build`); stacking them is this tab's own arrangement of two
+/// designed pieces, not a frame. The file itself — picked, uploading,
+/// uploaded — is the caller's state, drawn by `AssignmentFileUploadCard`; a
+/// failed pick or upload shows [fileErrorMessage] under the area. A
+/// resubmission starts with no file: the latest submission's is not read.
 class AssignmentTab extends StatefulWidget {
   const AssignmentTab({
     required this.feedbackSequence,
@@ -115,6 +127,12 @@ class AssignmentTab extends StatefulWidget {
     this.onSubmit,
     this.submitting = false,
     this.errorMessage,
+    this.onPickFile,
+    this.onCancelFileUpload,
+    this.onRemoveFile,
+    this.fileUploadSizeBytes,
+    this.uploadedFile,
+    this.fileErrorMessage,
     super.key,
   });
 
@@ -145,6 +163,26 @@ class AssignmentTab extends StatefulWidget {
 
   /// Why the last submit failed, or null.
   final String? errorMessage;
+
+  /// Opens the file picker and uploads what the student chooses. Null draws
+  /// no file area at all — the sample, and a lesson with no assignment.
+  final VoidCallback? onPickFile;
+
+  /// Abandons the upload in flight.
+  final VoidCallback? onCancelFileUpload;
+
+  /// Drops [uploadedFile].
+  final VoidCallback? onRemoveFile;
+
+  /// The size of the file being uploaded — non-null exactly while an upload
+  /// is in flight.
+  final int? fileUploadSizeBytes;
+
+  /// The uploaded file the next submit will attach, or null.
+  final UploadedFile? uploadedFile;
+
+  /// Why the last pick or upload failed, or null.
+  final String? fileErrorMessage;
 
   @override
   State<AssignmentTab> createState() => _AssignmentTabState();
@@ -229,7 +267,10 @@ class _AssignmentTabState extends State<AssignmentTab> {
   bool get _readyToSubmit =>
       widget.enabled &&
       _stage == _AssignmentStage.notSubmitted &&
-      _hasContent &&
+      // An uploaded file is content too — §2.6 takes a link or a file — but
+      // one still uploading is not there to send yet.
+      (_hasContent || widget.uploadedFile != null) &&
+      widget.fileUploadSizeBytes == null &&
       _attachmentReady;
 
   AssignmentMentorFeedback? get _latestFeedback {
@@ -299,6 +340,38 @@ class _AssignmentTabState extends State<AssignmentTab> {
     });
   }
 
+  /// The real file area and its error line. The controls are handed over
+  /// only while the form is open, so a submit in flight locks them with it.
+  List<Widget> _fileArea(VoidCallback onPickFile) {
+    final open = widget.enabled && _stage == _AssignmentStage.notSubmitted;
+    final uploadSizeBytes = widget.fileUploadSizeBytes;
+    final uploadedFile = widget.uploadedFile;
+    return [
+      AssignmentFileUploadCard(
+        uploadSizeLabel: uploadSizeBytes == null
+            ? null
+            : fileSizeLabel(uploadSizeBytes),
+        uploadedFileLabel: uploadedFile == null
+            ? null
+            : CourseLearningStrings.uploadedFileLabel(
+                fileSizeLabel(uploadedFile.sizeBytes),
+                uploadedFile.fileName,
+              ),
+        onPick: open ? onPickFile : null,
+        onCancel: open ? widget.onCancelFileUpload : null,
+        onRemove: open ? widget.onRemoveFile : null,
+      ),
+      if (widget.fileErrorMessage case final message?) ...[
+        const SizedBox(height: _fieldToError),
+        SizedBox(
+          width: double.infinity,
+          child: Text(message, style: AppTypography.fieldError),
+        ),
+      ],
+      const SizedBox(height: 18),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -322,6 +395,10 @@ class _AssignmentTabState extends State<AssignmentTab> {
               ),
               const SizedBox(height: 18),
             ] else ...[
+              // A backend assignment takes either, so it is offered both —
+              // see the class doc.
+              if (widget.onPickFile case final onPickFile?)
+                ..._fileArea(onPickFile),
               ExerciseTextField(
                 controller: _linkController,
                 placeholder: CourseLearningStrings.linkPlaceholder,

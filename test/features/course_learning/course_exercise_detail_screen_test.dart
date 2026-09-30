@@ -1,10 +1,12 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/core/utils/pick_local_file.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_upload_dropzone.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_text_field.dart';
@@ -44,6 +46,7 @@ void main() {
     int lessonId = 2,
     Size size = const Size(393, 852),
     Future<bool> Function(Uri url)? openUrl,
+    Future<PickedFile?> Function()? pickFile,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -65,6 +68,7 @@ void main() {
                       lessonId: lessonId,
                       repository: repository,
                       openUrl: openUrl,
+                      pickFile: pickFile,
                     ),
                   ),
                 ),
@@ -961,6 +965,10 @@ void main() {
         await tester.enterText(linkField(), link);
         await tester.enterText(descriptionField(), description);
         await tester.pump();
+        // The file area above the fields can push Submit below the fold.
+        await tester.ensureVisible(
+          submitButtonLabelled(CourseLearningStrings.submit),
+        );
         await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
         await tester.pump();
       }
@@ -1146,6 +1154,9 @@ void main() {
         repository.submitFailure = null;
         await tester.enterText(linkField(), 'https://github.com/x');
         await tester.pump();
+        await tester.ensureVisible(
+          submitButtonLabelled(CourseLearningStrings.submit),
+        );
         await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
         await tester.pumpAndSettle();
 
@@ -1280,6 +1291,303 @@ void main() {
         expect(find.textContaining('Сайн ажил.'), findsOneWidget);
         expect(find.text('Today, 14:20'), findsOneWidget);
         expect(find.text(CourseLearningStrings.noFeedbackYet), findsNothing);
+      });
+    });
+
+    group('assignment file', () {
+      const picked = PickedFile(name: 'report.pdf', bytes: [1, 2, 3, 4]);
+
+      FakeCourseLearningRepository withAssignment({
+        CourseAssignment? assignment = const CourseAssignment(id: 17),
+      }) => FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          title: 'Давталт',
+          assignmentFeedback: const [],
+          simulatesWrites: false,
+          assignment: assignment,
+        ),
+        // 1 MB exactly, so the rows read the reference's own "1 MB".
+        uploadedFile: sampleUploadedFile(id: 501, sizeBytes: 1048576),
+      );
+
+      Finder dropzone() => find.byType(AssignmentUploadDropzone);
+      Finder submit() => submitButtonLabelled(CourseLearningStrings.submit);
+
+      Future<void> open(
+        WidgetTester tester,
+        FakeCourseLearningRepository repository, {
+        Future<PickedFile?> Function()? pickFile,
+      }) async {
+        await pumpScreen(
+          tester,
+          repository,
+          lessonId: 204,
+          pickFile: pickFile ?? () async => picked,
+        );
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> pickAFile(WidgetTester tester) async {
+        await tester.ensureVisible(dropzone());
+        await tester.tap(dropzone());
+        // Not `pumpAndSettle`: a held upload's indicators never settle.
+        await tester.pump();
+        await tester.pump();
+      }
+
+      testWidgets('a backend assignment offers the file area and the link', (
+        tester,
+      ) async {
+        await open(tester, withAssignment());
+
+        expect(dropzone(), findsOneWidget);
+        expect(find.text(CourseLearningStrings.uploadFile), findsOneWidget);
+        expect(find.byType(ExerciseTextField), findsNWidgets(2));
+        expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
+      });
+
+      testWidgets('a lesson with no assignment draws no file area', (
+        tester,
+      ) async {
+        await open(tester, withAssignment(assignment: null));
+
+        expect(dropzone(), findsNothing);
+      });
+
+      testWidgets('the sample keeps its own simulated file area', (
+        tester,
+      ) async {
+        var picks = 0;
+        final repository = FakeCourseLearningRepository(
+          exercise: sampleExercise(assignmentAttachment: sampleAttachment()),
+        );
+        await pumpScreen(
+          tester,
+          repository,
+          pickFile: () async {
+            picks++;
+            return picked;
+          },
+        );
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(dropzone());
+        await tester.tap(dropzone());
+        await tester.pump(const Duration(seconds: 2));
+
+        expect(picks, 0);
+        expect(repository.uploadCalls, isEmpty);
+      });
+
+      testWidgets('picking a file uploads it and shows the uploading card', (
+        tester,
+      ) async {
+        final repository = withAssignment()..holdUpload = true;
+        await open(tester, repository);
+
+        await pickAFile(tester);
+
+        expect(repository.uploadCalls.single.$1, 'report.pdf');
+        expect(repository.uploadCalls.single.$2, [1, 2, 3, 4]);
+        expect(
+          find.text(CourseLearningStrings.downloadingAttachment),
+          findsOneWidget,
+        );
+        expect(find.text(CourseLearningStrings.cancelDownload), findsOneWidget);
+        // The picked file's own size — all the progress there is to show.
+        expect(find.text('4 B'), findsOneWidget);
+        expect(dropzone(), findsNothing);
+        // Nothing to send until the upload lands — not even with a link.
+        await tester.enterText(find.byType(TextField).first, 'https://x.test');
+        await tester.pump();
+        expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
+
+        repository.releaseUpload();
+        await tester.pumpAndSettle();
+      });
+
+      testWidgets('an uploaded file shows Complete, its size and its type', (
+        tester,
+      ) async {
+        await open(tester, withAssignment());
+
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.attachmentComplete),
+          findsOneWidget,
+        );
+        expect(find.text('1 MB, PDF'), findsOneWidget);
+        expect(dropzone(), findsNothing);
+      });
+
+      testWidgets('a file alone enables Submit, and is sent as file_id', (
+        tester,
+      ) async {
+        final repository = withAssignment();
+        await open(tester, repository);
+
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<ExerciseSubmitButton>(submit()).onPressed,
+          isNotNull,
+        );
+
+        await tester.enterText(find.byType(TextField).last, 'Тайлбар');
+        await tester.pump();
+        await tester.ensureVisible(submit());
+        await tester.tap(submit());
+        await tester.pumpAndSettle();
+
+        expect(repository.submitCalls, [(17, null, 'Тайлбар')]);
+        expect(repository.submitFileIds, [501]);
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('Resubmit after a file submission starts with no file', (
+        tester,
+      ) async {
+        final repository = withAssignment()
+          ..submission = sampleSubmission(link: null);
+        await open(tester, repository);
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(submit());
+        await tester.tap(submit());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(CourseLearningStrings.resubmit));
+        await tester.pumpAndSettle();
+
+        expect(dropzone(), findsOneWidget);
+        expect(
+          find.text(CourseLearningStrings.attachmentComplete),
+          findsNothing,
+        );
+        expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
+      });
+
+      testWidgets('Remove drops the file and Submit waits again', (
+        tester,
+      ) async {
+        await open(tester, withAssignment());
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.bySemanticsLabel(CourseLearningStrings.removeAttachment),
+        );
+        await tester.pumpAndSettle();
+
+        expect(dropzone(), findsOneWidget);
+        expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
+      });
+
+      testWidgets('Cancel abandons the upload', (tester) async {
+        final repository = withAssignment()..holdUpload = true;
+        await open(tester, repository);
+        await pickAFile(tester);
+
+        await tester.tap(find.text(CourseLearningStrings.cancelDownload));
+        await tester.pump();
+        expect(dropzone(), findsOneWidget);
+
+        // Its late answer changes nothing.
+        repository.releaseUpload();
+        await tester.pumpAndSettle();
+        expect(dropzone(), findsOneWidget);
+        expect(
+          find.text(CourseLearningStrings.attachmentComplete),
+          findsNothing,
+        );
+      });
+
+      testWidgets('a refused upload shows why under the area, and can retry', (
+        tester,
+      ) async {
+        final repository = withAssignment()
+          ..uploadFailure = const CourseLearningFailure(
+            CourseLearningFailureKind.unsupportedFileType,
+          );
+        await open(tester, repository);
+
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.unsupportedFileType),
+          findsOneWidget,
+        );
+        expect(dropzone(), findsOneWidget);
+        // The lesson stays — this is not the whole-screen error.
+        expect(find.text(CourseLearningStrings.retry), findsNothing);
+
+        repository.uploadFailure = null;
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.unsupportedFileType),
+          findsNothing,
+        );
+        expect(
+          find.text(CourseLearningStrings.attachmentComplete),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('dismissing the picker changes nothing', (tester) async {
+        final repository = withAssignment();
+        await open(tester, repository, pickFile: () async => null);
+
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        expect(repository.uploadCalls, isEmpty);
+        expect(dropzone(), findsOneWidget);
+        expect(find.text(CourseLearningStrings.unexpectedError), findsNothing);
+      });
+
+      testWidgets('an uploaded file survives switching tabs', (tester) async {
+        await open(tester, withAssignment());
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(CourseLearningStrings.noteTab));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(CourseLearningStrings.assignmentTab));
+        await tester.pumpAndSettle();
+
+        expect(find.text('1 MB, PDF'), findsOneWidget);
+        expect(
+          tester.widget<ExerciseSubmitButton>(submit()).onPressed,
+          isNotNull,
+        );
+      });
+
+      testWidgets('a refused submission keeps the file for the retry', (
+        tester,
+      ) async {
+        final repository = withAssignment()
+          ..submitFailure = const CourseLearningFailure(
+            CourseLearningFailureKind.pastDue,
+          );
+        await open(tester, repository);
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(submit());
+        await tester.tap(submit());
+        await tester.pumpAndSettle();
+
+        expect(find.text(CourseLearningStrings.pastDue), findsOneWidget);
+        expect(find.text('1 MB, PDF'), findsOneWidget);
       });
     });
 

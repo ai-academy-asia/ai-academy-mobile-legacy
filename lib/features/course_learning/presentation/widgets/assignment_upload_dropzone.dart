@@ -37,12 +37,10 @@ const double _typesSize = 12;
 /// iteration drift rather than a state. Nothing in `CourseExercise` says which
 /// types an assignment accepts, so there is no condition to branch on either.
 ///
-/// **Tapping it does nothing yet.** There is no file-picker wiring and no
-/// upload endpoint (`course_learning_api_requirements_v1.md` lists neither),
-/// so this is the reference's visual state without the behaviour behind it,
-/// the same `_noDestinationYet` stance the play button and the other
-/// not-yet-built actions on these screens already take. [onTap] is here so
-/// the call site reads as intended, not because a destination exists.
+/// **[onTap] is the caller's.** The sample's `AssignmentAttachmentCard`
+/// starts its simulated transfer from it; a backend assignment's
+/// `AssignmentFileUploadCard` opens the file picker. Null leaves the area
+/// drawn but inert.
 class AssignmentUploadDropzone extends StatelessWidget {
   const AssignmentUploadDropzone({super.key, this.onTap});
 
