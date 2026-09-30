@@ -917,6 +917,133 @@ void main() {
       expect(find.text(CourseLearningStrings.startQuiz), findsNothing);
     });
 
+    group('assignment state', () {
+      FakeCourseLearningRepository withAssignment(
+        CourseAssignment? assignment,
+      ) => FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          title: 'Давталт',
+          assignmentFeedback: const [],
+          simulatesWrites: false,
+          assignment: assignment,
+        ),
+      );
+
+      AssignmentSubmission submission({AssignmentMentorFeedback? feedback}) =>
+          AssignmentSubmission(
+            id: 301,
+            version: 1,
+            status: feedback == null
+                ? AssignmentSubmissionStatus.submitted
+                : AssignmentSubmissionStatus.reviewed,
+            submittedAt: DateTime.utc(2026, 8, 5, 3),
+            link: 'https://github.com/student/loops',
+            feedback: feedback,
+          );
+
+      const review = AssignmentMentorFeedback(
+        mentorInitials: 'ДБ',
+        mentorName: 'Дорж Бат',
+        mentorRole: 'Lead Mentor',
+        message: 'Сайн ажил.',
+        timestampLabel: 'Today, 14:20',
+      );
+
+      testWidgets('nothing submitted: the unsubmitted form, all off', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          withAssignment(const CourseAssignment(id: 17)),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsNothing,
+        );
+        final fields = tester.widgetList<ExerciseTextField>(
+          find.byType(ExerciseTextField),
+        );
+        expect(fields.every((field) => !field.enabled), isTrue);
+        final submit = tester.widget<ExerciseSubmitButton>(
+          submitButtonLabelled(CourseLearningStrings.submit),
+        );
+        expect(submit.onPressed, isNull);
+        expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
+      });
+
+      testWidgets('a submission opens on the success card', (tester) async {
+        await pumpScreen(
+          tester,
+          withAssignment(CourseAssignment(id: 17, submission: submission())),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+        expect(find.byType(ExerciseTextField), findsNothing);
+      });
+
+      testWidgets('Resubmit is drawn but cannot reopen the form', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          withAssignment(CourseAssignment(id: 17, submission: submission())),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(CourseLearningStrings.resubmit));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+        expect(find.byType(ExerciseTextField), findsNothing);
+      });
+
+      testWidgets('an unreviewed submission shows No feedback yet', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          withAssignment(CourseAssignment(id: 17, submission: submission())),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
+      });
+
+      testWidgets('a reviewed submission shows the mentor\'s real feedback', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          withAssignment(
+            CourseAssignment(id: 17, submission: submission(feedback: review)),
+          ),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Дорж Бат'), findsOneWidget);
+        expect(find.text('ДБ'), findsOneWidget);
+        expect(find.text('Lead Mentor'), findsOneWidget);
+        expect(find.textContaining('Сайн ажил.'), findsOneWidget);
+        expect(find.text('Today, 14:20'), findsOneWidget);
+        expect(find.text(CourseLearningStrings.noFeedbackYet), findsNothing);
+      });
+    });
+
     testWidgets('the assignment tab is drawn but cannot submit', (
       tester,
     ) async {

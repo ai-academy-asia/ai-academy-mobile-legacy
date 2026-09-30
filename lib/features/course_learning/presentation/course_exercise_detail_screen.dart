@@ -353,6 +353,7 @@ class _TabContent extends StatelessWidget {
       ExerciseTab.assignment => AssignmentTab(
         feedbackSequence: exercise.assignmentFeedback,
         attachment: exercise.assignmentAttachment,
+        submission: exercise.assignment?.submission,
         // The submission API is not integrated: a backend lesson's tab is
         // drawn, but nothing in it can be submitted.
         enabled: exercise.simulatesWrites,

@@ -1366,19 +1366,281 @@ void main() {
         });
       });
 
-      test(
-        'ignores a quiz summary and an assignment it does not integrate',
-        () async {
-          final body = lessonBody()
-            ..['quiz'] = {'id': 9, 'question_count': 5}
-            ..['assignment'] = {'id': 17};
+      test('ignores a quiz summary it does not integrate', () async {
+        final body = lessonBody()..['quiz'] = {'id': 9, 'question_count': 5};
 
-          final exercise = await exerciseFrom(body);
+        final exercise = await exerciseFrom(body);
 
-          expect(exercise.quiz, isNull);
-          expect(exercise.assignmentFeedback, isEmpty);
-        },
-      );
+        expect(exercise.quiz, isNull);
+      });
+    });
+
+    // §2.6: the lesson's `assignment`, read-only.
+    group('assignment', () {
+      /// The contract's §2.6 feedback object.
+      Map<String, Object?> feedbackBody({
+        Object? role = 'teacher',
+        Object? createdAt,
+        Object? mentor = _defaultMentor,
+      }) => {
+        'message': 'Сайн ажил — баталгаажуулалтыг сайжруул.',
+        'created_at':
+            createdAt ?? DateTime(2026, 8, 6, 14, 20).toUtc().toIso8601String(),
+        'mentor': identical(mentor, _defaultMentor)
+            ? {'id': 4, 'name': 'Дорж Бат', 'initials': 'ДБ', 'role': role}
+            : mentor,
+      };
+
+      /// The contract's §2.6 submission object.
+      Map<String, Object?> submissionBody({
+        Object? status = 'submitted',
+        Object? link = 'https://github.com/student/loops',
+        Object? description = 'Давталтын дасгал',
+        Object? submittedAt = '2026-08-05T03:00:00+00:00',
+        Object? feedback,
+      }) => {
+        'id': 301,
+        'version': 2,
+        'status': status,
+        'link': link,
+        'description': description,
+        'file': null,
+        'submitted_at': submittedAt,
+        'score': null,
+        'feedback': feedback,
+      };
+
+      /// The contract's §2.6 assignment object — every documented field,
+      /// including the ones this client does not read.
+      Map<String, Object?> assignmentBody({Object? submission}) => {
+        'id': 17,
+        'title': {'mn': 'Даалгавар', 'en': 'Assignment'},
+        'instructions': null,
+        'due_date': null,
+        'max_score': 100,
+        'attachment': null,
+        'submission': submission,
+      };
+
+      Future<CourseExercise> withAssignment(Object? assignment) =>
+          exerciseFrom(lessonBody()..['assignment'] = assignment);
+
+      Future<CourseLearningFailure> failureWithAssignment(Object? assignment) =>
+          failureForExerciseBody(lessonBody()..['assignment'] = assignment);
+
+      test('assignment: null is no assignment', () async {
+        final exercise = await withAssignment(null);
+
+        expect(exercise.assignment, isNull);
+      });
+
+      test('an absent assignment is no assignment, as for the note', () async {
+        final exercise = await exerciseFrom(lessonBody()..remove('assignment'));
+
+        expect(exercise.assignment, isNull);
+      });
+
+      test('an assignment with nothing submitted yet', () async {
+        final exercise = await withAssignment(assignmentBody());
+
+        expect(exercise.assignment!.id, 17);
+        expect(exercise.assignment!.submission, isNull);
+      });
+
+      test('a submission not yet reviewed', () async {
+        final exercise = await withAssignment(
+          assignmentBody(submission: submissionBody()),
+        );
+
+        final submission = exercise.assignment!.submission!;
+        expect(submission.id, 301);
+        expect(submission.version, 2);
+        expect(submission.status, AssignmentSubmissionStatus.submitted);
+        expect(submission.link, 'https://github.com/student/loops');
+        expect(submission.description, 'Давталтын дасгал');
+        expect(submission.submittedAt, DateTime.utc(2026, 8, 5, 3));
+        expect(submission.feedback, isNull);
+      });
+
+      test('a reviewed submission carries the mentor\'s feedback', () async {
+        final exercise = await withAssignment(
+          assignmentBody(
+            submission: submissionBody(
+              status: 'reviewed',
+              feedback: feedbackBody(),
+            ),
+          ),
+        );
+
+        final submission = exercise.assignment!.submission!;
+        expect(submission.status, AssignmentSubmissionStatus.reviewed);
+        final feedback = submission.feedback!;
+        expect(feedback.mentorInitials, 'ДБ');
+        expect(feedback.mentorName, 'Дорж Бат');
+        expect(feedback.mentorRole, 'Lead Mentor');
+        expect(feedback.message, 'Сайн ажил — баталгаажуулалтыг сайжруул.');
+        expect(feedback.timestampLabel, 'Today, 14:20');
+      });
+
+      test('an older review is dated MM/dd', () async {
+        final exercise = await withAssignment(
+          assignmentBody(
+            submission: submissionBody(
+              feedback: feedbackBody(
+                createdAt: DateTime(2026, 8, 1, 9, 5).toUtc().toIso8601String(),
+              ),
+            ),
+          ),
+        );
+
+        expect(
+          exercise.assignment!.submission!.feedback!.timestampLabel,
+          '08/01, 09:05',
+        );
+      });
+
+      test('a role with no copy draws no role label', () async {
+        final exercise = await withAssignment(
+          assignmentBody(
+            submission: submissionBody(feedback: feedbackBody(role: 'staff')),
+          ),
+        );
+
+        expect(exercise.assignment!.submission!.feedback!.mentorRole, isEmpty);
+      });
+
+      test('the documented nullable fields may be null', () async {
+        final exercise = await withAssignment(
+          assignmentBody(
+            submission: submissionBody(link: null, description: null),
+          ),
+        );
+
+        final submission = exercise.assignment!.submission!;
+        expect(submission.link, isNull);
+        expect(submission.description, isNull);
+      });
+
+      test('an unrecognised status is unknown, not a failure', () async {
+        final exercise = await withAssignment(
+          assignmentBody(submission: submissionBody(status: 'archived')),
+        );
+
+        expect(
+          exercise.assignment!.submission!.status,
+          AssignmentSubmissionStatus.unknown,
+        );
+      });
+
+      test('the sample-only assignment fields stay empty', () async {
+        final exercise = await withAssignment(
+          assignmentBody(submission: submissionBody(feedback: feedbackBody())),
+        );
+
+        // The canned sequence and the attachment are the sample's; a backend
+        // lesson's feedback lives on its submission.
+        expect(exercise.assignmentFeedback, isEmpty);
+        expect(exercise.assignmentAttachment, isNull);
+      });
+
+      group('a malformed assignment is a server fault', () {
+        Future<void> expectFault(Object? assignment, String field) async {
+          final failure = await failureWithAssignment(assignment);
+
+          expect(failure.kind, CourseLearningFailureKind.server);
+          expect(failure.detail, contains(field));
+        }
+
+        test('not an object', () async {
+          await expectFault('assignment', 'assignment');
+          await expectFault([], 'assignment');
+        });
+
+        test('no id', () async {
+          await expectFault(assignmentBody()..remove('id'), 'assignment.id');
+        });
+
+        test('a submission that is not an object', () async {
+          await expectFault(
+            assignmentBody(submission: 'done'),
+            'assignment.submission',
+          );
+        });
+
+        test('a submission without id, version or status', () async {
+          for (final field in ['id', 'version', 'status']) {
+            await expectFault(
+              assignmentBody(submission: submissionBody()..remove(field)),
+              'assignment.submission.$field',
+            );
+          }
+        });
+
+        test('a submitted_at that is missing or not a timestamp', () async {
+          for (final value in <Object?>[null, 'yesterday']) {
+            await expectFault(
+              assignmentBody(submission: submissionBody(submittedAt: value)),
+              'assignment.submission.submitted_at',
+            );
+          }
+        });
+
+        test('a link or description that is not a string', () async {
+          await expectFault(
+            assignmentBody(submission: submissionBody(link: 42)),
+            'assignment.submission.link',
+          );
+          await expectFault(
+            assignmentBody(submission: submissionBody(description: true)),
+            'assignment.submission.description',
+          );
+        });
+
+        test('feedback that is not an object', () async {
+          await expectFault(
+            assignmentBody(submission: submissionBody(feedback: 'good')),
+            'assignment.submission.feedback',
+          );
+        });
+
+        test('feedback without a mentor, or a mentor without a name', () async {
+          await expectFault(
+            assignmentBody(
+              submission: submissionBody(feedback: feedbackBody(mentor: null)),
+            ),
+            'mentor',
+          );
+          await expectFault(
+            assignmentBody(
+              submission: submissionBody(
+                feedback: feedbackBody(
+                  mentor: const {'id': 4, 'initials': 'ДБ', 'role': 'teacher'},
+                ),
+              ),
+            ),
+            'feedback.mentor.name',
+          );
+        });
+
+        test('feedback without a message or created_at', () async {
+          await expectFault(
+            assignmentBody(
+              submission: submissionBody(
+                feedback: feedbackBody()..remove('message'),
+              ),
+            ),
+            'feedback.message',
+          );
+          await expectFault(
+            assignmentBody(
+              submission: submissionBody(
+                feedback: feedbackBody(createdAt: 'soon'),
+              ),
+            ),
+            'feedback.created_at',
+          );
+        });
+      });
     });
 
     group('a 200 that does not match the contract', () {
@@ -2115,3 +2377,7 @@ void main() {
     });
   });
 }
+
+/// Sentinel for `feedbackBody(mentor: ...)`: "the caller did not pass one"
+/// (use the contract's mentor) versus an explicit `null` (a fault).
+const Object _defaultMentor = Object();

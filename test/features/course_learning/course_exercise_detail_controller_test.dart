@@ -200,6 +200,29 @@ void main() {
       return controller;
     }
 
+    test('a saved note leaves the lesson\'s assignment in place', () async {
+      final assignment = CourseAssignment(
+        id: 17,
+        submission: AssignmentSubmission(
+          id: 301,
+          version: 1,
+          status: AssignmentSubmissionStatus.submitted,
+          submittedAt: DateTime.utc(2026, 8, 5, 3),
+        ),
+      );
+      final controller = await loaded(
+        FakeCourseLearningRepository(
+          exercise: sampleExercise(lessonId: 204, assignment: assignment),
+          savedNote: serverNote,
+        ),
+      );
+
+      await controller.saveNote('A note');
+
+      expect(controller.exercise!.note, serverNote);
+      expect(controller.exercise!.assignment, same(assignment));
+    });
+
     test('starts not saving, with no save error', () async {
       final controller = await loaded(FakeCourseLearningRepository());
 

@@ -87,10 +87,18 @@ enum _AssignmentStage {
 /// **Disabled when [enabled] is false** — a lesson loaded from the backend,
 /// whose submission API is not integrated. The same fields and button are
 /// drawn, all of them off, so nothing can look submitted.
+///
+/// **[submission] is the server's.** When a backend lesson's student has
+/// already submitted, the tab opens on the success card — the state §2.6
+/// maps any submission onto — with that submission's own [AssignmentSubmission
+/// .feedback] in the Mentor Feedback card ("No feedback yet" until it is
+/// reviewed). Resubmit is drawn but off while the tab is disabled, since
+/// reopening the form would lead to a submit that cannot be sent.
 class AssignmentTab extends StatefulWidget {
   const AssignmentTab({
     required this.feedbackSequence,
     this.attachment,
+    this.submission,
     this.enabled = true,
     super.key,
   });
@@ -107,6 +115,11 @@ class AssignmentTab extends StatefulWidget {
   /// requirement entirely, same as an exercise with no attachment at all.
   final CourseExerciseMaterial? attachment;
 
+  /// `CourseExercise.assignment?.submission` — the latest submission the
+  /// backend holds. Null for the sample, and for a backend lesson with
+  /// nothing submitted yet.
+  final AssignmentSubmission? submission;
+
   @override
   State<AssignmentTab> createState() => _AssignmentTabState();
 }
@@ -115,7 +128,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
   final _linkController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  _AssignmentStage _stage = _AssignmentStage.notSubmitted;
+  late _AssignmentStage _stage = widget.submission == null
+      ? _AssignmentStage.notSubmitted
+      : _AssignmentStage.submitted;
 
   /// How many times [_submit] has resolved. Indexes into
   /// [AssignmentTab.feedbackSequence]: 1 submission → entry 0, 2 → entry 1,
@@ -162,6 +177,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
       _attachmentReady;
 
   AssignmentMentorFeedback? get _latestFeedback {
+    // A server submission's feedback is the only one there is — never the
+    // sample sequence.
+    if (widget.submission case final submission?) return submission.feedback;
     final sequence = widget.feedbackSequence;
     if (sequence.isEmpty || _resolvedSubmissions == 0) return null;
     final index = (_resolvedSubmissions - 1).clamp(0, sequence.length - 1);
@@ -193,7 +211,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (_stage == _AssignmentStage.submitted)
-            _AssignmentSuccessCard(onResubmit: _resubmit)
+            _AssignmentSuccessCard(
+              onResubmit: widget.enabled ? _resubmit : null,
+            )
           else ...[
             // The reference draws the file area and the link field as
             // alternatives, never together: the frames with a drop area have
@@ -247,7 +267,8 @@ class _AssignmentTabState extends State<AssignmentTab> {
 class _AssignmentSuccessCard extends StatelessWidget {
   const _AssignmentSuccessCard({required this.onResubmit});
 
-  final VoidCallback onResubmit;
+  /// Null draws the pill unchanged but inert.
+  final VoidCallback? onResubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -307,12 +328,13 @@ class _AssignmentSuccessCard extends StatelessWidget {
 class _ResubmitButton extends StatelessWidget {
   const _ResubmitButton({required this.onTap});
 
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
+      enabled: onTap != null,
       label: CourseLearningStrings.resubmit,
       child: Material(
         color: AppColors.surface,
