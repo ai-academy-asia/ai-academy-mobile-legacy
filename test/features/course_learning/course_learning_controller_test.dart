@@ -37,6 +37,17 @@ class _ThrowingRepository implements CourseLearningRepository {
   @override
   Future<MaterialDownload> getMaterialDownload(int materialId) =>
       _delegate.getMaterialDownload(materialId);
+
+  @override
+  Future<AssignmentSubmission> submitAssignment(
+    int assignmentId, {
+    required String link,
+    String? description,
+  }) => _delegate.submitAssignment(
+    assignmentId,
+    link: link,
+    description: description,
+  );
 }
 
 void main() {

@@ -50,6 +50,22 @@ enum CourseLearningFailureKind {
   /// HTTP 400 `content_too_long` — §2.5's note is over its 5000 characters.
   contentTooLong,
 
+  /// HTTP 400 `submission_empty` — §2.6's submission carried neither a link
+  /// nor a file.
+  submissionEmpty,
+
+  /// HTTP 400 `invalid_link` — §2.6's `link` is not an `http(s)` URL.
+  invalidLink,
+
+  /// HTTP 400 `description_too_long` — the submission's description is over
+  /// its 5000 characters (`mobile_api_v1_1.md`'s additions).
+  descriptionTooLong,
+
+  /// HTTP 409 `past_due` — §2.6: the assignment's `due_date` has passed, so
+  /// it takes no more submissions. Read from the body's `error` code: every
+  /// other 409 is still [locked].
+  pastDue,
+
   /// The request never completed — no connectivity, DNS failure, timeout.
   network,
 

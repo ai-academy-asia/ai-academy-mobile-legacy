@@ -128,7 +128,25 @@ class CourseExercise {
 
   /// This exercise with [note] in place of its own — what a successful
   /// `saveNote` leaves the screen holding.
-  CourseExercise withNote(CourseExerciseNote note) => CourseExercise(
+  CourseExercise withNote(CourseExerciseNote note) =>
+      _copyWith(note: note, assignment: assignment);
+
+  /// This exercise with [submission] as its assignment's latest — what a
+  /// successful `submitAssignment` leaves the screen holding. Only
+  /// meaningful when [assignment] is not null; unchanged otherwise.
+  CourseExercise withAssignmentSubmission(AssignmentSubmission submission) {
+    final assignment = this.assignment;
+    if (assignment == null) return this;
+    return _copyWith(
+      note: note,
+      assignment: CourseAssignment(id: assignment.id, submission: submission),
+    );
+  }
+
+  CourseExercise _copyWith({
+    required CourseExerciseNote? note,
+    required CourseAssignment? assignment,
+  }) => CourseExercise(
     lessonId: lessonId,
     moduleId: moduleId,
     moduleCaption: moduleCaption,

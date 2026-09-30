@@ -63,6 +63,12 @@ abstract final class JuniorHomeStrings {
     // The note save's 400s — never answered by the learning path either.
     CourseLearningFailureKind.contentRequired => unexpectedError,
     CourseLearningFailureKind.contentTooLong => unexpectedError,
+    // The assignment submission's 400s and 409 — likewise never answered by
+    // the learning path.
+    CourseLearningFailureKind.submissionEmpty => unexpectedError,
+    CourseLearningFailureKind.invalidLink => unexpectedError,
+    CourseLearningFailureKind.descriptionTooLong => unexpectedError,
+    CourseLearningFailureKind.pastDue => unexpectedError,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,

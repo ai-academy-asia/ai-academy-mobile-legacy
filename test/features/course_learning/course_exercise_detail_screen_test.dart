@@ -950,7 +950,22 @@ void main() {
         timestampLabel: 'Today, 14:20',
       );
 
-      testWidgets('nothing submitted: the unsubmitted form, all off', (
+      Finder linkField() => find.byType(TextField).first;
+      Finder descriptionField() => find.byType(TextField).last;
+
+      Future<void> fillAndSubmit(
+        WidgetTester tester, {
+        String link = 'https://github.com/student/loops',
+        String description = '',
+      }) async {
+        await tester.enterText(linkField(), link);
+        await tester.enterText(descriptionField(), description);
+        await tester.pump();
+        await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+        await tester.pump();
+      }
+
+      testWidgets('nothing submitted: the form is open, Submit waits', (
         tester,
       ) async {
         await pumpScreen(
@@ -967,12 +982,197 @@ void main() {
         final fields = tester.widgetList<ExerciseTextField>(
           find.byType(ExerciseTextField),
         );
-        expect(fields.every((field) => !field.enabled), isTrue);
+        expect(fields, hasLength(2));
+        expect(fields.every((field) => field.enabled), isTrue);
+        // Nothing typed yet.
         final submit = tester.widget<ExerciseSubmitButton>(
           submitButtonLabelled(CourseLearningStrings.submit),
         );
         expect(submit.onPressed, isNull);
         expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
+      });
+
+      testWidgets('a link alone enables Submit — the description is optional', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          withAssignment(const CourseAssignment(id: 17)),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(linkField(), 'https://github.com/x');
+        await tester.pump();
+
+        final submit = tester.widget<ExerciseSubmitButton>(
+          submitButtonLabelled(CourseLearningStrings.submit),
+        );
+        expect(submit.onPressed, isNotNull);
+      });
+
+      testWidgets('Submit sends the link and description to the assignment', (
+        tester,
+      ) async {
+        final repository = withAssignment(const CourseAssignment(id: 17));
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(
+          tester,
+          link: '  https://github.com/student/loops  ',
+          description: 'Давталтын дасгал',
+        );
+        await tester.pumpAndSettle();
+
+        expect(repository.submitCalls, [
+          (17, 'https://github.com/student/loops', 'Давталтын дасгал'),
+        ]);
+      });
+
+      testWidgets('a blank description is sent as none', (tester) async {
+        final repository = withAssignment(const CourseAssignment(id: 17));
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester, description: '   ');
+        await tester.pumpAndSettle();
+
+        expect(repository.submitCalls, [
+          (17, 'https://github.com/student/loops', null),
+        ]);
+      });
+
+      testWidgets('pending review lasts exactly as long as the request', (
+        tester,
+      ) async {
+        final repository = withAssignment(const CourseAssignment(id: 17))
+          ..holdSubmit = true;
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester);
+
+        // The existing pending state: fields locked, the button reading
+        // "Submitted" and off.
+        final pending = tester.widget<ExerciseSubmitButton>(
+          submitButtonLabelled(CourseLearningStrings.submitted),
+        );
+        expect(pending.onPressed, isNull);
+        final fields = tester.widgetList<ExerciseTextField>(
+          find.byType(ExerciseTextField),
+        );
+        expect(fields.every((field) => !field.enabled), isTrue);
+        // Past the sample's 900 ms, still waiting on the server.
+        await tester.pump(const Duration(seconds: 2));
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsNothing,
+        );
+
+        repository.releaseSubmit();
+        await tester.pumpAndSettle();
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+        expect(repository.submitCalls, hasLength(1));
+      });
+
+      testWidgets('success shows the server\'s submission — No feedback yet', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          withAssignment(const CourseAssignment(id: 17)),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+        expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
+      });
+
+      testWidgets('success with feedback in the answer shows it', (
+        tester,
+      ) async {
+        final repository = withAssignment(const CourseAssignment(id: 17))
+          ..submission = sampleSubmission(feedback: review);
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Дорж Бат'), findsOneWidget);
+        expect(find.textContaining('Сайн ажил.'), findsOneWidget);
+        expect(find.text(CourseLearningStrings.noFeedbackYet), findsNothing);
+      });
+
+      testWidgets('a validation error keeps the form, the text and shows why', (
+        tester,
+      ) async {
+        final repository = withAssignment(const CourseAssignment(id: 17))
+          ..submitFailure = const CourseLearningFailure(
+            CourseLearningFailureKind.invalidLink,
+          );
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester, link: 'not-a-link', description: 'Тайлбар');
+        await tester.pumpAndSettle();
+
+        expect(find.text(CourseLearningStrings.invalidLink), findsOneWidget);
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsNothing,
+        );
+        final link = tester.widget<TextField>(linkField());
+        expect(link.controller!.text, 'not-a-link');
+        final description = tester.widget<TextField>(descriptionField());
+        expect(description.controller!.text, 'Тайлбар');
+        final submit = tester.widget<ExerciseSubmitButton>(
+          submitButtonLabelled(CourseLearningStrings.submit),
+        );
+        expect(submit.onPressed, isNotNull);
+
+        // A retry that succeeds clears it.
+        repository.submitFailure = null;
+        await tester.enterText(linkField(), 'https://github.com/x');
+        await tester.pump();
+        await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+        await tester.pumpAndSettle();
+
+        expect(find.text(CourseLearningStrings.invalidLink), findsNothing);
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('past_due reads as its own copy, not as locked', (
+        tester,
+      ) async {
+        final repository = withAssignment(const CourseAssignment(id: 17))
+          ..submitFailure = const CourseLearningFailure(
+            CourseLearningFailureKind.pastDue,
+          );
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.text(CourseLearningStrings.pastDue), findsOneWidget);
+        // The lesson stays — this is not the whole-screen locked error.
+        expect(find.text(CourseLearningStrings.retry), findsNothing);
+        expect(find.text('Давталт'), findsOneWidget);
       });
 
       testWidgets('a submission opens on the success card', (tester) async {
@@ -990,24 +1190,63 @@ void main() {
         expect(find.byType(ExerciseTextField), findsNothing);
       });
 
-      testWidgets('Resubmit is drawn but cannot reopen the form', (
+      testWidgets('Resubmit reopens the form with the latest submission', (
         tester,
       ) async {
-        await pumpScreen(
-          tester,
-          withAssignment(CourseAssignment(id: 17, submission: submission())),
-          lessonId: 204,
-        );
+        final repository = withAssignment(
+          CourseAssignment(id: 17, submission: submission()),
+        )..submission = sampleSubmission(id: 302, version: 2);
+        await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
 
         await tester.tap(find.text(CourseLearningStrings.resubmit));
         await tester.pumpAndSettle();
 
+        final link = tester.widget<TextField>(linkField());
+        expect(link.controller!.text, 'https://github.com/student/loops');
+        final fields = tester.widgetList<ExerciseTextField>(
+          find.byType(ExerciseTextField),
+        );
+        expect(fields.every((field) => field.enabled), isTrue);
+
+        // Resubmitting is the same call, to the same assignment.
+        await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+        await tester.pumpAndSettle();
+
+        expect(repository.submitCalls, [
+          (17, 'https://github.com/student/loops', null),
+        ]);
         expect(
           find.text(CourseLearningStrings.assignmentSubmittedSuccess),
           findsOneWidget,
         );
-        expect(find.byType(ExerciseTextField), findsNothing);
+      });
+
+      testWidgets('a submit in flight survives switching tabs', (tester) async {
+        final repository = withAssignment(const CourseAssignment(id: 17))
+          ..holdSubmit = true;
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        await fillAndSubmit(tester);
+        await tester.tap(find.text(CourseLearningStrings.noteTab));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(CourseLearningStrings.assignmentTab));
+        await tester.pumpAndSettle();
+
+        // Still pending, and a second submit cannot start.
+        expect(
+          submitButtonLabelled(CourseLearningStrings.submitted),
+          findsOneWidget,
+        );
+
+        repository.releaseSubmit();
+        await tester.pumpAndSettle();
+        expect(
+          find.text(CourseLearningStrings.assignmentSubmittedSuccess),
+          findsOneWidget,
+        );
+        expect(repository.submitCalls, hasLength(1));
       });
 
       testWidgets('an unreviewed submission shows No feedback yet', (

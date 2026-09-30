@@ -8,7 +8,8 @@ import 'material_download.dart';
 ///
 /// `HttpCourseLearningRepository` serves all three from
 /// `course_learning_api_contract_v1.md` §2.1–2.3, saves a lesson's note
-/// through §2.5 and fetches a material's download link through §2.4,
+/// through §2.5, fetches a material's download link through §2.4 and submits
+/// an assignment link through §2.6,
 /// throwing `CourseLearningFailure`;
 /// `SampleCourseLearningRepository` serves hand-authored content for tests
 /// and the dev preview.
@@ -16,8 +17,8 @@ import 'material_download.dart';
 /// Three content reads on one interface, same shape as `CourseRepository`'s
 /// `getCourses()`/`getCourseDetail(slug)` split: one for the overview list,
 /// one for a module's own lessons, one for a lesson's exercise detail — plus
-/// the Exercise Detail screen's two actions, the note save and a material's
-/// download link.
+/// the Exercise Detail screen's actions: the note save, a material's download
+/// link and an assignment submission.
 abstract interface class CourseLearningRepository {
   /// [courseSlug] is `Course.slug` — the one identifier this feature borrows
   /// from the confirmed course contract rather than inventing its own.
@@ -40,4 +41,14 @@ abstract interface class CourseLearningRepository {
   /// `GET /me/materials/{material_id}/download`. [materialId] is
   /// `CourseExerciseMaterial.id`.
   Future<MaterialDownload> getMaterialDownload(int materialId);
+
+  /// Submits — or resubmits, the same call — a link to assignment
+  /// [assignmentId] and returns the new latest submission — §2.6
+  /// `POST /me/assignments/{assignment_id}/submissions`. [assignmentId] is
+  /// `CourseAssignment.id`. No file: that is §2.8's upload, not integrated.
+  Future<AssignmentSubmission> submitAssignment(
+    int assignmentId, {
+    required String link,
+    String? description,
+  });
 }

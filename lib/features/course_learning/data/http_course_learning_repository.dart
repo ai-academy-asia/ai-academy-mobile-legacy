@@ -23,6 +23,7 @@ import 'course_module_visuals.dart';
 ///     GET https://api.ai-academy.asia/me/lessons/{lesson_id}
 ///     PUT https://api.ai-academy.asia/me/lessons/{lesson_id}/note
 ///     GET https://api.ai-academy.asia/me/materials/{material_id}/download
+///     POST https://api.ai-academy.asia/me/assignments/{assignment_id}/submissions
 ///     Authorization: Bearer <access_token>
 ///
 /// The lessons shape is `course_learning_api_contract_v1.md` §2.2's, read in
@@ -149,6 +150,27 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     return _downloadFromBody(body);
   }
 
+  /// §2.6 `POST /me/assignments/{assignment_id}/submissions` with
+  /// `{"link", "description", "file_id": null}` — a link submission, or a
+  /// resubmission (the same call). `201` answers with the new latest
+  /// submission, read by the same [_submissionFrom] the lesson detail uses.
+  ///
+  /// 400 `submission_empty`/`invalid_link`/`description_too_long` and 409
+  /// `past_due` read as their own [CourseLearningFailureKind]s; every other
+  /// status maps as the reads' do.
+  @override
+  Future<AssignmentSubmission> submitAssignment(
+    int assignmentId, {
+    required String link,
+    String? description,
+  }) async {
+    final body = await _authorizedPost(
+      '/me/assignments/$assignmentId/submissions',
+      {'link': link, 'description': description, 'file_id': null},
+    );
+    return _submissionFromBody(body, now: _clock());
+  }
+
   Future<String> _authorizedGet(String path) => _authorizedRequest(
     path,
     (url, headers) =>
@@ -159,6 +181,18 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
       _authorizedRequest(
         path,
         (url, headers) => putJsonRaw(
+          client: _client,
+          url: url,
+          body: body,
+          headers: headers,
+          timeout: timeout,
+        ),
+      );
+
+  Future<String> _authorizedPost(String path, Map<String, Object?> body) =>
+      _authorizedRequest(
+        path,
+        (url, headers) => postJsonRaw(
           client: _client,
           url: url,
           body: body,
@@ -220,13 +254,17 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
 /// shared with the other repositories' mappings, the way `ApiFailure`'s,
 /// `AuthFailure`'s and `EnrollmentFailure`'s are already kept apart.
 ///
-/// [body] is read for a 400 only: §2.5's two validation rules share that
-/// status, and §0 says the app branches on the body's `error` code.
+/// [body] is read for a 400 and a 409 only: §2.5's and §2.6's validation
+/// rules share the first, `lesson_locked` and `past_due` the second, and §0
+/// says the app branches on the body's `error` code.
 CourseLearningFailure? _failureForStatus(int statusCode, String body) {
   if (statusCode == 400) {
     final kind = switch (_errorCode(body)) {
       'content_required' => CourseLearningFailureKind.contentRequired,
       'content_too_long' => CourseLearningFailureKind.contentTooLong,
+      'submission_empty' => CourseLearningFailureKind.submissionEmpty,
+      'invalid_link' => CourseLearningFailureKind.invalidLink,
+      'description_too_long' => CourseLearningFailureKind.descriptionTooLong,
       _ => CourseLearningFailureKind.unexpected,
     };
     return CourseLearningFailure(kind, detail: 'HTTP 400');
@@ -250,8 +288,12 @@ CourseLearningFailure? _failureForStatus(int statusCode, String body) {
     );
   }
   if (statusCode == 409) {
-    return const CourseLearningFailure(
-      CourseLearningFailureKind.locked,
+    // Only `past_due` is its own case; `lesson_locked` — and any 409 without
+    // that code — stays [CourseLearningFailureKind.locked], as before.
+    return CourseLearningFailure(
+      _errorCode(body) == 'past_due'
+          ? CourseLearningFailureKind.pastDue
+          : CourseLearningFailureKind.locked,
       detail: 'HTTP 409',
     );
   }
@@ -636,6 +678,27 @@ CourseAssignment? _assignmentFrom(Object? assignment, {required DateTime now}) {
     id: _requireInt(assignment, 'assignment.id'),
     submission: _submissionFrom(assignment['submission'], now: now),
   );
+}
+
+/// §2.6's submit answer — the submission object itself, never `null`.
+AssignmentSubmission _submissionFromBody(String body, {required DateTime now}) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'malformed JSON: ${e.message}',
+    );
+  }
+
+  if (decoded is! Map<String, dynamic>) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'response was not a JSON object',
+    );
+  }
+  return _submissionFrom(decoded, now: now)!;
 }
 
 /// §2.6's latest `submission`, or null — nothing submitted yet.

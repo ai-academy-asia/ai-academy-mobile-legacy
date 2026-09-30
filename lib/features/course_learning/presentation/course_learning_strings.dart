@@ -51,6 +51,19 @@ abstract final class CourseLearningStrings {
   static const String noteContentTooLong =
       'Тэмдэглэл 5000 тэмдэгтээс ихгүй байх ёстой';
 
+  /// §2.6's submission rules. No Figma copy exists for any of them either:
+  /// the empty case repeats the link field's own placeholder, [linkPlaceholder],
+  /// and the rest follow the note rules' wording above.
+  static const String submissionEmpty = linkPlaceholder;
+  static const String invalidLink = 'Зөв link оруулна уу';
+  static const String descriptionTooLong =
+      'Тайлбар 5000 тэмдэгтээс ихгүй байх ёстой';
+  static const String pastDue = 'Даалгавар илгээх хугацаа дууссан';
+
+  /// §2.6's `404 assignment_not_found` — worded after [materialNotFound], for
+  /// the same reason: [notFound] names the course.
+  static const String assignmentNotFound = 'Даалгавар олдсонгүй';
+
   /// One fixed string per [CourseLearningFailureKind], the same shape
   /// `HomeStrings.messageFor` and `EnrollmentStrings.messageFor` use.
   static String messageFor(CourseLearningFailureKind kind) => switch (kind) {
@@ -62,6 +75,10 @@ abstract final class CourseLearningStrings {
     CourseLearningFailureKind.locked => unexpectedError,
     CourseLearningFailureKind.contentRequired => noteContentRequired,
     CourseLearningFailureKind.contentTooLong => noteContentTooLong,
+    CourseLearningFailureKind.submissionEmpty => submissionEmpty,
+    CourseLearningFailureKind.invalidLink => invalidLink,
+    CourseLearningFailureKind.descriptionTooLong => descriptionTooLong,
+    CourseLearningFailureKind.pastDue => pastDue,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,

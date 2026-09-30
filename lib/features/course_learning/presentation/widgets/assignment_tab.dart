@@ -43,6 +43,10 @@ const double _successTopGap = 8;
 const double _tileToMessage = 28;
 const double _messageToResubmit = 32;
 
+/// Between the description field and a failed submit's error line — the
+/// same 8 `NoteTab` leaves.
+const double _fieldToError = 8;
+
 /// The three states this tab cycles through, all driven by sample data — see
 /// the class doc below for what each one shows.
 enum _AssignmentStage {
@@ -84,22 +88,33 @@ enum _AssignmentStage {
 /// canned entries. A real file *upload* and the certificate remain out of
 /// scope — see `CourseExerciseDetailScreen`'s own doc comment.
 ///
-/// **Disabled when [enabled] is false** — a lesson loaded from the backend,
-/// whose submission API is not integrated. The same fields and button are
-/// drawn, all of them off, so nothing can look submitted.
+/// **Disabled when [enabled] is false** — a backend lesson with no
+/// assignment to submit to. The same fields and button are drawn, all of
+/// them off, so nothing can look submitted.
 ///
 /// **[submission] is the server's.** When a backend lesson's student has
 /// already submitted, the tab opens on the success card — the state §2.6
 /// maps any submission onto — with that submission's own [AssignmentSubmission
 /// .feedback] in the Mentor Feedback card ("No feedback yet" until it is
-/// reviewed). Resubmit is drawn but off while the tab is disabled, since
-/// reopening the form would lead to a submit that cannot be sent.
+/// reviewed). Resubmit is drawn but off while the tab is disabled.
+///
+/// **[onSubmit] makes the submit real** — a backend assignment. The same
+/// three stages, but: Submit needs only the link, since §2.6 makes the
+/// description optional; "pending review" lasts exactly as long as the
+/// request; success shows the success card, whose feedback is then the new
+/// [submission]'s; failure reopens the form with what was typed and
+/// [errorMessage] under it, in the Login screen's own `fieldError`
+/// treatment (the Figma pack has no error state here). Resubmit reopens the
+/// form filled with the latest submission's link and description.
 class AssignmentTab extends StatefulWidget {
   const AssignmentTab({
     required this.feedbackSequence,
     this.attachment,
     this.submission,
     this.enabled = true,
+    this.onSubmit,
+    this.submitting = false,
+    this.errorMessage,
     super.key,
   });
 
@@ -120,6 +135,17 @@ class AssignmentTab extends StatefulWidget {
   /// nothing submitted yet.
   final AssignmentSubmission? submission;
 
+  /// Sends the trimmed link and description and answers whether the
+  /// submission was accepted. Null keeps the sample's local simulation.
+  final Future<bool> Function(String link, String description)? onSubmit;
+
+  /// True while a submit is in flight — read when the tab is rebuilt
+  /// mid-request (a tab switch), so it resumes in "pending review".
+  final bool submitting;
+
+  /// Why the last submit failed, or null.
+  final String? errorMessage;
+
   @override
   State<AssignmentTab> createState() => _AssignmentTabState();
 }
@@ -128,16 +154,23 @@ class _AssignmentTabState extends State<AssignmentTab> {
   final _linkController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  late _AssignmentStage _stage = widget.submission == null
+  late _AssignmentStage _stage = widget.onSubmit != null && widget.submitting
+      ? _AssignmentStage.pendingReview
+      : widget.submission == null
       ? _AssignmentStage.notSubmitted
       : _AssignmentStage.submitted;
+
+  /// True once a real submit from this tab has failed, until the next one —
+  /// the same guard `NoteTab` uses so an error shows under its own attempt.
+  bool _submitFailed = false;
 
   /// How many times [_submit] has resolved. Indexes into
   /// [AssignmentTab.feedbackSequence]: 1 submission → entry 0, 2 → entry 1,
   /// clamped to the last entry once the sequence runs out.
   int _resolvedSubmissions = 0;
 
-  /// True once both fields hold non-blank text.
+  /// True once the fields Submit needs hold non-blank text — see
+  /// [_onTextChanged].
   bool _hasContent = false;
 
   /// True once [AssignmentTab.attachment] has finished downloading, or there
@@ -152,6 +185,25 @@ class _AssignmentTabState extends State<AssignmentTab> {
   }
 
   @override
+  void didUpdateWidget(AssignmentTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only a tab rebuilt mid-request can still be pending when the request
+    // ends: [_submit] settles its own attempt. Resolve it from the result.
+    if (widget.onSubmit != null &&
+        oldWidget.submitting &&
+        !widget.submitting &&
+        _stage == _AssignmentStage.pendingReview) {
+      final accepted =
+          widget.submission != null &&
+          !identical(widget.submission, oldWidget.submission);
+      _stage = accepted
+          ? _AssignmentStage.submitted
+          : _AssignmentStage.notSubmitted;
+      _submitFailed = !accepted;
+    }
+  }
+
+  @override
   void dispose() {
     _linkController.removeListener(_onTextChanged);
     _descriptionController.removeListener(_onTextChanged);
@@ -160,13 +212,17 @@ class _AssignmentTabState extends State<AssignmentTab> {
     super.dispose();
   }
 
-  /// The description always counts; the link only when it is on screen —
-  /// the file area replaces it, and a field the student cannot see must not
-  /// be what holds Submit disabled.
+  /// A real submit needs only the link — §2.6's one required field when
+  /// there is no file. The sample's simulation keeps its own rule: the
+  /// description always counts; the link only when it is on screen — the
+  /// file area replaces it, and a field the student cannot see must not be
+  /// what holds Submit disabled.
   void _onTextChanged() {
-    final hasContent =
-        _descriptionController.text.trim().isNotEmpty &&
-        (widget.attachment != null || _linkController.text.trim().isNotEmpty);
+    final hasLink = _linkController.text.trim().isNotEmpty;
+    final hasContent = widget.onSubmit != null
+        ? hasLink
+        : _descriptionController.text.trim().isNotEmpty &&
+              (widget.attachment != null || hasLink);
     if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
   }
 
@@ -190,6 +246,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
   /// real mentor review nothing here has a backend for), then shows the
   /// success card.
   Future<void> _submit() async {
+    final onSubmit = widget.onSubmit;
+    if (onSubmit != null) return _submitToServer(onSubmit);
+
     setState(() => _stage = _AssignmentStage.pendingReview);
 
     await Future<void>.delayed(const Duration(milliseconds: 900));
@@ -201,7 +260,44 @@ class _AssignmentTabState extends State<AssignmentTab> {
     });
   }
 
-  void _resubmit() => setState(() => _stage = _AssignmentStage.notSubmitted);
+  /// "Pending review" for exactly as long as the request, then the success
+  /// card — or the form again, with what was typed, if it failed.
+  Future<void> _submitToServer(
+    Future<bool> Function(String link, String description) onSubmit,
+  ) async {
+    setState(() {
+      _stage = _AssignmentStage.pendingReview;
+      _submitFailed = false;
+    });
+
+    final accepted = await onSubmit(
+      _linkController.text.trim(),
+      _descriptionController.text.trim(),
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _stage = accepted
+          ? _AssignmentStage.submitted
+          : _AssignmentStage.notSubmitted;
+      _submitFailed = !accepted;
+    });
+  }
+
+  void _resubmit() {
+    // A real resubmission starts from what the server holds — the same
+    // link and description, to change and send again.
+    if (widget.onSubmit != null) {
+      if (widget.submission case final submission?) {
+        _linkController.text = submission.link ?? '';
+        _descriptionController.text = submission.description ?? '';
+      }
+    }
+    setState(() {
+      _stage = _AssignmentStage.notSubmitted;
+      _submitFailed = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -244,6 +340,16 @@ class _AssignmentTabState extends State<AssignmentTab> {
               enabled:
                   widget.enabled && _stage == _AssignmentStage.notSubmitted,
             ),
+            if (_submitFailed && widget.errorMessage != null) ...[
+              const SizedBox(height: _fieldToError),
+              SizedBox(
+                width: double.infinity,
+                child: Text(
+                  widget.errorMessage!,
+                  style: AppTypography.fieldError,
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             ExerciseSubmitButton(
               label: _stage == _AssignmentStage.pendingReview

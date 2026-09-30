@@ -307,6 +307,22 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
     );
   }
 
+  /// The sample carries no backend assignment (its `assignment` is null), so
+  /// there is nothing to submit to. Never reached from the sample exercise
+  /// itself: its Assignment tab keeps its local submit → pending → submitted
+  /// simulation.
+  @override
+  Future<AssignmentSubmission> submitAssignment(
+    int assignmentId, {
+    required String link,
+    String? description,
+  }) async {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.notFound,
+      detail: 'sample assignment $assignmentId is not on the backend',
+    );
+  }
+
   static String _asset(String name) => 'assets/images/course_learning/$name';
 }
 
