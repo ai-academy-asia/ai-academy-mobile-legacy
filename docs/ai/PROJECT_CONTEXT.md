@@ -97,6 +97,7 @@ When a fact is not established by the repository, the Postman collection or the 
 | Layering, state, navigation, testing | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Endpoints, failures, auth, sample-data boundaries | [DATA_AND_API.md](DATA_AND_API.md) |
 | Git workflow, validation, protected files | [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) |
+| Driving a GitHub Issue from discovery to PR | [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) |
 | Tokens, spacing, colour, type | [../design-system/DESIGN_SYSTEM.md](../design-system/DESIGN_SYSTEM.md) |
 | Buttons, fields, cards, states | [../design-system/COMPONENT_PATTERNS.md](../design-system/COMPONENT_PATTERNS.md) |
 | Per-screen layout conventions | [../design-system/SCREEN_PATTERNS.md](../design-system/SCREEN_PATTERNS.md) |
