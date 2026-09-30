@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:aia_mobile/features/auth/data/http_auth_repository.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
+import 'package:aia_mobile/features/auth/domain/user_type.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -86,6 +87,43 @@ void main() {
       );
 
       expect((await repository.signIn(email: 'a@b.mn', password: 'p')).expiresIn, isNull);
+    });
+
+    test('reads every documented user_type', () async {
+      const expected = {
+        'adult': UserType.adult,
+        'child': UserType.child,
+        'teacher': UserType.teacher,
+        'staff': UserType.staff,
+      };
+      for (final entry in expected.entries) {
+        final repository = repositoryReturning(
+          (_) async => http.Response(
+            jsonEncode({'access_token': 'tok', 'user_type': entry.key}),
+            200,
+          ),
+        );
+
+        final session = await repository.signIn(email: 'a@b.mn', password: 'p');
+
+        expect(session.userType, entry.value, reason: entry.key);
+      }
+    });
+
+    test('a missing or unrecognised user_type is unknown, not a failure', () async {
+      for (final body in [
+        {'access_token': 'tok'},
+        {'access_token': 'tok', 'user_type': 'robot'},
+        {'access_token': 'tok', 'user_type': null},
+      ]) {
+        final repository = repositoryReturning(
+          (_) async => http.Response(jsonEncode(body), 200),
+        );
+
+        final session = await repository.signIn(email: 'a@b.mn', password: 'p');
+
+        expect(session.userType, UserType.unknown, reason: '$body');
+      }
     });
   });
 

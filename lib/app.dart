@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/home_route.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/junior_home/presentation/junior_home_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/splash/presentation/splash_screen.dart';
 
@@ -50,8 +52,10 @@ class AiAcademyApp extends StatelessWidget {
             const CourseExerciseDetailScreen(moduleId: 2),
         '/login': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
-        // Sign-in lands here — `/home` is the Нүүр tab, the dashboard.
-        '/home': (_) => const HomeScreen(),
+        // Sign-in lands on one of these two, by `user_type` — see
+        // `homeRouteFor`. `/home` is the adult Нүүр tab, the dashboard.
+        HomeRoutes.adult: (_) => const HomeScreen(),
+        HomeRoutes.junior: (_) => const JuniorHomeScreen(),
         // The student's own cohorts — Home's Хичээл tab opens this directly.
         '/my-cohorts': (_) => const CohortListScreen(enrolledOnly: true),
         // The draft course catalog. No longer reached from Home's Хичээл tab

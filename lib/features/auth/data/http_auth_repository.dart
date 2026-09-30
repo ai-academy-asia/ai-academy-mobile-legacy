@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session.dart';
+import '../domain/user_type.dart';
 import 'auth_http.dart';
 
 /// Signs in against the AI Academy API.
@@ -13,8 +14,9 @@ import 'auth_http.dart';
 ///
 ///     POST https://api.ai-academy.asia/auth/login
 ///     { "email": "...", "password": "..." }
-///     -> { "access_token": "...", "expires_in": 3600 }
+///     -> { "access_token": "...", "expires_in": 3600, "user_type": "adult" }
 ///
+/// `user_type` is read into [AuthSession.userType] — see [UserType].
 /// `expires_in` is optional — the backend does not always report it — so a
 /// missing value is carried through as null rather than guessed at.
 class HttpAuthRepository implements AuthRepository {
@@ -68,6 +70,7 @@ class HttpAuthRepository implements AuthRepository {
       expiresIn: expiresIn is num && expiresIn > 0
           ? Duration(seconds: expiresIn.toInt())
           : null,
+      userType: UserType.fromApi(decoded['user_type']),
     );
   }
 }

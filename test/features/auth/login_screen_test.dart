@@ -4,6 +4,8 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/auth/domain/user_type.dart';
+import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
@@ -574,6 +576,65 @@ void main() {
       expect(store.isSignedIn, isFalse);
       expect(find.text(LoginStrings.invalidCredentials), findsOneWidget);
     });
+  });
+
+  group('the landing route, by user_type', () {
+    /// Pumps Login with no `onSignedIn`, so the real default navigation runs.
+    /// The two homes are stand-ins: the real screens would reach for the API.
+    Future<void> signInAs(WidgetTester tester, UserType userType) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          routes: {
+            '/': (_) => LoginScreen(
+              repository: FakeAuthRepository(
+                session: AuthSession(accessToken: 'tok', userType: userType),
+              ),
+              sessionStore: AuthSessionStore(),
+            ),
+            HomeRoutes.adult: (_) => const Text('adult home'),
+            HomeRoutes.junior: (_) => const Text('junior home'),
+          },
+        ),
+      );
+
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('adult lands on the adult dashboard', (tester) async {
+      await signInAs(tester, UserType.adult);
+
+      expect(find.text('adult home'), findsOneWidget);
+      expect(find.text('junior home'), findsNothing);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    testWidgets('child lands on Junior Home', (tester) async {
+      await signInAs(tester, UserType.child);
+
+      expect(find.text('junior home'), findsOneWidget);
+      expect(find.text('adult home'), findsNothing);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    for (final type in [UserType.teacher, UserType.staff, UserType.unknown]) {
+      testWidgets('${type.name} keeps the existing /home landing', (
+        tester,
+      ) async {
+        await signInAs(tester, type);
+
+        expect(find.text('adult home'), findsOneWidget);
+        expect(find.text('junior home'), findsNothing);
+      });
+    }
   });
 
   group('geometry', () {

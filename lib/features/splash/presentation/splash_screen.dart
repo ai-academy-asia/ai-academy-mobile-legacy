@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../auth/data/http_current_user_repository.dart';
+import '../../auth/domain/auth_session_store.dart';
+import '../../auth/domain/current_user_repository.dart';
+import '../../auth/presentation/home_route.dart';
 import '../../auth/presentation/login_screen.dart';
 import 'splash_strings.dart';
 
@@ -41,6 +45,16 @@ import 'splash_strings.dart';
 /// `pushReplacement` on an already-popped-from route is exactly the kind of
 /// bug worth foreclosing for free.
 ///
+/// **An existing session skips sign-in.** When [AuthSessionStore] already
+/// holds a live session at launch, the hand-off goes to that account's home
+/// instead of Login — which home is `GET /auth/me`'s `user_type`, through the
+/// same [homeRouteFor] sign-in uses, not whatever the login response once
+/// said. The request starts in `initState`, so it runs under the animation
+/// rather than after it. No session, an expired one, or any failure of that
+/// request falls back to Login, the only recovery the API offers. (The store
+/// is in-memory today, so a cold start finds nothing; this is the one place
+/// that changes nothing when it starts persisting.)
+///
 /// Both halves of the lockup are Figma exports — [SplashAssets.mark] and
 /// [SplashAssets.wordmark] — rather than a bundled icon beside live text, so
 /// the screen matches the Figma frame's own construction. The wordmark is
@@ -55,7 +69,18 @@ import 'splash_strings.dart';
 /// area's centre, not the frame's. `SafeArea` + `Center` reproduces it with
 /// no hand-tuned offset.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+    this.sessionStore,
+    this.currentUserRepository,
+  });
+
+  /// Where an existing session is looked for. Defaults to the app-wide store.
+  final AuthSessionStore? sessionStore;
+
+  /// Reads the held session's account. Defaults to the real `GET /auth/me`.
+  /// Injected in tests.
+  final CurrentUserRepository? currentUserRepository;
 
   /// Total run time, start to hand-off: a 3-second entrance, a 2-second
   /// hold, and a 2-second fade-out. Deliberately unhurried — this is a
@@ -99,9 +124,13 @@ class _SplashScreenState extends State<SplashScreen>
   /// start it again — see the class doc.
   bool _navigating = false;
 
+  /// The home an already-held session lands on, or null for Login.
+  late final Future<String?> _restoredRoute;
+
   @override
   void initState() {
     super.initState();
+    _restoredRoute = _resolveRestoredRoute();
 
     _controller = AnimationController(
       vsync: this,
@@ -145,10 +174,35 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  /// See the class doc's "An existing session skips sign-in".
+  Future<String?> _resolveRestoredRoute() async {
+    final store = widget.sessionStore ?? AuthSessionStore.instance;
+    if (!store.isSignedIn || store.isExpired()) return null;
+    try {
+      final repository =
+          widget.currentUserRepository ??
+          HttpCurrentUserRepository(sessionStore: store);
+      final user = await repository.getCurrentUser();
+      return homeRouteFor(user.userType);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// The automatic hand-off — see the class doc on why this replaces a tap.
   void _onStatusChanged(AnimationStatus status) {
     if (status != AnimationStatus.completed || _navigating) return;
     _navigating = true;
+    _handOff();
+  }
+
+  Future<void> _handOff() async {
+    final restoredRoute = await _restoredRoute;
+    if (!mounted) return;
+    if (restoredRoute != null) {
+      Navigator.of(context).pushReplacementNamed(restoredRoute);
+      return;
+    }
     // A plain `PageRouteBuilder` rather than `pushReplacementNamed`: a named
     // push takes the platform's default (slide-in) transition, and the
     // hand-off from this screen's own fade-heavy storyboard reads better as

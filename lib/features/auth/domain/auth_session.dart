@@ -1,3 +1,5 @@
+import 'user_type.dart';
+
 /// A signed-in session: the bearer token the API issued, and how long it lasts.
 ///
 /// Nothing persists this yet. The login flow ends at the placeholder home
@@ -5,9 +7,17 @@
 /// (and attaching it to later requests) belongs to the screen that first needs
 /// an authenticated call.
 class AuthSession {
-  const AuthSession({required this.accessToken, this.expiresIn});
+  const AuthSession({
+    required this.accessToken,
+    this.expiresIn,
+    this.userType = UserType.unknown,
+  });
 
   final String accessToken;
+
+  /// Which app experience the login response says to open. [UserType.unknown]
+  /// when it carried none.
+  final UserType userType;
 
   /// Lifetime reported by the backend. Absent when it does not report one.
   final Duration? expiresIn;

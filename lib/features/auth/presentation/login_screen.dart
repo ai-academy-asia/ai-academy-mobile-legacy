@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../data/http_auth_repository.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session_store.dart';
+import 'home_route.dart';
 import 'login_controller.dart';
 import 'login_strings.dart';
 import 'widgets/contact_manager_card.dart';
@@ -54,7 +55,8 @@ class LoginScreen extends StatefulWidget {
   /// Where the issued token is kept. Defaults to the app-wide store.
   final AuthSessionStore? sessionStore;
 
-  /// Where to go after a successful sign-in. Defaults to `/home`.
+  /// Where to go after a successful sign-in. Defaults to the route the
+  /// session's `user_type` selects — see [homeRouteFor].
   final VoidCallback? onSignedIn;
 
   /// What the "Нууц үг сэргээх" button does. Defaults to `/reset-password`.
@@ -97,7 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (widget.onSignedIn != null) {
       widget.onSignedIn!();
     } else {
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(
+        context,
+      ).pushReplacementNamed(homeRouteFor(session.userType));
     }
   }
 
