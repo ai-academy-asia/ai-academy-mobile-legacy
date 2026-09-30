@@ -123,6 +123,34 @@ Future<http.Response> postJsonRaw({
   timeout,
 );
 
+/// The transport for an authenticated `multipart/form-data` POST carrying
+/// one file — `POST /me/files` is the first caller. The part is named
+/// [field], carries [fileName] as its filename, and holds [bytes] exactly.
+/// No other part is sent.
+///
+/// Returns the response for **every** status, for the reason [getRaw] gives.
+/// [timeout] covers the whole exchange — sending the bytes and reading the
+/// answer — so an upload caller passes one sized for the file, not the
+/// JSON calls' default. Only a request that never completed is thrown, as
+/// [ApiFailureKind.network].
+Future<http.Response> postMultipartRaw({
+  required http.Client client,
+  required Uri url,
+  required String field,
+  required String fileName,
+  required List<int> bytes,
+  required Duration timeout,
+  Map<String, String> headers = const {},
+}) => _send(() async {
+  final request = http.MultipartRequest('POST', url)
+    ..headers.addAll({
+      HttpHeaders.acceptHeader: 'application/json',
+      ...headers,
+    })
+    ..files.add(http.MultipartFile.fromBytes(field, bytes, filename: fileName));
+  return http.Response.fromStream(await client.send(request));
+}, timeout);
+
 /// Runs [request], turning one that never completed into
 /// [ApiFailureKind.network] — so each transport above states the try/catch
 /// once rather than restating it.

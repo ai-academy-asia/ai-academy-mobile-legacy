@@ -9,6 +9,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/domain/material_download.dart';
+import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 
 /// A repository the tests drive by hand.
 ///
@@ -17,7 +18,8 @@ import 'package:aia_mobile/features/course_learning/domain/material_download.dar
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
 /// [getCourseLearning], [getLessons], [getExercise], [saveNote],
-/// [getMaterialDownload] and [submitAssignment] are tracked independently, same reasoning as `FakeCourseRepository`'s
+/// [getMaterialDownload], [submitAssignment] and [uploadFile] are tracked
+/// independently, same reasoning as `FakeCourseRepository`'s
 /// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
@@ -39,6 +41,9 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.submission,
     this.holdSubmit = false,
     this.submitFailure,
+    this.uploadedFile,
+    this.holdUpload = false,
+    this.uploadFailure,
   });
 
   // --- getCourseLearning ---------------------------------------------------
@@ -271,7 +276,61 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     return submission ??
         sampleSubmission(link: link, description: description);
   }
+
+  // --- uploadFile ----------------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleUploadedFile] named and sized
+  /// after what it was sent.
+  UploadedFile? uploadedFile;
+
+  /// When true, [uploadFile] blocks until [releaseUpload] is called.
+  bool holdUpload;
+
+  /// Thrown by [uploadFile] instead of returning, after [holdUpload]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? uploadFailure;
+
+  /// Every `(fileName, bytes)` [uploadFile] was called with, in order.
+  final List<(String, List<int>)> uploadCalls = [];
+
+  Completer<void>? _uploadGate;
+
+  void releaseUpload() {
+    final gate = _uploadGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<UploadedFile> uploadFile({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    uploadCalls.add((fileName, bytes));
+
+    if (holdUpload) {
+      _uploadGate = Completer<void>();
+      await _uploadGate!.future;
+    }
+
+    if (uploadFailure case final failure?) throw failure;
+
+    return uploadedFile ??
+        sampleUploadedFile(fileName: fileName, sizeBytes: bytes.length);
+  }
 }
+
+/// A §2.8 upload answer.
+UploadedFile sampleUploadedFile({
+  int id = 77,
+  String fileName = 'report.pdf',
+  String contentType = 'application/pdf',
+  int sizeBytes = 482133,
+}) => UploadedFile(
+  id: id,
+  fileName: fileName,
+  contentType: contentType,
+  sizeBytes: sizeBytes,
+);
 
 /// A §2.6 submission, as a submit answers — unreviewed unless a test passes
 /// [feedback].

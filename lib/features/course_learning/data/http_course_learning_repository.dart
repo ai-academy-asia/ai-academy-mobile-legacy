@@ -13,6 +13,7 @@ import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import '../domain/lesson.dart';
 import '../domain/material_download.dart';
+import '../domain/uploaded_file.dart';
 import 'course_module_visuals.dart';
 
 /// Reads one course's learning path — hero, progress, module list — one
@@ -24,6 +25,7 @@ import 'course_module_visuals.dart';
 ///     PUT https://api.ai-academy.asia/me/lessons/{lesson_id}/note
 ///     GET https://api.ai-academy.asia/me/materials/{material_id}/download
 ///     POST https://api.ai-academy.asia/me/assignments/{assignment_id}/submissions
+///     POST https://api.ai-academy.asia/me/files   (multipart/form-data)
 ///     Authorization: Bearer <access_token>
 ///
 /// The lessons shape is `course_learning_api_contract_v1.md` §2.2's, read in
@@ -67,6 +69,7 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     AuthSessionStore? sessionStore,
     DateTime Function()? clock,
     this.timeout = const Duration(seconds: 15),
+    this.uploadTimeout = const Duration(minutes: 3),
   }) : _client = client ?? http.Client(),
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance,
@@ -90,6 +93,13 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
   final DateTime Function() _clock;
 
   final Duration timeout;
+
+  /// How long [uploadFile] may take — its own budget, because [timeout] is
+  /// sized for small JSON answers and §2.8 accepts files up to 20 MB. That
+  /// is 160 Mbit: about 160 s over a slow ~1 Mbit/s mobile uplink, so three
+  /// minutes lets the largest accepted file through on such a link, with a
+  /// little margin, rather than failing it as a network error part-way.
+  final Duration uploadTimeout;
 
   @override
   Future<CourseLearningPath> getCourseLearning(String courseSlug) async {
@@ -169,6 +179,34 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
       {'link': link, 'description': description, 'file_id': null},
     );
     return _submissionFromBody(body, now: _clock());
+  }
+
+  /// §2.8 `POST /me/files` — one `multipart/form-data` part named `file`,
+  /// carrying [fileName] and [bytes]. `201` answers with the stored file;
+  /// see [_uploadedFileFrom].
+  ///
+  /// 400 `unsupported_file_type` and 413 `file_too_large` read as their own
+  /// [CourseLearningFailureKind]s, and 502/503 `storage_error` as
+  /// [CourseLearningFailureKind.server]; every other status maps as the
+  /// other endpoints' do. Sent under [uploadTimeout], not [timeout].
+  @override
+  Future<UploadedFile> uploadFile({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final body = await _authorizedRequest(
+      '/me/files',
+      (url, headers) => postMultipartRaw(
+        client: _client,
+        url: url,
+        field: 'file',
+        fileName: fileName,
+        bytes: bytes,
+        headers: headers,
+        timeout: uploadTimeout,
+      ),
+    );
+    return _uploadedFileFrom(body);
   }
 
   Future<String> _authorizedGet(String path) => _authorizedRequest(
@@ -254,9 +292,10 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
 /// shared with the other repositories' mappings, the way `ApiFailure`'s,
 /// `AuthFailure`'s and `EnrollmentFailure`'s are already kept apart.
 ///
-/// [body] is read for a 400 and a 409 only: §2.5's and §2.6's validation
-/// rules share the first, `lesson_locked` and `past_due` the second, and §0
-/// says the app branches on the body's `error` code.
+/// [body] is read for a 400, a 409 and a 413 only: §2.5's, §2.6's and §2.8's
+/// validation rules share the first, `lesson_locked` and `past_due` the
+/// second, §2.8 names the third's code — and §0 says the app branches on the
+/// body's `error` code.
 CourseLearningFailure? _failureForStatus(int statusCode, String body) {
   if (statusCode == 400) {
     final kind = switch (_errorCode(body)) {
@@ -265,9 +304,19 @@ CourseLearningFailure? _failureForStatus(int statusCode, String body) {
       'submission_empty' => CourseLearningFailureKind.submissionEmpty,
       'invalid_link' => CourseLearningFailureKind.invalidLink,
       'description_too_long' => CourseLearningFailureKind.descriptionTooLong,
+      'unsupported_file_type' => CourseLearningFailureKind.unsupportedFileType,
       _ => CourseLearningFailureKind.unexpected,
     };
     return CourseLearningFailure(kind, detail: 'HTTP 400');
+  }
+  if (statusCode == 413) {
+    // §2.8's one 413. Without its code it is any other 4xx: unexpected.
+    return CourseLearningFailure(
+      _errorCode(body) == 'file_too_large'
+          ? CourseLearningFailureKind.fileTooLarge
+          : CourseLearningFailureKind.unexpected,
+      detail: 'HTTP 413',
+    );
   }
   if (statusCode == 401) {
     return const CourseLearningFailure(
@@ -765,6 +814,42 @@ AssignmentMentorFeedback? _feedbackFrom(
       _requireTimestamp(feedback, 'feedback.created_at').toLocal(),
       now: now,
     ),
+  );
+}
+
+/// §2.8's upload answer — `{"id", "file_name", "content_type",
+/// "size_bytes"}` — read in full.
+UploadedFile _uploadedFileFrom(String body) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'malformed JSON: ${e.message}',
+    );
+  }
+
+  if (decoded is! Map<String, dynamic>) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'response was not a JSON object',
+    );
+  }
+
+  final sizeBytes = _requireInt(decoded, 'file.size_bytes');
+  if (sizeBytes < 0) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'file.size_bytes: expected 0 or more, got $sizeBytes',
+    );
+  }
+
+  return UploadedFile(
+    id: _requireInt(decoded, 'file.id'),
+    fileName: _requireString(decoded, 'file.file_name'),
+    contentType: _requireString(decoded, 'file.content_type'),
+    sizeBytes: sizeBytes,
   );
 }
 
