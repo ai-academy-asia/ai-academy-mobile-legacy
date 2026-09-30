@@ -1,19 +1,19 @@
 /// One lesson inside a module — the unit `CourseModule` breaks down into,
 /// per the Figma flow's Module → Lesson step.
 ///
-/// **Sample data only**, same status as `CourseModule` (see that class's own
-/// doc comment): no backend endpoint for lessons exists yet —
-/// `course_learning_api_requirements_v1.md` lists `GET
-/// /modules/{module_id}/lessons` under "requires backend confirmation," not
-/// under confirmed endpoints. Kept deliberately small — this app's own
-/// `CourseModule` fields it mirrors, plus [durationLabel] for the one thing a
-/// lesson row shows that a module row does not (each lesson is one video).
+/// Filled by `HttpCourseLearningRepository` from
+/// `GET /me/modules/{module_id}/lessons` (`course_learning_api_contract_v1.md`
+/// §2.2), or by the sample repository. Every field is the server's: [id],
+/// [order], [title], [type], [completed] and [locked] come straight off the
+/// wire, [moduleId] is the response's `module.id`, and [durationLabel] is
+/// `duration_seconds` formatted for the row.
 class Lesson {
   const Lesson({
     required this.id,
     required this.moduleId,
     required this.order,
     required this.title,
+    required this.type,
     required this.durationLabel,
     required this.completed,
     required this.locked,
@@ -30,15 +30,49 @@ class Lesson {
 
   final String title;
 
-  /// e.g. `"24:15"` — the same pre-formatted-string treatment
-  /// `CourseExercise.durationLabel` already uses, for the same reason: one
-  /// confirmed shape has not been shown yet, so there is nothing to split
-  /// into separate fields.
+  /// What kind of lesson this is — the contract's `type`.
+  final LessonType type;
+
+  /// e.g. `"24:15"` — `duration_seconds` as the row draws it, `M:SS` under an
+  /// hour and `H:MM:SS` from one up. Kept pre-formatted, the same treatment
+  /// `CourseExercise.durationLabel` and `CourseModule.scheduleLabel` get, so
+  /// `LessonListItem` stays exactly as it is.
   final String durationLabel;
 
+  /// Server-sent; never derived.
   final bool completed;
 
-  /// True when the lesson is not yet reachable. Same independence from
-  /// [completed] that `CourseModule.locked` documents.
+  /// True when the lesson is not yet reachable. Server-sent — the contract
+  /// has it follow the lesson's module, but the client reads it per lesson
+  /// rather than deriving it. Same independence from [completed] that
+  /// `CourseModule.locked` documents.
   final bool locked;
+}
+
+/// A lesson's `type`, per `course_learning_api_contract_v1.md` §2.2.
+///
+/// The contract lists three values; the client maps them to a badge and the
+/// server sends no badge text. [unknown] holds anything else — a value the
+/// backend adds later must not take the whole lesson list down with it.
+enum LessonType {
+  /// `"recording"` — a live-class recording.
+  recording,
+
+  /// `"video"`.
+  video,
+
+  /// `"reading"`.
+  reading,
+
+  /// Any value this build does not know.
+  unknown;
+
+  /// Reads the wire value. Anything but the three documented strings is
+  /// [unknown].
+  static LessonType fromApi(String value) => switch (value) {
+    'recording' => recording,
+    'video' => video,
+    'reading' => reading,
+    _ => unknown,
+  };
 }

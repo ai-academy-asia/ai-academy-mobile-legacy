@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
-import '../data/sample_course_learning_repository.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/lesson.dart';
 import 'course_exercise_detail_screen.dart';
@@ -19,10 +20,10 @@ import 'widgets/lesson_list_item.dart';
 /// from Module List to Exercise Detail, with no Lesson List step between
 /// them — `CourseModuleListScreen`'s unlocked module cards and "Continue
 /// learning" buttons both open `CourseExerciseDetailScreen` directly. This
-/// screen is kept, working and tested, for when a real per-lesson backend
-/// contract exists to justify a Lesson List step; nothing currently pushes
-/// it, but it stays reachable by constructing it directly (e.g. from a test,
-/// or a future dev-only route) without needing to be rebuilt from scratch.
+/// screen is integrated with `GET /me/modules/{module_id}/lessons` but
+/// deliberately still unreached: the navigation step that pushes it belongs
+/// to the lesson-detail flow's own issue. It is reachable by constructing it
+/// directly (e.g. from a test).
 ///
 /// No Figma screenshot exists for this screen (unlike Module List and
 /// Exercise Detail, both built strictly against provided references) — it
@@ -49,7 +50,9 @@ class LessonListScreen extends StatefulWidget {
   /// there is no separate "module detail" endpoint to ask for it again.
   final String moduleTitle;
 
-  /// Defaults to the sample data. Injected in tests.
+  /// Defaults to `HttpCourseLearningRepository` —
+  /// `GET /me/modules/{module_id}/lessons` against the signed-in student's
+  /// token. Injected in tests.
   final CourseLearningRepository? repository;
 
   @override
@@ -58,7 +61,7 @@ class LessonListScreen extends StatefulWidget {
 
 class _LessonListScreenState extends State<LessonListScreen> {
   late final CourseLearningRepository _repository =
-      widget.repository ?? SampleCourseLearningRepository();
+      widget.repository ?? HttpCourseLearningRepository();
   late final LessonListController _controller;
 
   @override
@@ -110,6 +113,9 @@ class _LessonListScreenState extends State<LessonListScreen> {
   }
 
   Widget _buildBody() {
+    if (_controller.errorMessage case final message?) {
+      return _ErrorView(message: message, onRetry: () => _controller.load());
+    }
     if (_controller.loading && _controller.lessons.isEmpty) {
       return const _LoadingView();
     }
@@ -134,6 +140,47 @@ class _LoadingView extends StatelessWidget {
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
           color: AppColors.blue,
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the lessons could not be loaded.
+///
+/// No design exists for this screen at all, so this is
+/// `CourseModuleListScreen._ErrorView` reproduced: the same centred message
+/// in `cardSupporting`, the same 16 of air, the same outlined `AppButton`
+/// retry. Kept as its own copy rather than extracted, the existing habit —
+/// `CourseCatalogScreen` and `CohortListScreen` keep theirs too.
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              style: AppTypography.cardSupporting,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: CourseLearningStrings.retry,
+              variant: AppButtonVariant.outlined,
+              onPressed: onRetry,
+            ),
+          ],
         ),
       ),
     );

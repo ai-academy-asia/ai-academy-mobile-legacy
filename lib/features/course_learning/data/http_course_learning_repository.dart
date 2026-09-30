@@ -15,14 +15,19 @@ import '../domain/lesson.dart';
 import 'course_module_visuals.dart';
 import 'sample_course_learning_repository.dart';
 
-/// Reads one course's learning path — hero, progress, module list — against
-/// the AI Academy API.
+/// Reads one course's learning path — hero, progress, module list — and one
+/// module's lessons against the AI Academy API.
 ///
 ///     GET https://api.ai-academy.asia/me/courses/{course_slug}/learning
+///     GET https://api.ai-academy.asia/me/modules/{module_id}/lessons
 ///     Authorization: Bearer <access_token>
 ///
-/// The response shape is the one `course_learning_api_contract_v1.md` §2.1
-/// documents, and **only** the fields with a slot in today's Figma-built UI
+/// The lessons shape is `course_learning_api_contract_v1.md` §2.2's, read in
+/// full — see [Lesson]. Exercise Detail ([getExercise]) is not integrated
+/// yet and still serves sample content.
+///
+/// The learning path's shape is the one §2.1 documents, and **only** the
+/// fields with a slot in today's Figma-built UI
 /// are read. What the contract also sends and this client deliberately
 /// ignores, because no screen draws it: `course.id`,
 /// `course.banner_image_url` (the design draws the bundled illustration, not
@@ -80,6 +85,38 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
 
   @override
   Future<CourseLearningPath> getCourseLearning(String courseSlug) async {
+    // Encoded, not interpolated raw: a slug is server-supplied data, and
+    // `Uri.resolve` would read a stray `/` or `?` in one as structure.
+    final body = await _authorizedGet(
+      '/me/courses/${Uri.encodeComponent(courseSlug)}/learning',
+    );
+    return _pathFromBody(body);
+  }
+
+  /// §2.2 `GET /me/modules/{module_id}/lessons` — one module's lessons, in
+  /// the order the server sends them. See [_lessonsFromBody].
+  ///
+  /// 404 (`module_not_found`) reads as [CourseLearningFailureKind.notFound]
+  /// and 403 (`not_enrolled`) as [CourseLearningFailureKind.notEnrolled],
+  /// through the same [_failureForStatus] the learning path uses.
+  @override
+  Future<List<Lesson>> getLessons(int moduleId) async {
+    final body = await _authorizedGet('/me/modules/$moduleId/lessons');
+    return _lessonsFromBody(body);
+  }
+
+  /// §2.3 onwards — **not integrated**. Exercise Detail stays on the sample
+  /// content until its own issue wires `GET /me/lessons/{id}`: the screen is
+  /// keyed by module, not lesson, and has no error state to show a failure
+  /// in. Injectable so a test can prove the delegation rather than infer it.
+  @override
+  Future<CourseExercise> getExercise(int moduleId) =>
+      _unintegrated.getExercise(moduleId);
+
+  /// The session guard, request and status mapping every endpoint here
+  /// shares. Returns the body of a 2xx; throws [CourseLearningFailure]
+  /// otherwise.
+  Future<String> _authorizedGet(String path) async {
     if (!_sessionStore.isSignedIn) {
       throw const CourseLearningFailure(
         CourseLearningFailureKind.sessionExpired,
@@ -97,11 +134,7 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     try {
       response = await getRaw(
         client: _client,
-        // Encoded, not interpolated raw: a slug is server-supplied data, and
-        // `Uri.resolve` would read a stray `/` or `?` in one as structure.
-        url: _baseUrl.resolve(
-          '/me/courses/${Uri.encodeComponent(courseSlug)}/learning',
-        ),
+        url: _baseUrl.resolve(path),
         headers: _sessionStore.authorizationHeader,
         timeout: timeout,
       );
@@ -123,26 +156,8 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
       throw failure;
     }
 
-    return _pathFromBody(response.body);
+    return response.body;
   }
-
-  /// §2.2 `GET /me/modules/{module_id}/lessons`.
-  ///
-  /// Documented by the contract but **not integrated**: this task's verified
-  /// endpoint is §2.1 alone, and the rule against calling an unverified
-  /// endpoint outranks the tidiness of having all three come from HTTP. Both
-  /// this and [getExercise] therefore keep serving the sample content, so
-  /// `LessonListScreen` and `CourseExerciseDetailScreen` — neither of which
-  /// has an error state to show a failure in — go on working exactly as they
-  /// did. Injectable so a test can prove the delegation rather than infer it.
-  @override
-  Future<List<Lesson>> getLessons(int moduleId) =>
-      _unintegrated.getLessons(moduleId);
-
-  /// §2.3 onwards. Unintegrated for the reason [getLessons] gives.
-  @override
-  Future<CourseExercise> getExercise(int moduleId) =>
-      _unintegrated.getExercise(moduleId);
 }
 
 /// 401 is the session being refused, not the request; 403 and 404 are the two
@@ -255,6 +270,91 @@ CourseModule _moduleFrom(Object? entry) {
     completed: _requireBool(entry, 'completed'),
     locked: _requireBool(entry, 'locked'),
   );
+}
+
+/// §2.2's body — `{"module": {...}, "lessons": [...]}` — into [Lesson]s.
+///
+/// Both halves of the envelope are required: `module` for the id every
+/// lesson is tagged with, `lessons` for the list. The list keeps the order
+/// the server sent it in; `order` is carried on each lesson but never sorted
+/// on, so the screen shows exactly the sequence the backend chose.
+List<Lesson> _lessonsFromBody(String body) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'malformed JSON: ${e.message}',
+    );
+  }
+
+  if (decoded is! Map<String, dynamic>) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'response was not a JSON object',
+    );
+  }
+
+  final moduleId = _requireInt(_requireObject(decoded, 'module'), 'module.id');
+
+  final lessons = decoded['lessons'];
+  if (lessons is! List) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'lessons: expected a list, got ${lessons.runtimeType}',
+    );
+  }
+
+  return [for (final entry in lessons) _lessonFrom(entry, moduleId)];
+}
+
+Lesson _lessonFrom(Object? entry, int moduleId) {
+  if (entry is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'a lesson entry was not a JSON object (got ${entry.runtimeType})',
+    );
+  }
+
+  return Lesson(
+    id: _requireInt(entry, 'lesson.id'),
+    moduleId: moduleId,
+    order: _requireInt(entry, 'lesson.order'),
+    title: _requireLocalized(entry, 'lesson.title'),
+    // Required, but tolerant of its value: an unrecognised string is
+    // `LessonType.unknown`, not a failure — see that enum.
+    type: LessonType.fromApi(_requireString(entry, 'lesson.type')),
+    durationLabel: _durationLabel(
+      _requireInt(entry, 'lesson.duration_seconds'),
+    ),
+    // Server-sent, never derived — `locked` included, although the contract
+    // says it follows the module's.
+    completed: _requireBool(entry, 'lesson.completed'),
+    locked: _requireBool(entry, 'lesson.locked'),
+  );
+}
+
+/// `duration_seconds` as the lesson row draws it: `M:SS` under an hour,
+/// `H:MM:SS` from one up — `0` is `"0:00"`, `1455` is `"24:15"`, `3725` is
+/// `"1:02:05"`. The contract sends integers and no pre-formatted label, so
+/// the client composes it. A negative duration is a server fault.
+String _durationLabel(int seconds) {
+  if (seconds < 0) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'lesson.duration_seconds: expected 0 or more, got $seconds',
+    );
+  }
+
+  String two(int value) => value.toString().padLeft(2, '0');
+
+  final hours = seconds ~/ 3600;
+  final minutes = (seconds % 3600) ~/ 60;
+  final secs = seconds % 60;
+  return hours > 0
+      ? '$hours:${two(minutes)}:${two(secs)}'
+      : '$minutes:${two(secs)}';
 }
 
 /// `{"date": "2026-08-06", "start_time": "09:00"}` into the card's own
