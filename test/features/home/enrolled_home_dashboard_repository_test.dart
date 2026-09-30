@@ -1,5 +1,7 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
+import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
+import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
@@ -8,19 +10,25 @@ import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/home/data/enrolled_home_dashboard_repository.dart';
+import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
+import 'package:aia_mobile/features/payments/domain/ledger_entry.dart';
+import 'package:aia_mobile/features/payments/domain/ledger_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../attendance/fake_attendance_repository.dart';
 import '../cohorts/fake_cohort_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
+import '../payments/fake_ledger_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 
 /// Exercises how [EnrolledHomeDashboardRepository] maps `GET /me/cohorts`,
-/// `GET /cohorts`, `GET /courses`, `GET /auth/me` and
-/// `GET /me/courses/{slug}/learning` — each already tested against the wire
-/// in its own suite — onto a [HomeDashboard]. Nothing here talks to the
+/// `GET /cohorts`, `GET /courses`, `GET /auth/me`,
+/// `GET /me/courses/{slug}/learning`, `GET /me/ledger` and
+/// `GET /me/attendance` — each already tested against the wire in its own
+/// suite — onto a [HomeDashboard]. Nothing here talks to the
 /// network: each dependency is a fake, so this is purely about the
 /// composition.
 void main() {
@@ -33,12 +41,22 @@ void main() {
         ),
       );
 
+  FakeLedgerRepository unavailableLedger() => FakeLedgerRepository(
+    failure: const LedgerFailure(LedgerFailureKind.network),
+  );
+
+  FakeAttendanceRepository unavailableAttendance() => FakeAttendanceRepository(
+    failure: const AttendanceFailure(AttendanceFailureKind.network),
+  );
+
   EnrolledHomeDashboardRepository repository({
     required List<EnrolledCohortSummary> enrolled,
     required List<Cohort> cohorts,
     List<Course> courses = const [],
     FakeCurrentUserRepository? currentUser,
     FakeCourseLearningRepository? courseLearning,
+    FakeLedgerRepository? ledger,
+    FakeAttendanceRepository? attendance,
     DateTime? now,
   }) => EnrolledHomeDashboardRepository(
     enrolledCohorts: FakeEnrolledCohortsRepository(enrolledCohorts: enrolled),
@@ -49,6 +67,8 @@ void main() {
     // the learning call existed still covers the `/me/cohorts` behaviour it
     // was written for.
     courseLearning: courseLearning ?? unavailableLearning(),
+    ledger: ledger ?? unavailableLedger(),
+    attendance: attendance ?? unavailableAttendance(),
     clock: () => now ?? DateTime(2026, 8, 10, 9),
   );
 
@@ -268,6 +288,221 @@ void main() {
 
       expect(dashboard.isEmpty, isTrue);
       expect(learning.calls, isEmpty);
+    });
+  });
+
+  group('statistics', () {
+    // The default clock: 2026-08-10, 09:00.
+    LedgerEntry owing({
+      num balance = 150000,
+      DateTime? nextDueDate,
+      int cohortId = 1,
+    }) => LedgerEntry(
+      enrollmentId: 2,
+      cohortId: cohortId,
+      balance: balance,
+      nextDueDate: nextDueDate,
+    );
+
+    Future<HomeDashboard> dashboardWith({
+      FakeLedgerRepository? ledger,
+      FakeAttendanceRepository? attendance,
+      List<Course> courses = const [],
+    }) => repository(
+      enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+      cohorts: [sampleCohort(id: 1)],
+      courses: courses,
+      ledger: ledger,
+      attendance: attendance,
+    ).getDashboard();
+
+    PaymentStatus? paymentOf(HomeDashboard dashboard) =>
+        dashboard.stats.whereType<PaymentStat>().firstOrNull?.payment;
+
+    AttendanceSummary? attendanceOf(HomeDashboard dashboard) =>
+        dashboard.stats.whereType<AttendanceStat>().firstOrNull?.attendance;
+
+    test('the verified adult test account: attendance only, as a row, '
+        'and progress 0% at 0 of 1', () async {
+      // /me/ledger: balance 0, installments [], next_due_date null.
+      // /me/attendance: sessions [], summary 0 / 0 / 0.
+      // /learning: one incomplete module, progress.percent 0.
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courseLearning: FakeCourseLearningRepository(
+          path: samplePath(percentComplete: 0, modules: [sampleModule(id: 1)]),
+        ),
+        ledger: FakeLedgerRepository(entries: [owing(balance: 0)]),
+        attendance: FakeAttendanceRepository(),
+      ).getDashboard();
+
+      expect(paymentOf(dashboard), isNull);
+      final attendance = attendanceOf(dashboard)!;
+      expect(attendance.attended, 0);
+      expect(attendance.total, 0);
+      expect(attendance.percent, 0);
+      expect(dashboard.stats.single.layout, HomeStatLayout.row);
+      expect(dashboard.contract, isNull);
+
+      final progress = dashboard.program!.progress!;
+      expect(progress.percent, 0);
+      expect(progress.completed, 0);
+      expect(progress.total, 1);
+    });
+
+    test('attendance is the server\'s summary, percent included', () async {
+      final dashboard = await dashboardWith(
+        attendance: FakeAttendanceRepository(
+          attendance: const CourseAttendance(
+            attended: 1,
+            totalPast: 20,
+            percent: 10,
+          ),
+        ),
+      );
+
+      final attendance = attendanceOf(dashboard)!;
+      expect(attendance.attended, 1);
+      expect(attendance.total, 20);
+      expect(attendance.percent, 10);
+    });
+
+    test('attendance is asked for the resolved catalog slug', () async {
+      final attendance = FakeAttendanceRepository();
+      await dashboardWith(courses: [sampleCourse()], attendance: attendance);
+
+      expect(attendance.calls, ['summer-bootcamp']);
+    });
+
+    test('a balance with a future due date counts the days down', () async {
+      final dashboard = await dashboardWith(
+        ledger: FakeLedgerRepository(
+          entries: [owing(nextDueDate: DateTime(2026, 8, 13))],
+        ),
+      );
+
+      final payment = paymentOf(dashboard)!;
+      expect(payment.isOverdue, isFalse);
+      expect(payment.daysUntilDue, 3);
+    });
+
+    test('a balance due today is due in 0 days, not overdue', () async {
+      final dashboard = await dashboardWith(
+        ledger: FakeLedgerRepository(
+          entries: [owing(nextDueDate: DateTime(2026, 8, 10))],
+        ),
+      );
+
+      expect(paymentOf(dashboard)!.daysUntilDue, 0);
+    });
+
+    test('a balance past its due date is overdue', () async {
+      final dashboard = await dashboardWith(
+        ledger: FakeLedgerRepository(
+          entries: [owing(nextDueDate: DateTime(2026, 8, 9))],
+        ),
+      );
+
+      expect(paymentOf(dashboard)!.isOverdue, isTrue);
+    });
+
+    test('nothing owed draws no payment card, whatever the date', () async {
+      final dashboard = await dashboardWith(
+        ledger: FakeLedgerRepository(
+          entries: [owing(balance: 0, nextDueDate: DateTime(2026, 8, 9))],
+        ),
+      );
+
+      expect(paymentOf(dashboard), isNull);
+    });
+
+    test('a balance with no due date draws no payment card', () async {
+      final dashboard = await dashboardWith(
+        ledger: FakeLedgerRepository(entries: [owing()]),
+      );
+
+      expect(paymentOf(dashboard), isNull);
+    });
+
+    test('reads only the entry for the cohort on the card', () async {
+      final dashboard = await dashboardWith(
+        ledger: FakeLedgerRepository(
+          entries: [owing(cohortId: 99, nextDueDate: DateTime(2026, 8, 9))],
+        ),
+      );
+
+      expect(paymentOf(dashboard), isNull);
+    });
+
+    test(
+      'both cards: payment then attendance, side by side as tiles',
+      () async {
+        final dashboard = await dashboardWith(
+          ledger: FakeLedgerRepository(
+            entries: [owing(nextDueDate: DateTime(2026, 8, 13))],
+          ),
+          attendance: FakeAttendanceRepository(),
+        );
+
+        expect(dashboard.stats, hasLength(2));
+        expect(dashboard.stats[0], isA<PaymentStat>());
+        expect(dashboard.stats[1], isA<AttendanceStat>());
+        expect(
+          dashboard.stats.map((stat) => stat.layout),
+          everyElement(HomeStatLayout.tile),
+        );
+      },
+    );
+
+    test('a failed ledger leaves only the attendance card, as a row', () async {
+      final dashboard = await dashboardWith(
+        ledger: unavailableLedger(),
+        attendance: FakeAttendanceRepository(),
+      );
+
+      expect(paymentOf(dashboard), isNull);
+      expect(dashboard.stats.single, isA<AttendanceStat>());
+      expect(dashboard.stats.single.layout, HomeStatLayout.row);
+      expect(dashboard.program, isNotNull);
+    });
+
+    test(
+      'a failed attendance leaves only the payment card, as a row',
+      () async {
+        final dashboard = await dashboardWith(
+          ledger: FakeLedgerRepository(
+            entries: [owing(nextDueDate: DateTime(2026, 8, 13))],
+          ),
+          attendance: unavailableAttendance(),
+        );
+
+        expect(dashboard.stats.single, isA<PaymentStat>());
+        expect(dashboard.stats.single.layout, HomeStatLayout.row);
+      },
+    );
+
+    test('both failing leaves the rest of the dashboard as it was', () async {
+      final dashboard = await dashboardWith();
+
+      expect(dashboard.stats, isEmpty);
+      expect(dashboard.program!.cohortName, sampleCohort(id: 1).name);
+      expect(dashboard.program!.nextLesson, isNotNull);
+    });
+
+    test('neither is requested when the student is enrolled nowhere', () async {
+      final ledger = FakeLedgerRepository();
+      final attendance = FakeAttendanceRepository();
+      final dashboard = await repository(
+        enrolled: const [],
+        cohorts: [sampleCohort(id: 1)],
+        ledger: ledger,
+        attendance: attendance,
+      ).getDashboard();
+
+      expect(dashboard.isEmpty, isTrue);
+      expect(ledger.callCount, 0);
+      expect(attendance.calls, isEmpty);
     });
   });
 

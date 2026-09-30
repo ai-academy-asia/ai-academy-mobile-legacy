@@ -1,4 +1,6 @@
 import '../../../core/api/api_failure.dart';
+import '../../attendance/data/http_attendance_repository.dart';
+import '../../attendance/domain/attendance_repository.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../cohorts/data/http_cohort_repository.dart';
@@ -13,6 +15,8 @@ import '../../courses/domain/course_repository.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrollment_failure.dart';
+import '../../payments/data/http_ledger_repository.dart';
+import '../../payments/domain/ledger_repository.dart';
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import '../domain/home_failure.dart';
@@ -45,26 +49,32 @@ import '../domain/lesson_schedule.dart';
 ///     "Modules X of Y" count taken from the server's own per-module
 ///     `completed` flags (contract §2.1). Best-effort, like [_uiMode]: a
 ///     failure falls back to the `/me/cohorts` `progress_pct` above.
+///   * `GET /me/ledger` — through [LedgerRepository], for the payment card.
+///     See [_paymentStat] for exactly when it draws and what it says.
+///   * `GET /me/attendance?course={slug}` — through [AttendanceRepository],
+///     for the attendance card: `summary.attended` of `summary.total_past`,
+///     at the server's `summary.percent`.
+///
+/// The last three are best-effort, like [_uiMode]: each is decoration on a
+/// dashboard that is still worth showing without it, so a failure leaves its
+/// own section off rather than failing the whole screen. They are
+/// independent, so they go out together.
+///
+/// With both statistic cards present they are drawn as the reference's
+/// side-by-side tiles; a card on its own is drawn as a full-width row,
+/// never as a lone half-width tile.
 ///
 /// ## What is deliberately missing
 ///
-/// The reference also shows an attendance tally, a payment state and an
-/// e-contract warning. None is filled here, so each section is left null
-/// rather than drawn with the reference's sample numbers:
-///
-///   * attendance — `mobile_api_v1_1.md` lists `GET /me/attendance`, but
-///     documents no response shape to map.
-///   * payment — likewise `GET /me/ledger` and `GET /me/invoices`: listed,
-///     no documented response shape.
-///   * contract — no endpoint. `Course.hasContractTemplate` says a template
-///     exists, not whether this student signed.
+/// The e-contract warning. **No endpoint reports whether this student signed
+/// a contract** — `Course.hasContractTemplate` and the course-level
+/// `/courses/{id}/templates/contract` say a template exists, nothing more —
+/// so [HomeDashboard.contract] stays null and the banner does not draw. It is
+/// set here the day a source exists; nothing above this class changes.
 ///
 /// The module count is missing only when the learning call fails: the
 /// `/me/cohorts` fallback names a percentage, not a count, so
 /// [ModuleProgress.completed]/[.total] stay null then.
-///
-/// When one lands, it is set here and the section it feeds starts drawing;
-/// nothing above this class changes.
 class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   EnrolledHomeDashboardRepository({
     EnrolledCohortsRepository? enrolledCohorts,
@@ -72,12 +82,16 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     CurrentUserRepository? currentUser,
     CourseRepository? courses,
     CourseLearningRepository? courseLearning,
+    LedgerRepository? ledger,
+    AttendanceRepository? attendance,
     DateTime Function()? clock,
   }) : _enrolledCohorts = enrolledCohorts ?? HttpEnrolledCohortsRepository(),
        _cohorts = cohorts ?? HttpCohortRepository(),
        _currentUser = currentUser ?? HttpCurrentUserRepository(),
        _courses = courses ?? HttpCourseRepository(),
        _courseLearning = courseLearning ?? HttpCourseLearningRepository(),
+       _ledger = ledger ?? HttpLedgerRepository(),
+       _attendance = attendance ?? HttpAttendanceRepository(),
        _clock = clock ?? DateTime.now;
 
   final EnrolledCohortsRepository _enrolledCohorts;
@@ -85,6 +99,8 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   final CurrentUserRepository _currentUser;
   final CourseRepository _courses;
   final CourseLearningRepository _courseLearning;
+  final LedgerRepository _ledger;
+  final AttendanceRepository _attendance;
   final DateTime Function() _clock;
 
   @override
@@ -120,6 +136,12 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         resolveCohortCourse(await _courseCatalog(), cohort.course)?.slug ??
         cohort.course.slug;
 
+    // Independent of one another, and each handles its own failure.
+    final uiMode = _uiMode();
+    final learningProgress = _learningProgress(courseSlug);
+    final payment = _paymentStat(cohort.id);
+    final attendance = _attendanceSummary(courseSlug);
+
     return HomeDashboard(
       program: EnrolledProgram(
         cohortId: cohort.id,
@@ -129,12 +151,12 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
             cohort.name,
         courseSlug: courseSlug,
         status: cohort.status,
-        uiMode: await _uiMode(),
+        uiMode: await uiMode,
         // The learning path's own figures when that call answers; otherwise
         // the `/me/cohorts` percentage alone, and null exactly when that
         // entry carried no `progress_pct` either. See the class doc.
         progress:
-            await _learningProgress(courseSlug) ??
+            await learningProgress ??
             (progressPct == null
                 ? null
                 : ModuleProgress(
@@ -142,7 +164,23 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
                   )),
         nextLesson: nextLessonFor(cohort: cohort, now: _clock()),
       ),
+      stats: _stats(await payment, await attendance),
     );
+  }
+
+  /// Payment first, then attendance — the reference's order. Two cards sit
+  /// side by side as tiles; one alone takes the full width as a row.
+  static List<HomeStat> _stats(
+    PaymentStatus? payment,
+    AttendanceSummary? attendance,
+  ) {
+    final layout = payment != null && attendance != null
+        ? HomeStatLayout.tile
+        : HomeStatLayout.row;
+    return [
+      if (payment != null) PaymentStat(payment, layout: layout),
+      if (attendance != null) AttendanceStat(attendance, layout: layout),
+    ];
   }
 
   /// The cohort the dashboard is about.
@@ -199,6 +237,60 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
             ? null
             : modules.where((module) => module.completed).length,
         total: modules.isEmpty ? null : modules.length,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// What the student owes next on [cohortId]'s enrollment, from
+  /// `GET /me/ledger` — or null, which leaves the payment card off.
+  ///
+  /// The card has two states, and the verified ledger fields support both
+  /// without computing any money:
+  ///
+  ///   * **overdue** — `balance` is above zero and `next_due_date` has
+  ///     passed.
+  ///   * **due in N days** — `balance` is above zero and `next_due_date` is
+  ///     today or later; N is the calendar days until it.
+  ///
+  /// Null when there is no entry for this cohort, when `balance` is zero
+  /// (nothing is owed — the card has no "paid" state to show), when
+  /// `next_due_date` is null (no day to count to), or when the call fails.
+  Future<PaymentStatus?> _paymentStat(int cohortId) async {
+    try {
+      final entries = await _ledger.getLedger();
+      final entry = entries.where((e) => e.cohortId == cohortId).firstOrNull;
+      final due = entry?.nextDueDate;
+      if (entry == null || entry.balance <= 0 || due == null) return null;
+
+      final now = _clock();
+      // Whole calendar days, measured in UTC so a daylight-saving change
+      // cannot make a day 23 or 25 hours long.
+      final days = DateTime.utc(
+        due.year,
+        due.month,
+        due.day,
+      ).difference(DateTime.utc(now.year, now.month, now.day)).inDays;
+      return days < 0
+          ? const PaymentStatus.overdue()
+          : PaymentStatus.dueIn(days);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The student's attendance in [courseSlug], from
+  /// `GET /me/attendance?course=` — or null when that call fails, which
+  /// leaves the attendance card off. Every figure is the server's `summary`;
+  /// none is worked out here.
+  Future<AttendanceSummary?> _attendanceSummary(String courseSlug) async {
+    try {
+      final attendance = await _attendance.getCourseAttendance(courseSlug);
+      return AttendanceSummary(
+        attended: attendance.attended,
+        total: attendance.totalPast,
+        percent: attendance.percent,
       );
     } catch (_) {
       return null;

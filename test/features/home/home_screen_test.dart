@@ -454,6 +454,41 @@ void main() {
       expect(find.byType(PaymentCard), findsNothing);
       expect(find.byType(AttendanceCard), findsNothing);
     });
+
+    testWidgets('renders the verified adult test account\'s all-zero data', (
+      tester,
+    ) async {
+      // What `EnrolledHomeDashboardRepository` builds from that account's
+      // real responses: one incomplete module at 0%, nothing owed (so no
+      // payment card), and no sessions held yet.
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(
+            program: sampleProgram(
+              progress: const ModuleProgress(
+                percent: 0,
+                completed: 0,
+                total: 1,
+              ),
+            ),
+            stats: const [
+              AttendanceStat(
+                AttendanceSummary(attended: 0, total: 0, percent: 0),
+                layout: HomeStatLayout.row,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(HomeStrings.modules(0, 1)), findsOneWidget);
+      expect(find.text(HomeStrings.percentComplete(0)), findsOneWidget);
+      expect(find.text(HomeStrings.attendanceValue(0, 0, 0)), findsOneWidget);
+      expect(find.byType(PaymentCard), findsNothing);
+      expect(find.byType(ContractBanner), findsNothing);
+    });
   });
 
   group('states', () {
