@@ -11,10 +11,11 @@ import 'lesson.dart';
 /// [extraSections], [completed], the file [materials] and the [note] — which
 /// is also saved back, through `CourseLearningRepository.saveNote`. Each
 /// file material can be downloaded, through `getMaterialDownload`. The
-/// assignment cannot be submitted — see [simulatesWrites]. The quiz
-/// (§2.7 sends a summary, not questions) and the assignment workflow (§2.6)
-/// are not integrated, so a backend lesson carries no [quiz], no
-/// [assignmentFeedback] and no [assignmentAttachment].
+/// assignment cannot be submitted — see [simulatesWrites] — but its state is
+/// read, into [assignment]. The quiz (§2.7 sends a summary, not questions)
+/// and the rest of the assignment workflow (§2.6) are not integrated, so a
+/// backend lesson carries no [quiz], no [assignmentFeedback] and no
+/// [assignmentAttachment].
 class CourseExercise {
   const CourseExercise({
     required this.lessonId,
@@ -33,6 +34,7 @@ class CourseExercise {
     this.note,
     this.assignmentFeedback = const [],
     this.assignmentAttachment,
+    this.assignment,
     this.quiz,
   });
 
@@ -114,6 +116,12 @@ class CourseExercise {
   /// no attachment, and the tab shows only its fields.
   final CourseExerciseMaterial? assignmentAttachment;
 
+  /// The lesson's assignment as the backend holds it — §2.6's `assignment`,
+  /// read-only. Null when the lesson has none, and always null for the
+  /// sample exercise, whose Assignment tab runs on [assignmentFeedback] and
+  /// [assignmentAttachment] instead.
+  final CourseAssignment? assignment;
+
   /// This exercise's quiz, shown on the Quiz tab. Null means there is no
   /// quiz for this exercise — `QuizTab` then renders nothing.
   final CourseQuiz? quiz;
@@ -137,6 +145,7 @@ class CourseExercise {
     note: note,
     assignmentFeedback: assignmentFeedback,
     assignmentAttachment: assignmentAttachment,
+    assignment: assignment,
     quiz: quiz,
   );
 }
@@ -200,8 +209,9 @@ class CourseExerciseNote {
   final String timestampLabel;
 }
 
-/// One canned mentor response to an Assignment submission — sample data
-/// only, same status as every other class in this file. Shown under the
+/// One mentor response to an Assignment submission — a canned entry in the
+/// sample's [CourseExercise.assignmentFeedback], or a backend submission's
+/// real review ([AssignmentSubmission.feedback]). Shown under the
 /// Assignment tab's "Assignment submitted successfully" state — see
 /// `AssignmentTab`'s own doc comment.
 class AssignmentMentorFeedback {
@@ -226,4 +236,72 @@ class AssignmentMentorFeedback {
 
   /// Pre-formatted, same reasoning as `CourseExerciseNote.timestampLabel`.
   final String timestampLabel;
+}
+
+/// A lesson's assignment, as §2.6 sends it inside `GET /me/lessons/{id}`.
+///
+/// Only what the existing Assignment tab has a place for is modelled: which
+/// assignment it is and the student's latest [submission]. `title`,
+/// `instructions`, `due_date`, `max_score` and `attachment` are real fields
+/// the design does not draw yet, so they are not read.
+class CourseAssignment {
+  const CourseAssignment({required this.id, this.submission});
+
+  final int id;
+
+  /// The latest submission — §2.6 always shows the newest version. Null when
+  /// the student has not submitted: the tab's unsubmitted state.
+  final AssignmentSubmission? submission;
+}
+
+/// The student's latest submission to a [CourseAssignment]. Server-sent in
+/// full; nothing here is derived.
+class AssignmentSubmission {
+  const AssignmentSubmission({
+    required this.id,
+    required this.version,
+    required this.status,
+    required this.submittedAt,
+    this.link,
+    this.description,
+    this.feedback,
+  });
+
+  final int id;
+
+  /// 1 for the first submission, +1 on every resubmission.
+  final int version;
+
+  final AssignmentSubmissionStatus status;
+
+  final DateTime submittedAt;
+
+  /// Either may be null — §2.6 requires a link *or* a file, and makes the
+  /// description optional.
+  final String? link;
+  final String? description;
+
+  /// The mentor's review of this submission. Null until it is reviewed —
+  /// the Mentor Feedback card's "No feedback yet" state.
+  final AssignmentMentorFeedback? feedback;
+}
+
+/// A submission's `status`, per §2.6. [unknown] holds anything else, the
+/// way `LessonType.unknown` does: a value the backend adds later must not
+/// take the whole lesson down with it.
+enum AssignmentSubmissionStatus {
+  /// `"submitted"` — waiting for the mentor.
+  submitted,
+
+  /// `"reviewed"` — feedback and score present.
+  reviewed,
+
+  /// Any value this build does not know.
+  unknown;
+
+  static AssignmentSubmissionStatus fromApi(String value) => switch (value) {
+    'submitted' => submitted,
+    'reviewed' => reviewed,
+    _ => unknown,
+  };
 }

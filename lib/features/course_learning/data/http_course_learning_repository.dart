@@ -432,14 +432,21 @@ const String _recordingBadgeLabel = 'Live Classroom Recording';
 /// `NoteTab` use.
 const String _noteAuthorLabel = 'Me';
 
+/// The label the Mentor Feedback card draws under a `teacher` mentor — the
+/// sample's own "Lead Mentor". §2.6 sends the role as an enum and leaves the
+/// wording to the client; any other role has no copy, so its label is left
+/// empty rather than invented.
+const String _teacherRoleLabel = 'Lead Mentor';
+
 /// §2.3's body into a [CourseExercise].
 ///
 /// Read: `id`, `module.id`/`module.order`, `title`, `type`,
 /// `duration_seconds`, `video`, `summary`, `sections`, `completed`,
-/// `materials` and `note`. Not read, because nothing here is integrated with
-/// them: `order` (the screen shows no lesson number), `module.title`, the
-/// video's `embed_url` (no player yet — only whether a video exists),
-/// `assignment` and `quiz`. Every list keeps the server's order.
+/// `materials`, `note` and `assignment` (see [_assignmentFrom]). Not read,
+/// because nothing here is integrated with them: `order` (the screen shows
+/// no lesson number), `module.title`, the video's `embed_url` (no player yet
+/// — only whether a video exists) and `quiz`. Every list keeps the server's
+/// order.
 CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
   final Object? decoded;
   try {
@@ -492,6 +499,7 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
     // `saveNote`.)
     simulatesWrites: false,
     note: _noteFrom(decoded['note'], now: now),
+    assignment: _assignmentFrom(decoded['assignment'], now: now),
   );
 }
 
@@ -607,6 +615,94 @@ CourseExerciseNote _savedNoteFrom(String body, {required DateTime now}) {
     );
   }
   return _noteFrom(decoded, now: now)!;
+}
+
+/// §2.6's `assignment`, or null — the lesson has none.
+///
+/// Read: `id` and `submission`. Not read, because the Assignment tab has no
+/// place for them yet: `title`, `instructions`, `due_date`, `max_score` and
+/// `attachment`.
+CourseAssignment? _assignmentFrom(Object? assignment, {required DateTime now}) {
+  if (assignment == null) return null;
+  if (assignment is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail:
+          'assignment: expected an object or null, got '
+          '${assignment.runtimeType}',
+    );
+  }
+  return CourseAssignment(
+    id: _requireInt(assignment, 'assignment.id'),
+    submission: _submissionFrom(assignment['submission'], now: now),
+  );
+}
+
+/// §2.6's latest `submission`, or null — nothing submitted yet.
+///
+/// Read: `id`, `version`, `status`, `link`, `description`, `submitted_at`
+/// and `feedback`. Not read: `file` (no upload yet) and `score` (the tab
+/// draws none).
+AssignmentSubmission? _submissionFrom(
+  Object? submission, {
+  required DateTime now,
+}) {
+  if (submission == null) return null;
+  if (submission is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail:
+          'assignment.submission: expected an object or null, got '
+          '${submission.runtimeType}',
+    );
+  }
+  return AssignmentSubmission(
+    id: _requireInt(submission, 'assignment.submission.id'),
+    version: _requireInt(submission, 'assignment.submission.version'),
+    // Required, but tolerant of its value — see
+    // `AssignmentSubmissionStatus.unknown`.
+    status: AssignmentSubmissionStatus.fromApi(
+      _requireString(submission, 'assignment.submission.status'),
+    ),
+    submittedAt: _requireTimestamp(
+      submission,
+      'assignment.submission.submitted_at',
+    ),
+    link: _optionalString(submission, 'assignment.submission.link'),
+    description: _optionalString(
+      submission,
+      'assignment.submission.description',
+    ),
+    feedback: _feedbackFrom(submission['feedback'], now: now),
+  );
+}
+
+/// §2.6's `feedback`, or null — not reviewed yet.
+AssignmentMentorFeedback? _feedbackFrom(
+  Object? feedback, {
+  required DateTime now,
+}) {
+  if (feedback == null) return null;
+  if (feedback is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail:
+          'assignment.submission.feedback: expected an object or null, got '
+          '${feedback.runtimeType}',
+    );
+  }
+  final mentor = _requireObject(feedback, 'mentor');
+  final role = _requireString(mentor, 'feedback.mentor.role');
+  return AssignmentMentorFeedback(
+    mentorInitials: _requireString(mentor, 'feedback.mentor.initials'),
+    mentorName: _requireString(mentor, 'feedback.mentor.name'),
+    mentorRole: role == 'teacher' ? _teacherRoleLabel : '',
+    message: _requireString(feedback, 'feedback.message'),
+    timestampLabel: _timestampLabel(
+      _requireTimestamp(feedback, 'feedback.created_at').toLocal(),
+      now: now,
+    ),
+  );
 }
 
 /// §2.4's download answer — `{"url", "expires_at", "file_name",
@@ -928,6 +1024,33 @@ List<Object?> _requireList(Map<String, dynamic> json, String label) {
     );
   }
   return value;
+}
+
+/// An ISO-8601 timestamp field — §0's "with offset" — that must be present.
+DateTime _requireTimestamp(Map<String, dynamic> json, String label) {
+  final raw = _requireString(json, label);
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: '$label: not a timestamp ("$raw")',
+    );
+  }
+  return parsed;
+}
+
+/// A string field that may be `null` or absent. Present, it must be a
+/// string; an empty one reads as null, the way an absent one does.
+String? _optionalString(Map<String, dynamic> json, String label) {
+  final value = json[label.split('.').last];
+  if (value == null) return null;
+  if (value is! String) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: '$label: expected a string or null, got ${value.runtimeType}',
+    );
+  }
+  return value.isEmpty ? null : value;
 }
 
 String? _optionalLocalized(Map<String, dynamic> json, String label) {

@@ -407,6 +407,7 @@ CourseExercise sampleExercise({
   Object? note = _unset,
   List<AssignmentMentorFeedback>? assignmentFeedback,
   CourseExerciseMaterial? assignmentAttachment,
+  CourseAssignment? assignment,
   CourseQuiz? quiz,
   bool hasVideo = true,
   bool completed = false,
@@ -435,6 +436,7 @@ CourseExercise sampleExercise({
   // — so only tests that explicitly want one pass `sampleAttachment()`/
   // `sampleQuiz()` in.
   assignmentAttachment: assignmentAttachment,
+  assignment: assignment,
   quiz: quiz,
   completed: completed,
   simulatesWrites: simulatesWrites,
