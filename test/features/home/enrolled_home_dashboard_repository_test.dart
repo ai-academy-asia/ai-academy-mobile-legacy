@@ -3,6 +3,7 @@ import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
@@ -11,27 +12,43 @@ import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../cohorts/fake_cohort_repository.dart';
+import '../course_learning/fake_course_learning_repository.dart';
 import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 
 /// Exercises how [EnrolledHomeDashboardRepository] maps `GET /me/cohorts`,
-/// `GET /cohorts`, `GET /courses` and `GET /auth/me` — all four already
-/// confirmed and already tested against the wire in their own suites — onto
-/// a [HomeDashboard]. Nothing here talks to the network: each dependency is
-/// a fake, so this is purely about the composition.
+/// `GET /cohorts`, `GET /courses`, `GET /auth/me` and
+/// `GET /me/courses/{slug}/learning` — each already tested against the wire
+/// in its own suite — onto a [HomeDashboard]. Nothing here talks to the
+/// network: each dependency is a fake, so this is purely about the
+/// composition.
 void main() {
+  /// Learning path unavailable — the student is not enrolled in the course,
+  /// as far as `GET /me/courses/{slug}/learning` can tell.
+  FakeCourseLearningRepository unavailableLearning() =>
+      FakeCourseLearningRepository(
+        failure: const CourseLearningFailure(
+          CourseLearningFailureKind.notEnrolled,
+        ),
+      );
+
   EnrolledHomeDashboardRepository repository({
     required List<EnrolledCohortSummary> enrolled,
     required List<Cohort> cohorts,
     List<Course> courses = const [],
     FakeCurrentUserRepository? currentUser,
+    FakeCourseLearningRepository? courseLearning,
     DateTime? now,
   }) => EnrolledHomeDashboardRepository(
     enrolledCohorts: FakeEnrolledCohortsRepository(enrolledCohorts: enrolled),
     cohorts: FakeCohortRepository(cohorts: cohorts),
     courses: FakeCourseRepository(courses: courses),
     currentUser: currentUser ?? FakeCurrentUserRepository(),
+    // Unavailable unless a test says otherwise, so every test written before
+    // the learning call existed still covers the `/me/cohorts` behaviour it
+    // was written for.
+    courseLearning: courseLearning ?? unavailableLearning(),
     clock: () => now ?? DateTime(2026, 8, 10, 9),
   );
 
@@ -122,6 +139,135 @@ void main() {
       ).getDashboard();
 
       expect(dashboard.program!.progress, isNull);
+    });
+  });
+
+  group('learning progress', () {
+    test('fills percent and the module count from the learning path', () async {
+      // samplePath: 30%, modules 1–2 completed, 3–5 not.
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courseLearning: FakeCourseLearningRepository(path: samplePath()),
+      ).getDashboard();
+
+      final progress = dashboard.program!.progress!;
+      expect(progress.percent, 30);
+      expect(progress.completed, 2);
+      expect(progress.total, 5);
+    });
+
+    test('counts the server\'s completed flags, not locked ones', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courseLearning: FakeCourseLearningRepository(
+          path: samplePath(
+            percentComplete: 55,
+            modules: [
+              sampleModule(id: 1, completed: true),
+              sampleModule(id: 2),
+              sampleModule(id: 3, completed: true),
+              sampleModule(id: 4, locked: true),
+            ],
+          ),
+        ),
+      ).getDashboard();
+
+      final progress = dashboard.program!.progress!;
+      // The server's lesson-based percent, never re-derived from 2 of 4.
+      expect(progress.percent, 55);
+      expect(progress.completed, 2);
+      expect(progress.total, 4);
+    });
+
+    test('wins over the /me/cohorts progress_pct', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1, progressPct: 80)],
+        cohorts: [sampleCohort(id: 1)],
+        courseLearning: FakeCourseLearningRepository(path: samplePath()),
+      ).getDashboard();
+
+      expect(dashboard.program!.progress!.percent, 30);
+    });
+
+    test('is asked for the resolved catalog slug', () async {
+      final learning = FakeCourseLearningRepository(path: samplePath());
+      await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courses: [sampleCourse()],
+        courseLearning: learning,
+      ).getDashboard();
+
+      expect(learning.calls, ['summer-bootcamp']);
+    });
+
+    test('a path with no modules gives the percent without a count', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courseLearning: FakeCourseLearningRepository(
+          path: samplePath(percentComplete: 0, modules: const []),
+        ),
+      ).getDashboard();
+
+      final progress = dashboard.program!.progress!;
+      expect(progress.percent, 0);
+      expect(progress.completed, isNull);
+      expect(progress.total, isNull);
+    });
+
+    test('a failure falls back to the /me/cohorts progress_pct', () async {
+      for (final kind in CourseLearningFailureKind.values) {
+        final dashboard = await repository(
+          enrolled: const [EnrolledCohortSummary(cohortId: 1, progressPct: 40)],
+          cohorts: [sampleCohort(id: 1)],
+          courseLearning: FakeCourseLearningRepository(
+            failure: CourseLearningFailure(kind),
+          ),
+        ).getDashboard();
+
+        final progress = dashboard.program!.progress!;
+        expect(progress.percent, 40, reason: kind.name);
+        expect(progress.completed, isNull, reason: kind.name);
+        expect(progress.total, isNull, reason: kind.name);
+      }
+    });
+
+    test('a failure leaves the rest of the dashboard as it was', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        courses: [sampleCourse()],
+        currentUser: accountWithUiMode('adult'),
+        courseLearning: FakeCourseLearningRepository(
+          failure: const CourseLearningFailure(
+            CourseLearningFailureKind.network,
+          ),
+        ),
+      ).getDashboard();
+
+      final program = dashboard.program!;
+      expect(program.progress, isNull);
+      expect(program.cohortName, sampleCohort(id: 1).name);
+      expect(program.courseSlug, 'summer-bootcamp');
+      expect(program.uiMode, 'adult');
+      expect(program.nextLesson, isNotNull);
+      expect(dashboard.contract, isNull);
+      expect(dashboard.stats, isEmpty);
+    });
+
+    test('is not requested when the student is enrolled nowhere', () async {
+      final learning = FakeCourseLearningRepository(path: samplePath());
+      final dashboard = await repository(
+        enrolled: const [],
+        cohorts: [sampleCohort(id: 1)],
+        courseLearning: learning,
+      ).getDashboard();
+
+      expect(dashboard.isEmpty, isTrue);
+      expect(learning.calls, isEmpty);
     });
   });
 
