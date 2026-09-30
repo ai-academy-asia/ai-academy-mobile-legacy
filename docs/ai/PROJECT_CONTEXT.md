@@ -59,6 +59,7 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 
 - **Home dashboard sections** — module count, attendance tally, payment state and e-contract warning are left null because no endpoint reports them (`enrolled_home_dashboard_repository.dart` states this explicitly).
 - **Lesson video playback** — `ExerciseVideoHeader` renders a flat placeholder. There is no video URL field on any model and no player dependency.
+- **Student file submission** — the picker, the upload (`POST /me/files`) and the `file_id` submission are built and tested, but **no backend lesson shows the file form**: nothing confirmed says whether an assignment takes a link or a file, so every one keeps the link form. `BACKEND GAP` — see `_formFor` in `course_exercise_detail_screen.dart`.
 - **Certificate** — the certification section renders two bundled PNGs. There is no per-student certificate status, availability or download.
 - **Lesson List screen** — built and tested, but nothing navigates to it; the design goes Module List → Exercise Detail directly.
 - **Profile rows** — Terms of Service, Privacy Policy, language and theme controls have no destination yet.

@@ -41,9 +41,10 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// [CourseExercise.simulatesWrites] is false, a material's download button
 /// fetches a fresh link (`GET /me/materials/{id}/download`) and opens it
 /// outside the app, and — when the lesson has an assignment — the Assignment
-/// tab submits a link, a file or both through
-/// `POST /me/assignments/{id}/submissions`, the file picked on the device and
-/// uploaded first through `POST /me/files`. With no assignment its tab is
+/// tab submits a link through `POST /me/assignments/{id}/submissions`. The
+/// file form (pick a file, upload it through `POST /me/files`, submit its
+/// id) is built behind the same tab but no backend lesson draws it yet — see
+/// [_formFor]. With no assignment its tab is
 /// disabled; and the quiz is not integrated, so the
 /// quiz card does not draw (the lesson detail carries a quiz summary, not
 /// questions). The layout is
@@ -78,6 +79,18 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// same `_noDestinationYet`-style placeholder `CourseModuleListScreen` uses
 /// for its own not-yet-built destinations, so this structure does not need
 /// to be rewritten to add that behaviour later.
+/// Which of the reference's two assignment forms [assignment] draws.
+///
+/// **BACKEND GAP — always the link form.** The reference draws a link field
+/// *or* a file area, never both, and nothing confirmed says which one a
+/// given assignment takes: §2.6's `assignment` as this client knows it
+/// (`id`, `title`, `instructions`, `due_date`, `max_score`, `attachment`,
+/// `submission`) has no such field, and a submission accepts either. So
+/// every backend assignment keeps the link form it already had, rather than
+/// a rule invented here. When the backend says which, this is the one place
+/// that reads it; the file form behind it is already wired.
+AssignmentForm _formFor(CourseAssignment assignment) => AssignmentForm.link;
+
 class CourseExerciseDetailScreen extends StatefulWidget {
   const CourseExerciseDetailScreen({
     required this.lessonId,
@@ -85,6 +98,7 @@ class CourseExerciseDetailScreen extends StatefulWidget {
     this.repository,
     this.openUrl,
     this.pickFile,
+    @visibleForTesting this.assignmentForm,
   });
 
   /// `Lesson.id` — which lesson to load.
@@ -103,6 +117,10 @@ class CourseExerciseDetailScreen extends StatefulWidget {
   /// Asks the student for the file an assignment submission uploads.
   /// Defaults to `pickLocalFile`; injected in tests, for the same reason.
   final Future<PickedFile?> Function()? pickFile;
+
+  /// Overrides [_formFor]. Tests only: it is how the file form is exercised
+  /// end to end while no backend assignment selects it.
+  final AssignmentForm? assignmentForm;
 
   @override
   State<CourseExerciseDetailScreen> createState() =>
@@ -206,6 +224,7 @@ class _CourseExerciseDetailScreenState
       assignmentFileUploadSizeBytes: _controller.assignmentFileUploadSizeBytes,
       assignmentFile: _controller.assignmentFile,
       assignmentFileErrorMessage: _controller.assignmentFileErrorMessage,
+      assignmentForm: widget.assignmentForm,
       savingNote: _controller.savingNote,
       noteSaveErrorMessage: _controller.noteSaveErrorMessage,
       // The sample's materials have no stored file: its button keeps the
@@ -240,6 +259,7 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.assignmentFileUploadSizeBytes,
     required this.assignmentFile,
     required this.assignmentFileErrorMessage,
+    required this.assignmentForm,
     required this.savingNote,
     required this.noteSaveErrorMessage,
     required this.onDownloadMaterial,
@@ -267,6 +287,7 @@ class _ExerciseDetailBody extends StatelessWidget {
   final int? assignmentFileUploadSizeBytes;
   final UploadedFile? assignmentFile;
   final String? assignmentFileErrorMessage;
+  final AssignmentForm? assignmentForm;
   final bool savingNote;
   final String? noteSaveErrorMessage;
   final ValueChanged<int>? onDownloadMaterial;
@@ -346,6 +367,7 @@ class _ExerciseDetailBody extends StatelessWidget {
                             assignmentFile: assignmentFile,
                             assignmentFileErrorMessage:
                                 assignmentFileErrorMessage,
+                            assignmentForm: assignmentForm,
                             savingNote: savingNote,
                             noteSaveErrorMessage: noteSaveErrorMessage,
                             onDownloadMaterial: onDownloadMaterial,
@@ -390,6 +412,7 @@ class _TabContent extends StatelessWidget {
     required this.assignmentFileUploadSizeBytes,
     required this.assignmentFile,
     required this.assignmentFileErrorMessage,
+    required this.assignmentForm,
     required this.savingNote,
     required this.noteSaveErrorMessage,
     required this.onDownloadMaterial,
@@ -412,6 +435,7 @@ class _TabContent extends StatelessWidget {
   final int? assignmentFileUploadSizeBytes;
   final UploadedFile? assignmentFile;
   final String? assignmentFileErrorMessage;
+  final AssignmentForm? assignmentForm;
   final bool savingNote;
   final String? noteSaveErrorMessage;
   final ValueChanged<int>? onDownloadMaterial;
@@ -421,23 +445,26 @@ class _TabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The sample simulates; a backend lesson can submit — and upload —
-    // only when it has an assignment to submit to.
-    final submitsToBackend =
-        !exercise.simulatesWrites && exercise.assignment != null;
+    // The sample simulates; a backend lesson can submit only when it has an
+    // assignment to submit to.
+    final assignment = exercise.assignment;
+    final submitsToBackend = !exercise.simulatesWrites && assignment != null;
     return switch (tab) {
       ExerciseTab.assignment => AssignmentTab(
         feedbackSequence: exercise.assignmentFeedback,
         attachment: exercise.assignmentAttachment,
         submission: exercise.assignment?.submission,
-        enabled: exercise.simulatesWrites || exercise.assignment != null,
+        enabled: exercise.simulatesWrites || assignment != null,
         onSubmit: submitsToBackend
             ? (link, description) =>
                   onSubmitAssignment(link: link, description: description)
             : null,
         submitting: submittingAssignment,
         errorMessage: assignmentSubmitErrorMessage,
-        onPickFile: submitsToBackend ? onPickAssignmentFile : null,
+        form: assignment == null
+            ? AssignmentForm.link
+            : assignmentForm ?? _formFor(assignment),
+        onPickFile: onPickAssignmentFile,
         onCancelFileUpload: onCancelAssignmentFileUpload,
         onRemoveFile: onRemoveAssignmentFile,
         fileUploadSizeBytes: assignmentFileUploadSizeBytes,

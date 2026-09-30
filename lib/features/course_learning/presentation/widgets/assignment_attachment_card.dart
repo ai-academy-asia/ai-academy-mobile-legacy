@@ -112,6 +112,9 @@ class _AssignmentAttachmentCardState extends State<AssignmentAttachmentCard> {
       // download row used to start, which is what the next two frames show.
       _DownloadStage.idle => AssignmentUploadDropzone(onTap: _start),
       _DownloadStage.downloading => _DownloadingCard(
+        heading: CourseLearningStrings.downloadStarted,
+        title: CourseLearningStrings.downloadingAttachment,
+        cancelLabel: CourseLearningStrings.cancelDownload,
         amountLabel: _downloadedLabel(widget.attachment.sizeLabel, _progress),
         progress: _progress,
         onCancel: _cancel,
@@ -139,7 +142,10 @@ class _AssignmentAttachmentCardState extends State<AssignmentAttachmentCard> {
 /// **No real progress.** `CourseLearningRepository.uploadFile` answers once,
 /// when the upload is done, so the reference's filling bar and "129 KB /
 /// 1 MB" count have nothing to read: both indicators run indeterminate and
-/// the line under "Downloading..." is the file's total size alone.
+/// the line under "Uploading..." is the file's total size alone.
+///
+/// **Its own wording.** The reference words this card for a download; here
+/// it says upload — see `CourseLearningStrings.uploadStarted`.
 class AssignmentFileUploadCard extends StatelessWidget {
   const AssignmentFileUploadCard({
     required this.uploadSizeLabel,
@@ -167,6 +173,9 @@ class AssignmentFileUploadCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (uploadSizeLabel case final sizeLabel?) {
       return _DownloadingCard(
+        heading: CourseLearningStrings.uploadStarted,
+        title: CourseLearningStrings.uploadingFile,
+        cancelLabel: CourseLearningStrings.cancelUpload,
         amountLabel: sizeLabel,
         progress: null,
         onCancel: onCancel,
@@ -308,18 +317,29 @@ class _CircleIconButton extends StatelessWidget {
   }
 }
 
-/// The downloading state: "Your download has started.", a progress row with
-/// a Cancel pill, and a progress bar underneath — a taller card than the
+/// The in-transfer state: a [heading] ("Your download has started."), a
+/// progress row with a Cancel pill, and a progress bar underneath — a taller card than the
 /// idle/complete rows, since the reference draws this one with real
 /// in-progress chrome rather than a single row.
 class _DownloadingCard extends StatelessWidget {
   const _DownloadingCard({
+    required this.heading,
+    required this.title,
+    required this.cancelLabel,
     required this.amountLabel,
     required this.progress,
     required this.onCancel,
   });
 
-  /// The line under "Downloading...", e.g. "129 KB / 1 MB".
+  /// The card's first line, e.g. "Your download has started.".
+  final String heading;
+
+  /// The line beside the spinner, e.g. "Downloading...".
+  final String title;
+
+  final String cancelLabel;
+
+  /// The line under [title], e.g. "129 KB / 1 MB".
   final String amountLabel;
 
   /// 0 to 1, or null when the transfer reports none — both indicators then
@@ -344,7 +364,7 @@ class _DownloadingCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            CourseLearningStrings.downloadStarted,
+            heading,
             style: AppTypography.cardHeading.copyWith(fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -367,7 +387,7 @@ class _DownloadingCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      CourseLearningStrings.downloadingAttachment,
+                      title,
                       style: AppTypography.cardHeading.copyWith(fontSize: 14),
                     ),
                     const SizedBox(height: 2),
@@ -376,7 +396,7 @@ class _DownloadingCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              _CancelButton(onTap: onCancel),
+              _CancelButton(label: cancelLabel, onTap: onCancel),
             ],
           ),
           const SizedBox(height: 12),
@@ -396,15 +416,16 @@ class _DownloadingCard extends StatelessWidget {
 }
 
 class _CancelButton extends StatelessWidget {
-  const _CancelButton({required this.onTap});
+  const _CancelButton({required this.label, required this.onTap});
 
+  final String label;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: CourseLearningStrings.cancelDownload,
+      label: label,
       child: Material(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -423,7 +444,7 @@ class _CancelButton extends StatelessWidget {
               ),
             ),
             child: Text(
-              CourseLearningStrings.cancelDownload,
+              label,
               style: AppTypography.cardHeading.copyWith(fontSize: 13),
             ),
           ),

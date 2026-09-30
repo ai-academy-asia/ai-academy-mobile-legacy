@@ -49,6 +49,16 @@ const double _messageToResubmit = 32;
 /// same 8 `NoteTab` leaves.
 const double _fieldToError = 8;
 
+/// Which of the reference's two editable forms a backend assignment draws.
+/// The frames show one or the other, never both.
+enum AssignmentForm {
+  /// A link field and a description — the frame with the link row.
+  link,
+
+  /// The file area and a description — the frames with the drop area.
+  file,
+}
+
 /// The three states this tab cycles through, all driven by sample data — see
 /// the class doc below for what each one shows.
 enum _AssignmentStage {
@@ -109,15 +119,15 @@ enum _AssignmentStage {
 /// treatment (the Figma pack has no error state here). Resubmit reopens the
 /// form filled with the latest submission's link and description.
 ///
-/// **[onPickFile] adds the real file area** — a backend assignment's, above
-/// the link field. §2.6 takes a link, a file or both, and nothing the
-/// backend sends says which an assignment expects, so both are offered and
-/// Submit needs either. The reference only ever draws one of the two (see
-/// the note in `build`); stacking them is this tab's own arrangement of two
-/// designed pieces, not a frame. The file itself — picked, uploading,
-/// uploaded — is the caller's state, drawn by `AssignmentFileUploadCard`; a
-/// failed pick or upload shows [fileErrorMessage] under the area. A
-/// resubmission starts with no file: the latest submission's is not read.
+/// **[form] picks which real form is drawn**, as the reference does: the
+/// link field *or* the file area, never both. In [AssignmentForm.file] the
+/// area takes the link field's place, Submit needs an uploaded file, and no
+/// link is sent. The file itself — picked, uploading, uploaded — is the
+/// caller's state, drawn by `AssignmentFileUploadCard`; a failed pick or
+/// upload shows [fileErrorMessage] under the area. A resubmission starts
+/// with no file: the latest submission's is not read. Which form a given
+/// assignment takes is the caller's to say — see
+/// `CourseExerciseDetailScreen`.
 class AssignmentTab extends StatefulWidget {
   const AssignmentTab({
     required this.feedbackSequence,
@@ -127,6 +137,7 @@ class AssignmentTab extends StatefulWidget {
     this.onSubmit,
     this.submitting = false,
     this.errorMessage,
+    this.form = AssignmentForm.link,
     this.onPickFile,
     this.onCancelFileUpload,
     this.onRemoveFile,
@@ -164,8 +175,12 @@ class AssignmentTab extends StatefulWidget {
   /// Why the last submit failed, or null.
   final String? errorMessage;
 
-  /// Opens the file picker and uploads what the student chooses. Null draws
-  /// no file area at all — the sample, and a lesson with no assignment.
+  /// Which form a real submit ([onSubmit]) draws. Ignored by the sample,
+  /// which goes by [attachment].
+  final AssignmentForm form;
+
+  /// Opens the file picker and uploads what the student chooses — the
+  /// [AssignmentForm.file] form's drop area. Null leaves the area inert.
   final VoidCallback? onPickFile;
 
   /// Abandons the upload in flight.
@@ -250,8 +265,8 @@ class _AssignmentTabState extends State<AssignmentTab> {
     super.dispose();
   }
 
-  /// A real submit needs only the link — §2.6's one required field when
-  /// there is no file. The sample's simulation keeps its own rule: the
+  /// A real link submit needs only the link — §2.6's one required field
+  /// when there is no file. The sample's simulation keeps its own rule: the
   /// description always counts; the link only when it is on screen — the
   /// file area replaces it, and a field the student cannot see must not be
   /// what holds Submit disabled.
@@ -264,13 +279,18 @@ class _AssignmentTabState extends State<AssignmentTab> {
     if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
   }
 
+  /// True when a real submit draws the file form.
+  bool get _fileForm =>
+      widget.onSubmit != null && widget.form == AssignmentForm.file;
+
   bool get _readyToSubmit =>
       widget.enabled &&
       _stage == _AssignmentStage.notSubmitted &&
-      // An uploaded file is content too — §2.6 takes a link or a file — but
-      // one still uploading is not there to send yet.
-      (_hasContent || widget.uploadedFile != null) &&
-      widget.fileUploadSizeBytes == null &&
+      // The file form has no link to type: its content is the uploaded
+      // file — and one still uploading is not there to send yet.
+      (_fileForm
+          ? widget.uploadedFile != null && widget.fileUploadSizeBytes == null
+          : _hasContent) &&
       _attachmentReady;
 
   AssignmentMentorFeedback? get _latestFeedback {
@@ -312,7 +332,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
     });
 
     final accepted = await onSubmit(
-      _linkController.text.trim(),
+      // The file form shows no link field, so it sends no link — not even
+      // one a resubmission pre-filled out of sight.
+      _fileForm ? '' : _linkController.text.trim(),
       _descriptionController.text.trim(),
     );
     if (!mounted) return;
@@ -342,7 +364,7 @@ class _AssignmentTabState extends State<AssignmentTab> {
 
   /// The real file area and its error line. The controls are handed over
   /// only while the form is open, so a submit in flight locks them with it.
-  List<Widget> _fileArea(VoidCallback onPickFile) {
+  List<Widget> _fileArea() {
     final open = widget.enabled && _stage == _AssignmentStage.notSubmitted;
     final uploadSizeBytes = widget.fileUploadSizeBytes;
     final uploadedFile = widget.uploadedFile;
@@ -357,7 +379,7 @@ class _AssignmentTabState extends State<AssignmentTab> {
                 fileSizeLabel(uploadedFile.sizeBytes),
                 uploadedFile.fileName,
               ),
-        onPick: open ? onPickFile : null,
+        onPick: open ? widget.onPickFile : null,
         onCancel: open ? widget.onCancelFileUpload : null,
         onRemove: open ? widget.onRemoveFile : null,
       ),
@@ -394,11 +416,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
                 onRemoved: () => setState(() => _attachmentReady = false),
               ),
               const SizedBox(height: 18),
-            ] else ...[
-              // A backend assignment takes either, so it is offered both —
-              // see the class doc.
-              if (widget.onPickFile case final onPickFile?)
-                ..._fileArea(onPickFile),
+            ] else if (_fileForm)
+              ..._fileArea()
+            else ...[
               ExerciseTextField(
                 controller: _linkController,
                 placeholder: CourseLearningStrings.linkPlaceholder,

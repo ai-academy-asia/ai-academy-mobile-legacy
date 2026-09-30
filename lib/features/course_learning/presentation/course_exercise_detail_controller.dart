@@ -12,6 +12,10 @@ import 'course_learning_strings.dart';
 /// materials' downloads, uploads the file its assignment submission carries,
 /// and submits that assignment.
 ///
+/// The file half is complete here but reached only from the Assignment
+/// tab's file form, which no backend lesson draws yet — see
+/// `CourseExerciseDetailScreen`'s `_formFor`.
+///
 /// Same `ChangeNotifier`/`_disposed`-guard shape as `CourseLearningController`,
 /// [errorMessage] included: `GET /me/lessons/{lesson_id}` is a real fallible
 /// source, so a failure reaches the screen as copy rather than as an

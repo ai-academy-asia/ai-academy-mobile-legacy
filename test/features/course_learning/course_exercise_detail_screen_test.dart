@@ -6,6 +6,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_failu
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_tab.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_upload_dropzone.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
@@ -47,6 +48,7 @@ void main() {
     Size size = const Size(393, 852),
     Future<bool> Function(Uri url)? openUrl,
     Future<PickedFile?> Function()? pickFile,
+    AssignmentForm? assignmentForm,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -69,6 +71,7 @@ void main() {
                       repository: repository,
                       openUrl: openUrl,
                       pickFile: pickFile,
+                      assignmentForm: assignmentForm,
                     ),
                   ),
                 ),
@@ -965,10 +968,6 @@ void main() {
         await tester.enterText(linkField(), link);
         await tester.enterText(descriptionField(), description);
         await tester.pump();
-        // The file area above the fields can push Submit below the fold.
-        await tester.ensureVisible(
-          submitButtonLabelled(CourseLearningStrings.submit),
-        );
         await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
         await tester.pump();
       }
@@ -1154,9 +1153,6 @@ void main() {
         repository.submitFailure = null;
         await tester.enterText(linkField(), 'https://github.com/x');
         await tester.pump();
-        await tester.ensureVisible(
-          submitButtonLabelled(CourseLearningStrings.submit),
-        );
         await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
         await tester.pumpAndSettle();
 
@@ -1314,16 +1310,20 @@ void main() {
       Finder dropzone() => find.byType(AssignmentUploadDropzone);
       Finder submit() => submitButtonLabelled(CourseLearningStrings.submit);
 
+      // The file form, which no backend assignment selects yet — asked for
+      // here so the flow behind it is exercised end to end.
       Future<void> open(
         WidgetTester tester,
         FakeCourseLearningRepository repository, {
         Future<PickedFile?> Function()? pickFile,
+        AssignmentForm? form = AssignmentForm.file,
       }) async {
         await pumpScreen(
           tester,
           repository,
           lessonId: 204,
           pickFile: pickFile ?? () async => picked,
+          assignmentForm: form,
         );
         await tester.pumpAndSettle();
       }
@@ -1336,14 +1336,41 @@ void main() {
         await tester.pump();
       }
 
-      testWidgets('a backend assignment offers the file area and the link', (
+      testWidgets('a backend assignment draws the link form, no file area', (
+        tester,
+      ) async {
+        var picks = 0;
+        await open(
+          tester,
+          withAssignment(),
+          form: null,
+          pickFile: () async {
+            picks++;
+            return picked;
+          },
+        );
+
+        // BACKEND GAP: nothing says an assignment takes a file, so none
+        // draws the file form on its own.
+        expect(dropzone(), findsNothing);
+        expect(find.byType(ExerciseTextField), findsNWidgets(2));
+        expect(
+          find.text(CourseLearningStrings.linkPlaceholder),
+          findsOneWidget,
+        );
+        expect(picks, 0);
+      });
+
+      testWidgets('the file form draws the file area in the link\'s place', (
         tester,
       ) async {
         await open(tester, withAssignment());
 
         expect(dropzone(), findsOneWidget);
         expect(find.text(CourseLearningStrings.uploadFile), findsOneWidget);
-        expect(find.byType(ExerciseTextField), findsNWidgets(2));
+        // Never both: the description is the only field left.
+        expect(find.byType(ExerciseTextField), findsOneWidget);
+        expect(find.text(CourseLearningStrings.linkPlaceholder), findsNothing);
         expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
       });
 
@@ -1390,17 +1417,19 @@ void main() {
 
         expect(repository.uploadCalls.single.$1, 'report.pdf');
         expect(repository.uploadCalls.single.$2, [1, 2, 3, 4]);
+        // Worded as the upload it is, not the reference's "download".
+        expect(find.text('Your upload has started.'), findsOneWidget);
+        expect(find.text('Uploading...'), findsOneWidget);
+        expect(find.text(CourseLearningStrings.downloadStarted), findsNothing);
         expect(
           find.text(CourseLearningStrings.downloadingAttachment),
-          findsOneWidget,
+          findsNothing,
         );
-        expect(find.text(CourseLearningStrings.cancelDownload), findsOneWidget);
+        expect(find.text(CourseLearningStrings.cancelUpload), findsOneWidget);
         // The picked file's own size — all the progress there is to show.
         expect(find.text('4 B'), findsOneWidget);
         expect(dropzone(), findsNothing);
-        // Nothing to send until the upload lands — not even with a link.
-        await tester.enterText(find.byType(TextField).first, 'https://x.test');
-        await tester.pump();
+        // Nothing to send until the upload lands.
         expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
 
         repository.releaseUpload();
@@ -1473,6 +1502,28 @@ void main() {
         expect(tester.widget<ExerciseSubmitButton>(submit()).onPressed, isNull);
       });
 
+      testWidgets('a resubmission in the file form sends no hidden link', (
+        tester,
+      ) async {
+        // The latest submission carried a link; the file form has no field
+        // for one, so it must not ride along unseen.
+        final repository = withAssignment(
+          assignment: CourseAssignment(id: 17, submission: sampleSubmission()),
+        );
+        await open(tester, repository);
+
+        await tester.tap(find.text(CourseLearningStrings.resubmit));
+        await tester.pumpAndSettle();
+        await pickAFile(tester);
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(submit());
+        await tester.tap(submit());
+        await tester.pumpAndSettle();
+
+        expect(repository.submitCalls, [(17, null, null)]);
+        expect(repository.submitFileIds, [501]);
+      });
+
       testWidgets('Remove drops the file and Submit waits again', (
         tester,
       ) async {
@@ -1494,7 +1545,7 @@ void main() {
         await open(tester, repository);
         await pickAFile(tester);
 
-        await tester.tap(find.text(CourseLearningStrings.cancelDownload));
+        await tester.tap(find.text(CourseLearningStrings.cancelUpload));
         await tester.pump();
         expect(dropzone(), findsOneWidget);
 
