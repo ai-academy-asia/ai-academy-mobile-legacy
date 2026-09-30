@@ -67,11 +67,14 @@ class ExerciseVideoHeader extends StatelessWidget {
         child: Stack(
           children: [
             if (hasVideo) ...[
-              Positioned(
-                top: topInset + 24,
-                left: AppDimens.screenPadding,
-                child: _RecordingBadge(label: recordingBadgeLabel),
-              ),
+              // A lesson type with no badge copy draws no badge, rather than
+              // an empty pill.
+              if (recordingBadgeLabel.isNotEmpty)
+                Positioned(
+                  top: topInset + 24,
+                  left: AppDimens.screenPadding,
+                  child: _RecordingBadge(label: recordingBadgeLabel),
+                ),
               const Center(child: _PlayButton()),
               Positioned(
                 right: AppDimens.screenPadding,

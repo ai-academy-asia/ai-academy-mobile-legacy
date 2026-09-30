@@ -27,7 +27,7 @@ void main() {
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
         home: CourseExerciseDetailScreen(
-          moduleId: 2,
+          lessonId: 2,
           repository: FakeCourseLearningRepository(exercise: exercise),
         ),
       ),

@@ -1,6 +1,12 @@
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,8 +39,8 @@ void main() {
 
   Future<void> pumpScreen(
     WidgetTester tester,
-    FakeCourseLearningRepository repository, {
-    int moduleId = 2,
+    FakeCourseLearningRepository? repository, {
+    int lessonId = 2,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -54,7 +60,7 @@ void main() {
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => CourseExerciseDetailScreen(
-                      moduleId: moduleId,
+                      lessonId: lessonId,
                       repository: repository,
                     ),
                   ),
@@ -807,6 +813,219 @@ void main() {
 
       repository.releaseExercise();
       await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Nesting loops'), findsWidgets);
+    });
+
+    testWidgets('loads the lesson id it was opened with', (tester) async {
+      final repository = FakeCourseLearningRepository();
+      await pumpScreen(tester, repository, lessonId: 204);
+      await tester.pumpAndSettle();
+
+      expect(repository.exerciseCalls, [204]);
+    });
+  });
+
+  // What `HttpCourseLearningRepository` builds from `GET /me/lessons/{id}`:
+  // real content, no simulated writes, no quiz, no canned assignment state.
+  group('a lesson loaded from the backend', () {
+    FakeCourseLearningRepository backendLesson({
+      Object? note = _keepSampleNote,
+      LessonType type = LessonType.recording,
+      String recordingBadgeLabel = 'Live Classroom Recording',
+    }) => FakeCourseLearningRepository(
+      exercise: identical(note, _keepSampleNote)
+          ? sampleExercise(
+              lessonId: 204,
+              title: 'Давталт',
+              type: type,
+              recordingBadgeLabel: recordingBadgeLabel,
+              assignmentFeedback: const [],
+              simulatesWrites: false,
+            )
+          : sampleExercise(
+              lessonId: 204,
+              title: 'Давталт',
+              type: type,
+              recordingBadgeLabel: recordingBadgeLabel,
+              note: note,
+              assignmentFeedback: const [],
+              simulatesWrites: false,
+            ),
+    );
+
+    Finder submitButtonLabelled(String label) =>
+        find.widgetWithText(ExerciseSubmitButton, label);
+
+    testWidgets('renders the lesson\'s own content', (tester) async {
+      await pumpScreen(tester, backendLesson());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Давталт'), findsOneWidget);
+      expect(find.text('24:15'), findsOneWidget);
+      expect(find.text('Live Classroom Recording'), findsOneWidget);
+    });
+
+    testWidgets('a lesson type with no badge copy draws no badge', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        backendLesson(type: LessonType.video, recordingBadgeLabel: ''),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Live Classroom Recording'), findsNothing);
+      // The rest of the header is unchanged.
+      expect(find.text('24:15'), findsOneWidget);
+      expect(backButton(), findsOneWidget);
+    });
+
+    testWidgets('draws no quiz card', (tester) async {
+      await pumpScreen(tester, backendLesson());
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.startQuiz), findsNothing);
+    });
+
+    testWidgets('the assignment tab is drawn but cannot submit', (
+      tester,
+    ) async {
+      await pumpScreen(tester, backendLesson());
+      await tester.pumpAndSettle();
+
+      final fields = tester.widgetList<ExerciseTextField>(
+        find.byType(ExerciseTextField),
+      );
+      expect(fields, isNotEmpty);
+      expect(fields.every((field) => !field.enabled), isTrue);
+
+      final submit = tester.widget<ExerciseSubmitButton>(
+        submitButtonLabelled(CourseLearningStrings.submit),
+      );
+      expect(submit.onPressed, isNull);
+      // No canned mentor state either.
+      expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
+    });
+
+    testWidgets('an existing note is shown, its edit action off', (
+      tester,
+    ) async {
+      await pumpScreen(tester, backendLesson());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(CourseLearningStrings.noteTab));
+      await tester.pumpAndSettle();
+
+      expect(find.text(sampleNote().message), findsOneWidget);
+      final edit = tester.widget<ExerciseSubmitButton>(
+        submitButtonLabelled(CourseLearningStrings.editNote),
+      );
+      expect(edit.onPressed, isNull);
+
+      await tester.tap(find.text(CourseLearningStrings.editNote));
+      await tester.pumpAndSettle();
+      // Still the note card — no textarea opened.
+      expect(find.byType(ExerciseTextField), findsNothing);
+    });
+
+    testWidgets('with no note, the note textarea and submit are off', (
+      tester,
+    ) async {
+      await pumpScreen(tester, backendLesson(note: null));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(CourseLearningStrings.noteTab));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<ExerciseTextField>(
+        find.byType(ExerciseTextField),
+      );
+      expect(field.enabled, isFalse);
+      final submit = tester.widget<ExerciseSubmitButton>(
+        submitButtonLabelled(CourseLearningStrings.submit),
+      );
+      expect(submit.onPressed, isNull);
+    });
+  });
+
+  group('failure', () {
+    testWidgets('shows the failure\'s own copy, a retry and a way back', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          exerciseFailure: const CourseLearningFailure(
+            CourseLearningFailureKind.notFound,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.notFound), findsOneWidget);
+      expect(find.text(CourseLearningStrings.retry), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      // The video header, which carries the usual back button, is not drawn;
+      // the shared one stands in so the student is never stranded.
+      expect(find.byIcon(AppIcons.caretLeft), findsOneWidget);
+
+      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.pumpAndSettle();
+      expect(find.text('open'), findsOneWidget);
+    });
+
+    testWidgets('409 lesson_locked shows the generic error, not the lesson', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          exerciseFailure: const CourseLearningFailure(
+            CourseLearningFailureKind.locked,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.unexpectedError), findsOneWidget);
+      expect(find.text('Nesting loops'), findsNothing);
+    });
+
+    testWidgets('retry re-requests and renders the lesson on success', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        exerciseFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      await pumpScreen(tester, repository, lessonId: 204);
+      await tester.pumpAndSettle();
+      expect(find.text(CourseLearningStrings.networkError), findsOneWidget);
+
+      repository.exerciseFailure = null;
+      await tester.tap(find.text(CourseLearningStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(repository.exerciseCalls, [204, 204]);
+      expect(find.text(CourseLearningStrings.networkError), findsNothing);
+      expect(find.text('24:15'), findsOneWidget);
+    });
+  });
+
+  group('default repository', () {
+    testWidgets('is the HTTP one, not the sample', (tester) async {
+      // No session is held in a test, so the HTTP repository refuses before
+      // sending anything — its session-expired copy is the proof. The sample
+      // repository would have drawn the "Nesting loops" exercise instead.
+      await pumpScreen(tester, null);
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.sessionExpired), findsOneWidget);
+      expect(find.text('Nesting loops'), findsNothing);
     });
   });
 }
+
+/// Distinguishes "use the sample note" from an explicit `note: null`.
+const Object _keepSampleNote = Object();

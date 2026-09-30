@@ -6,6 +6,7 @@ import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/course_learning/data/http_course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -249,10 +250,18 @@ void main() {
 
     test('an unlisted 4xx has no more specific reading', () async {
       final failure = await failureFrom(
-        repositoryReturning((_) async => http.Response('', 409)),
+        repositoryReturning((_) async => http.Response('', 422)),
       );
 
       expect(failure.kind, CourseLearningFailureKind.unexpected);
+    });
+
+    test('409 is the contract\'s lesson_locked', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => http.Response('', 409)),
+      );
+
+      expect(failure.kind, CourseLearningFailureKind.locked);
     });
 
     test('a request that never completes is a network failure', () async {
@@ -968,26 +977,584 @@ void main() {
     });
   });
 
-  group('the endpoint this task did not integrate', () {
-    test(
-      'getLessons calls HTTP; getExercise still comes from the sample',
-      () async {
+  group('lesson detail (§2.3)', () {
+    /// The contract's §2.3 body, lesson 204 in module 31.
+    Map<String, Object?> lessonBody({
+      Object? video = const {'embed_url': 'https://www.youtube.com/embed/x'},
+      Object? type = 'recording',
+      Object? durationSeconds = 1455,
+      Object? summary = const {'mn': 'Хураангуй', 'en': 'Summary'},
+      List<Object?>? sections,
+      List<Object?>? materials,
+      Object? note,
+      bool completed = false,
+    }) => {
+      'id': 204,
+      'module': {
+        'id': 31,
+        'order': 2,
+        'title': {'mn': 'Хоёрдугаар', 'en': 'Second'},
+      },
+      'order': 1,
+      'title': {'mn': 'Давталт', 'en': 'Nesting loops'},
+      'type': type,
+      'duration_seconds': durationSeconds,
+      'video': video,
+      'summary': summary,
+      'sections':
+          sections ??
+          [
+            {
+              'title': {'mn': 'Эхний хэсэг', 'en': 'First'},
+              'body': {'mn': 'Бие', 'en': 'Body'},
+              'bullets': [
+                {'mn': 'Нэг', 'en': 'One'},
+                {'en': 'Two'},
+              ],
+            },
+            {
+              'title': {'en': 'Second'},
+              'body': {'mn': 'Хоёр', 'en': null},
+              'bullets': <Object?>[],
+            },
+          ],
+      'completed': completed,
+      'materials':
+          materials ??
+          [
+            {
+              'id': 88,
+              'title': 'Course material 1',
+              'type': 'file',
+              'file_name': 'week2-slides.pdf',
+              'content_type': 'application/pdf',
+              'size_bytes': 10485760,
+            },
+            {
+              'id': 89,
+              'title': 'Reading list',
+              'type': 'link',
+              'url': 'https://example.test/reading',
+            },
+            {
+              'id': 90,
+              'title': 'Notes',
+              'type': 'file',
+              'file_name': 'notes.pdf',
+              'content_type': 'application/pdf',
+              'size_bytes': 1572864,
+            },
+          ],
+      'note': note,
+      'assignment': null,
+      'quiz': null,
+    };
+
+    Map<String, Object?> file(int id, int sizeBytes) => {
+      'id': id,
+      'title': 'File $id',
+      'type': 'file',
+      'file_name': 'f$id.pdf',
+      'content_type': 'application/pdf',
+      'size_bytes': sizeBytes,
+    };
+
+    /// 2026-08-06, 15:00 local — the "today" note timestamps are read
+    /// against.
+    final now = DateTime(2026, 8, 6, 15);
+
+    HttpCourseLearningRepository lessonRepository(
+      Future<http.Response> Function(http.Request request) handler, {
+      AuthSessionStore? sessionStore,
+    }) => HttpCourseLearningRepository(
+      client: MockClient(handler),
+      sessionStore: sessionStore ?? signedIn(),
+      clock: () => now,
+    );
+
+    Future<CourseExercise> exerciseFrom(Object? body) =>
+        lessonRepository((_) async => jsonResponse(body)).getExercise(204);
+
+    Future<CourseLearningFailure> exerciseFailureFrom(
+      HttpCourseLearningRepository repository,
+    ) async {
+      try {
+        await repository.getExercise(204);
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    Future<CourseLearningFailure> failureForExerciseBody(Object? body) =>
+        exerciseFailureFrom(lessonRepository((_) async => jsonResponse(body)));
+
+    group('the request', () {
+      test('GETs /me/lessons/{lesson_id} with the token', () async {
+        late http.Request sent;
+        final repository = lessonRepository((request) async {
+          sent = request;
+          return jsonResponse(lessonBody());
+        });
+
+        await repository.getExercise(204);
+
+        expect(sent.method, 'GET');
+        expect(
+          sent.url.toString(),
+          'https://api.ai-academy.asia/me/lessons/204',
+        );
+        expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+      });
+
+      test('signed out: sends nothing and asks for sign-in', () async {
+        var requests = 0;
+        final repository = lessonRepository((_) async {
+          requests++;
+          return jsonResponse(lessonBody());
+        }, sessionStore: AuthSessionStore());
+
+        final failure = await exerciseFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('an expired session: sends nothing', () async {
+        var requests = 0;
+        final store = AuthSessionStore()
+          ..save(
+            const AuthSession(
+              accessToken: 'old',
+              expiresIn: Duration(hours: 1),
+            ),
+            now: DateTime(2000),
+          );
+        final repository = lessonRepository((_) async {
+          requests++;
+          return jsonResponse(lessonBody());
+        }, sessionStore: store);
+
+        final failure = await exerciseFailureFrom(repository);
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(requests, 0);
+      });
+
+      test('getLessons and getExercise both call HTTP', () async {
         final requested = <String>[];
-        final repository = repositoryReturning((request) async {
+        final repository = lessonRepository((request) async {
           requested.add(request.url.path);
-          return jsonResponse({
-            'module': {'id': 2},
-            'lessons': <Object?>[],
-          });
+          return jsonResponse(
+            request.url.path.endsWith('/lessons')
+                ? {
+                    'module': {'id': 2},
+                    'lessons': <Object?>[],
+                  }
+                : lessonBody(),
+          );
         });
 
         await repository.getLessons(2);
-        expect(requested, ['/me/modules/2/lessons']);
+        await repository.getExercise(204);
 
-        expect((await repository.getExercise(2)).title, isNotEmpty);
-        // Still one request: getExercise made no HTTP call.
-        expect(requested, hasLength(1));
-      },
-    );
+        expect(requested, ['/me/modules/2/lessons', '/me/lessons/204']);
+      });
+    });
+
+    group('mapping the response', () {
+      test('reads the lesson identity and its module', () async {
+        final exercise = await exerciseFrom(lessonBody());
+
+        expect(exercise.lessonId, 204);
+        expect(exercise.moduleId, 31);
+        // Built on the client from `module.order`, as §2.3 says.
+        expect(exercise.moduleCaption, 'Modules 2');
+      });
+
+      test('localises title and summary Mongolian first', () async {
+        final exercise = await exerciseFrom(lessonBody());
+
+        expect(exercise.title, 'Давталт');
+        expect(exercise.summary, 'Хураангуй');
+      });
+
+      test('falls back to English, and to empty for an empty summary', () {
+        final body = lessonBody(summary: const {'mn': '', 'en': 'Only en'});
+        body['title'] = {'en': 'English title'};
+
+        return exerciseFrom(body).then((exercise) {
+          expect(exercise.title, 'English title');
+          expect(exercise.summary, 'Only en');
+        });
+      });
+
+      test('a summary with no text in either language is empty', () async {
+        final exercise = await exerciseFrom(
+          lessonBody(summary: const {'mn': null, 'en': null}),
+        );
+
+        expect(exercise.summary, isEmpty);
+      });
+
+      test('reads sections and bullets in server order, localised', () async {
+        final exercise = await exerciseFrom(lessonBody());
+
+        expect(exercise.extraSections.map((s) => s.title), [
+          'Эхний хэсэг',
+          'Second',
+        ]);
+        expect(exercise.extraSections.map((s) => s.body), ['Бие', 'Хоёр']);
+        expect(exercise.extraSections.first.bullets, ['Нэг', 'Two']);
+        expect(exercise.extraSections.last.bullets, isEmpty);
+      });
+
+      test(
+        'formats duration_seconds as M:SS, or H:MM:SS from an hour',
+        () async {
+          final labels = <String>[];
+          for (final seconds in [0, 1455, 3725]) {
+            labels.add(
+              (await exerciseFrom(
+                lessonBody(durationSeconds: seconds),
+              )).durationLabel,
+            );
+          }
+
+          expect(labels, ['0:00', '24:15', '1:02:05']);
+        },
+      );
+
+      test('maps type, with a badge only for a recording', () async {
+        final expected = {
+          'recording': (LessonType.recording, 'Live Classroom Recording'),
+          'video': (LessonType.video, ''),
+          'reading': (LessonType.reading, ''),
+          'podcast': (LessonType.unknown, ''),
+        };
+        for (final entry in expected.entries) {
+          final exercise = await exerciseFrom(lessonBody(type: entry.key));
+
+          expect(exercise.type, entry.value.$1, reason: entry.key);
+          expect(
+            exercise.recordingBadgeLabel,
+            entry.value.$2,
+            reason: entry.key,
+          );
+        }
+      });
+
+      test('a video object means a video; null means none', () async {
+        expect((await exerciseFrom(lessonBody())).hasVideo, isTrue);
+        expect((await exerciseFrom(lessonBody(video: null))).hasVideo, isFalse);
+      });
+
+      test('reads completed from the server', () async {
+        expect((await exerciseFrom(lessonBody())).completed, isFalse);
+        expect(
+          (await exerciseFrom(lessonBody(completed: true))).completed,
+          isTrue,
+        );
+      });
+
+      test('keeps file materials in order, and leaves links out', () async {
+        final exercise = await exerciseFrom(lessonBody());
+
+        expect(exercise.materials.map((m) => m.id), [88, 90]);
+        expect(exercise.materials.map((m) => m.name), [
+          'Course material 1',
+          'Notes',
+        ]);
+      });
+
+      test('an unrecognised material type is left out, not a failure', () {
+        return exerciseFrom(
+          lessonBody(
+            materials: [
+              {'id': 1, 'title': 'Mystery', 'type': 'hologram'},
+              file(2, 1024),
+            ],
+          ),
+        ).then((exercise) => expect(exercise.materials.single.id, 2));
+      });
+
+      test('formats size_bytes as the materials row draws it', () async {
+        final exercise = await exerciseFrom(
+          lessonBody(
+            materials: [
+              file(1, 10485760),
+              file(2, 1572864),
+              file(3, 12582912),
+              file(4, 512),
+              file(5, 2048),
+              file(6, 0),
+              file(7, 1073741824),
+            ],
+          ),
+        );
+
+        expect(exercise.materials.map((m) => m.sizeLabel), [
+          '10 MB',
+          '1.5 MB',
+          '12 MB',
+          '512 B',
+          '2 KB',
+          '0 B',
+          '1 GB',
+        ]);
+      });
+
+      test('reads a note read-only, timestamped against today', () async {
+        final exercise = await exerciseFrom(
+          lessonBody(
+            note: {
+              'id': 51,
+              'content': 'Remember the base case',
+              'created_at': '2026-08-06T01:00:00+00:00',
+              'updated_at': DateTime(
+                2026,
+                8,
+                6,
+                14,
+                20,
+              ).toUtc().toIso8601String(),
+              'author': {'name': 'Болд Батаа', 'initials': 'ББ'},
+            },
+          ),
+        );
+
+        final note = exercise.note!;
+        expect(note.message, 'Remember the base case');
+        expect(note.authorName, 'Болд Батаа');
+        expect(note.authorInitials, 'ББ');
+        expect(note.authorLabel, 'Me');
+        expect(note.timestampLabel, 'Today, 14:20');
+      });
+
+      test('an older note is dated MM/dd', () async {
+        final exercise = await exerciseFrom(
+          lessonBody(
+            note: {
+              'id': 51,
+              'content': 'Older',
+              'created_at': '2026-08-01T01:00:00+00:00',
+              'updated_at': DateTime(
+                2026,
+                8,
+                1,
+                9,
+                5,
+              ).toUtc().toIso8601String(),
+              'author': {'name': 'Болд Батаа', 'initials': 'ББ'},
+            },
+          ),
+        );
+
+        expect(exercise.note!.timestampLabel, '08/01, 09:05');
+      });
+
+      test('a null note is no note', () async {
+        expect((await exerciseFrom(lessonBody())).note, isNull);
+      });
+
+      test('a backend lesson simulates no writes, and carries no quiz', () {
+        return exerciseFrom(lessonBody()).then((exercise) {
+          expect(exercise.simulatesWrites, isFalse);
+          expect(exercise.quiz, isNull);
+          expect(exercise.assignmentFeedback, isEmpty);
+          expect(exercise.assignmentAttachment, isNull);
+        });
+      });
+
+      test(
+        'ignores a quiz summary and an assignment it does not integrate',
+        () async {
+          final body = lessonBody()
+            ..['quiz'] = {'id': 9, 'question_count': 5}
+            ..['assignment'] = {'id': 17};
+
+          final exercise = await exerciseFrom(body);
+
+          expect(exercise.quiz, isNull);
+          expect(exercise.assignmentFeedback, isEmpty);
+        },
+      );
+    });
+
+    group('a 200 that does not match the contract', () {
+      test('malformed JSON', () async {
+        final failure = await exerciseFailureFrom(
+          lessonRepository(
+            (_) async => http.Response.bytes(utf8.encode('{not json'), 200),
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+      });
+
+      test('a body that is not an object', () async {
+        expect(
+          (await failureForExerciseBody([1])).kind,
+          CourseLearningFailureKind.server,
+        );
+      });
+
+      test('names each missing required field', () async {
+        for (final key in [
+          'id',
+          'module',
+          'title',
+          'type',
+          'duration_seconds',
+          'video',
+          'summary',
+          'sections',
+          'completed',
+          'materials',
+        ]) {
+          final failure = await failureForExerciseBody(
+            lessonBody()..remove(key),
+          );
+
+          expect(failure.kind, CourseLearningFailureKind.server, reason: key);
+          expect(failure.detail, contains(key), reason: key);
+        }
+      });
+
+      test('names a missing module.id and module.order', () async {
+        for (final key in ['id', 'order']) {
+          final body = lessonBody();
+          (body['module'] as Map<String, Object?>).remove(key);
+
+          final failure = await failureForExerciseBody(body);
+
+          expect(failure.detail, contains('module.$key'), reason: key);
+        }
+      });
+
+      test('a video that is neither an object nor null is a fault', () async {
+        final failure = await failureForExerciseBody(lessonBody(video: 'x'));
+
+        expect(failure.detail, contains('lesson.video'));
+      });
+
+      test('a section without a title is a fault', () async {
+        final failure = await failureForExerciseBody(
+          lessonBody(
+            sections: [
+              {
+                'body': {'en': 'Body'},
+                'bullets': <Object?>[],
+              },
+            ],
+          ),
+        );
+
+        expect(failure.detail, contains('section.title'));
+      });
+
+      test('a file material without size_bytes is a fault', () async {
+        final material = file(1, 10)..remove('size_bytes');
+
+        final failure = await failureForExerciseBody(
+          lessonBody(materials: [material]),
+        );
+
+        expect(failure.detail, contains('material.size_bytes'));
+      });
+
+      test('a note without its author is a fault', () async {
+        final failure = await failureForExerciseBody(
+          lessonBody(
+            note: {
+              'id': 1,
+              'content': 'x',
+              'created_at': '2026-08-06T01:00:00+00:00',
+              'updated_at': '2026-08-06T01:00:00+00:00',
+            },
+          ),
+        );
+
+        expect(failure.detail, contains('author'));
+      });
+
+      test('a negative duration is a fault', () async {
+        final failure = await failureForExerciseBody(
+          lessonBody(durationSeconds: -1),
+        );
+
+        expect(failure.detail, contains('lesson.duration_seconds'));
+      });
+    });
+
+    group('status mapping', () {
+      test('401 is a dead session, and the token is forgotten', () async {
+        final store = signedIn();
+        final failure = await exerciseFailureFrom(
+          lessonRepository(
+            (_) async => jsonResponse({'error': 'token_expired'}, 401),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+        expect(store.isSignedIn, isFalse);
+      });
+
+      test('403 is not_enrolled, and keeps the token', () async {
+        final store = signedIn();
+        final failure = await exerciseFailureFrom(
+          lessonRepository(
+            (_) async => jsonResponse({'error': 'not_enrolled'}, 403),
+            sessionStore: store,
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.notEnrolled);
+        expect(store.isSignedIn, isTrue);
+      });
+
+      test('404 lesson_not_found is notFound', () async {
+        final failure = await exerciseFailureFrom(
+          lessonRepository(
+            (_) async => jsonResponse({'error': 'lesson_not_found'}, 404),
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.notFound);
+      });
+
+      test('409 lesson_locked is locked, not a success', () async {
+        final failure = await exerciseFailureFrom(
+          lessonRepository(
+            (_) async => jsonResponse({'error': 'lesson_locked'}, 409),
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.locked);
+      });
+
+      test('5xx is a server fault', () async {
+        for (final status in [500, 503]) {
+          final failure = await exerciseFailureFrom(
+            lessonRepository((_) async => jsonResponse({}, status)),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: 'HTTP $status',
+          );
+        }
+      });
+
+      test('a request that never completes is a network failure', () async {
+        final failure = await exerciseFailureFrom(
+          lessonRepository((_) async => throw const SocketException('off')),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.network);
+      });
+    });
   });
 }

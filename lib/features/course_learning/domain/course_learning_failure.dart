@@ -33,9 +33,14 @@ enum CourseLearningFailureKind {
   /// `error` out of the body and giving `forbidden` its own kind and copy.
   notEnrolled,
 
-  /// HTTP 404 — the contract's `course_not_found`. A slug that no longer
-  /// resolves: a stale card, a withdrawn course.
+  /// HTTP 404 — the contract's `course_not_found`, `module_not_found` or
+  /// `lesson_not_found`: an id or slug that no longer resolves.
   notFound,
+
+  /// HTTP 409 — §2.3's `lesson_locked`: the lesson's module is still locked.
+  /// Its own kind so the state is never mistaken for a transient fault; the
+  /// copy is the generic one until the design gives it words of its own.
+  locked,
 
   /// The request never completed — no connectivity, DNS failure, timeout.
   network,
@@ -44,9 +49,7 @@ enum CourseLearningFailureKind {
   /// not match the contract's shape.
   server,
 
-  /// A status this client has no more specific reading for — any other 4xx,
-  /// including the 409 the contract's shared conventions mention but §2.1
-  /// does not list for this endpoint.
+  /// A status this client has no more specific reading for — any other 4xx.
   unexpected,
 }
 

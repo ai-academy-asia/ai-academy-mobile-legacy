@@ -5,6 +5,7 @@ import 'features/auth/presentation/home_route.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
+import 'features/course_learning/data/sample_course_learning_repository.dart';
 import 'features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
 import 'features/home/presentation/home_screen.dart';
@@ -31,7 +32,9 @@ import 'features/splash/presentation/splash_screen.dart';
 /// increment). Manual visual testing only — push this route by name to
 /// preview it; the app's own `initialRoute` is `'/'` as usual. The route
 /// opens `CourseExerciseDetailScreen` against
-/// `SampleCourseLearningRepository`, no network call.
+/// `SampleCourseLearningRepository` — passed explicitly, now that the
+/// screen's own default is the real API — at the sample's own lesson id, no
+/// network call.
 ///
 /// **Remove this route entry and this comment once Exercise Detail is
 /// reachable through the real Module List → Lesson → Exercise flow.**
@@ -48,8 +51,10 @@ class AiAcademyApp extends StatelessWidget {
       routes: {
         '/': (_) => const SplashScreen(),
         // TEMPORARY dev-only entry point — see the class doc above.
-        '/dev/course-exercise-preview': (_) =>
-            const CourseExerciseDetailScreen(moduleId: 2),
+        '/dev/course-exercise-preview': (_) => CourseExerciseDetailScreen(
+          lessonId: SampleCourseLearningRepository.previewLessonId,
+          repository: SampleCourseLearningRepository(),
+        ),
         '/login': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
         // Sign-in lands on one of these two, by `user_type` — see

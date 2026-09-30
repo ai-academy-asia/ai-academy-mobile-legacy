@@ -1,5 +1,6 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/data/sample_course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
@@ -182,28 +183,58 @@ void main() {
       await tester.tap(find.text('Prediction and Probabilities'));
       await tester.pumpAndSettle();
 
+      // Unchanged by the lesson-detail integration: a module card knows no
+      // lesson id, so it still opens the sample exercise it always showed —
+      // through the sample repository, never the screen's own (HTTP in
+      // production), which would be asked for a lesson id that is not one.
       final detail = tester.widget<CourseExerciseDetailScreen>(
         find.byType(CourseExerciseDetailScreen),
       );
-      expect(detail.moduleId, 1);
+      expect(detail.lessonId, SampleCourseLearningRepository.previewLessonId);
+      expect(detail.repository, isA<SampleCourseLearningRepository>());
     });
 
     testWidgets('tapping Continue learning opens Exercise Detail directly', (
       tester,
     ) async {
-      await pumpScreen(
-        tester,
-        FakeCourseLearningRepository(path: samplePath(continueModuleId: 2)),
+      final repository = FakeCourseLearningRepository(
+        path: samplePath(continueModuleId: 2, continueLessonId: 204),
       );
+      await pumpScreen(tester, repository);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Continue learning').first);
       await tester.pumpAndSettle();
 
+      // The server's `continue.lesson_id`, loaded through the screen's own
+      // repository — the real lesson-detail flow.
       final detail = tester.widget<CourseExerciseDetailScreen>(
         find.byType(CourseExerciseDetailScreen),
       );
-      expect(detail.moduleId, 2);
+      expect(detail.lessonId, 204);
+      expect(detail.repository, same(repository));
+      expect(repository.exerciseCalls, [204]);
+    });
+
+    testWidgets('both Continue learning buttons open the same lesson', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        path: samplePath(continueModuleId: 2, continueLessonId: 204),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      // The second button sits below the fold at this viewport.
+      await tester.ensureVisible(find.text('Continue learning').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue learning').last);
+      await tester.pumpAndSettle();
+
+      final detail = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(detail.lessonId, 204);
     });
 
     testWidgets('opens the server\'s continue target, even a locked one', (
@@ -214,7 +245,9 @@ void main() {
       // proof the server's answer is the one being used.
       await pumpScreen(
         tester,
-        FakeCourseLearningRepository(path: samplePath(continueModuleId: 5)),
+        FakeCourseLearningRepository(
+          path: samplePath(continueModuleId: 5, continueLessonId: 501),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -224,21 +257,27 @@ void main() {
       final detail = tester.widget<CourseExerciseDetailScreen>(
         find.byType(CourseExerciseDetailScreen),
       );
-      expect(detail.moduleId, 5);
+      expect(detail.lessonId, 501);
     });
 
     // The contract makes the continue target server-selected, so the screen
     // never substitutes one: with no usable server answer both buttons stay
     // drawn — the layout is unchanged — but open nothing.
-    for (final (label, continueModuleId) in [
-      ('continue: null', null),
-      ('a continue target no module matches', 999),
+    // A lesson id alone is not enough either: it is used only while its
+    // module half names a listed module, and never guessed at without one.
+    for (final (label, continueModuleId, continueLessonId) in [
+      ('continue: null', null, null),
+      ('a continue target with no lesson id', 2, null),
+      ('a continue target no module matches', 999, 204),
     ]) {
       testWidgets('$label leaves both buttons drawn but inert', (tester) async {
         await pumpScreen(
           tester,
           FakeCourseLearningRepository(
-            path: samplePath(continueModuleId: continueModuleId),
+            path: samplePath(
+              continueModuleId: continueModuleId,
+              continueLessonId: continueLessonId,
+            ),
           ),
         );
         await tester.pumpAndSettle();
