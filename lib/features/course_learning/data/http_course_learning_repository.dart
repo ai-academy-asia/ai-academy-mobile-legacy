@@ -20,6 +20,7 @@ import 'course_module_visuals.dart';
 ///     GET https://api.ai-academy.asia/me/courses/{course_slug}/learning
 ///     GET https://api.ai-academy.asia/me/modules/{module_id}/lessons
 ///     GET https://api.ai-academy.asia/me/lessons/{lesson_id}
+///     PUT https://api.ai-academy.asia/me/lessons/{lesson_id}/note
 ///     Authorization: Bearer <access_token>
 ///
 /// The lessons shape is `course_learning_api_contract_v1.md` §2.2's, read in
@@ -121,10 +122,44 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     return _exerciseFromBody(body, now: _clock());
   }
 
+  /// §2.5 `PUT /me/lessons/{lesson_id}/note` with `{"content": ...}` — the
+  /// saved note, `201` on the first save and `200` after. See [_savedNoteFrom].
+  ///
+  /// 400 `content_required`/`content_too_long` read as their own
+  /// [CourseLearningFailureKind]s; every other status maps as the reads' do.
+  @override
+  Future<CourseExerciseNote> saveNote(int lessonId, String content) async {
+    final body = await _authorizedPut('/me/lessons/$lessonId/note', {
+      'content': content,
+    });
+    return _savedNoteFrom(body, now: _clock());
+  }
+
+  Future<String> _authorizedGet(String path) => _authorizedRequest(
+    path,
+    (url, headers) =>
+        getRaw(client: _client, url: url, headers: headers, timeout: timeout),
+  );
+
+  Future<String> _authorizedPut(String path, Map<String, Object?> body) =>
+      _authorizedRequest(
+        path,
+        (url, headers) => putJsonRaw(
+          client: _client,
+          url: url,
+          body: body,
+          headers: headers,
+          timeout: timeout,
+        ),
+      );
+
   /// The session guard, request and status mapping every endpoint here
-  /// shares. Returns the body of a 2xx; throws [CourseLearningFailure]
-  /// otherwise.
-  Future<String> _authorizedGet(String path) async {
+  /// shares, whatever [send] does on the wire. Returns the body of a 2xx;
+  /// throws [CourseLearningFailure] otherwise.
+  Future<String> _authorizedRequest(
+    String path,
+    Future<http.Response> Function(Uri url, Map<String, String> headers) send,
+  ) async {
     if (!_sessionStore.isSignedIn) {
       throw const CourseLearningFailure(
         CourseLearningFailureKind.sessionExpired,
@@ -140,11 +175,9 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
 
     final http.Response response;
     try {
-      response = await getRaw(
-        client: _client,
-        url: _baseUrl.resolve(path),
-        headers: _sessionStore.authorizationHeader,
-        timeout: timeout,
+      response = await send(
+        _baseUrl.resolve(path),
+        _sessionStore.authorizationHeader,
       );
     } on ApiFailure catch (failure) {
       // The transport throws only for a request that never completed.
@@ -154,7 +187,7 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
       );
     }
 
-    final failure = _failureForStatus(response.statusCode);
+    final failure = _failureForStatus(response.statusCode, response.body);
     if (failure != null) {
       // What the store asks of a token the backend has rejected: forget it,
       // so nothing goes on sending it.
@@ -172,7 +205,18 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
 /// errors §2.1 documents by name. Kept as this feature's own copy rather than
 /// shared with the other repositories' mappings, the way `ApiFailure`'s,
 /// `AuthFailure`'s and `EnrollmentFailure`'s are already kept apart.
-CourseLearningFailure? _failureForStatus(int statusCode) {
+///
+/// [body] is read for a 400 only: §2.5's two validation rules share that
+/// status, and §0 says the app branches on the body's `error` code.
+CourseLearningFailure? _failureForStatus(int statusCode, String body) {
+  if (statusCode == 400) {
+    final kind = switch (_errorCode(body)) {
+      'content_required' => CourseLearningFailureKind.contentRequired,
+      'content_too_long' => CourseLearningFailureKind.contentTooLong,
+      _ => CourseLearningFailureKind.unexpected,
+    };
+    return CourseLearningFailure(kind, detail: 'HTTP 400');
+  }
   if (statusCode == 401) {
     return const CourseLearningFailure(
       CourseLearningFailureKind.sessionExpired,
@@ -208,6 +252,20 @@ CourseLearningFailure? _failureForStatus(int statusCode) {
       CourseLearningFailureKind.unexpected,
       detail: 'HTTP $statusCode',
     );
+  }
+  return null;
+}
+
+/// §0's `{"error": "<code>", ...}`, or null when the body is not that shape —
+/// an unreadable error body is still an error, just an unnamed one.
+String? _errorCode(String body) {
+  try {
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic> && decoded['error'] is String) {
+      return decoded['error'] as String;
+    }
+  } on FormatException {
+    // Falls through to null.
   }
   return null;
 }
@@ -416,7 +474,8 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
         ?_fileMaterialFrom(entry),
     ],
     completed: _requireBool(decoded, 'lesson.completed'),
-    // Neither the note save nor the assignment submission is integrated.
+    // The assignment submission is not integrated. (The note is — see
+    // `saveNote`.)
     simulatesWrites: false,
     note: _noteFrom(decoded['note'], now: now),
   );
@@ -515,8 +574,29 @@ String _sizeLabel(int bytes) {
   return '$text ${units[unit]}';
 }
 
-/// §2.5's note, or null. Read-only here — see
-/// [CourseExercise.simulatesWrites].
+/// §2.5's `PUT` answer — the note object itself, never `null`.
+CourseExerciseNote _savedNoteFrom(String body, {required DateTime now}) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'malformed JSON: ${e.message}',
+    );
+  }
+
+  if (decoded is! Map<String, dynamic>) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'response was not a JSON object',
+    );
+  }
+  return _noteFrom(decoded, now: now)!;
+}
+
+/// §2.5's note, or null — inside the lesson detail, and as the whole body of
+/// a note save.
 CourseExerciseNote? _noteFrom(Object? note, {required DateTime now}) {
   if (note == null) return null;
   if (note is! Map<String, dynamic>) {

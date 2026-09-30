@@ -60,6 +60,9 @@ abstract final class JuniorHomeStrings {
     // `locked` is §2.3's lesson-detail 409, which the learning path this
     // screen reads never answers with; the switch just has to be total.
     CourseLearningFailureKind.locked => unexpectedError,
+    // The note save's 400s — never answered by the learning path either.
+    CourseLearningFailureKind.contentRequired => unexpectedError,
+    CourseLearningFailureKind.contentTooLong => unexpectedError,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,

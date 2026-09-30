@@ -180,8 +180,8 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         ),
       ],
       completed: false,
-      // The sample's note save and assignment submit are local simulations —
-      // what the Figma states were built against.
+      // The sample's assignment submit is a local simulation — what the Figma
+      // states were built against. (Its note save is too: see [saveNote].)
       simulatesWrites: true,
       note: const CourseExerciseNote(
         authorInitials: 'БП',
@@ -273,6 +273,21 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
           ),
         ],
       ),
+    );
+  }
+
+  /// A local simulation: nothing is stored, so a saved note lasts as long as
+  /// the screen holding it. Authored by the sample's own student — the same
+  /// "БП" / "Болд Батаа" as the note [getExercise] serves — and labelled
+  /// "Just now", honest about there being no real clock reading behind it.
+  @override
+  Future<CourseExerciseNote> saveNote(int lessonId, String content) async {
+    return CourseExerciseNote(
+      authorInitials: 'БП',
+      authorName: 'Болд Батаа',
+      authorLabel: 'Me',
+      message: content,
+      timestampLabel: 'Just now',
     );
   }
 

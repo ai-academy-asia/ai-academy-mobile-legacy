@@ -39,6 +39,13 @@ abstract final class CourseLearningStrings {
   /// The contract's `404 course_not_found` — a slug that no longer resolves.
   static const String notFound = 'Хөтөлбөр олдсонгүй';
 
+  /// §2.5's two note-save rules. The Figma pack has no copy for either, so
+  /// both follow the Login screen's own validation wording
+  /// (`LoginStrings.passwordRequired`, `LoginStrings.passwordTooShort`).
+  static const String noteContentRequired = 'Тэмдэглэлээ оруулна уу';
+  static const String noteContentTooLong =
+      'Тэмдэглэл 5000 тэмдэгтээс ихгүй байх ёстой';
+
   /// One fixed string per [CourseLearningFailureKind], the same shape
   /// `HomeStrings.messageFor` and `EnrollmentStrings.messageFor` use.
   static String messageFor(CourseLearningFailureKind kind) => switch (kind) {
@@ -48,6 +55,8 @@ abstract final class CourseLearningStrings {
     // No copy exists for a locked lesson yet; the generic line stands in
     // rather than inventing one. Normal navigation never opens one.
     CourseLearningFailureKind.locked => unexpectedError,
+    CourseLearningFailureKind.contentRequired => noteContentRequired,
+    CourseLearningFailureKind.contentTooLong => noteContentTooLong,
     CourseLearningFailureKind.network => networkError,
     CourseLearningFailureKind.server => serverError,
     CourseLearningFailureKind.unexpected => unexpectedError,
@@ -96,15 +105,6 @@ abstract final class CourseLearningStrings {
   static const String noFeedbackYet = 'No feedback yet';
 
   static const String editNote = 'Засах';
-
-  /// [CourseExerciseNote.authorLabel] for a note the student just left —
-  /// matches the one pre-existing sample note's own wording verbatim.
-  static const String noteAuthorMe = 'Me';
-
-  /// [CourseExerciseNote.timestampLabel] for a note the student just
-  /// left or just edited — see `NoteTab`'s own doc comment on why this,
-  /// not a fabricated date/time.
-  static const String noteJustNow = 'Just now';
 
   /// Shown centred over the video area when a recording is not up yet —
   /// the reference's own wording.

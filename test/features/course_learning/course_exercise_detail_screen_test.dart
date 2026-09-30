@@ -1,5 +1,6 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
@@ -909,42 +910,165 @@ void main() {
       expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
     });
 
-    testWidgets('an existing note is shown, its edit action off', (
-      tester,
-    ) async {
-      await pumpScreen(tester, backendLesson());
-      await tester.pumpAndSettle();
+    // The note the fake answers a save with — deliberately not the sample
+    // student, so a test can tell the server's author from a local one.
+    const serverNote = CourseExerciseNote(
+      authorInitials: 'СД',
+      authorName: 'Сараа Дорж',
+      authorLabel: 'Me',
+      message: 'Saved on the server.',
+      timestampLabel: 'Today, 15:04',
+    );
+
+    Future<void> openNoteTab(WidgetTester tester) async {
       await tester.tap(find.text(CourseLearningStrings.noteTab));
       await tester.pumpAndSettle();
+    }
+
+    Future<void> typeAndSubmit(WidgetTester tester, String text) async {
+      await tester.enterText(find.byType(TextField), text);
+      await tester.pump();
+      await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+      await tester.pump();
+    }
+
+    testWidgets('an existing note can be edited and saved', (tester) async {
+      final repository = backendLesson()..savedNote = serverNote;
+      await pumpScreen(tester, repository, lessonId: 204);
+      await tester.pumpAndSettle();
+      await openNoteTab(tester);
 
       expect(find.text(sampleNote().message), findsOneWidget);
       final edit = tester.widget<ExerciseSubmitButton>(
         submitButtonLabelled(CourseLearningStrings.editNote),
       );
-      expect(edit.onPressed, isNull);
+      expect(edit.onPressed, isNotNull);
 
       await tester.tap(find.text(CourseLearningStrings.editNote));
       await tester.pumpAndSettle();
-      // Still the note card — no textarea opened.
-      expect(find.byType(ExerciseTextField), findsNothing);
+      await typeAndSubmit(tester, '  Revised note.  ');
+      await tester.pumpAndSettle();
+
+      // Trimmed, and keyed by the lesson — then the server's note is shown.
+      expect(repository.saveCalls, [(204, 'Revised note.')]);
+      expect(find.text('Saved on the server.'), findsOneWidget);
+      expect(find.text(sampleNote().message), findsNothing);
     });
 
-    testWidgets('with no note, the note textarea and submit are off', (
+    testWidgets('with no note, a first note can be written and saved', (
       tester,
     ) async {
-      await pumpScreen(tester, backendLesson(note: null));
+      final repository = backendLesson(note: null)..savedNote = serverNote;
+      await pumpScreen(tester, repository, lessonId: 204);
       await tester.pumpAndSettle();
-      await tester.tap(find.text(CourseLearningStrings.noteTab));
-      await tester.pumpAndSettle();
+      await openNoteTab(tester);
 
       final field = tester.widget<ExerciseTextField>(
         find.byType(ExerciseTextField),
       );
-      expect(field.enabled, isFalse);
+      expect(field.enabled, isTrue);
+
+      await typeAndSubmit(tester, 'First note.');
+      await tester.pumpAndSettle();
+
+      expect(repository.saveCalls, [(204, 'First note.')]);
+      expect(find.byType(ExerciseTextField), findsNothing);
+      expect(find.text(CourseLearningStrings.editNote), findsOneWidget);
+    });
+
+    testWidgets('the saved card shows the server\'s author and time', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        backendLesson(note: null)..savedNote = serverNote,
+      );
+      await tester.pumpAndSettle();
+      await openNoteTab(tester);
+
+      await typeAndSubmit(tester, 'First note.');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Сараа Дорж'), findsOneWidget);
+      expect(find.text('СД'), findsOneWidget);
+      expect(find.text('Today, 15:04'), findsOneWidget);
+      // Not the sample student, and not a local "Just now".
+      expect(find.text('Болд Батаа'), findsNothing);
+      expect(find.text('Just now'), findsNothing);
+    });
+
+    testWidgets('Submit is off while the save is in flight', (tester) async {
+      final repository = backendLesson(note: null)
+        ..savedNote = serverNote
+        ..holdSave = true;
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await openNoteTab(tester);
+
+      await typeAndSubmit(tester, 'First note.');
+
       final submit = tester.widget<ExerciseSubmitButton>(
         submitButtonLabelled(CourseLearningStrings.submit),
       );
       expect(submit.onPressed, isNull);
+      // A second tap while saving sends nothing more.
+      await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+      await tester.pump();
+      expect(repository.saveCalls, hasLength(1));
+
+      repository.releaseSave();
+      await tester.pumpAndSettle();
+      expect(find.text('Saved on the server.'), findsOneWidget);
+    });
+
+    testWidgets('a failed save keeps the typed text and shows why', (
+      tester,
+    ) async {
+      final repository = backendLesson(note: null)
+        ..savedNote = serverNote
+        ..saveFailure = const CourseLearningFailure(
+          CourseLearningFailureKind.contentTooLong,
+        );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await openNoteTab(tester);
+
+      await typeAndSubmit(tester, 'Too long, says the server.');
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, 'Too long, says the server.');
+      expect(
+        find.text(CourseLearningStrings.noteContentTooLong),
+        findsOneWidget,
+      );
+      expect(find.text('Saved on the server.'), findsNothing);
+
+      // A retry that succeeds clears the error.
+      repository.saveFailure = null;
+      await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saved on the server.'), findsOneWidget);
+      expect(find.text(CourseLearningStrings.noteContentTooLong), findsNothing);
+    });
+
+    testWidgets('a network failure reads as its own copy', (tester) async {
+      final repository = backendLesson(note: null)
+        ..saveFailure = const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await openNoteTab(tester);
+
+      await typeAndSubmit(tester, 'Offline note.');
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.networkError), findsOneWidget);
+      // The lesson itself stays on screen — only the save failed.
+      expect(find.text(CourseLearningStrings.retry), findsNothing);
+      expect(find.text('Давталт'), findsOneWidget);
     });
   });
 

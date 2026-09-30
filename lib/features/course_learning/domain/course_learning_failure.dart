@@ -42,6 +42,14 @@ enum CourseLearningFailureKind {
   /// copy is the generic one until the design gives it words of its own.
   locked,
 
+  /// HTTP 400 `content_required` — §2.5's note save was sent empty once the
+  /// server trimmed it. Read from the body's `error` code, since 400 alone
+  /// does not say which rule was broken.
+  contentRequired,
+
+  /// HTTP 400 `content_too_long` — §2.5's note is over its 5000 characters.
+  contentTooLong,
+
   /// The request never completed — no connectivity, DNS failure, timeout.
   network,
 
