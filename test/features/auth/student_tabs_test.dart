@@ -2,13 +2,13 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/student_tabs.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
-import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/home/presentation/home_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
+import 'package:aia_mobile/features/junior_home/presentation/junior_profile_screen.dart';
+import 'package:aia_mobile/features/junior_home/presentation/junior_progress_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
-import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,39 +22,71 @@ import '../home/fake_home_dashboard_repository.dart';
 import '../junior_home/fake_junior_home_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 
-/// The student tab bar across its real screens, for both Homes.
+/// The student tab bar across its real screens, for both tracks.
 ///
-/// Each Home is pumped as the root it is after sign-in, with the two tab
-/// routes registered the way `AiAcademyApp` registers them — over the real
-/// `CohortListScreen` and `ProfileScreen`, against fakes.
+/// Each Home is pumped as the root it is after sign-in, with **every** tab
+/// route registered the way `AiAcademyApp` registers them — both tracks' —
+/// so a junior tab that opened an adult screen (or the reverse) would land on
+/// it here and fail, rather than on a missing route.
 void main() {
   setUpAll(loadAppFonts);
 
-  /// One Home experience: its route, its screen, and the labels its own bar
-  /// draws for the two tabs it leaves from.
+  test('each track names its own routes', () {
+    expect(
+      StudentTabRoutes.of(StudentTrack.adult, StudentTab.progress),
+      '/my-cohorts',
+    );
+    expect(
+      StudentTabRoutes.of(StudentTrack.adult, StudentTab.profile),
+      '/profile',
+    );
+    expect(
+      StudentTabRoutes.of(StudentTrack.junior, StudentTab.progress),
+      '/junior-progress',
+    );
+    expect(
+      StudentTabRoutes.of(StudentTrack.junior, StudentTab.profile),
+      '/junior-profile',
+    );
+    expect(
+      StudentTabRoutes.of(StudentTrack.junior, StudentTab.home),
+      HomeRoutes.junior,
+    );
+    expect(
+      StudentTabRoutes.of(StudentTrack.adult, StudentTab.home),
+      HomeRoutes.adult,
+    );
+  });
+
+  /// One track: its Home, the screens its other two tabs open, the screens
+  /// they must never open, and the labels its bars draw.
   final tracks = [
     (
       name: 'Junior',
       route: HomeRoutes.junior,
-      home: (BuildContext _) =>
-          JuniorHomeScreen(repository: FakeJuniorHomeRepository()),
       homeType: JuniorHomeScreen,
+      progressType: JuniorProgressScreen,
+      profileType: JuniorProfileScreen,
+      foreignTypes: const [CohortListScreen, ProfileScreen],
+      homeLabel: JuniorHomeStrings.navHome,
       progressLabel: JuniorHomeStrings.navProgress,
       profileLabel: JuniorHomeStrings.navProfile,
     ),
     (
       name: 'Adult',
       route: HomeRoutes.adult,
-      home: (BuildContext _) =>
-          HomeScreen(repository: FakeHomeDashboardRepository()),
       homeType: HomeScreen,
+      progressType: CohortListScreen,
+      profileType: ProfileScreen,
+      foreignTypes: const [JuniorProgressScreen, JuniorProfileScreen],
+      homeLabel: HomeStrings.navHome,
       progressLabel: HomeStrings.navCourses,
       profileLabel: HomeStrings.navProfile,
     ),
   ];
 
   for (final track in tracks) {
-    group('${track.name} Home', () {
+    group('${track.name} track', () {
       late GlobalKey<NavigatorState> navigatorKey;
 
       Future<void> pumpApp(WidgetTester tester) async {
@@ -70,16 +102,23 @@ void main() {
             theme: AppTheme.light,
             initialRoute: track.route,
             routes: {
-              track.route: track.home,
-              StudentTabRoutes.progress: (_) => CohortListScreen(
+              HomeRoutes.adult: (_) =>
+                  HomeScreen(repository: FakeHomeDashboardRepository()),
+              HomeRoutes.junior: (_) =>
+                  JuniorHomeScreen(repository: FakeJuniorHomeRepository()),
+              StudentTabRoutes.adultProgress: (_) => CohortListScreen(
                 enrolledOnly: true,
                 repository: FakeCohortRepository(),
                 courseRepository: FakeCourseRepository(),
                 enrollmentRepository: FakeEnrollmentRepository(),
                 enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
               ),
-              StudentTabRoutes.profile: (_) =>
+              StudentTabRoutes.adultProfile: (_) =>
                   ProfileScreen(repository: FakeCurrentUserRepository()),
+              StudentTabRoutes.juniorProgress: (_) =>
+                  const JuniorProgressScreen(),
+              StudentTabRoutes.juniorProfile: (_) =>
+                  JuniorProfileScreen(repository: FakeCurrentUserRepository()),
             },
           ),
         );
@@ -94,8 +133,15 @@ void main() {
       int selectedTab(WidgetTester tester) =>
           tester.widget<AppBottomNav>(find.byType(AppBottomNav)).currentIndex;
 
-      /// Pops once and reports whether that uncovered Home — i.e. the screen
-      /// on show was the only one stacked above it.
+      void expectOnScreen(Type type) {
+        expect(find.byType(type), findsOneWidget);
+        for (final foreign in track.foreignTypes) {
+          expect(find.byType(foreign), findsNothing, reason: '$foreign');
+        }
+      }
+
+      /// Pops once and checks that uncovered Home — i.e. the screen on show
+      /// was the only one stacked above it.
       Future<void> expectOneAboveHome(WidgetTester tester) async {
         navigatorKey.currentState!.pop();
         await tester.pumpAndSettle();
@@ -103,28 +149,33 @@ void main() {
         expect(navigatorKey.currentState!.canPop(), isFalse);
       }
 
-      testWidgets('progress tab opens the enrolled cohorts, selected', (
+      testWidgets('starts on its own Home, Home selected', (tester) async {
+        await pumpApp(tester);
+
+        expectOnScreen(track.homeType);
+        expect(selectedTab(tester), 0);
+      });
+
+      testWidgets('the progress tab opens its own progress screen', (
         tester,
       ) async {
         await pumpApp(tester);
-        expect(selectedTab(tester), 0);
 
         await tapTab(tester, track.progressLabel);
 
-        final list = tester.widget<CohortListScreen>(
-          find.byType(CohortListScreen),
-        );
-        expect(list.enrolledOnly, isTrue);
+        expectOnScreen(track.progressType);
         expect(selectedTab(tester), 1);
         await expectOneAboveHome(tester);
       });
 
-      testWidgets('profile tab opens Profile, selected', (tester) async {
+      testWidgets('the profile tab opens its own profile screen', (
+        tester,
+      ) async {
         await pumpApp(tester);
 
         await tapTab(tester, track.profileLabel);
 
-        expect(find.byType(ProfileScreen), findsOneWidget);
+        expectOnScreen(track.profileType);
         expect(selectedTab(tester), 2);
         await expectOneAboveHome(tester);
       });
@@ -135,32 +186,44 @@ void main() {
         await pumpApp(tester);
 
         await tapTab(tester, track.progressLabel);
-        await tapTab(tester, CohortListStrings.navProfile);
-        expect(find.byType(ProfileScreen), findsOneWidget);
+        await tapTab(tester, track.profileLabel);
+        expectOnScreen(track.profileType);
         expect(selectedTab(tester), 2);
 
-        await tapTab(tester, ProfileStrings.navCourses);
-        expect(find.byType(CohortListScreen), findsOneWidget);
+        await tapTab(tester, track.progressLabel);
+        expectOnScreen(track.progressType);
         expect(selectedTab(tester), 1);
 
-        await tapTab(tester, CohortListStrings.navProfile);
-        expect(find.byType(ProfileScreen), findsOneWidget);
+        await tapTab(tester, track.profileLabel);
+        expectOnScreen(track.profileType);
         await expectOneAboveHome(tester);
       });
 
-      testWidgets('Нүүр returns to this Home from either tab', (tester) async {
+      testWidgets('Нүүр returns to its own Home from either tab', (
+        tester,
+      ) async {
         await pumpApp(tester);
 
         await tapTab(tester, track.progressLabel);
-        await tapTab(tester, CohortListStrings.navHome);
-        expect(find.byType(track.homeType), findsOneWidget);
+        await tapTab(tester, track.homeLabel);
+        expectOnScreen(track.homeType);
         expect(selectedTab(tester), 0);
 
         await tapTab(tester, track.profileLabel);
-        await tapTab(tester, ProfileStrings.navHome);
-        expect(find.byType(track.homeType), findsOneWidget);
+        await tapTab(tester, track.homeLabel);
+        expectOnScreen(track.homeType);
         expect(selectedTab(tester), 0);
         expect(navigatorKey.currentState!.canPop(), isFalse);
+      });
+
+      testWidgets('the current tab is inert', (tester) async {
+        await pumpApp(tester);
+
+        await tapTab(tester, track.progressLabel);
+        await tapTab(tester, track.progressLabel);
+
+        expectOnScreen(track.progressType);
+        await expectOneAboveHome(tester);
       });
     });
   }

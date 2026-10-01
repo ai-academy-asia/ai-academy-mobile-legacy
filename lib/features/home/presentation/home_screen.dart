@@ -97,12 +97,20 @@ class _HomeScreenState extends State<HomeScreen> {
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
               label: HomeStrings.navCourses,
-              onTap: () => openStudentTab(context, StudentTab.progress),
+              onTap: () => openStudentTab(
+                context,
+                StudentTrack.adult,
+                StudentTab.progress,
+              ),
             ),
             AppBottomNavItem(
               icon: AppIcons.user,
               label: HomeStrings.navProfile,
-              onTap: () => openStudentTab(context, StudentTab.profile),
+              onTap: () => openStudentTab(
+                context,
+                StudentTrack.adult,
+                StudentTab.profile,
+              ),
             ),
           ],
         ),

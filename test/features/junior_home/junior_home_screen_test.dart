@@ -1,4 +1,4 @@
-import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_home_palette.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
@@ -160,9 +160,15 @@ void main() {
       // the two merge into one node.
       Color labelColour(String text) =>
           tester.widget<Text>(find.text(text)).style!.color!;
-      expect(labelColour(JuniorHomeStrings.navHome), AppColors.blue);
-      expect(labelColour(JuniorHomeStrings.navProgress), isNot(AppColors.blue));
-      expect(labelColour(JuniorHomeStrings.navProfile), isNot(AppColors.blue));
+      expect(labelColour(JuniorHomeStrings.navHome), JuniorPalette.accent);
+      expect(
+        labelColour(JuniorHomeStrings.navProgress),
+        isNot(JuniorPalette.accent),
+      );
+      expect(
+        labelColour(JuniorHomeStrings.navProfile),
+        isNot(JuniorPalette.accent),
+      );
 
       final homeIcon = tester.widget<Icon>(
         find.descendant(
@@ -175,7 +181,7 @@ void main() {
           matching: find.byType(Icon),
         ),
       );
-      expect(homeIcon.color, AppColors.blue);
+      expect(homeIcon.color, JuniorPalette.accent);
     });
   });
 

@@ -163,8 +163,9 @@ class _CohortListScreenState extends State<CohortListScreen> {
             AppBottomNavItem(
               icon: AppIcons.house,
               label: CohortListStrings.navHome,
-              // Back to whichever Home — adult or junior — is the root.
-              onTap: () => openStudentTab(context, StudentTab.home),
+              // Back to Home, the root of the stack.
+              onTap: () =>
+                  openStudentTab(context, StudentTrack.adult, StudentTab.home),
             ),
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
@@ -180,7 +181,11 @@ class _CohortListScreenState extends State<CohortListScreen> {
             AppBottomNavItem(
               icon: AppIcons.user,
               label: CohortListStrings.navProfile,
-              onTap: () => openStudentTab(context, StudentTab.profile),
+              onTap: () => openStudentTab(
+                context,
+                StudentTrack.adult,
+                StudentTab.profile,
+              ),
             ),
           ],
         ),

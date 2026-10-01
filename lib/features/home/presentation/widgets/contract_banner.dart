@@ -18,11 +18,23 @@ import 'home_palette.dart';
 /// two lines, a trailing caret — the same shape `ContactManagerCard` uses on
 /// the login screen. 80 tall in the reference: 16 of padding around a 48pt
 /// pair of lines.
+///
+/// The Junior "Сурлагын явц" frame draws this same banner — same 80pt
+/// geometry, outline, tile and caret — with its own two lines, so the copy
+/// can be overridden; it defaults to the adult dashboard's.
 class ContractBanner extends StatelessWidget {
-  const ContractBanner({super.key, this.onTap});
+  const ContractBanner({
+    super.key,
+    this.onTap,
+    this.title = HomeStrings.contractTitle,
+    this.supporting = HomeStrings.contractSupporting,
+  });
 
   /// Where the banner leads. Null leaves it a notice with no destination.
   final VoidCallback? onTap;
+
+  final String title;
+  final String supporting;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +42,7 @@ class ContractBanner extends StatelessWidget {
 
     return Semantics(
       button: onTap != null,
-      label: HomeStrings.contractTitle,
+      label: title,
       child: Material(
         color: HomePalette.contractFill,
         borderRadius: radius,
@@ -60,20 +72,20 @@ class ContractBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        HomeStrings.contractTitle,
+                        title,
                         style: _titleStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        HomeStrings.contractSupporting,
+                        supporting,
                         style: _supportingStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

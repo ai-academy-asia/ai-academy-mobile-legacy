@@ -52,17 +52,32 @@ class AppBottomNavItem {
 ///
 /// Home, the cohort list and Profile all draw this one bar, so its geometry —
 /// [AppDimens.bottomNavHeight] and the sizes below, measured off the Course
-/// Catalog frame, the only Figma frame that draws it — is the geometry on all
-/// three.
+/// Catalog frame — is the geometry on all three. The junior frames draw the
+/// same bar with a smaller label, the tabs inset from the screen edges and
+/// their own blue, which [labelSize], [horizontalPadding] and
+/// [selectedColor] carry; each defaults to the adult bar's.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.items,
     required this.currentIndex,
     super.key,
+    this.labelSize = _labelSize,
+    this.horizontalPadding = 0,
+    this.selectedColor = AppColors.blue,
   });
 
   final List<AppBottomNavItem> items;
   final int currentIndex;
+
+  /// The tab labels' font size.
+  final double labelSize;
+
+  /// Insets the row of tabs from both edges; the tabs share what is left
+  /// equally.
+  final double horizontalPadding;
+
+  /// The selected tab's icon and label.
+  final Color selectedColor;
 
   @override
   Widget build(BuildContext context) {
@@ -75,8 +90,9 @@ class AppBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
+        child: Container(
           height: AppDimens.bottomNavHeight,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Row(
             children: [
               for (var i = 0; i < items.length; i++)
@@ -84,6 +100,8 @@ class AppBottomNav extends StatelessWidget {
                   child: _NavButton(
                     item: items[i],
                     selected: i == currentIndex,
+                    labelSize: labelSize,
+                    selectedColor: selectedColor,
                   ),
                 ),
             ],
@@ -95,14 +113,21 @@ class AppBottomNav extends StatelessWidget {
 }
 
 class _NavButton extends StatelessWidget {
-  const _NavButton({required this.item, required this.selected});
+  const _NavButton({
+    required this.item,
+    required this.selected,
+    required this.labelSize,
+    required this.selectedColor,
+  });
 
   final AppBottomNavItem item;
   final bool selected;
+  final double labelSize;
+  final Color selectedColor;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.blue : AppColors.textSecondary;
+    final color = selected ? selectedColor : AppColors.textSecondary;
     final selectedAsset = selected ? item.selectedAsset : null;
 
     return Semantics(
@@ -128,7 +153,7 @@ class _NavButton extends StatelessWidget {
               item.label,
               style: AppTypography.badgeLabel.copyWith(
                 color: color,
-                fontSize: _labelSize,
+                fontSize: labelSize,
               ),
             ),
           ],

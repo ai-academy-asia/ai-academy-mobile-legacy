@@ -35,6 +35,25 @@ abstract final class JuniorPalette {
   /// The "Junior" pill.
   static const Color pillFill = Color(0xFFF9FAFB);
 
+  // --- "Сурлагын явц" -------------------------------------------------------
+  //
+  // Sampled from the Junior Learning Progress frame at 1:1. The neutrals it
+  // also uses — `#D6DBE1`, `#EAEDF0`, `#F9FAFB`, `#726D6D` — are [muted],
+  // [mutedFill], `AppColors.surfaceSubtle` and `HomePalette.statLabel`.
+
+  /// A calendar day with nothing marked on it: a flat grey disc.
+  static const Color dayNeutral = Color(0xFFF2F2F3);
+
+  /// The disc behind a "Хичээлтэй өдөр" mark, and the summary badges' fill —
+  /// the same pale blue `HomePalette.liveFill` is.
+  static const Color dayLesson = Color(0xFFE5F4FF);
+
+  /// The disc behind a "Хичээлээ тасалсан" mark.
+  static const Color dayMissed = Color(0xFFFFE7E7);
+
+  /// The summary badges' outline.
+  static const Color badgeOutline = Color(0xFFBDE3FF);
+
   /// A node's lift off the map.
   ///
   /// Not a blurred shadow: measured down the centre of all three states, the

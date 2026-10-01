@@ -92,15 +92,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             AppBottomNavItem(
               icon: AppIcons.house,
               label: ProfileStrings.navHome,
-              // Back to whichever Home — adult or junior — is the root.
-              onTap: () => openStudentTab(context, StudentTab.home),
+              // Back to Home, the root of the stack.
+              onTap: () =>
+                  openStudentTab(context, StudentTrack.adult, StudentTab.home),
             ),
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
               label: ProfileStrings.navCourses,
               // Always the student's own cohorts, whichever screen opened
               // Profile — a pop would land on Home when Home opened it.
-              onTap: () => openStudentTab(context, StudentTab.progress),
+              onTap: () => openStudentTab(
+                context,
+                StudentTrack.adult,
+                StudentTab.progress,
+              ),
             ),
             const AppBottomNavItem(
               icon: AppIcons.user,
