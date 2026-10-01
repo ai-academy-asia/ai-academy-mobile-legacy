@@ -249,7 +249,10 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
   /// Every `(assignmentId, link, description)` [submitAssignment] was called
   /// with, in order.
-  final List<(int, String, String?)> submitCalls = [];
+  final List<(int, String?, String?)> submitCalls = [];
+
+  /// The `fileId` of each of those calls, in the same order.
+  final List<int?> submitFileIds = [];
 
   Completer<void>? _submitGate;
 
@@ -261,10 +264,12 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   @override
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
-    required String link,
+    String? link,
     String? description,
+    int? fileId,
   }) async {
     submitCalls.add((assignmentId, link, description));
+    submitFileIds.add(fileId);
 
     if (holdSubmit) {
       _submitGate = Completer<void>();
@@ -273,8 +278,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
     if (submitFailure case final failure?) throw failure;
 
-    return submission ??
-        sampleSubmission(link: link, description: description);
+    return submission ?? sampleSubmission(link: link, description: description);
   }
 
   // --- uploadFile ----------------------------------------------------------

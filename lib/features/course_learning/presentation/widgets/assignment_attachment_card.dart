@@ -112,15 +112,79 @@ class _AssignmentAttachmentCardState extends State<AssignmentAttachmentCard> {
       // download row used to start, which is what the next two frames show.
       _DownloadStage.idle => AssignmentUploadDropzone(onTap: _start),
       _DownloadStage.downloading => _DownloadingCard(
-        attachment: widget.attachment,
+        heading: CourseLearningStrings.downloadStarted,
+        title: CourseLearningStrings.downloadingAttachment,
+        cancelLabel: CourseLearningStrings.cancelDownload,
+        amountLabel: _downloadedLabel(widget.attachment.sizeLabel, _progress),
         progress: _progress,
         onCancel: _cancel,
       ),
       _DownloadStage.complete => _CompleteRow(
-        attachment: widget.attachment,
+        subtitle: CourseLearningStrings.attachmentTypeLabel(
+          widget.attachment.sizeLabel,
+        ),
         onRemove: _remove,
       ),
     };
+  }
+}
+
+/// The same three-state file area, for a file the student really uploads —
+/// a backend assignment's. Stateless: the pick, the upload and the stored
+/// file live on `CourseExerciseDetailController`, so they survive a tab
+/// switch, and this draws whichever state it is handed.
+///
+/// A separate widget from [AssignmentAttachmentCard] rather than a mode of
+/// it, so that one's timer-driven simulation — which the Figma states and
+/// the goldens were built against — stays exactly as it is. Both draw the
+/// same private pieces below.
+///
+/// **No real progress.** `CourseLearningRepository.uploadFile` answers once,
+/// when the upload is done, so the reference's filling bar and "129 KB /
+/// 1 MB" count have nothing to read: both indicators run indeterminate and
+/// the line under "Uploading..." is the file's total size alone.
+///
+/// **Its own wording.** The reference words this card for a download; here
+/// it says upload — see `CourseLearningStrings.uploadStarted`.
+class AssignmentFileUploadCard extends StatelessWidget {
+  const AssignmentFileUploadCard({
+    required this.uploadSizeLabel,
+    required this.uploadedFileLabel,
+    required this.onPick,
+    required this.onCancel,
+    required this.onRemove,
+    super.key,
+  });
+
+  /// The size of the file being uploaded, e.g. "1 MB" — non-null exactly
+  /// while an upload is in flight.
+  final String? uploadSizeLabel;
+
+  /// The stored file's "1 MB, PDF" line — non-null once one is uploaded.
+  final String? uploadedFileLabel;
+
+  /// Each null draws its control unchanged but inert — the form is locked
+  /// while a submit is in flight.
+  final VoidCallback? onPick;
+  final VoidCallback? onCancel;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (uploadSizeLabel case final sizeLabel?) {
+      return _DownloadingCard(
+        heading: CourseLearningStrings.uploadStarted,
+        title: CourseLearningStrings.uploadingFile,
+        cancelLabel: CourseLearningStrings.cancelUpload,
+        amountLabel: sizeLabel,
+        progress: null,
+        onCancel: onCancel,
+      );
+    }
+    if (uploadedFileLabel case final fileLabel?) {
+      return _CompleteRow(subtitle: fileLabel, onRemove: onRemove);
+    }
+    return AssignmentUploadDropzone(onTap: onPick);
   }
 }
 
@@ -183,10 +247,11 @@ class _AttachmentRow extends StatelessWidget {
 }
 
 class _CompleteRow extends StatelessWidget {
-  const _CompleteRow({required this.attachment, required this.onRemove});
+  const _CompleteRow({required this.subtitle, required this.onRemove});
 
-  final CourseExerciseMaterial attachment;
-  final VoidCallback onRemove;
+  /// The "1 MB, PDF" line under "Complete".
+  final String subtitle;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +270,7 @@ class _CompleteRow extends StatelessWidget {
         child: const Icon(Icons.check, size: 18, color: AppColors.textPrimary),
       ),
       title: CourseLearningStrings.attachmentComplete,
-      subtitle: CourseLearningStrings.attachmentTypeLabel(attachment.sizeLabel),
+      subtitle: subtitle,
       trailing: _CircleIconButton(
         label: CourseLearningStrings.removeAttachment,
         onTap: onRemove,
@@ -225,7 +290,7 @@ class _CircleIconButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Widget child;
 
   @override
@@ -252,20 +317,35 @@ class _CircleIconButton extends StatelessWidget {
   }
 }
 
-/// The downloading state: "Your download has started.", a progress row with
-/// a Cancel pill, and a progress bar underneath — a taller card than the
+/// The in-transfer state: a [heading] ("Your download has started."), a
+/// progress row with a Cancel pill, and a progress bar underneath — a taller card than the
 /// idle/complete rows, since the reference draws this one with real
 /// in-progress chrome rather than a single row.
 class _DownloadingCard extends StatelessWidget {
   const _DownloadingCard({
-    required this.attachment,
+    required this.heading,
+    required this.title,
+    required this.cancelLabel,
+    required this.amountLabel,
     required this.progress,
     required this.onCancel,
   });
 
-  final CourseExerciseMaterial attachment;
-  final double progress;
-  final VoidCallback onCancel;
+  /// The card's first line, e.g. "Your download has started.".
+  final String heading;
+
+  /// The line beside the spinner, e.g. "Downloading...".
+  final String title;
+
+  final String cancelLabel;
+
+  /// The line under [title], e.g. "129 KB / 1 MB".
+  final String amountLabel;
+
+  /// 0 to 1, or null when the transfer reports none — both indicators then
+  /// run indeterminate.
+  final double? progress;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +364,7 @@ class _DownloadingCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            CourseLearningStrings.downloadStarted,
+            heading,
             style: AppTypography.cardHeading.copyWith(fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -307,19 +387,16 @@ class _DownloadingCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      CourseLearningStrings.downloadingAttachment,
+                      title,
                       style: AppTypography.cardHeading.copyWith(fontSize: 14),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      _downloadedLabel(attachment.sizeLabel, progress),
-                      style: AppTypography.cardSupporting,
-                    ),
+                    Text(amountLabel, style: AppTypography.cardSupporting),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              _CancelButton(onTap: onCancel),
+              _CancelButton(label: cancelLabel, onTap: onCancel),
             ],
           ),
           const SizedBox(height: 12),
@@ -339,15 +416,16 @@ class _DownloadingCard extends StatelessWidget {
 }
 
 class _CancelButton extends StatelessWidget {
-  const _CancelButton({required this.onTap});
+  const _CancelButton({required this.label, required this.onTap});
 
-  final VoidCallback onTap;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: CourseLearningStrings.cancelDownload,
+      label: label,
       child: Material(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -366,7 +444,7 @@ class _CancelButton extends StatelessWidget {
               ),
             ),
             child: Text(
-              CourseLearningStrings.cancelDownload,
+              label,
               style: AppTypography.cardHeading.copyWith(fontSize: 13),
             ),
           ),

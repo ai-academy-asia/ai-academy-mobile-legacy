@@ -295,7 +295,7 @@ class AssignmentSubmission {
   final DateTime submittedAt;
 
   /// Either may be null — §2.6 requires a link *or* a file, and makes the
-  /// description optional.
+  /// description optional. The submission's file itself is not read.
   final String? link;
   final String? description;
 

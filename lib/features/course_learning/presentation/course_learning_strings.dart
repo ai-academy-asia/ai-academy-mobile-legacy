@@ -154,6 +154,15 @@ abstract final class CourseLearningStrings {
   static const String cancelDownload = 'Cancel';
   static const String downloadStarted = 'Your download has started.';
   static const String downloadingAttachment = 'Downloading...';
+
+  /// The same card's two lines while a student's own file uploads. The
+  /// reference draws this state once, worded for a download ("Your download
+  /// has started." / "Downloading...") under an area labelled "Upload File";
+  /// for a real upload that wording is wrong, so — as with the frame's
+  /// "Compelete" — the design's intent is kept and the word corrected.
+  static const String uploadStarted = 'Your upload has started.';
+  static const String uploadingFile = 'Uploading...';
+  static const String cancelUpload = 'Cancel';
   static const String attachmentComplete = 'Complete';
 
   /// e.g. "1 MB, PDF" — the reference shows a file type alongside the size
@@ -161,6 +170,16 @@ abstract final class CourseLearningStrings {
   /// type, so this is fixed the same way `CourseExerciseMaterial.sizeLabel`
   /// is a pre-formatted display string rather than raw data.
   static String attachmentTypeLabel(String sizeLabel) => '$sizeLabel, PDF';
+
+  /// The same "1 MB, PDF" line for a file the student really uploaded: the
+  /// type is [fileName]'s own extension, upper-cased the way the reference
+  /// writes it. A name with no extension has no type to show, so the line is
+  /// the size alone.
+  static String uploadedFileLabel(String sizeLabel, String fileName) {
+    final dot = fileName.lastIndexOf('.');
+    if (dot <= 0 || dot == fileName.length - 1) return sizeLabel;
+    return '$sizeLabel, ${fileName.substring(dot + 1).toUpperCase()}';
+  }
 
   // --- Quiz preview/result card (Exercise Detail) ---------------------------
 

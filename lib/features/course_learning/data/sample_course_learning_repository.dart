@@ -315,8 +315,9 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
   @override
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
-    required String link,
+    String? link,
     String? description,
+    int? fileId,
   }) async {
     throw CourseLearningFailure(
       CourseLearningFailureKind.notFound,
@@ -326,7 +327,8 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
 
   /// The sample has no backend to store a file on, so nothing is uploaded:
   /// this fails, as `unexpected`, rather than answer with a stored file that
-  /// does not exist. Nothing in the app calls it yet.
+  /// does not exist. Never reached from the sample exercise itself: its
+  /// Assignment tab keeps its simulated file area.
   @override
   Future<UploadedFile> uploadFile({
     required String fileName,

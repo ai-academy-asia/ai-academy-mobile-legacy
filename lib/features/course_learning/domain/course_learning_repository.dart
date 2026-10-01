@@ -10,7 +10,7 @@ import 'uploaded_file.dart';
 /// `HttpCourseLearningRepository` serves all three from
 /// `course_learning_api_contract_v1.md` §2.1–2.3, saves a lesson's note
 /// through §2.5, fetches a material's download link through §2.4, submits
-/// an assignment link through §2.6 and uploads a student file through §2.8,
+/// an assignment through §2.6 and uploads a student file through §2.8,
 /// throwing `CourseLearningFailure`;
 /// `SampleCourseLearningRepository` serves hand-authored content for tests
 /// and the dev preview.
@@ -44,14 +44,17 @@ abstract interface class CourseLearningRepository {
   /// `CourseExerciseMaterial.id`.
   Future<MaterialDownload> getMaterialDownload(int materialId);
 
-  /// Submits — or resubmits, the same call — a link to assignment
-  /// [assignmentId] and returns the new latest submission — §2.6
-  /// `POST /me/assignments/{assignment_id}/submissions`. [assignmentId] is
-  /// `CourseAssignment.id`. No file: that is §2.8's upload, not integrated.
+  /// Submits — or resubmits, the same call — a [link], an uploaded file, or
+  /// both to assignment [assignmentId] and returns the new latest submission
+  /// — §2.6 `POST /me/assignments/{assignment_id}/submissions`.
+  /// [assignmentId] is `CourseAssignment.id`; [fileId] is the
+  /// `UploadedFile.id` an earlier [uploadFile] answered with. §2.6 wants a
+  /// link or a file; sending neither is the server's `submission_empty`.
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
-    required String link,
+    String? link,
     String? description,
+    int? fileId,
   });
 
   /// Uploads [bytes] as a student file named [fileName] and returns it as
