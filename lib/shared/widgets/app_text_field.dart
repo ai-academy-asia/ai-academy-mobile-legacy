@@ -14,10 +14,16 @@ import '../../core/theme/app_typography.dart';
 /// customised is everything Material would otherwise impose: the shape, the
 /// stroke weights, the colours and the type.
 ///
-/// [placeholder] and [floatingLabel] are separate because the design shortens
-/// the text as it rises: the first field rests as "Утасны дугаар / Email хаяг"
-/// and floats as "Утасны дугаар". Swapping [InputDecoration.labelText] at the
-/// moment the label leaves the field reproduces that.
+/// [placeholder] and [floatingLabel] are separate because the text can change
+/// as it rises: login's first field rests as "Утасны дугаар / Email хаяг" and
+/// floats as whichever of the two is being typed. Swapping
+/// [InputDecoration.labelText] at the moment the label leaves the field
+/// reproduces that.
+///
+/// The risen label is drawn at [AppTypography.fieldFloatingLabel]'s own size.
+/// Material shrinks a floating label to 75% of its style, which left the
+/// token's 10pt at an unreadable 7.5pt, so the style handed to Material is
+/// enlarged by the inverse.
 class AppTextField extends StatefulWidget {
   const AppTextField({
     required this.controller,
@@ -110,6 +116,14 @@ class _AppTextFieldState extends State<AppTextField> {
     super.dispose();
   }
 
+  /// Material's scale for a floating label (`InputDecorator`'s
+  /// `_kFinalLabelScale`).
+  static const double _materialFloatingLabelScale = 0.75;
+
+  static final TextStyle _floatingLabelStyle = AppTypography.fieldFloatingLabel.copyWith(
+    fontSize: AppTypography.fieldFloatingLabel.fontSize! / _materialFloatingLabelScale,
+  );
+
   OutlineInputBorder _border(Color color, double width) => OutlineInputBorder(
     borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
     borderSide: BorderSide(color: color, width: width),
@@ -144,7 +158,7 @@ class _AppTextFieldState extends State<AppTextField> {
         // the label lifts.
         labelText: floating ? widget.floatingLabel : widget.placeholder,
         labelStyle: AppTypography.fieldPlaceholder,
-        floatingLabelStyle: AppTypography.fieldFloatingLabel.copyWith(color: labelColor),
+        floatingLabelStyle: _floatingLabelStyle.copyWith(color: labelColor),
         floatingLabelBehavior: FloatingLabelBehavior.auto,
         // The reference shows no message under an errored field — the red
         // border and red label carry the state. The text is still supplied so

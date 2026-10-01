@@ -1,6 +1,7 @@
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
@@ -153,14 +154,63 @@ void main() {
   });
 
   group('Sign in - 2, the identifier focused', () {
-    testWidgets('lifts the shortened label out of the field', (tester) async {
+    testWidgets('lifts the label out of the field, naming both until it can '
+        'tell which is typed', (tester) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       await tester.tap(fieldAt(0));
       await tester.pump();
 
-      expect(labelTextAt(tester, 0), LoginStrings.identifierLabel);
+      // Empty: both identifiers are still possible.
+      expect(labelTextAt(tester, 0), LoginStrings.identifierPlaceholder);
       expect(floatingLabelColourAt(tester, 0), AppColors.borderFocused);
+    });
+
+    testWidgets('names the kind once what is typed makes it clear', (
+      tester,
+    ) async {
+      await pumpLogin(tester, FakeAuthRepository());
+
+      Future<String> labelFor(String text) async {
+        await tester.enterText(fieldAt(0), text);
+        await tester.pump();
+        return labelTextAt(tester, 0);
+      }
+
+      // Partial input decides nothing.
+      expect(await labelFor('9'), LoginStrings.identifierPlaceholder);
+      expect(await labelFor('9911'), LoginStrings.identifierPlaceholder);
+      expect(await labelFor('jr10'), LoginStrings.identifierPlaceholder);
+      expect(await labelFor('@'), LoginStrings.identifierPlaceholder);
+      // A whole number is a phone; an "@" makes it an address.
+      expect(await labelFor('99112233'), LoginStrings.identifierPhoneLabel);
+      expect(await labelFor('99112233@'), LoginStrings.identifierEmailLabel);
+      expect(
+        await labelFor('jr10.s01@test'),
+        LoginStrings.identifierEmailLabel,
+      );
+      // Cleared: back to both.
+      expect(await labelFor(''), LoginStrings.identifierPlaceholder);
+    });
+
+    testWidgets('draws the risen labels at the type scale\'s own size, '
+        'undoing Material\'s 75% shrink', (tester) async {
+      await pumpLogin(tester, FakeAuthRepository());
+
+      for (final index in [0, 1]) {
+        final style = decorationAt(tester, index).floatingLabelStyle!;
+        // What the notch shows: Material scales the style by 0.75.
+        expect(
+          style.fontSize! * 0.75,
+          closeTo(AppTypography.fieldFloatingLabel.fontSize!, 0.001),
+          reason: 'field $index',
+        );
+        expect(
+          style.fontSize! * style.height! * 0.75,
+          closeTo(16, 0.001),
+          reason: 'field $index keeps its 16pt line',
+        );
+      }
     });
 
     testWidgets('focuses with a dark border, never the button blue', (
@@ -256,7 +306,7 @@ void main() {
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
 
-      expect(labelTextAt(tester, 0), LoginStrings.identifierLabel);
+      expect(labelTextAt(tester, 0), LoginStrings.identifierPhoneLabel);
     });
   });
 

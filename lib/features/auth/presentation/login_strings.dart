@@ -13,9 +13,13 @@ abstract final class LoginStrings {
   /// takes either a phone number or an email address.
   static const String identifierPlaceholder = 'Утасны дугаар / Email хаяг';
 
-  /// The same field's floating label, once it is focused or filled. The design
-  /// shortens it — the long form only ever appears as the resting placeholder.
-  static const String identifierLabel = 'Утасны дугаар';
+  /// The same field's floating label once what is typed is recognisably a
+  /// phone number. The design shows this one; the field takes an email too
+  /// (Issue #146), so while it cannot tell, the label stays [identifierPlaceholder].
+  static const String identifierPhoneLabel = 'Утасны дугаар';
+
+  /// The floating label once what is typed is recognisably an email address.
+  static const String identifierEmailLabel = 'Email хаяг';
 
   /// Second field, in both resting and floating positions.
   static const String passwordLabel = 'Нууц үг';
