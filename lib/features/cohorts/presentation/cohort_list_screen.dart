@@ -7,6 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../courses/domain/course_repository.dart';
 import '../../enrollments/data/http_enrolled_cohorts_repository.dart';
@@ -162,14 +163,8 @@ class _CohortListScreenState extends State<CohortListScreen> {
             AppBottomNavItem(
               icon: AppIcons.house,
               label: CohortListStrings.navHome,
-              // Home is always the root of the stack once signed in — every
-              // screen reached from it is a `push`, never a replace — so
-              // popping back to it needs no route of its own. `isFirst` is
-              // the fallback for a stack that (in a test, say) never carries
-              // a route actually named '/home', so this always terminates.
-              onTap: () => Navigator.of(context).popUntil(
-                (route) => route.isFirst || route.settings.name == '/home',
-              ),
+              // Back to whichever Home — adult or junior — is the root.
+              onTap: () => openStudentTab(context, StudentTab.home),
             ),
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
@@ -185,7 +180,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
             AppBottomNavItem(
               icon: AppIcons.user,
               label: CohortListStrings.navProfile,
-              onTap: () => Navigator.of(context).pushNamed('/profile'),
+              onTap: () => openStudentTab(context, StudentTab.profile),
             ),
           ],
         ),

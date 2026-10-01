@@ -7,6 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../data/enrolled_home_dashboard_repository.dart';
 import '../domain/home_dashboard.dart';
@@ -96,12 +97,12 @@ class _HomeScreenState extends State<HomeScreen> {
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
               label: HomeStrings.navCourses,
-              onTap: () => Navigator.of(context).pushNamed('/my-cohorts'),
+              onTap: () => openStudentTab(context, StudentTab.progress),
             ),
             AppBottomNavItem(
               icon: AppIcons.user,
               label: HomeStrings.navProfile,
-              onTap: () => Navigator.of(context).pushNamed('/profile'),
+              onTap: () => openStudentTab(context, StudentTab.profile),
             ),
           ],
         ),

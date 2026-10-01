@@ -61,8 +61,9 @@ Conventions that hold across the codebase:
 | `/` | `SplashScreen` — animates, then `pushReplacement` to `/login` after 7s |
 | `/login` | `LoginScreen` |
 | `/reset-password` | `ResetPasswordScreen` |
-| `/home` | `HomeScreen` (Нүүр tab) |
-| `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (Хичээл tab) |
+| `/home` | `HomeScreen` (adult Нүүр tab) |
+| `/junior-home` | `JuniorHomeScreen` (junior Нүүр tab) — `homeRouteFor` picks between the two |
+| `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (Хичээл / Сурлагын явц tab) |
 | `/courses` | `CourseCatalogScreen` — draft catalog, no longer reached from Home |
 | `/cohorts` | `CohortListScreen`, optional `int` course-id argument via `ModalRoute.settings.arguments` |
 | `/profile` | `ProfileScreen` (Профайл tab) |
@@ -72,7 +73,7 @@ Conventions that hold across the codebase:
 
 One navigation idiom worth knowing, in `course_learning`: `CourseQuizScreen` finishes by calling `pushReplacement` to `CourseQuizResultScreen`, passing the score as the **replaced route's** result. That completes the *original* `push` future immediately (not when the result screen later pops), which is invisible to the user because Exercise Detail is off-screen throughout. The result screen then pops once to return there.
 
-**Bottom navigation** (`AppBottomNav`) appears on exactly three screens: Home, Cohort List, Profile.
+**Bottom navigation** (`AppBottomNav`) appears on four screens: Home, Junior Home, Cohort List, Profile. Each draws its own tabs, but every tab switch goes through `openStudentTab` (`auth/presentation/student_tabs.dart`): Нүүр pops back to whichever Home is the root, and the other two tabs replace whatever tab sits above it — so the stack is never deeper than Home plus one tab, and junior and adult students share the same destinations.
 
 ## 4. Repository pattern
 

@@ -7,6 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../data/api_junior_home_repository.dart';
 import '../domain/junior_home_repository.dart';
@@ -33,10 +34,10 @@ import 'widgets/junior_learning_map_view.dart';
 /// slug from the existing enrolled-cohort architecture. Loading, empty and
 /// failure states follow `HomeScreen`'s; the map's own visuals are unchanged.
 ///
-/// **Not in this issue.** No route registration and no adult/junior
-/// selection. The two inactive tabs are inert for the reason
-/// [AppBottomNavItem.onTap] documents — a Junior progress screen does not
-/// exist yet.
+/// **Tabs.** The bar's look is this frame's, but its behaviour is the adult
+/// bar's, through [openStudentTab]: Сурлагын явц opens the student's own
+/// enrolled cohorts and Профайл the shared Profile — the same screens the
+/// adult Home opens. No separate Junior progress screen exists to open.
 class JuniorHomeScreen extends StatefulWidget {
   const JuniorHomeScreen({super.key, this.repository});
 
@@ -77,8 +78,8 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         backgroundColor: AppColors.surface,
         bottomNavigationBar: AppBottomNav(
           currentIndex: 0,
-          items: const [
-            AppBottomNavItem(
+          items: [
+            const AppBottomNavItem(
               // The frame draws the active Home tab as a *solid* house.
               // `AppIcons.house` is Phosphor's outline weight, and the
               // bundled `Phosphor.ttf` carries one weight only — there is no
@@ -99,10 +100,12 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
               // guessed codepoint, which is what this is.
               icon: Icons.event_available_outlined,
               label: JuniorHomeStrings.navProgress,
+              onTap: () => openStudentTab(context, StudentTab.progress),
             ),
             AppBottomNavItem(
               icon: AppIcons.user,
               label: JuniorHomeStrings.navProfile,
+              onTap: () => openStudentTab(context, StudentTab.profile),
             ),
           ],
         ),
