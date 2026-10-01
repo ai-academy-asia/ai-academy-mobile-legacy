@@ -346,6 +346,53 @@ void main() {
     );
   });
 
+  group('nullable age_max (production GET /courses)', () {
+    test('age_max: null is accepted as no upper age bound', () async {
+      // The production catalog's adult courses (ids 8–12): age_min 18, no
+      // upper bound — next to a bounded course in the same list.
+      final body = jsonEncode({
+        'courses': [
+          _courseJson(
+            overrides: {
+              'id': 8,
+              'slug': 'ai-engineering',
+              'age_min': 18,
+              'age_max': null,
+            },
+          ),
+          _courseJson(),
+        ],
+      });
+
+      final courses = await HttpCourseRepository(
+        client: MockClient((_) async => jsonResponse(body, 200)),
+      ).getCourses();
+
+      expect(courses.first.ageMin, 18);
+      expect(courses.first.ageMax, isNull);
+      expect(courses.last.ageMin, 10);
+      expect(courses.last.ageMax, 18);
+    });
+
+    test('a non-number age_max is still rejected', () async {
+      final body = jsonEncode({
+        'courses': [
+          _courseJson(overrides: {'age_max': 'eighteen'}),
+        ],
+      });
+
+      try {
+        await HttpCourseRepository(
+          client: MockClient((_) async => jsonResponse(body, 200)),
+        ).getCourses();
+        fail('expected an ApiFailure');
+      } on ApiFailure catch (failure) {
+        expect(failure.kind, ApiFailureKind.server);
+        expect(failure.detail, contains('age_max'));
+      }
+    });
+  });
+
   group('HTTP failures', () {
     Future<ApiFailure> failureFrom(HttpCourseRepository repository) async {
       try {

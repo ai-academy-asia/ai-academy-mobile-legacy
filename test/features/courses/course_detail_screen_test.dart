@@ -214,6 +214,24 @@ void main() {
     );
   });
 
+  group('age range', () {
+    testWidgets('a course with no age_max shows an open-ended range', (
+      tester,
+    ) async {
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(
+          courseDetail: sampleCourse(ageMin: 18, ageMax: null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('18+ нас'), findsOneWidget);
+      expect(find.textContaining('null'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('course learning', () {
     testWidgets('the CTA opens CourseModuleListScreen for the course\'s slug', (
       tester,

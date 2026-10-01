@@ -3,10 +3,12 @@ import '../../../core/models/localized_text.dart';
 /// A scheduled cohort, as `GET /cohorts` lists it.
 ///
 /// Nullability mirrors `Course`'s policy: a field is modelled nullable only
-/// where the one confirmed response showed it as `null` ([parentCohortId],
-/// [scheduleNote]). Everything else is required, and `HttpCohortRepository`
-/// fails loudly if a required field is missing on a real response — treat
-/// that as a sign this model needs to loosen, not as a bug in the cohort.
+/// where a confirmed response showed it as `null` ([parentCohortId],
+/// [scheduleNote], and [classroom] — `null` on an online cohort in the
+/// production response, see its doc). Everything else is required, and
+/// `HttpCohortRepository` fails loudly if a required field is missing on a
+/// real response — treat that as a sign this model needs to loosen, not as a
+/// bug in the cohort.
 ///
 /// [status] stays `String` rather than an enum, same reasoning as
 /// `Course.status`: one confirmed value ("open") is not enough to say what
@@ -19,7 +21,6 @@ class Cohort {
     required this.name,
     required this.courseId,
     required this.course,
-    required this.classroom,
     required this.teacher,
     required this.capacity,
     required this.enrolledCount,
@@ -31,6 +32,7 @@ class Cohort {
     required this.endTime,
     required this.graduationDate,
     required this.meetingDays,
+    this.classroom,
     this.parentCohortId,
     this.scheduleNote,
   });
@@ -43,7 +45,12 @@ class Cohort {
   final int courseId;
 
   final CohortCourse course;
-  final CohortClassroom classroom;
+
+  /// Where the cohort meets. `null` for a cohort with no classroom — the
+  /// production `GET /cohorts` sends `"classroom": null` for the online
+  /// `ai-applied-online` cohort. Nothing in the app draws it yet.
+  final CohortClassroom? classroom;
+
   final CohortTeacher teacher;
 
   final int capacity;

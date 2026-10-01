@@ -26,6 +26,13 @@ abstract final class CourseCatalogStrings {
   /// Unit suffix for an age range, e.g. "10-18 нас".
   static const String ageUnit = 'нас';
 
+  /// A course's age range: "10-18 нас", or "18+ нас" when the course sends
+  /// no upper bound (`age_max: null`). The open end is drawn, never filled in
+  /// with a guessed upper age; "+" keeps the existing number-unit shape
+  /// rather than adding new wording.
+  static String ageRange(int min, int? max) =>
+      max == null ? '$min+ $ageUnit' : '$min-$max $ageUnit';
+
   /// Unit suffix for a course length given only in weeks, e.g. "3 долоо хоног".
   /// Used only when the API sends no `duration_label` of its own.
   static const String weeksUnit = 'долоо хоног';

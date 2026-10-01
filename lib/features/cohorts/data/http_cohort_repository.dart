@@ -77,7 +77,7 @@ Cohort _cohortFromJson(Object? entry) {
     name: _requireString(entry, 'name'),
     courseId: _requireInt(entry, 'course_id'),
     course: _requireCohortCourse(entry, 'course'),
-    classroom: _requireClassroom(entry, 'classroom'),
+    classroom: _optionalClassroom(entry, 'classroom'),
     teacher: _requireTeacher(entry, 'teacher'),
     capacity: _requireInt(entry, 'capacity'),
     enrolledCount: _requireInt(entry, 'enrolled_count'),
@@ -106,7 +106,10 @@ CohortCourse _requireCohortCourse(Map<String, dynamic> json, String key) {
   );
 }
 
-CohortClassroom _requireClassroom(Map<String, dynamic> json, String key) {
+/// `null` is a real value here — an online cohort has no classroom. Anything
+/// else must be a classroom object, and is still rejected loudly otherwise.
+CohortClassroom? _optionalClassroom(Map<String, dynamic> json, String key) {
+  if (json[key] == null) return null;
   final value = _requireObject(json, key);
   return CohortClassroom(
     id: _requireInt(value, 'id'),

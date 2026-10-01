@@ -7,7 +7,8 @@ import '../../../core/models/localized_text.dart';
 /// field is modelled as nullable only where that response showed it as `null`
 /// (`banner_image_url`, `duration_label`, `icon`, `sort_order`,
 /// `target_audience`, and the individual `en`/`mn` keys inside [title] and
-/// [tagline]). Everything else is modelled as required.
+/// [tagline]) — plus [ageMax], which the production catalog later showed as
+/// `null`. Everything else is modelled as required.
 ///
 /// **That is a real limitation, not a guarantee.** A field that happened to
 /// carry a value in the one example (`age_min`, `discount_percent`, …) could
@@ -117,7 +118,11 @@ class Course {
   final String status;
 
   final int ageMin;
-  final int ageMax;
+
+  /// The upper age bound, or `null` for a course with none — the production
+  /// `GET /courses` sends `"age_max": null` (with `age_min: 18`) for its adult
+  /// courses. Shown as an open-ended range, never filled in with a guess.
+  final int? ageMax;
   final int durationWeeks;
 
   /// Raw ISO-looking date string from the wire, e.g. "2026-06-01".

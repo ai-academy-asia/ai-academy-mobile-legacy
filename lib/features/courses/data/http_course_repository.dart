@@ -141,7 +141,8 @@ Course _courseFromJson(Object? entry) {
     format: _requireString(entry, 'format'),
     status: _requireString(entry, 'status'),
     ageMin: _requireInt(entry, 'age_min'),
-    ageMax: _requireInt(entry, 'age_max'),
+    // `null` on the production catalog's adult courses: no upper age bound.
+    ageMax: _optionalInt(entry, 'age_max'),
     durationWeeks: _requireInt(entry, 'duration_weeks'),
     startDate: _requireString(entry, 'start_date'),
     endDate: _requireString(entry, 'end_date'),
