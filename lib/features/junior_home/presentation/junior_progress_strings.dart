@@ -89,10 +89,12 @@ abstract final class JuniorProgressStrings {
 
 /// The screen's exported artwork — the three day marks, each the design's
 /// own vector SVG. [lessonDay] and [lessonMissed] are committed unchanged;
-/// [lessonAttended] is [lessonDay]'s paths recoloured to the frame's attended
-/// mark — a white "A" and a `#F8623F` sparkle, sampled off the design's own
-/// artwork — drawn at 16 x 15, because the supplied attended export (a PNG
-/// inside an SVG pattern) paints nothing in flutter_svg.
+/// [lessonAttended] is [lessonDay]'s paths, geometry unchanged, recoloured
+/// to the frame's attended mark — a near-white `#EEFBFF` "A" with its back leg
+/// in `#D9E4FF`, the fold in `#7CA4FF` and a `#F8623F` sparkle, all sampled off
+/// the design's own artwork — drawn at 16 x 15. The supplied attended export
+/// (a PNG inside an SVG pattern) paints nothing in flutter_svg, so it served
+/// as the colour reference only.
 abstract final class JuniorProgressIcons {
   static const String _dir = 'assets/icons';
 
