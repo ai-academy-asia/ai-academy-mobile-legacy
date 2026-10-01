@@ -61,7 +61,7 @@ Two entry points, split by failure family — not by accident:
 
 ## 4. Failure taxonomy
 
-Six failure types, each scoped to a domain so no caller has to `switch` over cases that cannot occur in its context.
+Eight failure types, each scoped to a domain so no caller has to `switch` over cases that cannot occur in its context.
 
 | Type | Kinds |
 |---|---|
@@ -70,9 +70,11 @@ Six failure types, each scoped to a domain so no caller has to `switch` over cas
 | `CurrentUserFailure` (`auth`) | `rejected`, `network`, `server`, `unexpected` |
 | `EnrollmentFailure` (`enrollments`) | `rejected`, `network`, `server`, `unexpected` |
 | `HomeFailure` (`home`) | `network`, `server`, `unexpected` |
-| `CourseLearningFailure` (`course_learning`) | `sessionExpired`, `notEnrolled`, `notFound`, `network`, `server`, `unexpected` |
+| `AttendanceFailure` (`attendance`) | `sessionExpired`, `rejected`, `network`, `server`, `unexpected` |
+| `LedgerFailure` (`payments`) | `sessionExpired`, `rejected`, `network`, `server`, `unexpected` |
+| `CourseLearningFailure` (`course_learning`) | `sessionExpired`, `notEnrolled`, `notFound`, `locked`, `contentRequired`, `contentTooLong`, `submissionEmpty`, `invalidLink`, `descriptionTooLong`, `pastDue`, `noAttemptsLeft`, `attemptFinished`, `alreadyAnswered`, `unsupportedFileType`, `fileTooLarge`, `network`, `server`, `unexpected` |
 
-`notFound` exists only on `ApiFailure` and only because a 404 on `GET /courses/{slug}` is a real, distinguishable outcome (stale link, removed course) a screen may want to word differently.
+`notFound` exists on `ApiFailure`, because a 404 on `GET /courses/{slug}` is a real, distinguishable outcome (stale link, removed course) a screen may want to word differently, and on `CourseLearningFailure`, for the contract's `*_not_found` 404s. `CourseLearningFailure`'s 400/409/413 kinds are read from the body's `error` code, which the contract (§0) says the app branches on.
 
 **Controllers convert these into `String? errorMessage`.** Widgets never catch failures.
 
@@ -104,31 +106,22 @@ Facts that constrain any auth-adjacent work:
 
   Because both lists parse all-or-nothing, one such field used to reject the whole response as a `server` failure ("Серверт алдаа гарлаа") — breaking every `/cohorts`-backed screen, including both Home dashboards (Issue #136).
 
-## 7. Sample-data boundary
+## 7. Course Learning integration and the sample boundary
 
-**`lib/features/course_learning/` is now half-wired.** Its repository interface still has three read methods and no write methods, and only the first is integrated:
+**`lib/features/course_learning/` runs on the real API.** `CourseLearningRepository` declares eleven methods — the learning path, a module's lessons, a lesson's detail, the note save, a material's download link, the assignment submission, the student file upload, and the four quiz-attempt calls — and `HttpCourseLearningRepository` implements every one against `course_learning_api_contract_v1.md` §2.1–§2.8. Each method documents its endpoint and the shape it reads; the screens default to it. See [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) §2 for the endpoint list and what is deliberately not integrated.
 
-```dart
-Future<CourseLearningPath> getCourseLearning(String courseSlug);
-Future<List<Lesson>> getLessons(int moduleId);
-Future<CourseExercise> getExercise(int moduleId);
-```
+`SampleCourseLearningRepository` still implements the same interface with fixed, hand-authored content that ignores `courseSlug`/`moduleId`/`lessonId` — the note save and the quiz attempt are simulated locally, while its submission, upload and material download throw — but **only tests construct it** (the quiz goldens among them). Consequences to keep in mind:
 
-`getCourseLearning` is served by `HttpCourseLearningRepository` against §1's endpoint, which is what `CourseModuleListScreen` uses by default. `getLessons` and `getExercise` have documented endpoints in `course_learning_api_contract_v1.md` §2.2/§2.3 but **no verified one**, so that repository delegates both to `SampleCourseLearningRepository` — `LessonListScreen` and `CourseExerciseDetailScreen` are still sample-driven, and `CourseExerciseDetailScreen` still defaults to the sample directly.
-
-`SampleCourseLearningRepository` ignores both `courseSlug` and `moduleId` — all content is fixed. Consequences to keep in mind:
-
-- Every write interaction (assignment submit/resubmit, note save, file download) is **local widget state**. Integrating any of them requires new repository methods **and** a failure model, neither of which exists.
-- Sample models carry **pre-formatted display strings where a real API would send structured data** — `scheduleLabel` `"08/04 • Да • 09:00"`, `durationLabel` `"24:15"`, `sizeLabel` `"10 MB"`, `timestampLabel` `"Today, 14:20"`. These are frontend requirements, **not** proposed backend fields.
+- Models carry **pre-formatted display strings** — `scheduleLabel` `"08/04 • Да • 09:00"`, `durationLabel` `"24:15"`, `sizeLabel` `"10 MB"`, `timestampLabel` `"Today, 14:20"`. `HttpCourseLearningRepository` builds them on the client from the contract's raw fields (dates, `duration_seconds`, `size_bytes`, timestamps); they are frontend requirements, **not** proposed backend fields.
 - **The quiz carries no answer key** (Issue #150). Correctness arrives one answered question at a time from `POST /me/quiz-attempts/{id}/answers`, and the score from `finish`. The sample quiz grades inside `SampleCourseLearningRepository` only; no model holds a key, and none should be proposed as a response field.
-- Most sample entities have **no id at all** (assignment, submission, note, feedback, quiz, question, option, attempt). Only `CourseModule.id`, `Lesson.id` and `CourseExerciseMaterial.id` exist, and all are hand-authored integers.
+- Sample-only fields (`CourseExercise.assignmentFeedback`, `assignmentAttachment`, `simulatesWrites: true`) are empty or false on every backend lesson — the real flow reads `assignment.submission.feedback`, and `assignment.attachment` is not integrated (Issue #154).
 
-Field-by-field analysis lives in `docs/course_learning_frontend_backend_requirements_v1.md`. Do not re-derive it; read it.
+The contract is the source of truth for the API. `docs/course_learning_frontend_backend_requirements_v1.md` holds the field-by-field analysis that preceded it — historical context where the two differ.
 
 ## 8. Rules for touching this layer
 
 1. **Never invent an endpoint, field, status code or business rule.** If a task needs one that is not in §1 or §2, stop and report it as a `BACKEND GAP`.
 2. **Never widen a model on speculation.** A field is modelled non-nullable only where a confirmed response showed a value; `HttpCourseRepository` fails loudly on a missing required field precisely so the gap surfaces as a parse error rather than a silent wrong value.
 3. **Do not convert sample data into an API contract.** Sample fields describe what the UI needs, not what the backend sends.
-4. **Keep failure families separate.** Do not merge the five failure enums to "simplify"; the split is what keeps `switch` statements honest.
+4. **Keep failure families separate.** Do not merge the failure enums to "simplify"; the split is what keeps `switch` statements honest.
 5. **A new authenticated endpoint** reads its token from an injected `AuthSessionStore`, uses `getRaw`/`postWithoutBody` (which return all statuses), and maps 401 to that feature's "session expired" case.

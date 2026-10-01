@@ -44,7 +44,7 @@ Shared (`lib/shared/widgets/`) → feature (`presentation/widgets/`) → new. **
 - Loading appears on **first load only**; a refresh must not blank existing content.
 - Empty is a distinct state from error.
 - Error views carry a **retry** that re-invokes the controller's load.
-- `course_learning` controllers currently have **no error state** (their sample repository cannot fail). Adding a real repository there means adding error states and a failure model.
+- `course_learning` controllers load from the real API: each maps `CourseLearningFailure` to `errorMessage`, and the screens show error views with retry; Lesson List also has the empty state (`LessonListController.isEmpty`).
 
 ## Accessibility
 
