@@ -10,6 +10,9 @@ import 'junior_home_palette.dart';
 /// The tab labels' size — see the class doc on [JuniorBottomNav].
 const double _labelSize = 10;
 
+/// The current Профайл tab's glyph, exported from the Junior Profile frame.
+const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
+
 /// The junior tab bar, as Junior Home, Junior "Сурлагын явц" and Junior
 /// Profile all draw it: the app-wide [AppBottomNav] — the junior frames
 /// match its height, rule and icon size — with the junior labels and glyphs,
@@ -24,13 +27,15 @@ const double _labelSize = 10;
 ///
 /// Each tab has an outline glyph and a solid one for when it is the current
 /// tab, as the three frames draw them. The bundled `Phosphor.ttf` carries one
-/// (outline) weight only, so each solid glyph — and the calendar, which has
-/// no confirmed Phosphor codepoint — is the Material fallback
+/// (outline) weight only, so the solid house and the calendar — which has no
+/// confirmed Phosphor codepoint — are the Material fallback
 /// `DEVELOPMENT_RULES.md` §6 asks for in place of a guessed codepoint:
 ///
 ///   * Нүүр — Phosphor's outline house; a solid house when current.
 ///   * Сурлагын явц — a calendar with a tick, outline and solid.
-///   * Профайл — Phosphor's outline user; a solid person when current.
+///   * Профайл — Phosphor's outline user; when current, the frame's own
+///     exported solid user ([_profileSelectedAsset]), drawn through
+///     [AppBottomNavItem.selectedAsset] as the adult bar draws its own.
 class JuniorBottomNav extends StatelessWidget {
   const JuniorBottomNav({required this.current, super.key});
 
@@ -42,12 +47,14 @@ class JuniorBottomNav extends StatelessWidget {
     AppBottomNavItem item(
       StudentTab tab, {
       required IconData icon,
-      required IconData selectedIcon,
+      IconData? selectedIcon,
       required String label,
+      String? selectedAsset,
     }) {
       final selected = tab == current;
       return AppBottomNavItem(
-        icon: selected ? selectedIcon : icon,
+        icon: selected ? selectedIcon ?? icon : icon,
+        selectedAsset: selectedAsset,
         label: label,
         onTap: selected
             ? null
@@ -76,7 +83,7 @@ class JuniorBottomNav extends StatelessWidget {
         item(
           StudentTab.profile,
           icon: AppIcons.user,
-          selectedIcon: Icons.person,
+          selectedAsset: _profileSelectedAsset,
           label: JuniorHomeStrings.navProfile,
         ),
       ],

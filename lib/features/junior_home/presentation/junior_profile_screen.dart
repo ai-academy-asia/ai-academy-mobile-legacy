@@ -34,6 +34,17 @@ const double _rowHeight = 55;
 const double _captionBand = 40;
 const double _captionTop = 16;
 
+/// The MN/EN control — see [_LanguageToggle].
+const double _toggleHeight = 35;
+const double _toggleInset = 4;
+const double _capsuleWidth = 44;
+const double _otherSegmentWidth = 41;
+
+/// Rounded rectangles, not full pills: fitted off the frame's corners, the
+/// outline curves at 12 and the capsule at 8.
+const double _toggleRadius = 12;
+const double _capsuleRadius = 8;
+
 /// The contact rows, which the frame runs without rules between them.
 const double _contactRowHeight = 56;
 
@@ -55,14 +66,13 @@ const double _iconToLabel = 9;
 /// own [ProfileController] and `CurrentUserRepository`, falling back to
 /// [JuniorProfileStrings.name] while loading or on failure. The row icons are
 /// the adult Profile's exported SVGs ([ProfileIcons]) — the same artwork the
-/// junior frame draws. Change password pushes the same [ResetPasswordScreen]
+/// junior frame draws — plus the junior frame's own "Payment receipt" SVG
+/// ([JuniorProfileIcons]). Change password pushes the same [ResetPasswordScreen]
 /// the adult row does.
 ///
 /// **Gaps.** No confirmed response carries an avatar URL, so the avatar is
 /// a placeholder disc, as on the adult Profile — the frame's photo is design
-/// content, not app data. "Payment receipt" has no exported icon and no
-/// confirmed Phosphor codepoint, so its glyph is the Material fallback
-/// `DEVELOPMENT_RULES.md` §6 asks for. Every other row, the toggles and Log
+/// content, not app data. Every other row, the toggles and Log
 /// out have no destination yet, as on the adult Profile; the toggles hold
 /// local state that nothing reads.
 class JuniorProfileScreen extends StatefulWidget {
@@ -172,22 +182,20 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           const _Group(
             rows: [
               _Row(
-                icon: _RowIcon.svg(ProfileIcons.eContract),
+                icon: _RowIcon(ProfileIcons.eContract),
                 label: JuniorProfileStrings.eContract,
                 trailing: _StatusBadge(JuniorProfileStrings.eContractStatus),
               ),
               _Row(
-                icon: _RowIcon.svg(ProfileIcons.certificate),
+                icon: _RowIcon(ProfileIcons.certificate),
                 label: JuniorProfileStrings.certificate,
               ),
               _Row(
-                icon: _RowIcon.svg(ProfileIcons.transactionHistory),
+                icon: _RowIcon(ProfileIcons.transactionHistory),
                 label: JuniorProfileStrings.transactionHistory,
               ),
               _Row(
-                // No exported receipt icon and no confirmed Phosphor
-                // codepoint — the Material fallback, as the class doc says.
-                icon: _RowIcon.glyph(Icons.receipt_long_outlined),
+                icon: _RowIcon(JuniorProfileIcons.paymentReceipt),
                 label: JuniorProfileStrings.paymentReceipt,
               ),
             ],
@@ -197,7 +205,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           _Group(
             rows: [
               _Row(
-                icon: const _RowIcon.svg(ProfileIcons.language),
+                icon: const _RowIcon(ProfileIcons.language),
                 label: JuniorProfileStrings.language,
                 trailing: _LanguageToggle(
                   english: _english,
@@ -205,7 +213,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                 ),
               ),
               _Row(
-                icon: const _RowIcon.svg(ProfileIcons.changePassword),
+                icon: const _RowIcon(ProfileIcons.changePassword),
                 label: JuniorProfileStrings.changePassword,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -220,7 +228,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           _Group(
             rows: [
               _Row(
-                icon: const _RowIcon.svg(ProfileIcons.notification),
+                icon: const _RowIcon(ProfileIcons.notification),
                 label: JuniorProfileStrings.notification,
                 trailing: _Switch(
                   value: _notifications,
@@ -237,11 +245,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
             (ProfileIcons.termsOfService, JuniorProfileStrings.termsOfService),
             (ProfileIcons.privacyPolicy, JuniorProfileStrings.privacyPolicy),
           ])
-            _Row(
-              icon: _RowIcon.svg(icon),
-              label: label,
-              height: _contactRowHeight,
-            ),
+            _Row(icon: _RowIcon(icon), label: label, height: _contactRowHeight),
 
           const SizedBox(height: 32),
           Padding(
@@ -362,23 +366,15 @@ class _Group extends StatelessWidget {
   }
 }
 
-/// A row's leading icon: one of the exported SVGs, or a font glyph.
+/// A row's leading icon: one of the exported SVGs.
 class _RowIcon extends StatelessWidget {
-  const _RowIcon.svg(String this.asset) : glyph = null;
-  const _RowIcon.glyph(IconData this.glyph) : asset = null;
+  const _RowIcon(this.asset);
 
-  final String? asset;
-  final IconData? glyph;
+  final String asset;
 
   @override
   Widget build(BuildContext context) {
-    final asset = this.asset;
-    return SizedBox.square(
-      dimension: _rowIcon,
-      child: asset != null
-          ? SvgPicture.asset(asset, width: _rowIcon, height: _rowIcon)
-          : Icon(glyph, size: _rowIcon, color: AppColors.textPrimary),
-    );
+    return SvgPicture.asset(asset, width: _rowIcon, height: _rowIcon);
   }
 }
 
@@ -464,7 +460,13 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-/// The MN/EN control: a blue capsule with the selected half in white.
+/// The MN/EN control: a blue rounded rectangle with the selected language on
+/// a white capsule inset 4 inside it.
+///
+/// Measured off the frame: 93 x 35 overall, the capsule 44 x 27. The halves
+/// are not equal — the capsule is 44 wide and the other language centres in
+/// the 41 left over — so whichever language is selected takes the wider
+/// slot.
 class _LanguageToggle extends StatelessWidget {
   const _LanguageToggle({required this.english, required this.onChanged});
 
@@ -474,11 +476,11 @@ class _LanguageToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 35,
-      padding: const EdgeInsets.all(4),
+      height: _toggleHeight,
+      padding: const EdgeInsets.all(_toggleInset),
       decoration: BoxDecoration(
         color: JuniorPalette.accent,
-        borderRadius: BorderRadius.circular(17.5),
+        borderRadius: BorderRadius.circular(_toggleRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -520,11 +522,11 @@ class _Segment extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 43,
+          width: selected ? _capsuleWidth : _otherSegmentWidth,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? AppColors.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(13.5),
+            borderRadius: BorderRadius.circular(_capsuleRadius),
           ),
           child: Text(
             label,
@@ -713,8 +715,8 @@ const TextStyle _badgeStyle = TextStyle(
 
 const TextStyle _segmentStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
-  fontSize: 13,
-  height: 16 / 13,
+  fontSize: 12,
+  height: 16 / 12,
   fontWeight: FontWeight.w700,
   leadingDistribution: TextLeadingDistribution.even,
 );

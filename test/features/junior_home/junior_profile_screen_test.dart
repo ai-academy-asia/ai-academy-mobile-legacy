@@ -11,6 +11,7 @@ import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_home
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -197,6 +198,59 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ResetPasswordScreen), findsOneWidget);
+    });
+  });
+
+  group('supplied artwork', () {
+    Iterable<String> svgAssets(WidgetTester tester, Finder within) => tester
+        .widgetList<SvgPicture>(
+          find.descendant(of: within, matching: find.byType(SvgPicture)),
+        )
+        .map((svg) => (svg.bytesLoader as SvgAssetLoader).assetName);
+
+    testWidgets('Payment receipt draws the frame\'s receipt SVG', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      final row = find.ancestor(
+        of: find.text(JuniorProfileStrings.paymentReceipt),
+        matching: find.byType(Row),
+      );
+      expect(
+        svgAssets(tester, row.first),
+        contains('assets/icons/payment_receipt.svg'),
+      );
+      expect(
+        find.descendant(of: row.first, matching: find.byType(Icon)),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the current Профайл tab draws the frame\'s user SVG', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      expect(svgAssets(tester, find.byType(AppBottomNav)), [
+        'assets/icons/nav_profile_selected.svg',
+      ]);
+    });
+
+    testWidgets('the language control keeps the frame\'s geometry', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      final mn = find.ancestor(
+        of: find.text(JuniorProfileStrings.languageMn),
+        matching: find.byType(Container),
+      );
+      final control = find
+          .ancestor(of: mn.first, matching: find.byType(Container))
+          .first;
+      expect(tester.getSize(control), const Size(93, 35));
+      expect(tester.getSize(mn.first), const Size(44, 27));
     });
   });
 

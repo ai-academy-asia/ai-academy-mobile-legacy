@@ -37,3 +37,9 @@ abstract final class JuniorProfileStrings {
   static const String logOut = 'Log out';
   static const String version = 'Version 1.2.4 (2025)';
 }
+
+/// Junior Profile's own exported artwork. Every other row reuses the adult
+/// Profile's SVGs (`ProfileIcons`), which the junior frame draws unchanged.
+abstract final class JuniorProfileIcons {
+  static const String paymentReceipt = 'assets/icons/payment_receipt.svg';
+}
