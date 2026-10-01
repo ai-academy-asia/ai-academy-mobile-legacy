@@ -117,6 +117,9 @@ class _LessonListScreenState extends State<LessonListScreen> {
     if (_controller.loading && _controller.lessons.isEmpty) {
       return const _LoadingView();
     }
+    if (_controller.isEmpty) {
+      return _EmptyLessonListBody(moduleTitle: widget.moduleTitle);
+    }
     return _LessonListBody(
       moduleTitle: widget.moduleTitle,
       lessons: _controller.lessons,
@@ -207,12 +210,7 @@ class _LessonListBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(moduleTitle, style: AppTypography.heading),
-          const SizedBox(height: AppDimens.titleToSupporting),
-          Text(
-            CourseLearningStrings.lessonsLabel,
-            style: AppTypography.catalogSectionLabel,
-          ),
+          _LessonListHeading(moduleTitle: moduleTitle),
           const SizedBox(height: 12),
           for (final lesson in lessons) ...[
             LessonListItem(
@@ -231,6 +229,80 @@ class _LessonListBody extends StatelessWidget {
             if (lesson != lessons.last) const SizedBox(height: 12),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// The module title and the "LESSONS" label — drawn the same way whether the
+/// module has lessons ([_LessonListBody]) or none ([_EmptyLessonListBody]).
+class _LessonListHeading extends StatelessWidget {
+  const _LessonListHeading({required this.moduleTitle});
+
+  final String moduleTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(moduleTitle, style: AppTypography.heading),
+        const SizedBox(height: AppDimens.titleToSupporting),
+        Text(
+          CourseLearningStrings.lessonsLabel,
+          style: AppTypography.catalogSectionLabel,
+        ),
+      ],
+    );
+  }
+}
+
+/// A module whose lessons loaded but number none.
+///
+/// The heading stays exactly where [_LessonListBody] draws it, and the space
+/// the rows would fill holds [_EmptyView] instead.
+class _EmptyLessonListBody extends StatelessWidget {
+  const _EmptyLessonListBody({required this.moduleTitle});
+
+  final String moduleTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPadding,
+            8,
+            AppDimens.screenPadding,
+            0,
+          ),
+          child: _LessonListHeading(moduleTitle: moduleTitle),
+        ),
+        const Expanded(child: _EmptyView()),
+      ],
+    );
+  }
+}
+
+/// No design exists for this screen at all, so this is
+/// `CohortListScreen._EmptyView` reproduced: a centred message in
+/// `cardSupporting` with the `screenPadding` gutter — kept as its own copy,
+/// the existing habit (see [_ErrorView]).
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        child: Text(
+          CourseLearningStrings.lessonsEmpty,
+          style: AppTypography.cardSupporting,
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

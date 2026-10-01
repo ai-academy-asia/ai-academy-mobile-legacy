@@ -120,6 +120,12 @@ abstract final class CourseLearningStrings {
   static const String lessonsLabel = 'LESSONS';
   static const String lessonCaption = 'Lesson';
 
+  /// A module whose lessons loaded but number none. No Figma frame or copy
+  /// exists for it; Mongolian, like the failure lines above, and worded after
+  /// the app's existing empty states (`CohortListStrings.empty`,
+  /// `CourseCatalogStrings.empty`: "Одоогоор … алга байна").
+  static const String lessonsEmpty = 'Одоогоор хичээл алга байна';
+
   static const String certificationLabel = 'CERTIFICATION';
   static const String certificationTitle = 'Earn a Certificate of completion';
 

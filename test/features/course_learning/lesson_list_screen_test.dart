@@ -171,6 +171,54 @@ void main() {
     });
   });
 
+  group('empty', () {
+    testWidgets('a module with no lessons shows the empty message under the '
+        'title and LESSONS label', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository(lessons: const []));
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.lessonsEmpty), findsOneWidget);
+      expect(find.text('Одоогоор хичээл алга байна'), findsOneWidget);
+      // The heading is drawn as it is for a module with lessons.
+      expect(find.text('Language Model Training'), findsOneWidget);
+      expect(find.text('LESSONS'), findsOneWidget);
+      expect(find.byType(LessonListItem), findsNothing);
+      // Empty is its own state — not the spinner, not the error view.
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text(CourseLearningStrings.retry), findsNothing);
+    });
+
+    testWidgets('the message sits below the LESSONS label', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository(lessons: const []));
+      await tester.pumpAndSettle();
+
+      final label = tester.getRect(find.text('LESSONS'));
+      final message = tester.getRect(
+        find.text(CourseLearningStrings.lessonsEmpty),
+      );
+      expect(message.top, greaterThan(label.bottom));
+    });
+
+    testWidgets('the back button still pops the screen', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository(lessons: const []));
+      await tester.pumpAndSettle();
+
+      await tester.tap(backButton());
+      await tester.pumpAndSettle();
+
+      expect(find.text('open'), findsOneWidget);
+      expect(find.byType(LessonListScreen), findsNothing);
+    });
+
+    testWidgets('a module with lessons shows no empty message', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LessonListItem), findsNWidgets(3));
+      expect(find.text(CourseLearningStrings.lessonsEmpty), findsNothing);
+    });
+  });
+
   group('loading', () {
     testWidgets('shows a spinner while the fetch is in flight', (tester) async {
       final repository = FakeCourseLearningRepository(holdLessons: true);
@@ -208,6 +256,24 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       // The back button stays, so the student is never stranded.
       expect(backButton(), findsOneWidget);
+    });
+
+    testWidgets('a failure shows the error view, not the empty message', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          lessonsFailure: const CourseLearningFailure(
+            CourseLearningFailureKind.server,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.serverError), findsOneWidget);
+      expect(find.text(CourseLearningStrings.retry), findsOneWidget);
+      expect(find.text(CourseLearningStrings.lessonsEmpty), findsNothing);
     });
 
     testWidgets('retry re-requests and renders the lessons on success', (
