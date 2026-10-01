@@ -661,7 +661,7 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
     ],
     materials: [
       for (final entry in _requireList(decoded, 'lesson.materials'))
-        ?_fileMaterialFrom(entry),
+        ?_materialFrom(entry),
     ],
     completed: _requireBool(decoded, 'lesson.completed'),
     // The assignment submission is not integrated. (The note is — see
@@ -899,26 +899,41 @@ String _bulletText(Object? bullet) {
   return _requireLocalized({'bullet': bullet}, 'section.bullet');
 }
 
-/// A §2.4 material, if it is a file — the one kind the materials tab can
-/// show, as a name, a size and a download button.
+/// A §2.4 material — the two kinds the contract names, each drawn as a
+/// materials-tab row.
 ///
-/// A `link` has no size and nothing to download, and an unrecognised
-/// `type` has no known shape: both are left out rather than drawn with a
-/// control that cannot work for them. Neither fails the lesson.
-CourseExerciseMaterial? _fileMaterialFrom(Object? entry) {
+/// Read for a `file`: `id`, `title` and `size_bytes`. Read for a `link`:
+/// `id`, `title` and `url` — §2.4: "external URL — then `url` is included and
+/// there is nothing to download", so it has no size. Not read for either:
+/// `file_name` and `content_type`, which the row has no place for (the
+/// Figma row draws a name and a size only).
+///
+/// An unrecognised `type` has no known shape, so it is left out rather than
+/// drawn with a control that cannot work for it, and does not fail the
+/// lesson. A known type missing a field it needs is a server fault, like any
+/// other malformed part of the lesson.
+CourseExerciseMaterial? _materialFrom(Object? entry) {
   if (entry is! Map<String, dynamic>) {
     throw CourseLearningFailure(
       CourseLearningFailureKind.server,
       detail: 'a material was not a JSON object (got ${entry.runtimeType})',
     );
   }
-  if (_requireString(entry, 'material.type') != 'file') return null;
 
-  return CourseExerciseMaterial(
-    id: _requireInt(entry, 'material.id'),
-    name: _requireString(entry, 'material.title'),
-    sizeLabel: _sizeLabel(_requireInt(entry, 'material.size_bytes')),
-  );
+  return switch (_requireString(entry, 'material.type')) {
+    'file' => CourseExerciseMaterial(
+      id: _requireInt(entry, 'material.id'),
+      name: _requireString(entry, 'material.title'),
+      sizeLabel: _sizeLabel(_requireInt(entry, 'material.size_bytes')),
+    ),
+    'link' => CourseExerciseMaterial(
+      id: _requireInt(entry, 'material.id'),
+      name: _requireString(entry, 'material.title'),
+      sizeLabel: '',
+      url: _requireHttpUrl(entry, 'material.url'),
+    ),
+    _ => null,
+  };
 }
 
 /// `size_bytes` as the material row draws it — see [fileSizeLabel]. A
@@ -1123,16 +1138,7 @@ MaterialDownload _downloadFromBody(String body) {
     );
   }
 
-  final rawUrl = _requireString(decoded, 'download.url');
-  final url = Uri.tryParse(rawUrl);
-  if (url == null ||
-      !url.hasAuthority ||
-      (url.scheme != 'https' && url.scheme != 'http')) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: 'download.url: not an http(s) URL ("$rawUrl")',
-    );
-  }
+  final url = _requireHttpUrl(decoded, 'download.url');
 
   final rawExpiresAt = _requireString(decoded, 'download.expires_at');
   final expiresAt = DateTime.tryParse(rawExpiresAt);
@@ -1432,6 +1438,24 @@ DateTime _requireTimestamp(Map<String, dynamic> json, String label) {
     );
   }
   return parsed;
+}
+
+/// A URL field that must be an absolute `http`/`https` URL with a host —
+/// something the OS can open outside the app (`https://` alone parses, but
+/// names nowhere). Parsed, never rebuilt: the URL opened is the one the
+/// server sent. Anything else is a server fault.
+Uri _requireHttpUrl(Map<String, dynamic> json, String label) {
+  final raw = _requireString(json, label);
+  final url = Uri.tryParse(raw);
+  if (url == null ||
+      url.host.isEmpty ||
+      (url.scheme != 'https' && url.scheme != 'http')) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: '$label: not an http(s) URL ("$raw")',
+    );
+  }
+  return url;
 }
 
 /// A number field that may be `null` or absent — §2.7's `attempts_left`

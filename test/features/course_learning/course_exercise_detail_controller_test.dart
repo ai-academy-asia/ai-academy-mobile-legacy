@@ -690,6 +690,68 @@ void main() {
       expect(controller.materialDownloadErrorMessage(1), isNull);
     });
 
+    test(
+      'a link material opens its own URL, with no download asked for',
+      () async {
+        final link = sampleLinkMaterial();
+        final repository = FakeCourseLearningRepository(
+          exercise: sampleExercise(
+            lessonId: 204,
+            materials: [sampleMaterial(id: 88), link],
+          ),
+        );
+        final (controller, opened) = await loaded(repository);
+
+        final result = await controller.downloadMaterial(89);
+
+        expect(result, isTrue);
+        expect(repository.downloadCalls, isEmpty);
+        expect(opened, [link.url]);
+        expect(
+          opened.single.toString(),
+          'https://reading.example.test/list?ref=lesson-204#part-2',
+        );
+        expect(controller.isMaterialOpened(89), isTrue);
+        expect(controller.isMaterialOpened(88), isFalse);
+      },
+    );
+
+    test('beside a link, a file still opens its signed download URL', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          materials: [sampleMaterial(id: 88), sampleLinkMaterial()],
+        ),
+      );
+      final (controller, opened) = await loaded(repository);
+
+      await controller.downloadMaterial(88);
+
+      expect(repository.downloadCalls, [88]);
+      expect(opened, [sampleDownload(materialId: 88).url]);
+    });
+
+    test('a link the OS will not open reads as the generic copy', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          materials: [sampleLinkMaterial()],
+        ),
+      );
+      final (controller, _) = await loaded(
+        repository,
+        openUrl: (_) async => false,
+      );
+
+      expect(await controller.downloadMaterial(89), isFalse);
+      expect(controller.isMaterialOpened(89), isFalse);
+      expect(
+        controller.materialDownloadErrorMessage(89),
+        CourseLearningStrings.unexpectedError,
+      );
+      expect(repository.downloadCalls, isEmpty);
+    });
+
     test('fetches the link and opens its URL', () async {
       final repository = FakeCourseLearningRepository();
       final (controller, opened) = await loaded(repository);

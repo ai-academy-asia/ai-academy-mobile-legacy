@@ -18,6 +18,12 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// the download link is fetched and opened, and [downloaded] as the same
 /// check. The Figma pack draws only the idle and checked states; the spinner
 /// is the app's existing small blue progress indicator, not a new design.
+///
+/// A `link` material (`CourseExerciseMaterial.isLink`) uses this same row:
+/// the Figma pack draws no link variant, so rather than invent one it keeps
+/// the file glyph and the download button, with no size line (a link has
+/// none). Tapping it opens the link — see
+/// `CourseExerciseDetailController.downloadMaterial`.
 /// Solved from the reference frame at 1:1 — the glyph sits on a 32 tile and
 /// the row's two lines are a size apart, both lighter than the shared
 /// `cardHeading`/`cardSupporting` this screen inherits them from.

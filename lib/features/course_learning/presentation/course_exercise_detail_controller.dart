@@ -332,14 +332,18 @@ class CourseExerciseDetailController extends ChangeNotifier {
     }
   }
 
-  /// Asks for a fresh link to [materialId] (§2.4 — a pre-signed URL valid
-  /// for five minutes, so never cached) and opens it outside the app.
-  /// Answers true once the OS has taken the link.
+  /// Opens [materialId] outside the app and answers true once the OS has
+  /// taken it.
+  ///
+  /// A `file` gets a fresh link first (§2.4 — a pre-signed URL valid for
+  /// five minutes, so never cached). A `link` is opened at its own URL, as
+  /// the lesson sent it: §2.4 says there is nothing to download, so no
+  /// download is asked for.
   ///
   /// A failure leaves the material un-opened and puts copy in
   /// [materialDownloadErrorMessage]: the repository's failure by kind (404
   /// with this feature's own "file not found" line rather than the course's),
-  /// or the generic line when the OS would not open the link. Ignored (false)
+  /// or the generic line when the OS would not open the URL. Ignored (false)
   /// while that material is already in flight.
   Future<bool> downloadMaterial(int materialId) async {
     if (_downloadingMaterialIds.contains(materialId)) return false;
@@ -349,8 +353,10 @@ class CourseExerciseDetailController extends ChangeNotifier {
     _notify();
 
     try {
-      final download = await _repository.getMaterialDownload(materialId);
-      final opened = await _openUrl(download.url);
+      final url =
+          _linkUrlOf(materialId) ??
+          (await _repository.getMaterialDownload(materialId)).url;
+      final opened = await _openUrl(url);
       if (opened) {
         _openedMaterialIds.add(materialId);
       } else {
@@ -372,6 +378,15 @@ class CourseExerciseDetailController extends ChangeNotifier {
       _downloadingMaterialIds.remove(materialId);
       _notify();
     }
+  }
+
+  /// [materialId]'s own URL when the loaded lesson lists it as a `link`;
+  /// null for a file, or a material this lesson does not list.
+  Uri? _linkUrlOf(int materialId) {
+    for (final material in _exercise?.materials ?? const []) {
+      if (material.id == materialId) return material.url;
+    }
+    return null;
   }
 
   void _notify() {

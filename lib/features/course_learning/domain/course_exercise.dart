@@ -191,12 +191,15 @@ class CourseExerciseSection {
   final List<String> bullets;
 }
 
-/// One row in the Course materials tab.
+/// One row in the Course materials tab — §2.4's material: a stored `file`,
+/// fetched through `GET /me/materials/{id}/download`, or an external `link`,
+/// opened at its own [url].
 class CourseExerciseMaterial {
   const CourseExerciseMaterial({
     required this.id,
     required this.name,
     required this.sizeLabel,
+    this.url,
   });
 
   final int id;
@@ -204,7 +207,15 @@ class CourseExerciseMaterial {
 
   /// Pre-formatted, e.g. "10 MB" — this app has no confirmed source for a
   /// raw byte count to format itself, so it is kept as the display string.
+  /// Empty for a link, which has no size.
   final String sizeLabel;
+
+  /// A `link` material's external URL, exactly as the server sent it; null
+  /// for a `file`. §2.4: with a link "there is nothing to download".
+  final Uri? url;
+
+  /// Whether this is a `link` — opened at [url] rather than downloaded.
+  bool get isLink => url != null;
 }
 
 /// A note the student has already left on this exercise, with the mentor's

@@ -2097,6 +2097,40 @@ void main() {
         );
       });
 
+      testWidgets('a link row shows its title, and opens the server\'s URL '
+          'with no download', (tester) async {
+        final link = sampleLinkMaterial(name: 'Further reading');
+        final repository = FakeCourseLearningRepository(
+          exercise: sampleExercise(
+            lessonId: 204,
+            assignmentFeedback: const [],
+            simulatesWrites: false,
+            materials: [
+              sampleMaterial(id: 88, name: 'Slides'),
+              link,
+            ],
+          ),
+        );
+        final opened = await openMaterials(tester, repository);
+
+        expect(find.text('Slides'), findsOneWidget);
+        expect(find.text('Further reading'), findsOneWidget);
+
+        await tester.tap(find.bySemanticsLabel('Download').last);
+        await tester.pumpAndSettle();
+
+        expect(repository.downloadCalls, isEmpty);
+        expect(opened, [link.url]);
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+
+        // The file beside it still goes through its signed download.
+        await tester.tap(find.bySemanticsLabel('Download'));
+        await tester.pumpAndSettle();
+
+        expect(repository.downloadCalls, [88]);
+        expect(opened, [link.url, sampleDownload(materialId: 88).url]);
+      });
+
       testWidgets('an opened material stays checked across a tab switch', (
         tester,
       ) async {
