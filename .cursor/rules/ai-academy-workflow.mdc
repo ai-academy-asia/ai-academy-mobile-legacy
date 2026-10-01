@@ -97,7 +97,6 @@ flutter test                 # full suite when the change is broad
 
 **Known pre-existing results — report as pre-existing, do not fix in an unrelated task:**
 
-- Analyzer: `lib/features/courses/presentation/course_catalog_screen.dart:13` — `unused_import`
 - Test: `test/features/courses/course_catalog_screen_test.dart` — *"loaded falls back to a computed duration when duration_label is null"*
 
 **Formatting: format only the files you edited** (`dart format <file>`). **Never `dart format lib/`** — the repo is written to ~90 columns, the formatter defaults to 80, and a blanket run reflows ~30 untouched files.

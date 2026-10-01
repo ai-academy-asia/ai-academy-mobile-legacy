@@ -26,10 +26,10 @@ The repository root `CLAUDE.md` also carries project rules — it remains author
 
 | Data source | Features |
 |---|---|
-| Real API | `auth`, `courses`, `cohorts`, `enrollments`, `home` (composed), `profile` |
-| **PART SAMPLE DATA** | **`course_learning`** — only the module-list call is wired |
+| Real API | `auth`, `courses`, `cohorts`, `enrollments`, `home` (composed), `junior_home` (composed), `attendance`, `payments`, `profile`, `course_learning` |
+| None | `splash` |
 
-`course_learning` has a **read-only repository (3 methods, no writes)**. Of the three, only `getCourseLearning` reaches a backend (`GET /me/courses/{course_slug}/learning`, with `CourseLearningFailure` as its failure model); `getLessons` and `getExercise` still serve sample content, and the sample repository **ignores its arguments**. Every write there (assignment submit, note save, quiz answer, download) is local widget state. Before any backend work in it, read `docs/course_learning_backend_api_audit_v2.md` and `docs/course_learning_frontend_backend_requirements_v1.md`.
+`course_learning` runs on the real API: `HttpCourseLearningRepository` implements all eleven `CourseLearningRepository` methods — learning path, module lessons, lesson detail, note save, material download, assignment submission, file upload, and the four quiz-attempt calls — against `course_learning_api_contract_v1.md` §2.1–§2.8, with `CourseLearningFailure` as its failure model. `SampleCourseLearningRepository` is constructed only by tests. Not integrated, each for a recorded reason: lesson completion, the certificate endpoints (#155), `assignment.attachment` (#154), and the file submission form (no backend rule for link vs file). Details: `docs/ai/PROJECT_CONTEXT.md` §2–§3 and `docs/ai/DATA_AND_API.md` §7.
 
 ## Source-of-truth rules
 

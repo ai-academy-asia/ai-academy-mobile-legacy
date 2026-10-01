@@ -76,7 +76,6 @@ flutter test                     # full suite, when the change is broad
 
 | Kind | Where |
 |---|---|
-| Analyzer warning | `lib/features/courses/presentation/course_catalog_screen.dart:13` — `unused_import` of `course_detail_screen.dart` |
 | Test failure | `test/features/courses/course_catalog_screen_test.dart` — *"loaded falls back to a computed duration when duration_label is null"* |
 
 A documentation-only task still runs `flutter analyze` to prove nothing in `lib/` moved.
