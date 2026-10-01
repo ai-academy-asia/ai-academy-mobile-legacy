@@ -140,7 +140,7 @@ class _DayCell extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: _discTop),
-          JuniorDayMark(status: status, size: _discSize),
+          JuniorDayMark(status: status, size: _discSize, ringed: true),
           const SizedBox(height: _discToNumber),
           Text(
             '$day',
@@ -154,60 +154,127 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-/// A day's mark: the design's SVG on its tinted disc, or a flat grey disc
-/// for an unmarked day.
+/// A day's mark: the design's SVG on its disc, or a flat grey disc for an
+/// unmarked day.
 ///
-/// The SVGs are drawn at their own 17 x 16, centred, on the 32 disc in the
+/// Each SVG is drawn at one fixed size, centred, on the 32 disc in the
 /// calendar and the 24 disc in the legend alike — the frame does not scale
-/// the artwork between the two.
+/// the artwork between the two. The discs are layout, not artwork, so they
+/// are drawn here; see `JuniorProgressIcons` for where each SVG comes from.
 ///
-/// **"Хичээлдээ суусан" has no artwork.** Its SVG was not supplied and
-/// nothing in the repository matches it, so an attended day draws an empty
-/// slot of the same size — not a substitute glyph, and not the grey disc,
-/// which would claim the day is unmarked. It carries its label for a screen
-/// reader either way.
+/// "Хичээлдээ суусан" is the one mark on a solid disc: the frame's white "A"
+/// on [JuniorPalette.accent], lifted by a faint shadow. In the calendar
+/// ([ringed]) the frame also rings it — a 1.5 blue outline, then 2 of white
+/// — so the 32 slot holds a 25 disc; the legend draws the plain disc.
 class JuniorDayMark extends StatelessWidget {
-  const JuniorDayMark({required this.status, required this.size, super.key});
+  const JuniorDayMark({
+    required this.status,
+    required this.size,
+    this.ringed = false,
+    super.key,
+  });
 
   /// Null for an unmarked day.
   final JuniorDayStatus? status;
 
   final double size;
 
+  /// Draws the attended mark's calendar ring. Ignored by the other marks.
+  final bool ringed;
+
   @override
   Widget build(BuildContext context) {
-    final (Color? disc, String? asset, String? label) = switch (status) {
-      null => (JuniorPalette.dayNeutral, null, null),
-      JuniorDayStatus.lesson => (
-        JuniorPalette.dayLesson,
-        JuniorProgressIcons.lessonDay,
-        JuniorProgressStrings.lessonDay,
-      ),
-      JuniorDayStatus.missed => (
-        JuniorPalette.dayMissed,
-        JuniorProgressIcons.lessonMissed,
-        JuniorProgressStrings.lessonMissed,
-      ),
-      JuniorDayStatus.attended => (
-        null,
-        null,
-        JuniorProgressStrings.lessonAttended,
-      ),
-    };
-
     final mark = SizedBox.square(
       dimension: size,
-      child: disc == null
-          ? null
-          : DecoratedBox(
-              decoration: BoxDecoration(color: disc, shape: BoxShape.circle),
-              child: asset == null
-                  ? null
-                  : Center(child: SvgPicture.asset(asset)),
-            ),
+      child: switch (status) {
+        null => const _Disc(color: JuniorPalette.dayNeutral),
+        JuniorDayStatus.lesson => const _Disc(
+          color: JuniorPalette.dayLesson,
+          asset: JuniorProgressIcons.lessonDay,
+        ),
+        JuniorDayStatus.missed => const _Disc(
+          color: JuniorPalette.dayMissed,
+          asset: JuniorProgressIcons.lessonMissed,
+        ),
+        JuniorDayStatus.attended => _AttendedDisc(ringed: ringed),
+      },
     );
 
+    final label = switch (status) {
+      null => null,
+      JuniorDayStatus.lesson => JuniorProgressStrings.lessonDay,
+      JuniorDayStatus.missed => JuniorProgressStrings.lessonMissed,
+      JuniorDayStatus.attended => JuniorProgressStrings.lessonAttended,
+    };
     return label == null ? mark : Semantics(label: label, child: mark);
+  }
+}
+
+class _Disc extends StatelessWidget {
+  const _Disc({required this.color, this.asset});
+
+  final Color color;
+  final String? asset;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = this.asset;
+    return DecoratedBox(
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: asset == null ? null : Center(child: SvgPicture.asset(asset)),
+    );
+  }
+}
+
+/// The attended mark's solid blue disc — see [JuniorDayMark].
+class _AttendedDisc extends StatelessWidget {
+  const _AttendedDisc({required this.ringed});
+
+  final bool ringed;
+
+  /// The faint lift the frame draws around the mark, ringed or not.
+  static const BoxShadow _lift = BoxShadow(
+    color: Color(0x1F000000),
+    blurRadius: 1.5,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    // 16 x 15, as the frame draws the mark — given explicitly, because
+    // flutter_svg sizes a picture by its viewBox (17 x 16, the base icon's).
+    final glyph = Center(
+      child: SvgPicture.asset(
+        JuniorProgressIcons.lessonAttended,
+        width: 16,
+        height: 15,
+      ),
+    );
+    const disc = BoxDecoration(
+      color: JuniorPalette.accent,
+      shape: BoxShape.circle,
+    );
+
+    if (!ringed) {
+      return DecoratedBox(
+        decoration: disc.copyWith(boxShadow: const [_lift]),
+        child: glyph,
+      );
+    }
+    // The border is inside the box, so 1.5 of blue plus 2 of padding puts
+    // the inner disc 3.5 in from the slot's edge.
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: JuniorPalette.accent,
+          width: AppDimens.borderWidthEmphasis,
+        ),
+        boxShadow: const [_lift],
+      ),
+      child: DecoratedBox(decoration: disc, child: glyph),
+    );
   }
 }
 

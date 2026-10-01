@@ -63,7 +63,7 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 - **Certificate** — the certification section renders two bundled PNGs. There is no per-student certificate status, availability or download.
 - **Lesson List screen** — built and tested, but nothing navigates to it; the design goes Module List → Exercise Detail directly.
 - **Profile rows** — Terms of Service, Privacy Policy, language and theme controls have no destination yet. The same holds on Junior Profile.
-- **Junior "Сурлагын явц" data** — `JuniorProgressScreen` renders `SampleJuniorProgress.reference`, the Figma frame's own design state. No confirmed endpoint reports a junior student's per-day attendance, exam score, payment or contract state (`BACKEND GAP`). Its "Хичээлдээ суусан" (attended) mark has no artwork: the SVG was not supplied, so the slot is left empty rather than substituted.
+- **Junior "Сурлагын явц" data** — `JuniorProgressScreen` renders `SampleJuniorProgress.reference`, the Figma frame's own design state. No confirmed endpoint reports a junior student's per-day attendance, exam score, payment or contract state (`BACKEND GAP`).
 
 ## 4. Known constraints and sharp edges
 

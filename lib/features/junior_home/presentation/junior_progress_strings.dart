@@ -87,16 +87,16 @@ abstract final class JuniorProgressStrings {
   static String _two(int value) => value.toString().padLeft(2, '0');
 }
 
-/// The screen's exported artwork.
-///
-/// [lessonDay] and [lessonMissed] are the design's own SVGs, committed
-/// unchanged. There is deliberately no entry for "Хичээлдээ суусан": its
-/// artwork was not supplied and none in the repository matches it, so the
-/// attended mark is left empty rather than drawn from a substitute — see
-/// `JuniorDayMark`.
+/// The screen's exported artwork — the three day marks, each the design's
+/// own vector SVG. [lessonDay] and [lessonMissed] are committed unchanged;
+/// [lessonAttended] is [lessonDay]'s paths recoloured to the frame's attended
+/// mark — a white "A" and a `#F8623F` sparkle, sampled off the design's own
+/// artwork — drawn at 16 x 15, because the supplied attended export (a PNG
+/// inside an SVG pattern) paints nothing in flutter_svg.
 abstract final class JuniorProgressIcons {
   static const String _dir = 'assets/icons';
 
   static const String lessonDay = '$_dir/junior_lesson_day.svg';
   static const String lessonMissed = '$_dir/junior_lesson_missed.svg';
+  static const String lessonAttended = '$_dir/junior_lesson_attended.svg';
 }

@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/data/sample_junior_progress.dart';
@@ -194,17 +197,19 @@ void main() {
           )
           .length;
 
-      // 8, 12, 16, 19, 24 and 27 are lesson days; 4 is the missed one.
+      // 8, 12, 16, 19, 24 and 27 are lesson days; 4 is the missed one;
+      // the 1st is the attended one.
       expect(svgCount(JuniorProgressIcons.lessonDay), 6);
       expect(svgCount(JuniorProgressIcons.lessonMissed), 1);
-      // And nothing else draws artwork: the attended 1st has none (below).
+      expect(svgCount(JuniorProgressIcons.lessonAttended), 1);
+      // And nothing else draws artwork.
       expect(
         find.descendant(of: grid, matching: find.byType(SvgPicture)),
-        findsNWidgets(7),
+        findsNWidgets(8),
       );
     });
 
-    testWidgets('an attended day is labelled but draws no substitute artwork', (
+    testWidgets('an attended day draws its SVG on a ringed blue disc', (
       tester,
     ) async {
       await pumpScreen(tester);
@@ -217,37 +222,98 @@ void main() {
         ),
       );
       expect(attended, findsOneWidget);
-      expect(
+      expect(tester.widget<JuniorDayMark>(attended).ringed, isTrue);
+
+      final svg = tester.widget<SvgPicture>(
         find.descendant(of: attended, matching: find.byType(SvgPicture)),
-        findsNothing,
       );
+      expect(
+        (svg.bytesLoader as SvgAssetLoader).assetName,
+        JuniorProgressIcons.lessonAttended,
+      );
+      expect(svg.width, 16);
+      expect(svg.height, 15);
       expect(
         find.descendant(of: attended, matching: find.byType(Icon)),
         findsNothing,
       );
+
+      // A solid blue disc inside the ring.
+      final discs = tester
+          .widgetList<DecoratedBox>(
+            find.descendant(of: attended, matching: find.byType(DecoratedBox)),
+          )
+          .map((box) => box.decoration)
+          .whereType<BoxDecoration>();
       expect(
-        find.descendant(of: attended, matching: find.byType(DecoratedBox)),
-        findsNothing,
+        discs.any(
+          (d) => d.color == JuniorPalette.accent && d.shape == BoxShape.circle,
+        ),
+        isTrue,
       );
       expect(
         find.bySemanticsLabel(JuniorProgressStrings.lessonAttended),
         findsWidgets,
       );
     });
+
+    testWidgets('the attended SVG is pure vector and actually paints', (
+      tester,
+    ) async {
+      final file = File('assets/icons/junior_lesson_attended.svg');
+      final source = file.readAsStringSync();
+      expect(source, contains('<path'));
+      // A raster wrapped in a pattern parses but paints nothing in
+      // flutter_svg — the reason the supplied export could not be used.
+      expect(source, isNot(contains('<pattern')));
+      expect(source, isNot(contains('<image')));
+      expect(source, isNot(contains('base64')));
+
+      final painted = await tester.runAsync(() async {
+        final info = await vg.loadPicture(
+          const SvgAssetLoader(JuniorProgressIcons.lessonAttended),
+          null,
+        );
+        final image = await info.picture.toImage(16, 15);
+        final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        var count = 0;
+        for (var i = 3; i < data!.lengthInBytes; i += 4) {
+          if (data.getUint8(i) > 0) count++;
+        }
+        return count;
+      });
+      expect(painted, greaterThan(0));
+    });
   });
 
-  testWidgets('the legend uses the same two supplied SVGs', (tester) async {
+  testWidgets('the legend draws all three marks', (tester) async {
     await pumpScreen(tester);
 
     final legendMarks = tester
         .widgetList<JuniorDayMark>(find.byType(JuniorDayMark))
-        .where((mark) => mark.size == 24)
-        .map((mark) => mark.status)
-        .toList();
-    expect(legendMarks, [
+        .where((mark) => mark.size == 24);
+    expect(legendMarks.map((mark) => mark.status), [
       JuniorDayStatus.lesson,
       JuniorDayStatus.missed,
       JuniorDayStatus.attended,
+    ]);
+    // The legend's attended disc is the plain one, without the ring.
+    expect(legendMarks.last.ringed, isFalse);
+
+    final legendAssets = tester
+        .widgetList<SvgPicture>(
+          find.descendant(
+            of: find.byWidgetPredicate(
+              (w) => w is JuniorDayMark && w.size == 24,
+            ),
+            matching: find.byType(SvgPicture),
+          ),
+        )
+        .map((svg) => (svg.bytesLoader as SvgAssetLoader).assetName);
+    expect(legendAssets, [
+      JuniorProgressIcons.lessonDay,
+      JuniorProgressIcons.lessonMissed,
+      JuniorProgressIcons.lessonAttended,
     ]);
   });
 
