@@ -51,9 +51,9 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Profile | `/profile` | bottom nav | `auth` current user (real) |
 | Course Catalog | `/courses` | — | `courses` (real) |
 | Course Detail | pushed | — | `courses` (real) |
-| Course Module List | pushed | back button | **sample** |
+| Course Module List | pushed | back button | `course_learning` — `GET /me/courses/{slug}/learning` (real) |
 | Lesson List | pushed from an unlocked module card | back button | `course_learning` — `GET /me/modules/{id}/lessons` (real) |
-| Exercise Detail | pushed | in-video back | **sample** |
+| Exercise Detail | pushed | in-video back | `course_learning` — `GET /me/lessons/{id}` (real) |
 | Quiz / Quiz Result | pushed | close button / none | `course_learning` — §2.7 quiz attempt endpoints (real) |
 
 ## 3. Documented exceptions
