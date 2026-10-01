@@ -197,19 +197,21 @@ void main() {
           )
           .length;
 
-      // 8, 12, 16, 19, 24 and 27 are lesson days; 4 is the missed one;
-      // the 1st is the attended one.
+      // 8, 12, 16, 19, 24 and 27 are lesson days; 4 is the missed one.
       expect(svgCount(JuniorProgressIcons.lessonDay), 6);
       expect(svgCount(JuniorProgressIcons.lessonMissed), 1);
-      expect(svgCount(JuniorProgressIcons.lessonAttended), 1);
-      // And nothing else draws artwork.
       expect(
         find.descendant(of: grid, matching: find.byType(SvgPicture)),
-        findsNWidgets(8),
+        findsNWidgets(7),
+      );
+      // The attended 1st is the one raster mark — see the next test.
+      expect(
+        find.descendant(of: grid, matching: find.byType(Image)),
+        findsOneWidget,
       );
     });
 
-    testWidgets('an attended day draws its SVG on a ringed blue disc', (
+    testWidgets('an attended day draws its PNG on a ringed blue disc', (
       tester,
     ) async {
       await pumpScreen(tester);
@@ -224,15 +226,21 @@ void main() {
       expect(attended, findsOneWidget);
       expect(tester.widget<JuniorDayMark>(attended).ringed, isTrue);
 
-      final svg = tester.widget<SvgPicture>(
-        find.descendant(of: attended, matching: find.byType(SvgPicture)),
+      final image = tester.widget<Image>(
+        find.descendant(of: attended, matching: find.byType(Image)),
       );
       expect(
-        (svg.bytesLoader as SvgAssetLoader).assetName,
+        (image.image as AssetImage).assetName,
         JuniorProgressIcons.lessonAttended,
       );
-      expect(svg.width, 16);
-      expect(svg.height, 15);
+      expect(image.width, 16);
+      expect(image.height, 15);
+      expect(image.fit, BoxFit.contain);
+      // Through Image, not flutter_svg, and no substitute glyph.
+      expect(
+        find.descendant(of: attended, matching: find.byType(SvgPicture)),
+        findsNothing,
+      );
       expect(
         find.descendant(of: attended, matching: find.byType(Icon)),
         findsNothing,
@@ -257,41 +265,47 @@ void main() {
       );
     });
 
-    testWidgets('the attended SVG is pure vector and actually paints', (
+    testWidgets('the attended PNG decodes, with its A and its sparkle', (
       tester,
     ) async {
-      final file = File('assets/icons/junior_lesson_attended.svg');
-      final source = file.readAsStringSync();
-      expect(source, contains('<path'));
-      // A raster wrapped in a pattern parses but paints nothing in
-      // flutter_svg — the reason the supplied export could not be used.
-      expect(source, isNot(contains('<pattern')));
-      expect(source, isNot(contains('<image')));
-      expect(source, isNot(contains('base64')));
-
-      final painted = await tester.runAsync(() async {
-        final info = await vg.loadPicture(
-          const SvgAssetLoader(JuniorProgressIcons.lessonAttended),
-          null,
+      final bytes = File(JuniorProgressIcons.lessonAttended).readAsBytesSync();
+      final pixels = await tester.runAsync(() async {
+        final codec = await ui.instantiateImageCodec(bytes);
+        final image = (await codec.getNextFrame()).image;
+        final data = await image.toByteData(
+          format: ui.ImageByteFormat.rawStraightRgba,
         );
-        final image = await info.picture.toImage(16, 15);
-        final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-        var count = 0;
-        for (var i = 3; i < data!.lengthInBytes; i += 4) {
-          if (data.getUint8(i) > 0) count++;
-        }
-        return count;
+        return (image.width, image.height, data!);
       });
-      expect(painted, greaterThan(0));
+      final (width, height, data) = pixels!;
+      // The design's 63 x 54 viewBox at 2x.
+      expect((width, height), (126, 108));
+
+      var light = 0, orange = 0, transparent = 0;
+      for (var i = 0; i < data.lengthInBytes; i += 4) {
+        final r = data.getUint8(i), g = data.getUint8(i + 1);
+        final b = data.getUint8(i + 2), a = data.getUint8(i + 3);
+        if (a == 0) {
+          transparent++;
+        } else if (a > 200 && r > 0xE0 && g > 0xE0 && b > 0xF0) {
+          light++;
+        } else if (a > 200 && r > 0xE0 && g < 0x80 && b < 0x60) {
+          orange++;
+        }
+      }
+      expect(light, greaterThan(500), reason: 'the near-white A');
+      expect(orange, greaterThan(20), reason: 'the orange sparkle');
+      expect(transparent, greaterThan(0), reason: 'a transparent ground');
     });
   });
 
   testWidgets('the legend draws all three marks', (tester) async {
     await pumpScreen(tester);
 
-    final legendMarks = tester
-        .widgetList<JuniorDayMark>(find.byType(JuniorDayMark))
-        .where((mark) => mark.size == 24);
+    final legend = find.byWidgetPredicate(
+      (w) => w is JuniorDayMark && w.size == 24,
+    );
+    final legendMarks = tester.widgetList<JuniorDayMark>(legend);
     expect(legendMarks.map((mark) => mark.status), [
       JuniorDayStatus.lesson,
       JuniorDayStatus.missed,
@@ -300,21 +314,21 @@ void main() {
     // The legend's attended disc is the plain one, without the ring.
     expect(legendMarks.last.ringed, isFalse);
 
-    final legendAssets = tester
-        .widgetList<SvgPicture>(
-          find.descendant(
-            of: find.byWidgetPredicate(
-              (w) => w is JuniorDayMark && w.size == 24,
-            ),
-            matching: find.byType(SvgPicture),
-          ),
-        )
-        .map((svg) => (svg.bytesLoader as SvgAssetLoader).assetName);
-    expect(legendAssets, [
-      JuniorProgressIcons.lessonDay,
-      JuniorProgressIcons.lessonMissed,
+    expect(
+      tester
+          .widgetList<SvgPicture>(
+            find.descendant(of: legend, matching: find.byType(SvgPicture)),
+          )
+          .map((svg) => (svg.bytesLoader as SvgAssetLoader).assetName),
+      [JuniorProgressIcons.lessonDay, JuniorProgressIcons.lessonMissed],
+    );
+    final attendedImage = tester.widget<Image>(
+      find.descendant(of: legend.last, matching: find.byType(Image)),
+    );
+    expect(
+      (attendedImage.image as AssetImage).assetName,
       JuniorProgressIcons.lessonAttended,
-    ]);
+    );
   });
 
   testWidgets('keeps a phone-width column on a desktop window', (tester) async {

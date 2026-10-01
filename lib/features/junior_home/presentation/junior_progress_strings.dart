@@ -87,18 +87,21 @@ abstract final class JuniorProgressStrings {
   static String _two(int value) => value.toString().padLeft(2, '0');
 }
 
-/// The screen's exported artwork — the three day marks, each the design's
-/// own vector SVG. [lessonDay] and [lessonMissed] are committed unchanged;
-/// [lessonAttended] is [lessonDay]'s paths, geometry unchanged, recoloured
-/// to the frame's attended mark — a near-white `#EEFBFF` "A" with its back leg
-/// in `#D9E4FF`, the fold in `#7CA4FF` and a `#F8623F` sparkle, all sampled off
-/// the design's own artwork — drawn at 16 x 15. The supplied attended export
-/// (a PNG inside an SVG pattern) paints nothing in flutter_svg, so it served
-/// as the colour reference only.
+/// The screen's exported artwork — the three day marks. [lessonDay] and
+/// [lessonMissed] are the design's own vector SVGs, committed unchanged.
+///
+/// [lessonAttended] is a **PNG**: the design's attended mark exists only as
+/// a raster (its Figma export is a PNG inside an SVG `<pattern>`, which
+/// flutter_svg parses but paints nothing for). The PNG is that export
+/// rasterised exactly — its 63 x 54 viewBox, rect clip and pattern transform,
+/// at 2x — with only the mark's colours changed to the frame's attended
+/// palette: `#EEFBFF` front leg and foot, `#D9E4FF` back leg, `#7CA4FF` inner
+/// wedge and `#F8623F` sparkle, as seen over the `#2970FF` disc. Swap it for a
+/// vector SVG if the design ever exports one.
 abstract final class JuniorProgressIcons {
   static const String _dir = 'assets/icons';
 
   static const String lessonDay = '$_dir/junior_lesson_day.svg';
   static const String lessonMissed = '$_dir/junior_lesson_missed.svg';
-  static const String lessonAttended = '$_dir/junior_lesson_attended.svg';
+  static const String lessonAttended = '$_dir/junior_lesson_attended.png';
 }

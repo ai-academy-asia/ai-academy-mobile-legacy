@@ -240,13 +240,15 @@ class _AttendedDisc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 16 x 15, as the frame draws the mark — given explicitly, because
-    // flutter_svg sizes a picture by its viewBox (17 x 16, the base icon's).
-    final glyph = Center(
-      child: SvgPicture.asset(
-        JuniorProgressIcons.lessonAttended,
+    // A PNG, drawn into the frame's 16 x 15 glyph box and contained there —
+    // see `JuniorProgressIcons.lessonAttended` for why it is not an SVG.
+    const glyph = Center(
+      child: Image(
+        image: AssetImage(JuniorProgressIcons.lessonAttended),
         width: 16,
         height: 15,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       ),
     );
     const disc = BoxDecoration(
@@ -273,7 +275,7 @@ class _AttendedDisc extends StatelessWidget {
         ),
         boxShadow: const [_lift],
       ),
-      child: DecoratedBox(decoration: disc, child: glyph),
+      child: const DecoratedBox(decoration: disc, child: glyph),
     );
   }
 }
