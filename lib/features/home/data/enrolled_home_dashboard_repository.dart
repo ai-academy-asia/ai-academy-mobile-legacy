@@ -163,6 +163,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
                     percent: progressPct.round().clamp(0, 100).toInt(),
                   )),
         nextLesson: nextLessonFor(cohort: cohort, now: _clock()),
+        schedule: LessonSchedule.of(cohort),
       ),
       stats: _stats(await payment, await attendance),
     );

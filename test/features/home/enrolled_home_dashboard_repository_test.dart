@@ -543,6 +543,32 @@ void main() {
     );
   });
 
+  group('schedule', () {
+    test('carries the chosen cohort\'s own schedule', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [
+          sampleCohort(id: 1, meetingDays: const ['tue', 'thu']),
+        ],
+      ).getDashboard();
+
+      final schedule = dashboard.program!.schedule!;
+      expect(schedule.weekdays, {DateTime.tuesday, DateTime.thursday});
+      expect(schedule.firstDay, DateTime(2026, 8, 6));
+      expect(schedule.lastDay, DateTime(2026, 10, 6));
+    });
+
+    test('is null when the cohort has no parseable schedule', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1, meetingDays: const [])],
+      ).getDashboard();
+
+      expect(dashboard.program!.schedule, isNull);
+      expect(dashboard.program!.nextLesson, isNull);
+    });
+  });
+
   group('course title', () {
     test('prefers Mongolian, then English, then the cohort name', () async {
       final dashboard = await repository(

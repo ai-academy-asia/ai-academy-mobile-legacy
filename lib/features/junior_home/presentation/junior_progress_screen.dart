@@ -9,8 +9,13 @@ import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/contract_banner.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../../home/presentation/widgets/home_palette.dart';
-import '../data/sample_junior_progress.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../home/domain/home_dashboard.dart';
+import '../data/api_junior_progress_repository.dart';
 import '../domain/junior_progress.dart';
+import '../domain/junior_progress_repository.dart';
+import 'junior_home_strings.dart';
+import 'junior_progress_controller.dart';
 import 'junior_progress_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
 import 'widgets/junior_home_palette.dart';
@@ -48,23 +53,59 @@ const double _legendDisc = 24;
 /// an adult card's layout (the payment card stacks three lines and a pill
 /// with no depth band; the adult tile stacks two and a banded pill).
 ///
-/// **Data — BACKEND GAP.** No confirmed endpoint reports per-day attendance,
-/// an exam score, the next payment or the contract state for a junior
-/// student, so the screen renders [SampleJuniorProgress.reference] — the
-/// frame's own design state — unless a [progress] is passed in. No action on
-/// it has a destination: the banner, the pay button and the month arrows are
-/// drawn as the frame draws them and do nothing, for the reason the adult
-/// dashboard's own unwired actions document.
-class JuniorProgressScreen extends StatelessWidget {
-  const JuniorProgressScreen({super.key, this.progress});
+/// **Data.** Loaded through [JuniorProgressRepository] — by default
+/// [ApiJuniorProgressRepository], the adult dashboard's confirmed sources
+/// mapped onto [JuniorProgress]. Each backend section draws only when it has
+/// data, and nothing stands in for what the API does not report:
+///
+///  * the contract banner — no endpoint reports a signed contract, so it does
+///    not draw (BACKEND GAP);
+///  * the payment card — drawn while something is due: "N хоног дутуу", or
+///    "Хугацаа хэтэрсэн" once overdue, by the adult dashboard's rule; left out
+///    when nothing is owed;
+///  * the summary badges — the attendance badge when `/me/attendance`
+///    answered; the exam badge never, as no exam endpoint exists (BACKEND
+///    GAP). Each card keeps its title either way;
+///  * the next-lesson lines — only when the schedule names one;
+///  * the calendar — today's month with the cohort's lesson days. Attended
+///    and missed days are never marked: no per-session contract is confirmed
+///    (BACKEND GAP).
+///
+/// Loading, failure and empty states are Junior Home's: a spinner, the same
+/// message strings with a retry, and the same empty copy.
+///
+/// No action on the screen has a destination: the banner, the pay button and
+/// the month arrows are drawn as the frame draws them and do nothing, for the
+/// reason the adult dashboard's own unwired actions document.
+class JuniorProgressScreen extends StatefulWidget {
+  const JuniorProgressScreen({super.key, this.repository});
 
-  /// Defaults to [SampleJuniorProgress.reference].
-  final JuniorProgress? progress;
+  /// Defaults to the real API. Injected in tests.
+  final JuniorProgressRepository? repository;
+
+  @override
+  State<JuniorProgressScreen> createState() => _JuniorProgressScreenState();
+}
+
+class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
+  late final JuniorProgressController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = JuniorProgressController(
+      repository: widget.repository ?? ApiJuniorProgressRepository(),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final progress = this.progress ?? SampleJuniorProgress.reference;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -93,32 +134,54 @@ class JuniorProgressScreen extends StatelessWidget {
               color: HomePalette.headerRule,
             ),
             Expanded(
-              child: _constrained(
-                SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.screenPadding,
-                    _pageTop,
-                    AppDimens.screenPadding,
-                    _pageBottom,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (!progress.contractSigned) ...[
-                        const ContractBanner(
-                          title: JuniorProgressStrings.contractTitle,
-                          supporting: JuniorProgressStrings.showParent,
-                        ),
-                        const SizedBox(height: _blockGap),
-                      ],
-                      _PaymentCard(daysLeft: progress.paymentDaysLeft),
-                      const SizedBox(height: _blockGap),
-                      _ProgressPanel(progress: progress),
-                    ],
-                  ),
-                ),
+              child: ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) => _buildBody(),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Failure, empty, loading, then the progress — the order Junior Home
+  /// checks them in.
+  Widget _buildBody() {
+    if (_controller.errorMessage case final message?) {
+      return _StateMessage(message: message, onRetry: _controller.load);
+    }
+    if (_controller.isEmpty) {
+      return const _StateMessage(message: JuniorHomeStrings.empty);
+    }
+    final progress = _controller.progress;
+    if (progress == null) return const _Loading();
+
+    return _constrained(
+      SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.screenPadding,
+          _pageTop,
+          AppDimens.screenPadding,
+          _pageBottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Only an unsigned contract the API reported draws the banner —
+            // and none does yet (see the class doc).
+            if (progress.contract case ContractStatus(signed: false)) ...[
+              const ContractBanner(
+                title: JuniorProgressStrings.contractTitle,
+                supporting: JuniorProgressStrings.showParent,
+              ),
+              const SizedBox(height: _blockGap),
+            ],
+            if (progress.payment case final payment?) ...[
+              _PaymentCard(payment: payment),
+              const SizedBox(height: _blockGap),
+            ],
+            _ProgressPanel(progress: progress),
           ],
         ),
       ),
@@ -139,9 +202,11 @@ class JuniorProgressScreen extends StatelessWidget {
 /// "Дараанийн төлөлт:" — the outlined money tile, three lines, and the pay
 /// pill under them. 144 tall in the frame.
 class _PaymentCard extends StatelessWidget {
-  const _PaymentCard({required this.daysLeft});
+  const _PaymentCard({required this.payment});
 
-  final int daysLeft;
+  /// The dashboard's own payment state — never null here: the card is left
+  /// out when nothing is due.
+  final PaymentStatus payment;
 
   @override
   Widget build(BuildContext context) {
@@ -188,9 +253,18 @@ class _PaymentCard extends StatelessWidget {
                       style: _bodyStyle.copyWith(color: HomePalette.statLabel),
                     ),
                     const SizedBox(height: 4),
+                    // Overdue takes the adult card's own wording and red ink —
+                    // the frame draws only the "due in N days" state.
                     Text(
-                      JuniorProgressStrings.paymentDueIn(daysLeft),
-                      style: _statusStyle,
+                      switch (payment.daysUntilDue) {
+                        final days? => JuniorProgressStrings.paymentDueIn(days),
+                        null => JuniorProgressStrings.paymentOverdue,
+                      },
+                      style: _statusStyle.copyWith(
+                        color: payment.isOverdue
+                            ? HomePalette.overdueInk
+                            : JuniorPalette.accent,
+                      ),
                     ),
                   ],
                 ),
@@ -278,20 +352,27 @@ class _ProgressPanel extends StatelessWidget {
                   Expanded(
                     child: _SummaryCard(
                       title: JuniorProgressStrings.attendance,
-                      value: JuniorProgressStrings.attendanceValue(
-                        progress.attendedLessons,
-                        progress.totalLessons,
-                        progress.attendancePercent,
-                      ),
+                      value: switch (progress.attendance) {
+                        final attendance? =>
+                          JuniorProgressStrings.attendanceValue(
+                            attendance.attended,
+                            attendance.total,
+                            attendance.percent,
+                          ),
+                        null => null,
+                      },
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _SummaryCard(
                       title: JuniorProgressStrings.exam,
-                      value: JuniorProgressStrings.percent(
-                        progress.examPercent,
-                      ),
+                      value: switch (progress.examPercent) {
+                        final percent? => JuniorProgressStrings.percent(
+                          percent,
+                        ),
+                        null => null,
+                      },
                     ),
                   ),
                 ],
@@ -304,19 +385,21 @@ class _ProgressPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  JuniorProgressStrings.nextLesson,
-                  style: _labelStyle,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  JuniorProgressStrings.nextLessonTime(
-                    progress.nextLessonStart,
-                    progress.nextLessonEnd,
+                if (progress.nextLesson case final lesson?) ...[
+                  const Text(
+                    JuniorProgressStrings.nextLesson,
+                    style: _labelStyle,
                   ),
-                  style: _timeStyle,
-                ),
-                const SizedBox(height: 22),
+                  const SizedBox(height: 3),
+                  Text(
+                    JuniorProgressStrings.nextLessonTime(
+                      lesson.startsAt,
+                      lesson.endsAt,
+                    ),
+                    style: _timeStyle,
+                  ),
+                  const SizedBox(height: 22),
+                ],
                 _MonthHeader(month: progress.month),
               ],
             ),
@@ -351,7 +434,10 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.title, required this.value});
 
   final String title;
-  final String value;
+
+  /// The badge's figure. Null leaves the badge off and keeps the title — the
+  /// API reported nothing to put in it, and no stand-in is drawn.
+  final String? value;
 
   @override
   Widget build(BuildContext context) {
@@ -372,17 +458,19 @@ class _SummaryCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 12),
-          Container(
-            // Sized by its label: 2 + a 20 line + 2 is the frame's 24.
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-            decoration: BoxDecoration(
-              color: JuniorPalette.dayLesson,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: JuniorPalette.badgeOutline),
+          if (value case final value?) ...[
+            const SizedBox(height: 12),
+            Container(
+              // Sized by its label: 2 + a 20 line + 2 is the frame's 24.
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              decoration: BoxDecoration(
+                color: JuniorPalette.dayLesson,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: JuniorPalette.badgeOutline),
+              ),
+              child: Text(value, style: _badgeStyle, maxLines: 1),
             ),
-            child: Text(value, style: _badgeStyle, maxLines: 1),
-          ),
+          ],
         ],
       ),
     );
@@ -457,6 +545,70 @@ class _Legend extends StatelessWidget {
         row(JuniorDayStatus.missed, JuniorProgressStrings.lessonMissed),
         row(JuniorDayStatus.attended, JuniorProgressStrings.lessonAttended),
       ],
+    );
+  }
+}
+
+/// The spinner while the progress loads — Junior Home's, in the accent blue
+/// rather than white, since this page is grey rather than the map's sky.
+class _Loading extends StatelessWidget {
+  const _Loading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: JuniorPalette.accent,
+        ),
+      ),
+    );
+  }
+}
+
+/// A line of copy, with a retry when there is something to retry — Junior
+/// Home's own failure and empty view. The Figma pack draws neither state for
+/// this screen.
+class _StateMessage extends StatelessWidget {
+  const _StateMessage({required this.message, this.onRetry});
+
+  final String message;
+
+  /// Null for the empty state: nothing to retry when the student is simply
+  /// enrolled in nothing.
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              style: AppTypography.cardSupporting.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              AppButton(
+                label: JuniorHomeStrings.retry,
+                variant: AppButtonVariant.outlined,
+                onPressed: onRetry,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

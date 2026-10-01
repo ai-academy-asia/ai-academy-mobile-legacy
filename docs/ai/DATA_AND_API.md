@@ -17,6 +17,24 @@ Base URL `https://api.ai-academy.asia`, declared as `defaultBaseUrl` in each HTT
 | GET | `/me/cohorts` | Bearer | `HttpEnrolledCohortsRepository` | `getRaw` |
 | POST | `/cohorts/{cohort_id}/enroll` | Bearer | `HttpEnrollmentRepository` | `postWithoutBody` |
 | GET | `/me/courses/{course_slug}/learning` | Bearer | `HttpCourseLearningRepository.getCourseLearning` | `getRaw` |
+| GET | `/me/attendance?course={course_slug}` | Bearer | `HttpAttendanceRepository` | `getRaw` |
+| GET | `/me/ledger` | Bearer | `HttpLedgerRepository` | `getRaw` |
+
+`HttpCourseLearningRepository` also calls `GET /me/modules/{id}/lessons`, `GET /me/lessons/{id}`, the lesson note, the material download, `POST /me/assignments/{id}/submissions` and `POST /me/files`; each is documented, with its verified shape, on that repository's own method.
+
+### 1.1 Fields read by the Home dashboards
+
+Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын явц" (`ApiJuniorProgressRepository`, which maps that same dashboard) read only these fields. Each shape is the verified production response recorded on the repository; `mobile_api_v1_1.md` is the contract they were checked against.
+
+| Endpoint | Fields read | Used for |
+|---|---|---|
+| `GET /me/cohorts` | entry `cohort_id`, `progress_pct` | which cohorts the student is in; progress fallback |
+| `GET /cohorts` | `id`, `name`, `status`, `course.slug`/`title_*`, `start_date`, `end_date`, `start_time`, `end_time`, `meeting_days` | the cohort in view; `LessonSchedule` → next lesson and the Junior calendar's lesson days |
+| `GET /me/courses/{slug}/learning` | `progress.percent`, per-module `completed` | course progress (adult cohort card, Junior Home map) |
+| `GET /me/attendance?course=` | `summary.attended`, `summary.total_past`, `summary.percent` | the attendance card / badge — the server's figures, never re-derived |
+| `GET /me/ledger` | per enrollment `cohort.id`, `balance`, `next_due_date` | the payment card: due in N days, overdue, or absent when nothing is owed |
+
+**Not read, because not confirmed:** `/me/attendance` `sessions` (the verified response had it empty — no session field is known), and `/me/ledger` `installments` (likewise empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no "missed" day is inferred from a past lesson date, and no exam figure is worked out from assignment or quiz scores.
 
 ## 2. Verified to exist, but NOT consumed by the app
 

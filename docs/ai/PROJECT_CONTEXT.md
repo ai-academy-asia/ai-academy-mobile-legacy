@@ -63,7 +63,7 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 - **Certificate** — the certification section renders two bundled PNGs. There is no per-student certificate status, availability or download.
 - **Lesson List screen** — built and tested, but nothing navigates to it; the design goes Module List → Exercise Detail directly.
 - **Profile rows** — Terms of Service, Privacy Policy, language and theme controls have no destination yet. The same holds on Junior Profile.
-- **Junior "Сурлагын явц" data** — `JuniorProgressScreen` renders `SampleJuniorProgress.reference`, the Figma frame's own design state. No confirmed endpoint reports a junior student's per-day attendance, exam score, payment or contract state (`BACKEND GAP`).
+- **Junior "Сурлагын явц" gaps** — `JuniorProgressScreen` is backend-driven through `ApiJuniorProgressRepository` (the adult dashboard's sources: payment, attendance summary, next lesson, and the cohort schedule's lesson days on the calendar). Three things it cannot show stay off rather than faked (`BACKEND GAP`): **attended/missed days** (the `/me/attendance` `sessions` shape is unconfirmed, so only scheduled lesson days are marked), the **exam result** badge (no exam/grade endpoint), and the **contract banner** (no signed-state endpoint). See `DATA_AND_API.md` §1.1.
 
 ## 4. Known constraints and sharp edges
 

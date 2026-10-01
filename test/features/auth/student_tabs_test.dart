@@ -20,6 +20,7 @@ import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../enrollments/fake_enrollment_repository.dart';
 import '../home/fake_home_dashboard_repository.dart';
 import '../junior_home/fake_junior_home_repository.dart';
+import '../junior_home/fake_junior_progress_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 
 /// The student tab bar across its real screens, for both tracks.
@@ -115,8 +116,9 @@ void main() {
               ),
               StudentTabRoutes.adultProfile: (_) =>
                   ProfileScreen(repository: FakeCurrentUserRepository()),
-              StudentTabRoutes.juniorProgress: (_) =>
-                  const JuniorProgressScreen(),
+              StudentTabRoutes.juniorProgress: (_) => JuniorProgressScreen(
+                repository: FakeJuniorProgressRepository(),
+              ),
               StudentTabRoutes.juniorProfile: (_) =>
                   JuniorProfileScreen(repository: FakeCurrentUserRepository()),
             },

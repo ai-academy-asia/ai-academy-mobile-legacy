@@ -1,44 +1,47 @@
+import '../../home/domain/home_dashboard.dart';
+
 /// What a junior student's "Сурлагын явц" (learning progress) screen shows.
 ///
-/// **BACKEND GAP.** No confirmed endpoint reports any of this for a junior
-/// student — attendance per day, an exam score, the next payment, the
-/// e-contract state — which is the same gap the adult dashboard leaves its
-/// payment, attendance and contract sections empty over (see
-/// `enrolled_home_dashboard_repository.dart`). Until one is confirmed, the
-/// screen renders `SampleJuniorProgress.reference`, the Figma frame's own
-/// design state, and nothing here is read from or sent to the API.
+/// Built from the same confirmed sources as the adult dashboard — see
+/// `ApiJuniorProgressRepository` — and reusing its models, so a payment, an
+/// attendance summary and a next lesson mean exactly what they mean on adult
+/// Home. **Every backend section is nullable, and the screen leaves out what
+/// is null** rather than drawing a stand-in value:
 ///
-/// The figures are carried as the design states them rather than derived
-/// from one another: the frame draws "1/20 · 10%", and computing the percent
-/// from the count would be inventing a rule the design does not state.
+///  * [contract] — always null today. No endpoint reports whether a student
+///    signed an e-contract (BACKEND GAP), so the banner does not draw.
+///  * [payment] — `GET /me/ledger`, by the adult dashboard's rule: null when
+///    nothing is owed, no due date is set, or the call failed.
+///  * [attendance] — `GET /me/attendance` `summary`; null when the call
+///    failed.
+///  * [examPercent] — always null today. No exam, quiz-result or grade
+///    endpoint exists (BACKEND GAP), and none is worked out from assignment
+///    or quiz scores.
+///  * [nextLesson] — derived from the cohort's confirmed schedule; null when
+///    it has none or has ended.
+///
+/// The calendar is the month on the device clock, today selected, with the
+/// cohort's scheduled lesson days marked. **No day is ever marked attended or
+/// missed from the backend**: `GET /me/attendance` lists `sessions`, but no
+/// session field is confirmed (BACKEND GAP), and calling a past lesson day
+/// "missed" because no attendance is known would be inventing a rule.
 class JuniorProgress {
   const JuniorProgress({
-    required this.contractSigned,
-    required this.paymentDaysLeft,
-    required this.attendedLessons,
-    required this.totalLessons,
-    required this.attendancePercent,
-    required this.examPercent,
-    required this.nextLessonStart,
-    required this.nextLessonEnd,
     required this.month,
     required this.selectedDay,
-    required this.days,
+    this.days = const {},
+    this.contract,
+    this.payment,
+    this.attendance,
+    this.examPercent,
+    this.nextLesson,
   });
 
-  /// False shows the unsigned-contract banner.
-  final bool contractSigned;
-
-  /// Days until the next payment is due.
-  final int paymentDaysLeft;
-
-  final int attendedLessons;
-  final int totalLessons;
-  final int attendancePercent;
-  final int examPercent;
-
-  final DateTime nextLessonStart;
-  final DateTime nextLessonEnd;
+  final ContractStatus? contract;
+  final PaymentStatus? payment;
+  final AttendanceSummary? attendance;
+  final int? examPercent;
+  final NextLesson? nextLesson;
 
   /// The calendar's month. Only its year and month are read.
   final DateTime month;
@@ -52,6 +55,10 @@ class JuniorProgress {
 }
 
 /// A calendar day's mark — the three the frame's legend names.
+///
+/// The backend feeds [lesson] only (see [JuniorProgress]); [missed] and
+/// [attended] are drawn by the calendar and its legend, and wait on a
+/// confirmed per-session attendance contract.
 enum JuniorDayStatus {
   /// "Хичээлтэй өдөр" — a scheduled lesson.
   lesson,
