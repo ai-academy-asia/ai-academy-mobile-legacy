@@ -13,6 +13,9 @@ import '../domain/junior_progress_repository.dart';
 /// failures are the dashboard's [HomeFailure]s, so the strings are
 /// [HomeStrings.messageFor]'s — the same wording Junior Home and adult Home
 /// already show for the same situations.
+///
+/// It also holds which month the calendar shows ([displayedMonth]), which the
+/// previous/next arrows page through.
 class JuniorProgressController extends ChangeNotifier {
   JuniorProgressController({required this._repository});
 
@@ -23,6 +26,7 @@ class JuniorProgressController extends ChangeNotifier {
   bool _hasLoadedOnce = false;
   JuniorProgress? _progress;
   String? _errorMessage;
+  DateTime? _displayedMonth;
 
   bool get loading => _loading;
 
@@ -41,10 +45,56 @@ class JuniorProgressController extends ChangeNotifier {
   bool get isEmpty =>
       _hasLoadedOnce && !_loading && _errorMessage == null && _progress == null;
 
+  // --- Calendar month -------------------------------------------------------
+  //
+  // Paging is local: the progress already carries everything the marks are
+  // worked out from ([JuniorProgress.calendar]), so no month asks the API
+  // again. Unbounded either way — no rule says where a student may look.
+
+  /// The month the calendar shows: [JuniorProgress.month] (today's) until the
+  /// student pages away, and again after every load. Null before a load.
+  DateTime? get displayedMonth => _displayedMonth ?? _progress?.month;
+
+  /// [displayedMonth]'s marks: the loaded [JuniorProgress.days] for its own
+  /// month, otherwise worked out by [JuniorProgress.calendar] — empty when
+  /// there is no calendar source to work them out from.
+  Map<int, JuniorDayStatus> get displayedDays {
+    final progress = _progress;
+    final month = displayedMonth;
+    if (progress == null || month == null) return const {};
+    if (_sameMonth(month, progress.month)) return progress.days;
+    return progress.calendar?.marksIn(month) ?? const {};
+  }
+
+  /// Today, selected, only while [displayedMonth] is today's month.
+  int? get displayedSelectedDay {
+    final progress = _progress;
+    final month = displayedMonth;
+    if (progress == null || month == null) return null;
+    return _sameMonth(month, progress.month) ? progress.selectedDay : null;
+  }
+
+  void showPreviousMonth() => _page(-1);
+
+  void showNextMonth() => _page(1);
+
+  void _page(int delta) {
+    final month = displayedMonth;
+    if (month == null) return;
+    // `DateTime` normalises month 0 and 13 into the neighbouring year.
+    _displayedMonth = DateTime(month.year, month.month + delta);
+    _notify();
+  }
+
+  static bool _sameMonth(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month;
+
   /// Fetches the progress. Safe to call again — retry.
   Future<void> load() async {
     _loading = true;
     _errorMessage = null;
+    // Every load — retry included — opens on its own (today's) month.
+    _displayedMonth = null;
     _notify();
 
     try {

@@ -67,17 +67,19 @@ const double _legendDisc = 24;
 ///    answered; the exam badge never, as no exam endpoint exists (BACKEND
 ///    GAP). Each card keeps its title either way;
 ///  * the next-lesson lines — only when the schedule names one;
-///  * the calendar — today's month with the cohort's lesson days, and the
-///    days of attended (present or late) sessions marked attended. Missed
-///    days are never marked: no missed/absent status is confirmed (BACKEND
-///    GAP).
+///  * the calendar — opens on today's month; the previous/next arrows page
+///    to any other month, locally, without asking the API again. Each month
+///    shows the cohort's lesson days, and the days of attended (present or
+///    late) sessions marked attended. Today is selected only in its own
+///    month. Missed days are never marked: no missed/absent status is
+///    confirmed (BACKEND GAP).
 ///
 /// Loading, failure and empty states are Junior Home's: a spinner, the same
 /// message strings with a retry, and the same empty copy.
 ///
-/// No action on the screen has a destination: the banner, the pay button and
-/// the month arrows are drawn as the frame draws them and do nothing, for the
-/// reason the adult dashboard's own unwired actions document.
+/// The banner and the pay button have no destination: they are drawn as the
+/// frame draws them and do nothing, for the reason the adult dashboard's own
+/// unwired actions document.
 class JuniorProgressScreen extends StatefulWidget {
   const JuniorProgressScreen({super.key, this.repository});
 
@@ -182,7 +184,14 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
               _PaymentCard(payment: payment),
               const SizedBox(height: _blockGap),
             ],
-            _ProgressPanel(progress: progress),
+            _ProgressPanel(
+              progress: progress,
+              month: _controller.displayedMonth ?? progress.month,
+              days: _controller.displayedDays,
+              selectedDay: _controller.displayedSelectedDay,
+              onPreviousMonth: _controller.showPreviousMonth,
+              onNextMonth: _controller.showNextMonth,
+            ),
           ],
         ),
       ),
@@ -324,9 +333,24 @@ class _PayButton extends StatelessWidget {
 /// The white panel holding the two summaries, the next lesson, the month and
 /// its legend, ruled into three bands.
 class _ProgressPanel extends StatelessWidget {
-  const _ProgressPanel({required this.progress});
+  const _ProgressPanel({
+    required this.progress,
+    required this.month,
+    required this.days,
+    required this.selectedDay,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+  });
 
   final JuniorProgress progress;
+
+  /// The calendar's month and its marks — the controller's displayed month,
+  /// which the arrows page through.
+  final DateTime month;
+  final Map<int, JuniorDayStatus> days;
+  final int? selectedDay;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
 
   @override
   Widget build(BuildContext context) {
@@ -401,7 +425,11 @@ class _ProgressPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-                _MonthHeader(month: progress.month),
+                _MonthHeader(
+                  month: month,
+                  onPrevious: onPreviousMonth,
+                  onNext: onNextMonth,
+                ),
               ],
             ),
           ),
@@ -414,9 +442,9 @@ class _ProgressPanel extends StatelessWidget {
               8,
             ),
             child: JuniorProgressCalendar(
-              month: progress.month,
-              selectedDay: progress.selectedDay,
-              days: progress.days,
+              month: month,
+              selectedDay: selectedDay,
+              days: days,
             ),
           ),
           const _PanelRule(),
@@ -481,23 +509,34 @@ class _SummaryCard extends StatelessWidget {
 /// "Наймдугаар сар, 2026" with the previous/next arrows at the trailing
 /// edge, centred on the label's line.
 class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({required this.month});
+  const _MonthHeader({
+    required this.month,
+    required this.onPrevious,
+    required this.onNext,
+  });
 
   final DateTime month;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
-    Widget arrow(IconData icon, String label) => Semantics(
+    // A bare GestureDetector rather than an InkWell: the frame draws no
+    // pressed state, and the arrows must look exactly as they did inert.
+    Widget arrow(IconData icon, String label, VoidCallback onTap) => Semantics(
       button: true,
-      enabled: false,
       label: label,
-      child: Container(
-        width: 36,
-        height: 24,
-        // The frame centres the carets 2 above the label's own centre.
-        padding: const EdgeInsets.only(bottom: 4),
-        // 19 inks the frame's 7 x 14 caret.
-        child: Icon(icon, size: 19, color: AppColors.textPrimary),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 24,
+          // The frame centres the carets 2 above the label's own centre.
+          padding: const EdgeInsets.only(bottom: 4),
+          // 19 inks the frame's 7 x 14 caret.
+          child: Icon(icon, size: 19, color: AppColors.textPrimary),
+        ),
       ),
     );
 
@@ -511,8 +550,12 @@ class _MonthHeader extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        arrow(AppIcons.caretLeft, JuniorProgressStrings.previousMonth),
-        arrow(AppIcons.caretRight, JuniorProgressStrings.nextMonth),
+        arrow(
+          AppIcons.caretLeft,
+          JuniorProgressStrings.previousMonth,
+          onPrevious,
+        ),
+        arrow(AppIcons.caretRight, JuniorProgressStrings.nextMonth, onNext),
       ],
     );
   }

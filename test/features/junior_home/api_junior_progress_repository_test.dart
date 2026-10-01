@@ -200,6 +200,22 @@ void main() {
             clock: () => now,
           ).getProgress())!;
 
+      test('seen in October 2026, its calendar still answers June and July '
+          '— the months paging reaches', () async {
+        final progress = await progressAt(DateTime(2026, 10, 1, 10));
+        final calendar = progress.calendar!;
+
+        expect(progress.days, isEmpty);
+        expect(calendar.marksIn(DateTime(2026, 6)), {
+          for (final d in [16, 18, 20, 23, 25, 27, 30])
+            d: JuniorDayStatus.attended,
+        });
+        expect(calendar.marksIn(DateTime(2026, 7)), {
+          for (final d in [2, 4, 7, 9]) d: JuniorDayStatus.attended,
+        });
+        expect(calendar.marksIn(DateTime(2026, 10)), progress.days);
+      });
+
       test('June 2026: every attended lesson day is marked attended', () async {
         final progress = await progressAt(DateTime(2026, 6, 20, 10));
 
@@ -217,13 +233,15 @@ void main() {
         });
       });
 
-      test('today, October 2026: nothing to mark — the calendar shows only '
-          'the current month (documented limitation)', () async {
-        final progress = await progressAt(DateTime(2026, 10, 1, 10));
+      test(
+        'today, October 2026: the month it opens on has nothing to mark',
+        () async {
+          final progress = await progressAt(DateTime(2026, 10, 1, 10));
 
-        expect(progress.month, DateTime(2026, 10));
-        expect(progress.days, isEmpty);
-      });
+          expect(progress.month, DateTime(2026, 10));
+          expect(progress.days, isEmpty);
+        },
+      );
 
       test('an attended day wins over its lesson mark; others stay lessons; '
           'nothing is ever marked missed', () async {

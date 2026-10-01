@@ -38,7 +38,8 @@ const double _weekdayToGrid = 12;
 /// day numbers.
 ///
 /// The selected day's weekday letter is drawn in blue, as the frame draws the
-/// letter over its selected day.
+/// letter over its selected day. A month with no selected day — one the
+/// student paged to that does not contain today — highlights neither.
 class JuniorProgressCalendar extends StatelessWidget {
   const JuniorProgressCalendar({
     required this.month,
@@ -49,7 +50,9 @@ class JuniorProgressCalendar extends StatelessWidget {
 
   /// Only its year and month are read.
   final DateTime month;
-  final int selectedDay;
+
+  /// Null for none.
+  final int? selectedDay;
   final Map<int, JuniorDayStatus> days;
 
   @override
@@ -59,9 +62,11 @@ class JuniorProgressCalendar extends StatelessWidget {
     // `DateTime.weekday` runs Monday = 1 … Sunday = 7; the grid runs Sunday
     // first, so Sunday is column 0.
     final lead = first.weekday % DateTime.daysPerWeek;
-    final selectedColumn =
-        DateTime(month.year, month.month, selectedDay).weekday %
-        DateTime.daysPerWeek;
+    final selectedDay = this.selectedDay;
+    final selectedColumn = selectedDay == null
+        ? null
+        : DateTime(month.year, month.month, selectedDay).weekday %
+              DateTime.daysPerWeek;
     final rowCount = ((lead + dayCount) / DateTime.daysPerWeek).ceil();
 
     Widget row(List<Widget> cells) => Row(

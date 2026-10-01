@@ -1,4 +1,5 @@
 import '../../home/domain/home_dashboard.dart';
+import '../../home/domain/lesson_schedule.dart';
 
 /// What a junior student's "Сурлагын явц" (learning progress) screen shows.
 ///
@@ -20,8 +21,9 @@ import '../../home/domain/home_dashboard.dart';
 ///  * [nextLesson] — derived from the cohort's confirmed schedule; null when
 ///    it has none or has ended.
 ///
-/// The calendar is the month on the device clock, today selected, with the
-/// cohort's scheduled lesson days marked, and a day with a `present` or
+/// The calendar opens on the month on the device clock ([month]), today
+/// selected, and pages to any other month through [calendar]. Each month has
+/// the cohort's scheduled lesson days marked, and a day with a `present` or
 /// `late` session in `GET /me/attendance` `sessions` marked attended instead.
 /// **No day is ever marked missed**: no missed/absent status has been
 /// confirmed (BACKEND GAP), and calling a past lesson day "missed" because no
@@ -36,6 +38,7 @@ class JuniorProgress {
     this.attendance,
     this.examPercent,
     this.nextLesson,
+    this.calendar,
   });
 
   final ContractStatus? contract;
@@ -53,6 +56,42 @@ class JuniorProgress {
   /// The marked days of [month], by day of the month. A day absent from this
   /// map is drawn neutral.
   final Map<int, JuniorDayStatus> days;
+
+  /// What the calendar's marks are worked out from, for any month the
+  /// student pages to — [days] is its answer for [month]. Null when the
+  /// marks are fixed data rather than derived (design state in tests), which
+  /// leaves every other month unmarked.
+  final JuniorCalendarSource? calendar;
+}
+
+/// The backend facts the Junior calendar marks, independent of any month:
+/// the cohort's confirmed schedule and the days of its attended sessions.
+///
+/// [marksIn] is the one rule for every month — the current one the screen
+/// opens on and any the student pages to — so a month's marks never depend
+/// on how it was reached.
+class JuniorCalendarSource {
+  const JuniorCalendarSource({this.schedule, this.attendedDates = const {}});
+
+  /// The cohort's schedule (`GET /cohorts`); null when it has none parseable.
+  final LessonSchedule? schedule;
+
+  /// Local dates of the sessions the server counts as attended
+  /// (`AttendanceSession.countsAsAttended` — `present` and `late`).
+  final Set<DateTime> attendedDates;
+
+  /// [month]'s marks: its scheduled lesson days, and the day of each attended
+  /// session in it marked attended instead — on an unscheduled day too, since
+  /// the server recorded the session. Nothing is ever marked missed (see
+  /// [JuniorProgress]). Only [month]'s year and month are read.
+  Map<int, JuniorDayStatus> marksIn(DateTime month) => {
+    for (final day in schedule?.lessonDaysIn(month) ?? const <int>{})
+      day: JuniorDayStatus.lesson,
+    // After the lesson days, so an attended session wins on its day.
+    for (final date in attendedDates)
+      if (date.year == month.year && date.month == month.month)
+        date.day: JuniorDayStatus.attended,
+  };
 }
 
 /// A calendar day's mark — the three the frame's legend names.

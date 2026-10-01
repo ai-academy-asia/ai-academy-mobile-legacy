@@ -259,6 +259,104 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  group('month navigation', () {
+    Future<void> tapArrow(WidgetTester tester, String label) async {
+      await tester.tap(find.bySemanticsLabel(label));
+      await tester.pumpAndSettle();
+    }
+
+    Finder marks(JuniorDayStatus status) => find.descendant(
+      of: find.byType(JuniorProgressCalendar),
+      matching: find.byWidgetPredicate(
+        (w) => w is JuniorDayMark && w.status == status,
+      ),
+    );
+
+    testWidgets('next and previous change the month shown', (tester) async {
+      await pumpScreen(tester); // the design state: August 2026
+      expect(find.text('Наймдугаар сар, 2026'), findsOneWidget);
+
+      await tapArrow(tester, JuniorProgressStrings.nextMonth);
+      expect(find.text('Есдүгээр сар, 2026'), findsOneWidget);
+      expect(
+        tester
+            .widget<JuniorProgressCalendar>(find.byType(JuniorProgressCalendar))
+            .month,
+        DateTime(2026, 9),
+      );
+
+      await tapArrow(tester, JuniorProgressStrings.previousMonth);
+      await tapArrow(tester, JuniorProgressStrings.previousMonth);
+      expect(find.text('Долоодугаар сар, 2026'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the junior test student: October has no marks; June and '
+        'July show their attended sessions', (tester) async {
+      await pumpScreen(tester, progress: juniorTestStudentInOctober());
+
+      expect(find.text('Аравдугаар сар, 2026'), findsOneWidget);
+      expect(marks(JuniorDayStatus.attended), findsNothing);
+
+      for (var i = 0; i < 4; i++) {
+        await tapArrow(tester, JuniorProgressStrings.previousMonth);
+      }
+      expect(find.text('Зургаадугаар сар, 2026'), findsOneWidget);
+      expect(marks(JuniorDayStatus.attended), findsNWidgets(7));
+      expect(marks(JuniorDayStatus.missed), findsNothing);
+      // Drawn with the existing attended artwork.
+      expect(
+        tester
+            .widgetList<Image>(
+              find.descendant(
+                of: marks(JuniorDayStatus.attended),
+                matching: find.byType(Image),
+              ),
+            )
+            .map((i) => (i.image as AssetImage).assetName)
+            .toSet(),
+        {JuniorProgressIcons.lessonAttended},
+      );
+
+      await tapArrow(tester, JuniorProgressStrings.nextMonth);
+      expect(find.text('Долоодугаар сар, 2026'), findsOneWidget);
+      expect(marks(JuniorDayStatus.attended), findsNWidgets(4));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('only today\'s own month selects a day', (tester) async {
+      await pumpScreen(tester, progress: juniorTestStudentInOctober());
+      JuniorProgressCalendar calendar() =>
+          tester.widget(find.byType(JuniorProgressCalendar));
+      int blueWeekdayLetters() => tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byType(JuniorProgressCalendar),
+              matching: find.byWidgetPredicate(
+                (w) =>
+                    w is Text &&
+                    JuniorProgressStrings.weekdays.contains(w.data),
+              ),
+            ),
+          )
+          .where((t) => t.style?.color == JuniorPalette.accent)
+          .length;
+
+      expect(calendar().selectedDay, 1);
+      // 1 October 2026 (a Thursday): one blue weekday letter.
+      expect(blueWeekdayLetters(), 1);
+
+      await tapArrow(tester, JuniorProgressStrings.previousMonth);
+
+      expect(calendar().selectedDay, isNull);
+      expect(blueWeekdayLetters(), 0);
+
+      await tapArrow(tester, JuniorProgressStrings.nextMonth);
+      expect(calendar().selectedDay, 1);
+      expect(blueWeekdayLetters(), 1);
+    });
+  });
+
   group('loading, failure and empty', () {
     testWidgets('a spinner while the progress loads', (tester) async {
       final repository = FakeJuniorProgressRepository(hold: true);
