@@ -233,6 +233,22 @@ void main() {
       expect(repository.exerciseCalls, isEmpty);
     });
 
+    testWidgets('a module whose lessons come back empty shows the empty '
+        'message', (tester) async {
+      // The case seen on the real "AI хэрхэн ажилладаг вэ" module: the
+      // lessons call succeeds with `"lessons": []`.
+      final repository = FakeCourseLearningRepository(lessons: const []);
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Prediction and Probabilities'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lessonCalls, [1]);
+      expect(find.byType(LessonListScreen), findsOneWidget);
+      expect(find.text(CourseLearningStrings.lessonsEmpty), findsOneWidget);
+    });
+
     testWidgets('tapping a locked module goes nowhere', (tester) async {
       final repository = FakeCourseLearningRepository();
       await pumpScreen(tester, repository);

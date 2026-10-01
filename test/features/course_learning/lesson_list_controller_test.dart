@@ -16,6 +16,8 @@ void main() {
     expect(controller.loading, isFalse);
     expect(controller.lessons, isEmpty);
     expect(controller.errorMessage, isNull);
+    // Nothing has been fetched yet, so nothing is known to be empty.
+    expect(controller.isEmpty, isFalse);
   });
 
   test('remembers which module id it was built for', () {
@@ -145,6 +147,86 @@ void main() {
 
     expect(controller.lessons, isEmpty);
     expect(controller.errorMessage, CourseLearningStrings.serverError);
+  });
+
+  group('isEmpty', () {
+    test('a successful fetch of no lessons is empty', () async {
+      final controller = LessonListController(
+        repository: FakeCourseLearningRepository(lessons: const []),
+        moduleId: 2,
+      );
+
+      await controller.load();
+
+      expect(controller.isEmpty, isTrue);
+      expect(controller.lessons, isEmpty);
+      expect(controller.errorMessage, isNull);
+    });
+
+    test('a successful fetch of lessons is not empty', () async {
+      final controller = LessonListController(
+        repository: FakeCourseLearningRepository(),
+        moduleId: 2,
+      );
+
+      await controller.load();
+
+      expect(controller.isEmpty, isFalse);
+      expect(controller.lessons, hasLength(3));
+    });
+
+    test('is not empty while the fetch is in flight', () async {
+      final repository = FakeCourseLearningRepository(
+        lessons: const [],
+        holdLessons: true,
+      );
+      final controller = LessonListController(
+        repository: repository,
+        moduleId: 2,
+      );
+
+      final pending = controller.load();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.loading, isTrue);
+      expect(controller.isEmpty, isFalse);
+
+      repository.releaseLessons();
+      await pending;
+      expect(controller.isEmpty, isTrue);
+    });
+
+    test('a failure is an error, not empty', () async {
+      final controller = LessonListController(
+        repository: FakeCourseLearningRepository(
+          lessonsFailure: const CourseLearningFailure(
+            CourseLearningFailureKind.network,
+          ),
+        ),
+        moduleId: 2,
+      );
+
+      await controller.load();
+
+      expect(controller.lessons, isEmpty);
+      expect(controller.errorMessage, CourseLearningStrings.networkError);
+      expect(controller.isEmpty, isFalse);
+    });
+
+    test('a reload that finds lessons is no longer empty', () async {
+      final repository = FakeCourseLearningRepository(lessons: const []);
+      final controller = LessonListController(
+        repository: repository,
+        moduleId: 2,
+      );
+      await controller.load();
+      expect(controller.isEmpty, isTrue);
+
+      repository.lessons = sampleLessons(moduleId: 2);
+      await controller.load();
+
+      expect(controller.isEmpty, isFalse);
+      expect(controller.lessons, hasLength(3));
+    });
   });
 
   test('does not notify after being disposed', () async {

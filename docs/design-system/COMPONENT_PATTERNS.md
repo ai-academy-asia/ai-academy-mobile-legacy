@@ -84,7 +84,7 @@ Conventions:
 - **Error copy comes from the controller** (`errorMessage`), mapped from a typed failure using that feature's `*_strings.dart`. Widgets never inspect failure types.
 - Error views carry a **retry** that re-invokes the controller's load.
 
-`course_learning` screens currently render **loading and loaded only** — no error or empty state, because their sample repository cannot fail. Adding a real repository there means adding those states.
+`course_learning` screens now load from the real API and render error states with retry; Lesson List also renders the empty state (`LessonListController.isEmpty`, Issue #156), mirroring `CohortListScreen._EmptyView`.
 
 ## 7. Progress indicators
 

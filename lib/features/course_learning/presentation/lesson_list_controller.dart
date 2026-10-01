@@ -23,6 +23,7 @@ class LessonListController extends ChangeNotifier {
 
   bool _disposed = false;
   bool _loading = false;
+  bool _hasLoadedOnce = false;
   List<Lesson> _lessons = const [];
   String? _errorMessage;
 
@@ -33,6 +34,14 @@ class LessonListController extends ChangeNotifier {
   /// every [load] so a retry does not show the previous attempt's message
   /// while the new one is in flight.
   String? get errorMessage => _errorMessage;
+
+  /// True once a fetch has *completed* successfully and returned no lessons —
+  /// the module is reachable, it just has none. The same rule
+  /// `CourseCatalogController.isEmpty` keeps: false before [load] has ever
+  /// been called, and never true while [loading] or while [errorMessage] is
+  /// set.
+  bool get isEmpty =>
+      _hasLoadedOnce && !_loading && _errorMessage == null && _lessons.isEmpty;
 
   /// Fetches the lessons. Safe to call again — that is the retry.
   Future<void> load() async {
@@ -52,6 +61,7 @@ class LessonListController extends ChangeNotifier {
       _errorMessage = CourseLearningStrings.unexpectedError;
     } finally {
       _loading = false;
+      _hasLoadedOnce = true;
       _notify();
     }
   }
