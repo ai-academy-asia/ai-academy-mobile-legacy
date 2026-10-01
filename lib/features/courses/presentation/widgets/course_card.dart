@@ -144,7 +144,7 @@ String _capitalize(String value) =>
 /// nothing.
 String _audience(Course course) {
   if (course.targetAudience case final audience?) return audience;
-  final ageRange = '${course.ageMin}-${course.ageMax} ${CourseCatalogStrings.ageUnit}';
+  final ageRange = CourseCatalogStrings.ageRange(course.ageMin, course.ageMax);
   return '${_capitalize(course.level)} · $ageRange';
 }
 

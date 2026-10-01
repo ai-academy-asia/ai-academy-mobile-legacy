@@ -74,6 +74,11 @@ Facts that constrain any auth-adjacent work:
 
 - **`LocalizedText {en?, mn?}`** (`core/models`) — the `{"en": …, "mn": …}` wire shape, first seen on `Course.title`/`tagline`. Note the cohort list endpoint sends **flat `title_en`/`title_mn` instead**; `CohortCourse` builds a `LocalizedText` from those. The two endpoints genuinely differ.
 - **`describeJsonLines`** (`core/utils/describe_json.dart`) — for fields whose *name* is confirmed but whose *shape* is not (`curriculum`, `instructors`, `prerequisites`, `whats_included` on course detail). Those stay `Object?` on the model and are rendered generically rather than asserted into a guessed structure. **This is the house pattern for "confirmed name, unconfirmed shape" — reuse it instead of inventing a type.**
+- **Nullable fields confirmed by production responses.** The models make a field nullable only once a real response shows it `null`, and the parsers fail loudly on anything else — so such a failure means *loosen the model*, not *the backend is broken*. Confirmed so far, beyond each model's original nullable set:
+  - `GET /cohorts` → **`classroom` may be `null`** (the online `ai-applied-online` cohort). `Cohort.classroom` is `CohortClassroom?`; a present classroom must still be an object with `id`, `name`, `center_name`. Nothing in the app draws it.
+  - `GET /courses` → **`age_max` may be `null`** (the adult courses: `age_min: 18`, no upper bound). `Course.ageMax` is `int?`; the age range then reads **"18+ нас"** (`CourseCatalogStrings.ageRange`) — the open end is shown, never filled in with a guessed upper age.
+
+  Because both lists parse all-or-nothing, one such field used to reject the whole response as a `server` failure ("Серверт алдаа гарлаа") — breaking every `/cohorts`-backed screen, including both Home dashboards (Issue #136).
 
 ## 7. Sample-data boundary
 

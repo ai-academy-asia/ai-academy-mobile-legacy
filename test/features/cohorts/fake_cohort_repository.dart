@@ -61,7 +61,7 @@ Cohort sampleCohort({
     slug: 'summer-bootcamp-2027',
     title: LocalizedText(en: 'Summer Bootcamp', mn: 'Зуны бүтээлч кэмп'),
   ),
-  CohortClassroom classroom = const CohortClassroom(
+  CohortClassroom? classroom = const CohortClassroom(
     id: 1,
     name: 'Room 301',
     centerName: 'AI Academy Central',

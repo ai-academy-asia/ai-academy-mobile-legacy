@@ -122,7 +122,7 @@ Course sampleCourse({
   String format = 'in_person',
   String status = 'open',
   int ageMin = 10,
-  int ageMax = 18,
+  int? ageMax = 18,
   int durationWeeks = 3,
   String startDate = '2026-06-01',
   String endDate = '2026-06-21',

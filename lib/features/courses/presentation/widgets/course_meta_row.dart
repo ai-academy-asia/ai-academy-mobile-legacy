@@ -18,7 +18,7 @@ class CourseMetaRow extends StatelessWidget {
     final duration =
         course.durationLabel ??
         '${course.durationWeeks} ${CourseCatalogStrings.weeksUnit}';
-    final age = '${course.ageMin}-${course.ageMax} ${CourseCatalogStrings.ageUnit}';
+    final age = CourseCatalogStrings.ageRange(course.ageMin, course.ageMax);
     final dates = CourseCatalogStrings.dateRange(course.startDate, course.endDate);
 
     return Wrap(

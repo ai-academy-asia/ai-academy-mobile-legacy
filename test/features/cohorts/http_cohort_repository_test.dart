@@ -135,7 +135,7 @@ void main() {
         (_) async => jsonResponse(confirmedResponseBody, 200),
       );
 
-      final classroom = (await repository.getCohorts()).single.classroom;
+      final classroom = (await repository.getCohorts()).single.classroom!;
 
       expect(classroom.id, 1);
       expect(classroom.name, 'Room 301');
@@ -283,7 +283,9 @@ void main() {
     });
 
     test('a missing nested object names the field', () async {
-      final json = _cohortJson()..remove('classroom');
+      // `teacher` — still required. `classroom` may be absent or null: see
+      // the "nullable classroom" group.
+      final json = _cohortJson()..remove('teacher');
       final body = jsonEncode({
         'cohorts': [json],
       });
@@ -293,7 +295,7 @@ void main() {
       );
 
       expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.classroom'));
+      expect(failure.detail, contains('cohort.teacher'));
     });
 
     test('a non-object nested field names the field', () async {
@@ -343,6 +345,105 @@ void main() {
 
       expect(failure.kind, ApiFailureKind.server);
       expect(failure.detail, contains('cohort.meeting_days'));
+    });
+  });
+
+  group('nullable classroom (production GET /cohorts)', () {
+    Future<ApiFailure> rejection(Map<String, dynamic> cohort) async {
+      final body = jsonEncode({
+        'cohorts': [cohort],
+      });
+      try {
+        await repositoryReturning((_) async => jsonResponse(body, 200)).getCohorts();
+      } on ApiFailure catch (failure) {
+        return failure;
+      }
+      fail('expected an ApiFailure');
+    }
+
+    test('classroom: null is accepted as no classroom', () async {
+      final body = jsonEncode({
+        'cohorts': [
+          _cohortJson(overrides: {'classroom': null}),
+        ],
+      });
+
+      final cohort = (await repositoryReturning(
+        (_) async => jsonResponse(body, 200),
+      ).getCohorts()).single;
+
+      expect(cohort.classroom, isNull);
+      expect(cohort.id, 1);
+      expect(cohort.teacher.name, 'Сараа Ганбат');
+    });
+
+    test('the production online cohort no longer fails the whole list', () async {
+      // Cohort 4 as the live response sends it, between two that have a
+      // classroom — the list used to be rejected all-or-nothing over it.
+      final online = _cohortJson(overrides: {
+        'id': 4,
+        'name': 'AI Applied — Online',
+        'status': 'closed',
+        'classroom': null,
+        'course': {
+          'id': 10,
+          'slug': 'ai-applied-online',
+          'title_en': 'AI Applied (Online)',
+          'title_mn': 'AI Applied (Онлайн)',
+        },
+        'course_id': 10,
+      });
+      final body = jsonEncode({
+        'cohorts': [
+          _cohortJson(overrides: {'id': 2}),
+          online,
+          _cohortJson(overrides: {'id': 3}),
+        ],
+      });
+
+      final cohorts = await repositoryReturning(
+        (_) async => jsonResponse(body, 200),
+      ).getCohorts();
+
+      expect(cohorts.map((c) => c.id), [2, 4, 3]);
+      expect(cohorts[1].classroom, isNull);
+      expect(cohorts[1].course.slug, 'ai-applied-online');
+      expect(cohorts[0].classroom!.name, 'Room 301');
+      expect(cohorts[2].classroom!.name, 'Room 301');
+    });
+
+    test('an absent classroom key reads as no classroom too', () async {
+      final body = jsonEncode({
+        'cohorts': [_cohortJson()..remove('classroom')],
+      });
+
+      final cohort = (await repositoryReturning(
+        (_) async => jsonResponse(body, 200),
+      ).getCohorts()).single;
+
+      expect(cohort.classroom, isNull);
+    });
+
+    test('a classroom that is not an object is still rejected', () async {
+      for (final malformed in <Object>['Room 301', 301, ['Room 301']]) {
+        final failure = await rejection(
+          _cohortJson(overrides: {'classroom': malformed}),
+        );
+
+        expect(failure.kind, ApiFailureKind.server, reason: '$malformed');
+        expect(failure.detail, contains('cohort.classroom'), reason: '$malformed');
+      }
+    });
+
+    test('a classroom object missing a required field is still rejected', () async {
+      final failure = await rejection(
+        _cohortJson(overrides: {
+          'classroom': {'id': 1, 'name': 'Room 301'},
+        }),
+      );
+
+      expect(failure.kind, ApiFailureKind.server);
+      expect(failure.detail, contains('center_name'));
     });
   });
 

@@ -260,6 +260,24 @@ void main() {
     });
   });
 
+  group('age range', () {
+    test('formats a bounded range and an open-ended one', () {
+      expect(CourseCatalogStrings.ageRange(10, 18), '10-18 ${CourseCatalogStrings.ageUnit}');
+      expect(CourseCatalogStrings.ageRange(18, null), '18+ ${CourseCatalogStrings.ageUnit}');
+    });
+
+    testWidgets('a course with no age_max shows an open-ended range', (tester) async {
+      final course = sampleCourse(level: 'adult', ageMin: 18, ageMax: null);
+      await pumpCatalog(tester, FakeCourseRepository(courses: [course]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Adult · 18+ ${CourseCatalogStrings.ageUnit}'), findsOneWidget);
+      expect(find.textContaining('null'), findsNothing);
+      expect(find.textContaining('18-'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('empty', () {
     testWidgets('shows the empty message when the catalog has no courses', (
       tester,
