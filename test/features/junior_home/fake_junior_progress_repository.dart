@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
+import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_progress_repository.dart';
 
@@ -84,3 +85,28 @@ JuniorProgress figmaReferenceProgress({
             )
       : null,
 );
+
+/// The junior test student as the API maps them, seen on 1 October 2026:
+/// cohort 7 (Tue/Thu/Sat, 16 Jun – 9 Jul 2026) and its 11 attended sessions.
+JuniorProgress juniorTestStudentInOctober() {
+  final calendar = JuniorCalendarSource(
+    schedule: LessonSchedule(
+      weekdays: const {DateTime.tuesday, DateTime.thursday, DateTime.saturday},
+      start: (9, 0),
+      end: (12, 0),
+      firstDay: DateTime(2026, 6, 16),
+      lastDay: DateTime(2026, 7, 9),
+    ),
+    attendedDates: {
+      for (final d in [16, 18, 20, 23, 25, 27, 30]) DateTime(2026, 6, d),
+      for (final d in [2, 4, 7, 9]) DateTime(2026, 7, d),
+    },
+  );
+  final october = DateTime(2026, 10);
+  return JuniorProgress(
+    month: october,
+    selectedDay: 1,
+    days: calendar.marksIn(october),
+    calendar: calendar,
+  );
+}
