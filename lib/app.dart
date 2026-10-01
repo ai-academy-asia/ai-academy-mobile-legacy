@@ -6,8 +6,6 @@ import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/auth/presentation/student_tabs.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
-import 'features/course_learning/data/sample_course_learning_repository.dart';
-import 'features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/junior_home/presentation/junior_home_screen.dart';
@@ -26,21 +24,6 @@ import 'features/splash/presentation/splash_screen.dart';
 /// short animation, then waits for a tap before it hands off to `/login`
 /// (see [SplashScreen.nextRoute]) — nothing else in the app should ever
 /// navigate back to `/`.
-///
-/// --- TEMPORARY: Exercise Detail visual QA ------------------------------
-///
-/// `/dev/course-exercise-preview` opens the new Exercise Detail screen
-/// directly, without Module List → Lesson List → Exercise Detail
-/// navigation, which does not exist yet (Lesson List is a later
-/// increment). Manual visual testing only — push this route by name to
-/// preview it; the app's own `initialRoute` is `'/'` as usual. The route
-/// opens `CourseExerciseDetailScreen` against
-/// `SampleCourseLearningRepository` — passed explicitly, now that the
-/// screen's own default is the real API — at the sample's own lesson id, no
-/// network call.
-///
-/// **Remove this route entry and this comment once Exercise Detail is
-/// reachable through the real Module List → Lesson → Exercise flow.**
 class AiAcademyApp extends StatelessWidget {
   const AiAcademyApp({super.key});
 
@@ -53,11 +36,6 @@ class AiAcademyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (_) => const SplashScreen(),
-        // TEMPORARY dev-only entry point — see the class doc above.
-        '/dev/course-exercise-preview': (_) => CourseExerciseDetailScreen(
-          lessonId: SampleCourseLearningRepository.previewLessonId,
-          repository: SampleCourseLearningRepository(),
-        ),
         '/login': (_) => const LoginScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
         // Sign-in lands on one of these two, by `user_type` — see

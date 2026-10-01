@@ -14,16 +14,15 @@ import 'lesson_list_controller.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/lesson_list_item.dart';
 
-/// The Lesson List.
+/// The Lesson List — one module's lessons, from
+/// `GET /me/modules/{module_id}/lessons`.
 ///
-/// **Not part of the app's normal navigation.** The Figma flow goes straight
-/// from Module List to Exercise Detail, with no Lesson List step between
-/// them — `CourseModuleListScreen`'s unlocked module cards and "Continue
-/// learning" buttons both open `CourseExerciseDetailScreen` directly. This
-/// screen is integrated with `GET /me/modules/{module_id}/lessons` but
-/// deliberately still unreached: the navigation step that pushes it belongs
-/// to the lesson-detail flow's own issue. It is reachable by constructing it
-/// directly (e.g. from a test).
+/// Opened by an unlocked module card on `CourseModuleListScreen`. The Figma
+/// flow goes straight from Module List to Exercise Detail, but a module card
+/// knows only its module and the contract names no lesson for one, so this
+/// screen is where the student picks the lesson instead of the client
+/// inventing a rule for it. "Continue learning" still skips it, opening the
+/// server's `continue.lesson_id` directly.
 ///
 /// No Figma screenshot exists for this screen (unlike Module List and
 /// Exercise Detail, both built strictly against provided references) — it

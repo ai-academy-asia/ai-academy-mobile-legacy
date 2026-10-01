@@ -7,13 +7,13 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
-import '../data/sample_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import 'course_exercise_detail_screen.dart';
 import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
+import 'lesson_list_screen.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/course_module_card.dart';
 
@@ -88,14 +88,13 @@ const double _connectorWidth = 2;
 /// lesson the server selected — `continue.lesson_id`, see
 /// [_continueLessonId] — loaded from `GET /me/lessons/{lesson_id}`.
 ///
-/// An unlocked module card also opens `CourseExerciseDetailScreen` directly —
-/// the Figma flow has no Lesson List step between them — but still with the
-/// **sample** exercise, exactly as before. Exercise Detail is keyed by
+/// An unlocked module card opens `LessonListScreen` for that module — see
+/// [_openLessonList] — and a lesson there opens `CourseExerciseDetailScreen`.
+/// The Figma flow draws no Lesson List step, but Exercise Detail is keyed by
 /// lesson, a module card knows only its module, and the contract names no
-/// lesson for one; picking one on the client would be inventing a rule. So
-/// the card keeps its previous destination until that flow is decided (see
-/// [_openSampleExerciseDetail]). `LessonListScreen` is integrated but not
-/// reachable from here. Locked modules stay genuinely inert (`onTap: null`).
+/// lesson for one; picking one on the client would be inventing a rule, so
+/// the student picks it from the module's own lessons instead. Locked modules
+/// stay genuinely inert (`onTap: null`).
 class CourseModuleListScreen extends StatefulWidget {
   const CourseModuleListScreen({
     required this.courseSlug,
@@ -313,21 +312,24 @@ void _openExerciseDetail(
   );
 }
 
-/// Where an unlocked module card leads — unchanged by the lesson-detail
-/// integration: the sample exercise, which is what the card showed before
-/// (the repository it used then served sample content for every module).
+/// Where an unlocked module card leads: that module's lessons, loaded from
+/// `GET /me/modules/{module_id}/lessons` with the module's own id.
 ///
-/// Deliberately the sample repository and its own lesson id, not this
-/// screen's repository: no lesson id exists for a module card to pass, and
-/// sending the module's id where a lesson's is expected would load the wrong
-/// lesson, or none. Replacing this is the job of the issue that decides how
-/// a module card reaches a lesson.
-void _openSampleExerciseDetail(BuildContext context) {
+/// Through this screen's repository, as [_openExerciseDetail] is — HTTP in
+/// production, the injected one in tests. The title is passed along rather
+/// than re-fetched: `LessonListScreen` draws it as its heading, and this
+/// screen already holds it.
+void _openLessonList(
+  BuildContext context,
+  CourseModule module,
+  CourseLearningRepository repository,
+) {
   Navigator.of(context).push(
     MaterialPageRoute(
-      builder: (_) => CourseExerciseDetailScreen(
-        lessonId: SampleCourseLearningRepository.previewLessonId,
-        repository: SampleCourseLearningRepository(),
+      builder: (_) => LessonListScreen(
+        moduleId: module.id,
+        moduleTitle: module.title,
+        repository: repository,
       ),
     ),
   );
@@ -594,7 +596,7 @@ class _ModuleList extends StatelessWidget {
             module: modules[i],
             onTap: modules[i].locked
                 ? null
-                : () => _openSampleExerciseDetail(context),
+                : () => _openLessonList(context, modules[i], repository),
           ),
           if (i != modules.length - 1) const _ModuleConnector(),
         ],
