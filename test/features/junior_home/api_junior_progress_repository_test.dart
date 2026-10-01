@@ -158,6 +158,131 @@ void main() {
       },
     );
 
+    group('attended sessions (GET /me/attendance sessions)', () {
+      // Cohort 7 as production sends it: Tue/Thu/Sat, 16 Jun – 9 Jul 2026.
+      final cohort7 = LessonSchedule(
+        weekdays: const {
+          DateTime.tuesday,
+          DateTime.thursday,
+          DateTime.saturday,
+        },
+        start: (9, 0),
+        end: (12, 0),
+        firstDay: DateTime(2026, 6, 16),
+        lastDay: DateTime(2026, 7, 9),
+      );
+
+      /// The junior test student's 11 sessions — all present or late, so all
+      /// attended — as the dashboard passes them on.
+      final attendedDates = {
+        for (final d in [16, 18, 20, 23, 25, 27, 30]) DateTime(2026, 6, d),
+        for (final d in [2, 4, 7, 9]) DateTime(2026, 7, d),
+      };
+
+      Future<JuniorProgress> progressAt(DateTime now) async =>
+          (await ApiJuniorProgressRepository(
+            dashboard: FakeHomeDashboardRepository(
+              dashboard: HomeDashboard(
+                program: sampleProgram(schedule: cohort7),
+                stats: [
+                  AttendanceStat(
+                    AttendanceSummary(
+                      attended: 11,
+                      total: 11,
+                      percent: 100,
+                      attendedDates: attendedDates,
+                    ),
+                    layout: HomeStatLayout.row,
+                  ),
+                ],
+              ),
+            ),
+            clock: () => now,
+          ).getProgress())!;
+
+      test('June 2026: every attended lesson day is marked attended', () async {
+        final progress = await progressAt(DateTime(2026, 6, 20, 10));
+
+        expect(progress.days, {
+          for (final d in [16, 18, 20, 23, 25, 27, 30])
+            d: JuniorDayStatus.attended,
+        });
+      });
+
+      test('only the shown month\'s sessions are marked', () async {
+        final progress = await progressAt(DateTime(2026, 7, 1, 10));
+
+        expect(progress.days, {
+          for (final d in [2, 4, 7, 9]) d: JuniorDayStatus.attended,
+        });
+      });
+
+      test('today, October 2026: nothing to mark — the calendar shows only '
+          'the current month (documented limitation)', () async {
+        final progress = await progressAt(DateTime(2026, 10, 1, 10));
+
+        expect(progress.month, DateTime(2026, 10));
+        expect(progress.days, isEmpty);
+      });
+
+      test('an attended day wins over its lesson mark; others stay lessons; '
+          'nothing is ever marked missed', () async {
+        // Only one of August's (Mon/Wed) lesson days has a session reported.
+        final progress = (await ApiJuniorProgressRepository(
+          dashboard: FakeHomeDashboardRepository(
+            dashboard: HomeDashboard(
+              program: sampleProgram(schedule: windowed),
+              stats: [
+                AttendanceStat(
+                  AttendanceSummary(
+                    attended: 1,
+                    total: 3,
+                    percent: 33,
+                    attendedDates: {DateTime(2026, 8, 12)},
+                  ),
+                  layout: HomeStatLayout.row,
+                ),
+              ],
+            ),
+          ),
+          clock: () => now,
+        ).getProgress())!;
+
+        expect(progress.days[12], JuniorDayStatus.attended);
+        expect(progress.days[10], JuniorDayStatus.lesson);
+        expect(progress.days[17], JuniorDayStatus.lesson);
+        expect(progress.days.values, isNot(contains(JuniorDayStatus.missed)));
+      });
+
+      test(
+        'a session on an unscheduled day is still marked attended',
+        () async {
+          final progress = (await ApiJuniorProgressRepository(
+            dashboard: FakeHomeDashboardRepository(
+              dashboard: HomeDashboard(
+                program: sampleProgram(schedule: windowed),
+                stats: [
+                  AttendanceStat(
+                    AttendanceSummary(
+                      attended: 1,
+                      total: 1,
+                      percent: 100,
+                      // A Friday — not a Mon/Wed meeting day.
+                      attendedDates: {DateTime(2026, 8, 14)},
+                    ),
+                    layout: HomeStatLayout.row,
+                  ),
+                ],
+              ),
+            ),
+            clock: () => now,
+          ).getProgress())!;
+
+          expect(progress.days[14], JuniorDayStatus.attended);
+        },
+      );
+    });
+
     test('no schedule: a calendar with no marks', () async {
       final progress = (await repository(
         HomeDashboard(program: sampleProgram()),

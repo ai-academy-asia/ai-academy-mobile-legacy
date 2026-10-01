@@ -67,9 +67,10 @@ const double _legendDisc = 24;
 ///    answered; the exam badge never, as no exam endpoint exists (BACKEND
 ///    GAP). Each card keeps its title either way;
 ///  * the next-lesson lines — only when the schedule names one;
-///  * the calendar — today's month with the cohort's lesson days. Attended
-///    and missed days are never marked: no per-session contract is confirmed
-///    (BACKEND GAP).
+///  * the calendar — today's month with the cohort's lesson days, and the
+///    days of attended (present or late) sessions marked attended. Missed
+///    days are never marked: no missed/absent status is confirmed (BACKEND
+///    GAP).
 ///
 /// Loading, failure and empty states are Junior Home's: a spinner, the same
 /// message strings with a retry, and the same empty copy.

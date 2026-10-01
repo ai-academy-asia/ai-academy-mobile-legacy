@@ -15,9 +15,9 @@ import '../domain/course_attendance.dart';
 ///     GET https://api.ai-academy.asia/me/attendance?course={course_slug}
 ///     Authorization: Bearer <access_token>
 ///
-/// Field names are the verified production response's — see
-/// [CourseAttendance]. Only `summary` is read; `sessions` is left alone, so
-/// an empty list, or entries of any shape, cannot fail the parse.
+/// Field names are the verified production responses' — see
+/// [CourseAttendance]. `summary` is read whole; from `sessions`, only each
+/// entry's `date` and `status` — the rest of an entry is left alone.
 ///
 /// The token is the one `LoginScreen` saved into [AuthSessionStore]. With no
 /// usable session the request is not sent at all — the guard every other
@@ -147,6 +147,54 @@ CourseAttendance _attendanceFromBody(String body) {
     attended: _requireCount(summary, 'attended'),
     totalPast: _requireCount(summary, 'total_past'),
     percent: _requireCount(summary, 'percent').clamp(0, 100),
+    sessions: _sessions(decoded['sessions']),
+  );
+}
+
+/// Both verified responses carry `sessions` as a list — empty for the adult
+/// test account, populated for the junior one. Anything else is a contract
+/// change and fails loudly, like every other field here.
+List<AttendanceSession> _sessions(Object? value) {
+  if (value is! List) {
+    throw AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'sessions: expected a list, got ${value.runtimeType}',
+    );
+  }
+  return [
+    for (final entry in value)
+      if (entry is Map<String, dynamic>)
+        AttendanceSession(
+          date: _requireDate(entry, 'date'),
+          status: _requireString(entry, 'status'),
+        )
+      else
+        throw AttendanceFailure(
+          AttendanceFailureKind.server,
+          detail: 'sessions: an entry was not an object (${entry.runtimeType})',
+        ),
+  ];
+}
+
+/// `"2026-06-16"` -> that local midnight.
+DateTime _requireDate(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  final parsed = value is String ? DateTime.tryParse(value) : null;
+  if (parsed == null) {
+    throw AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'sessions[].$key: expected an ISO date, got "$value"',
+    );
+  }
+  return DateTime(parsed.year, parsed.month, parsed.day);
+}
+
+String _requireString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is String) return value;
+  throw AttendanceFailure(
+    AttendanceFailureKind.server,
+    detail: 'sessions[].$key: expected a string, got ${value.runtimeType}',
   );
 }
 

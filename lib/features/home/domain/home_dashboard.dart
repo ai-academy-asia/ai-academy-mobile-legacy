@@ -182,10 +182,17 @@ class AttendanceSummary {
     required this.attended,
     required this.total,
     this._percent,
+    this.attendedDates = const {},
   });
 
   final int attended;
   final int total;
+
+  /// The days of the sessions the server counts as attended
+  /// (`AttendanceSession.countsAsAttended`), as local dates — what the Junior
+  /// calendar marks. Adult Home does not draw them. Empty when no session is
+  /// attended or the source listed none.
+  final Set<DateTime> attendedDates;
 
   /// The percentage a source reported, when it reported one.
   final int? _percent;

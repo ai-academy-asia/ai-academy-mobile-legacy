@@ -3,14 +3,16 @@ import 'dart:io';
 
 import 'package:aia_mobile/features/attendance/data/http_attendance_repository.dart';
 import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
+import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-/// Exercises the wire format against the verified production response for
-/// the adult test account:
+/// Exercises the wire format against the verified production responses — the
+/// adult test account's (empty `sessions`), and the junior test student's
+/// (populated; see the junior group below). The adult one:
 ///
 ///     GET https://api.ai-academy.asia/me/attendance?course={slug}
 ///
@@ -136,19 +138,224 @@ void main() {
       expect((await repository.getCourseAttendance('s')).percent, 0);
     });
 
-    test('session entries are not read, whatever they carry', () async {
+    test('unmodelled session fields are left alone', () async {
       final repository = repositoryReturning(
         (_) async => http.Response(
           verifiedBody(
             sessions: const [
-              {'anything': true},
+              {'date': '2026-06-16', 'status': 'present', 'anything': true},
             ],
           ),
           200,
         ),
       );
 
-      expect((await repository.getCourseAttendance('s')).attended, 0);
+      final sessions = (await repository.getCourseAttendance('s')).sessions;
+      expect(sessions.single.date, DateTime(2026, 6, 16));
+      expect(sessions.single.status, 'present');
+    });
+  });
+
+  group('the verified junior response (cohort 7, junior-ai-summer-10-14)', () {
+    /// Captured from production for the junior test student, verbatim.
+    const juniorBody = r'''
+{
+  "cohort_id": 7,
+  "course_id": 13,
+  "sessions": [
+      {
+        "date": "2026-06-16",
+        "end_time": "12:00",
+        "session_id": 148,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 24
+      },
+      {
+        "date": "2026-06-18",
+        "end_time": "12:00",
+        "session_id": 149,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 24
+      },
+      {
+        "date": "2026-06-20",
+        "end_time": "12:00",
+        "session_id": 150,
+        "start_time": "09:00",
+        "status": "late",
+        "topic_id": 24
+      },
+      {
+        "date": "2026-06-23",
+        "end_time": "12:00",
+        "session_id": 151,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 24
+      },
+      {
+        "date": "2026-06-25",
+        "end_time": "12:00",
+        "session_id": 152,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 24
+      },
+      {
+        "date": "2026-06-27",
+        "end_time": "12:00",
+        "session_id": 153,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 24
+      },
+      {
+        "date": "2026-06-30",
+        "end_time": "12:00",
+        "session_id": 154,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 25
+      },
+      {
+        "date": "2026-07-02",
+        "end_time": "12:00",
+        "session_id": 155,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 25
+      },
+      {
+        "date": "2026-07-04",
+        "end_time": "12:00",
+        "session_id": 156,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 25
+      },
+      {
+        "date": "2026-07-07",
+        "end_time": "12:00",
+        "session_id": 157,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 26
+      },
+      {
+        "date": "2026-07-09",
+        "end_time": "12:00",
+        "session_id": 158,
+        "start_time": "09:00",
+        "status": "present",
+        "topic_id": 26
+      }
+  ],
+  "summary": {
+    "attended": 11,
+    "percent": 100,
+    "total_past": 11
+  }
+}''';
+
+    Future<CourseAttendance> junior() => repositoryReturning(
+      (_) async => http.Response(juniorBody, 200),
+    ).getCourseAttendance('junior-ai-summer-10-14');
+
+    test('parses every session, in the server\'s order', () async {
+      final attendance = await junior();
+
+      expect(attendance.sessions, hasLength(11));
+      expect(attendance.sessions.first.date, DateTime(2026, 6, 16));
+      expect(attendance.sessions.last.date, DateTime(2026, 7, 9));
+      expect(attendance.attended, 11);
+      expect(attendance.totalPast, 11);
+      expect(attendance.percent, 100);
+    });
+
+    test('reads the statuses verbatim: 10 present, 1 late', () async {
+      final statuses = (await junior()).sessions.map((s) => s.status).toList();
+
+      expect(statuses.where((s) => s == 'present'), hasLength(10));
+      expect(statuses.where((s) => s == 'late'), hasLength(1));
+      expect(
+        (await junior()).sessions.singleWhere((s) => s.status == 'late').date,
+        DateTime(2026, 6, 20),
+      );
+    });
+
+    test(
+      'late counts as attended, as the server\'s own summary does',
+      () async {
+        final attendance = await junior();
+
+        // 10 present + 1 late = summary.attended 11.
+        expect(
+          attendance.sessions.where((s) => s.countsAsAttended),
+          hasLength(attendance.attended),
+        );
+      },
+    );
+  });
+
+  group('session statuses', () {
+    test('only present and late count as attended', () {
+      AttendanceSession session(String status) =>
+          AttendanceSession(date: DateTime(2026, 6, 16), status: status);
+
+      expect(session('present').countsAsAttended, isTrue);
+      expect(session('late').countsAsAttended, isTrue);
+      // Never seen on the wire: not known to mean attended — nor missed.
+      expect(session('excused').countsAsAttended, isFalse);
+      expect(session('').countsAsAttended, isFalse);
+    });
+  });
+
+  group('session failures', () {
+    Future<AttendanceFailure> failing(Object? sessions) => failureFrom(
+      repositoryReturning(
+        (_) async => http.Response(
+          jsonEncode({
+            'sessions': sessions,
+            'summary': {'attended': 0, 'percent': 0, 'total_past': 0},
+          }),
+          200,
+        ),
+      ),
+    );
+
+    test('sessions that is not a list fails as server', () async {
+      final failure = await failing({'date': '2026-06-16'});
+
+      expect(failure.kind, AttendanceFailureKind.server);
+      expect(failure.detail, contains('sessions'));
+    });
+
+    test('a session without a valid date fails as server', () async {
+      for (final date in <Object?>[null, 'yesterday', 20260616]) {
+        final failure = await failing([
+          {'date': date, 'status': 'present'},
+        ]);
+
+        expect(failure.kind, AttendanceFailureKind.server, reason: '$date');
+        expect(failure.detail, contains('date'), reason: '$date');
+      }
+    });
+
+    test('a session without a string status fails as server', () async {
+      final failure = await failing([
+        {'date': '2026-06-16', 'status': 1},
+      ]);
+
+      expect(failure.kind, AttendanceFailureKind.server);
+      expect(failure.detail, contains('status'));
+    });
+
+    test('a session entry that is not an object fails as server', () async {
+      final failure = await failing(['2026-06-16']);
+
+      expect(failure.kind, AttendanceFailureKind.server);
     });
   });
 

@@ -31,10 +31,16 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 | `GET /me/cohorts` | entry `cohort_id`, `progress_pct` | which cohorts the student is in; progress fallback |
 | `GET /cohorts` | `id`, `name`, `status`, `course.slug`/`title_*`, `start_date`, `end_date`, `start_time`, `end_time`, `meeting_days` | the cohort in view; `LessonSchedule` → next lesson and the Junior calendar's lesson days |
 | `GET /me/courses/{slug}/learning` | `progress.percent`, per-module `completed` | course progress (adult cohort card, Junior Home map) |
-| `GET /me/attendance?course=` | `summary.attended`, `summary.total_past`, `summary.percent` | the attendance card / badge — the server's figures, never re-derived |
+| `GET /me/attendance?course=` | `summary.attended`, `summary.total_past`, `summary.percent`; per `sessions[]` entry `date`, `status` | the attendance card / badge — the server's figures, never re-derived; the Junior calendar's attended marks |
 | `GET /me/ledger` | per enrollment `cohort.id`, `balance`, `next_due_date` | the payment card: due in N days, overdue, or absent when nothing is owed |
 
-**Not read, because not confirmed:** `/me/attendance` `sessions` (the verified response had it empty — no session field is known), and `/me/ledger` `installments` (likewise empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no "missed" day is inferred from a past lesson date, and no exam figure is worked out from assignment or quiz scores.
+**`/me/attendance` `sessions`** — confirmed populated by the junior test student's production response (cohort 7, `junior-ai-summer-10-14`, Issue #138). Each entry: `date` (`"2026-06-16"`), `start_time`, `end_time` (`"09:00"`/`"12:00"`), `session_id` (int), `status` (string), `topic_id` (int). Only `date` and `status` are modelled (`AttendanceSession`); the other four are confirmed but unread. The adult test account's response has `sessions: []`.
+
+- **Status values seen:** `"present"` and `"late"` only — kept as a raw `String`, the set is not known to be closed.
+- **`late` counts as attended:** that response lists 10 `present` + 1 `late`, and its `summary.attended` is 11 of `total_past` 11. `AttendanceSession.countsAsAttended` is true for exactly those two values; anything else is unknown and gets no mark.
+- **No missed/absent value has been seen**, so no day is ever marked missed — and none is inferred from a past lesson date with no session.
+
+**Not read, because not confirmed:** `/me/ledger` `installments` (the verified response had it empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no exam figure is worked out from assignment or quiz scores.
 
 ## 2. Verified to exist, but NOT consumed by the app
 

@@ -292,6 +292,10 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         attended: attendance.attended,
         total: attendance.totalPast,
         percent: attendance.percent,
+        attendedDates: {
+          for (final session in attendance.sessions)
+            if (session.countsAsAttended) session.date,
+        },
       );
     } catch (_) {
       return null;
