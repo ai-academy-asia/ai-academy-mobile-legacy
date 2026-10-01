@@ -70,6 +70,14 @@ abstract final class CourseLearningStrings {
   /// the same reason: [notFound] names the course.
   static const String assignmentNotFound = 'Даалгавар олдсонгүй';
 
+  /// §2.7's `404 quiz_not_found`/`attempt_not_found` — worded after
+  /// [materialNotFound], for the same reason.
+  static const String quizNotFound = 'Quiz олдсонгүй';
+
+  /// §2.7's `409 no_attempts_left`. No Figma copy exists; worded after
+  /// [pastDue], the other "this can no longer be done" rule.
+  static const String quizNoAttemptsLeft = 'Quiz өгөх оролдлого дууссан';
+
   /// One fixed string per [CourseLearningFailureKind], the same shape
   /// `HomeStrings.messageFor` and `EnrollmentStrings.messageFor` use.
   static String messageFor(CourseLearningFailureKind kind) => switch (kind) {
@@ -85,6 +93,12 @@ abstract final class CourseLearningStrings {
     CourseLearningFailureKind.invalidLink => invalidLink,
     CourseLearningFailureKind.descriptionTooLong => descriptionTooLong,
     CourseLearningFailureKind.pastDue => pastDue,
+    CourseLearningFailureKind.noAttemptsLeft => quizNoAttemptsLeft,
+    // Both are state conflicts the quiz screen recovers from by re-reading
+    // the attempt (§0: "409 → refresh the screen state"), so neither is
+    // normally shown; the generic line stands in if one ever is.
+    CourseLearningFailureKind.attemptFinished => unexpectedError,
+    CourseLearningFailureKind.alreadyAnswered => unexpectedError,
     CourseLearningFailureKind.unsupportedFileType => unsupportedFileType,
     CourseLearningFailureKind.fileTooLarge => fileTooLarge,
     CourseLearningFailureKind.network => networkError,

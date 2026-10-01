@@ -2,6 +2,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart'
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/domain/material_download.dart';
 import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
@@ -57,6 +58,29 @@ class _ThrowingRepository implements CourseLearningRepository {
     required String fileName,
     required List<int> bytes,
   }) => _delegate.uploadFile(fileName: fileName, bytes: bytes);
+
+  @override
+  Future<QuizAttempt> startQuizAttempt(int quizId) =>
+      _delegate.startQuizAttempt(quizId);
+
+  @override
+  Future<QuizAnswerResult> answerQuizQuestion(
+    int attemptId, {
+    required int questionId,
+    required int optionId,
+  }) => _delegate.answerQuizQuestion(
+    attemptId,
+    questionId: questionId,
+    optionId: optionId,
+  );
+
+  @override
+  Future<QuizAttemptResult> finishQuizAttempt(int attemptId) =>
+      _delegate.finishQuizAttempt(attemptId);
+
+  @override
+  Future<QuizAttemptResult> getQuizAttempt(int attemptId) =>
+      _delegate.getQuizAttempt(attemptId);
 }
 
 void main() {

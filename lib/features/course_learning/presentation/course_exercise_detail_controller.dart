@@ -139,6 +139,25 @@ class CourseExerciseDetailController extends ChangeNotifier {
     }
   }
 
+  /// Re-reads the lesson for its quiz summary after a quiz attempt — the
+  /// server's `last_result`, `attempts_left` and `open_attempt_id`, none of
+  /// which this client works out for itself. Only the quiz is replaced, so
+  /// the rest of the screen (a note being edited, a submission's state) is
+  /// left as it is. A failure keeps the summary already showing: the lesson
+  /// itself is still loaded, and the next visit reads it fresh.
+  Future<void> refreshQuiz() async {
+    if (_exercise == null) return;
+    try {
+      final fresh = await _repository.getExercise(lessonId);
+      // Re-read, as `saveNote` does: a reload may have replaced the exercise.
+      final current = _exercise;
+      if (current != null) _exercise = current.withQuiz(fresh.quiz);
+    } catch (_) {
+      return;
+    }
+    _notify();
+  }
+
   /// Saves [content] as the lesson's note. On success the loaded exercise
   /// holds the note the repository returned — the server's author and
   /// timestamp, not a local copy — and this answers true. On failure the

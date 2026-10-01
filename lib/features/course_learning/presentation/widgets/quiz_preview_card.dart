@@ -5,27 +5,24 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_quiz.dart';
 import '../course_learning_strings.dart';
-import '../course_quiz_screen.dart';
 import 'exercise_submit_button.dart';
 import 'exercise_text_field.dart' show exerciseBorderColor;
 
 /// The Quiz preview/result card on Exercise Detail — a separate bordered
 /// card below the Assignment/Course materials/Note tab card, not one more
 /// tab inside it (see `CourseExerciseDetailScreen`'s own doc comment on why
-/// Quiz moved out of the tab set). Shows "Start quiz" until the quiz has
-/// been completed at least once, then the last score plus "Дахин quiz
-/// өгөх" (retry).
+/// Quiz moved out of the tab set). Everything it shows is the server's §2.7
+/// summary: "Start quiz" until an attempt has finished, then `last_result`'s
+/// own percentage plus "Дахин quiz өгөх" (retry) — hidden once
+/// `attempts_left` reaches 0 (§2.7 Q23).
 ///
-/// [result] and [onResult] are owned by `CourseExerciseDetailScreen`, the
-/// same lifting `_note` already needed: a result reached through
-/// `CourseQuizScreen`/`CourseQuizResultScreen` (both pushed on top of this
-/// screen) must still be showing here once the student pops back to it.
+/// Starting is [onStart]'s: `CourseExerciseDetailScreen` pushes
+/// `CourseQuizScreen` and re-reads the summary when it returns.
 class QuizPreviewCard extends StatelessWidget {
   const QuizPreviewCard({
     required this.moduleCaption,
     required this.quiz,
-    required this.result,
-    required this.onResult,
+    required this.onStart,
     super.key,
   });
 
@@ -34,25 +31,15 @@ class QuizPreviewCard extends StatelessWidget {
   /// Null means this exercise has no quiz — the card renders nothing.
   final CourseQuiz? quiz;
 
-  /// The last completed attempt's score, or null if the quiz has never been
-  /// finished yet.
-  final ({int correct, int total})? result;
-
-  final ValueChanged<({int correct, int total})> onResult;
-
-  Future<void> _start(BuildContext context, CourseQuiz quiz) async {
-    final outcome = await Navigator.of(context).push<({int correct, int total})>(
-      MaterialPageRoute(builder: (_) => CourseQuizScreen(quiz: quiz)),
-    );
-    if (outcome != null) onResult(outcome);
-  }
+  /// "Start quiz" / "Дахин quiz өгөх" — both start (or resume) an attempt.
+  final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
     final quiz = this.quiz;
     if (quiz == null) return const SizedBox.shrink();
 
-    final result = this.result;
+    final result = quiz.lastResult;
 
     return Container(
       width: double.infinity,
@@ -73,7 +60,7 @@ class QuizPreviewCard extends StatelessWidget {
             children: [
               Text(moduleCaption, style: AppTypography.catalogSectionLabel),
               Text(
-                CourseLearningStrings.quizQuestionCount(quiz.questions.length),
+                CourseLearningStrings.quizQuestionCount(quiz.questionCount),
                 style: AppTypography.catalogSectionLabel,
               ),
             ],
@@ -91,7 +78,7 @@ class QuizPreviewCard extends StatelessWidget {
             Center(
               child: ExerciseSubmitButton(
                 label: CourseLearningStrings.startQuiz,
-                onPressed: () => _start(context, quiz),
+                onPressed: onStart,
               ),
             )
           else ...[
@@ -104,7 +91,7 @@ class QuizPreviewCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${(result.correct / result.total * 100).round()}%',
+                    '${result.percent}%',
                     style: AppTypography.heading.copyWith(
                       fontSize: 28,
                       color: AppColors.warning,
@@ -113,13 +100,15 @@ class QuizPreviewCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Center(
-              child: ExerciseSubmitButton(
-                label: CourseLearningStrings.retakeQuiz,
-                onPressed: () => _start(context, quiz),
+            if (quiz.canRetake) ...[
+              const SizedBox(height: 16),
+              Center(
+                child: ExerciseSubmitButton(
+                  label: CourseLearningStrings.retakeQuiz,
+                  onPressed: onStart,
+                ),
               ),
-            ),
+            ],
           ],
         ],
       ),

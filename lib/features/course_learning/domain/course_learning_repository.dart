@@ -1,5 +1,6 @@
 import 'course_exercise.dart';
 import 'course_learning_path.dart';
+import 'course_quiz.dart';
 import 'lesson.dart';
 import 'material_download.dart';
 import 'uploaded_file.dart';
@@ -10,17 +11,16 @@ import 'uploaded_file.dart';
 /// `HttpCourseLearningRepository` serves all three from
 /// `course_learning_api_contract_v1.md` §2.1–2.3, saves a lesson's note
 /// through §2.5, fetches a material's download link through §2.4, submits
-/// an assignment through §2.6 and uploads a student file through §2.8,
-/// throwing `CourseLearningFailure`;
-/// `SampleCourseLearningRepository` serves hand-authored content for tests
-/// and the dev preview.
+/// an assignment through §2.6, uploads a student file through §2.8 and runs
+/// a quiz attempt through §2.7, throwing `CourseLearningFailure`;
+/// `SampleCourseLearningRepository` serves hand-authored content for tests.
 ///
 /// Three content reads on one interface, same shape as `CourseRepository`'s
 /// `getCourses()`/`getCourseDetail(slug)` split: one for the overview list,
 /// one for a module's own lessons, one for a lesson's exercise detail — plus
 /// the Exercise Detail screen's actions: the note save, a material's download
-/// link and an assignment submission — and the file upload a submission will
-/// attach.
+/// link and an assignment submission — the file upload a submission will
+/// attach, and the quiz attempt's start, answers, finish and result.
 abstract interface class CourseLearningRepository {
   /// [courseSlug] is `Course.slug` — the one identifier this feature borrows
   /// from the confirmed course contract rather than inventing its own.
@@ -65,4 +65,26 @@ abstract interface class CourseLearningRepository {
     required String fileName,
     required List<int> bytes,
   });
+
+  /// Starts an attempt at quiz [quizId] — or, when the student already has
+  /// an unfinished one, returns that one instead (§2.7 Q21) — §2.7
+  /// `POST /me/quizzes/{quiz_id}/attempts`. [quizId] is `CourseQuiz.id`.
+  Future<QuizAttempt> startQuizAttempt(int quizId);
+
+  /// Answers one question of attempt [attemptId] with [optionId] and returns
+  /// whether it was right — §2.7 `POST /me/quiz-attempts/{attempt_id}/answers`.
+  /// The answer is final.
+  Future<QuizAnswerResult> answerQuizQuestion(
+    int attemptId, {
+    required int questionId,
+    required int optionId,
+  });
+
+  /// Finishes attempt [attemptId] and returns its server-graded result —
+  /// §2.7 `POST /me/quiz-attempts/{attempt_id}/finish`.
+  Future<QuizAttemptResult> finishQuizAttempt(int attemptId);
+
+  /// Reads a finished attempt's result again — §2.7
+  /// `GET /me/quiz-attempts/{attempt_id}`.
+  Future<QuizAttemptResult> getQuizAttempt(int attemptId);
 }

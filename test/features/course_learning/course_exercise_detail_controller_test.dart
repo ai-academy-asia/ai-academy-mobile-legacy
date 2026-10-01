@@ -1206,6 +1206,52 @@ void main() {
       await pending;
     });
   });
+
+  group('refreshQuiz', () {
+    test('re-reads the lesson and takes only its quiz summary', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(lessonId: 204, quiz: sampleQuiz()),
+      );
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+      await controller.load();
+      await controller.saveNote('Kept across the refresh.');
+
+      repository.exercise = sampleExercise(
+        lessonId: 204,
+        quiz: sampleQuiz(attemptsLeft: 1, lastResult: sampleLastResult()),
+      );
+      await controller.refreshQuiz();
+
+      expect(repository.exerciseCalls, [204, 204]);
+      final quiz = controller.exercise!.quiz!;
+      expect(quiz.lastResult?.percent, 80);
+      expect(quiz.attemptsLeft, 1);
+      // The rest of the lesson is what the screen already held.
+      expect(controller.exercise!.note?.message, 'Kept across the refresh.');
+    });
+
+    test('a failure keeps the summary already showing', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(lessonId: 204, quiz: sampleQuiz()),
+      );
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+      await controller.load();
+
+      repository.exerciseFailure = const CourseLearningFailure(
+        CourseLearningFailureKind.network,
+      );
+      await controller.refreshQuiz();
+
+      expect(controller.exercise!.quiz?.id, 9);
+      expect(controller.errorMessage, isNull);
+    });
+  });
 }
 
 /// Throws something that is not a `CourseLearningFailure` — from

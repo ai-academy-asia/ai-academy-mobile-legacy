@@ -13,7 +13,8 @@ import '../../support/screenshot.dart';
 ///
 /// Driven by the *production* sample rather than the test fake: the frames
 /// show the four-question, four-option quiz transcribed from Figma, and the
-/// fake's two-question stub cannot reproduce them.
+/// fake's two-question stub cannot reproduce them. The sample answers each
+/// pick the way §2.7's server does, so the screen runs its real flow.
 late CourseQuiz quiz;
 
 void main() {
@@ -29,7 +30,10 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
-        home: CourseQuizScreen(quiz: quiz),
+        home: CourseQuizScreen(
+          quiz: quiz,
+          repository: SampleCourseLearningRepository(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -47,14 +51,16 @@ void main() {
 
   testWidgets('q2 correct answer picked', (tester) async {
     await pumpQuiz(tester);
-    await tester.tap(find.text(quiz.questions.first.options[0]));
+    // Option A of the frame's first question — the right one.
+    await tester.tap(find.text('Хиймэл оюун'));
     await tester.pumpAndSettle();
     await shot(tester, '2_correct');
   });
 
   testWidgets('q3 wrong answer picked', (tester) async {
     await pumpQuiz(tester);
-    await tester.tap(find.text(quiz.questions.first.options[1]));
+    // Option B — a wrong one.
+    await tester.tap(find.text('Тоглоом'));
     await tester.pumpAndSettle();
     await shot(tester, '3_incorrect');
   });
@@ -66,14 +72,21 @@ void main() {
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
         home: CourseQuizResultScreen(
-          quiz: quiz,
+          title: quiz.resultTitle,
           // Two of four right, as the reference frame shows.
-          answers: {
-            0: quiz.questions[0].correctOptionIndex,
-            1: (quiz.questions[1].correctOptionIndex + 1) % 4,
-            2: quiz.questions[2].correctOptionIndex,
-            3: (quiz.questions[3].correctOptionIndex + 1) % 4,
-          },
+          result: const QuizAttemptResult(
+            attemptId: 1,
+            correct: 2,
+            total: 4,
+            percent: 50,
+            passed: false,
+            questions: [
+              QuizQuestionResult(questionId: 1, order: 1, correct: true),
+              QuizQuestionResult(questionId: 2, order: 2, correct: false),
+              QuizQuestionResult(questionId: 3, order: 3, correct: true),
+              QuizQuestionResult(questionId: 4, order: 4, correct: false),
+            ],
+          ),
         ),
       ),
     );

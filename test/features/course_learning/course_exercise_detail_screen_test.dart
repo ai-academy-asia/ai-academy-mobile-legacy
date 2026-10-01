@@ -3,6 +3,7 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/utils/pick_local_file.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
@@ -671,124 +672,248 @@ void main() {
       expect(find.text('Start quiz'), findsNothing);
     });
 
-    testWidgets('shows the title, question count and Start quiz', (
-      tester,
-    ) async {
-      final exercise = sampleExercise(quiz: sampleQuiz(title: 'Loops quiz'));
-      await pumpScreen(
-        tester,
-        FakeCourseLearningRepository(exercise: exercise),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Loops quiz'), findsOneWidget);
-      expect(find.text('Total 2 questions'), findsOneWidget);
-      await tester.ensureVisible(find.text('Start quiz'));
-      expect(find.text('Start quiz'), findsOneWidget);
-    });
-  });
-
-  group('quiz flow', () {
     testWidgets(
-      'the close button pops back to Exercise Detail without a result',
+      'shows the title, the server\'s question count and Start quiz',
       (tester) async {
-        final exercise = sampleExercise(quiz: sampleQuiz());
+        final exercise = sampleExercise(
+          quiz: sampleQuiz(title: 'Loops quiz', questionCount: 5),
+        );
         await pumpScreen(
           tester,
           FakeCourseLearningRepository(exercise: exercise),
         );
         await tester.pumpAndSettle();
 
+        expect(find.text('Loops quiz'), findsOneWidget);
+        expect(find.text('Total 5 questions'), findsOneWidget);
         await tester.ensureVisible(find.text('Start quiz'));
-        await tester.tap(find.text('Start quiz'));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.bySemanticsLabel('Close'));
-        await tester.pumpAndSettle();
-
         expect(find.text('Start quiz'), findsOneWidget);
-        expect(find.text('Дахин quiz өгөх'), findsNothing);
       },
     );
 
-    testWidgets('answering incorrectly shows the wrong feedback', (
+    testWidgets('a finished quiz shows last_result\'s own percent and retry', (
       tester,
     ) async {
-      final exercise = sampleExercise(quiz: sampleQuiz());
+      final exercise = sampleExercise(
+        quiz: sampleQuiz(lastResult: sampleLastResult(percent: 80)),
+      );
       await pumpScreen(
         tester,
         FakeCourseLearningRepository(exercise: exercise),
       );
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.text('Дахин quiz өгөх'));
+      expect(find.text('80%'), findsOneWidget);
+      expect(find.text('Дахин quiz өгөх'), findsOneWidget);
+      expect(find.text('Start quiz'), findsNothing);
+    });
+
+    testWidgets('no attempts left hides Дахин quiz өгөх, keeps the score', (
+      tester,
+    ) async {
+      final exercise = sampleExercise(
+        quiz: sampleQuiz(attemptsLeft: 0, lastResult: sampleLastResult()),
+      );
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('80%'));
+      expect(find.text('80%'), findsOneWidget);
+      expect(find.text('Дахин quiz өгөх'), findsNothing);
+    });
+
+    testWidgets('attempts left keeps Дахин quiz өгөх', (tester) async {
+      final exercise = sampleExercise(
+        quiz: sampleQuiz(attemptsLeft: 2, lastResult: sampleLastResult()),
+      );
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: exercise),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Дахин quiz өгөх'));
+      expect(find.text('Дахин quiz өгөх'), findsOneWidget);
+    });
+  });
+
+  group('quiz flow', () {
+    Future<void> startQuiz(WidgetTester tester) async {
       await tester.ensureVisible(find.text('Start quiz'));
       await tester.tap(find.text('Start quiz'));
       await tester.pumpAndSettle();
+    }
 
+    testWidgets('Start quiz starts an attempt at the quiz\'s own id', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(quiz: sampleQuiz(id: 9)),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      await startQuiz(tester);
+
+      expect(repository.startQuizCalls, [9]);
       expect(find.text('1/2'), findsOneWidget);
       expect(
         find.text('Pick the right answer (first question)'),
         findsOneWidget,
       );
-
-      // `sampleQuiz()`'s question 1: "Wrong" is option B, "Right" (index 0)
-      // is correct.
-      await tester.tap(find.text('Wrong'));
-      await tester.pump();
-
-      expect(find.text('Хариулт буруу байна.'), findsOneWidget);
-      expect(find.text("Зөв хариулт нь 'A'."), findsOneWidget);
     });
 
     testWidgets(
-      'completing both questions correctly shows the result, and Дахин '
-      'quiz өгөх retakes it',
+      'closing pops back to Exercise Detail and re-reads the quiz summary',
       (tester) async {
-        final exercise = sampleExercise(quiz: sampleQuiz());
-        await pumpScreen(
-          tester,
-          FakeCourseLearningRepository(exercise: exercise),
+        final repository = FakeCourseLearningRepository(
+          exercise: sampleExercise(quiz: sampleQuiz()),
         );
+        await pumpScreen(tester, repository);
         await tester.pumpAndSettle();
+        await startQuiz(tester);
 
-        await tester.ensureVisible(find.text('Start quiz'));
-        await tester.tap(find.text('Start quiz'));
-        await tester.pumpAndSettle();
-
-        // Question 1: "Right" (index 0) is correct.
-        await tester.tap(find.text('Right'));
-        await tester.pump();
-        expect(find.text('Хариул зөв байна.'), findsOneWidget);
-
-        await tester.tap(find.text('Үргэлжлүүлэх'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('2/2'), findsOneWidget);
-        expect(
-          find.text('Pick the right answer (second question)'),
-          findsOneWidget,
+        // The server now reports the attempt left open.
+        repository.exercise = sampleExercise(
+          quiz: sampleQuiz(openAttemptId: sampleAttemptId),
         );
-
-        // Question 2: "Right" (index 1) is correct.
-        await tester.tap(find.text('Right'));
-        await tester.pump();
-        expect(find.text('Хариул зөв байна.'), findsOneWidget);
-
-        await tester.tap(find.text('Үргэлжлүүлэх'));
+        await tester.tap(find.bySemanticsLabel('Close'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Sample result'), findsOneWidget);
-        expect(find.text('100%'), findsOneWidget);
-        expect(find.text('Та 2 асуултаас 2-д зөв хариуллаа'), findsOneWidget);
-
-        await tester.tap(find.text('Дуусгах'));
-        await tester.pumpAndSettle();
-
-        // Back on Exercise Detail, the preview card now shows the result.
-        expect(find.text('100%'), findsOneWidget);
-        expect(find.text('Дахин quiz өгөх'), findsOneWidget);
+        expect(repository.exerciseCalls, [2, 2]);
+        expect(repository.finishCalls, isEmpty);
+        expect(find.text('Start quiz'), findsOneWidget);
+        expect(find.text('Дахин quiz өгөх'), findsNothing);
       },
     );
+
+    testWidgets('an answer is sent to the attempt, and its feedback is the '
+        'server\'s', (tester) async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(quiz: sampleQuiz()),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await startQuiz(tester);
+
+      // Question 101's "Wrong" is option 502; the server names 501 (A).
+      await tester.tap(find.text('Wrong'));
+      await tester.pumpAndSettle();
+
+      expect(repository.answerCalls, [(sampleAttemptId, 101, 502)]);
+      expect(find.text('Хариулт буруу байна.'), findsOneWidget);
+      expect(find.text("Зөв хариулт нь 'A'."), findsOneWidget);
+      expect(find.text('The first option is right.'), findsOneWidget);
+    });
+
+    testWidgets('finishing shows the server\'s result, then the card shows the '
+        're-read last_result', (tester) async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(quiz: sampleQuiz()),
+        // Not what the two right answers below would score on the client —
+        // proof the screen shows the server's grading, not its own.
+        finishResult: sampleAttemptResult(
+          correct: 1,
+          percent: 50,
+          passed: false,
+          questions: const [
+            QuizQuestionResult(questionId: 101, order: 1, correct: true),
+            QuizQuestionResult(questionId: 102, order: 2, correct: false),
+          ],
+        ),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await startQuiz(tester);
+
+      await tester.tap(find.text('Right'));
+      await tester.pumpAndSettle();
+      expect(find.text('Хариул зөв байна.'), findsOneWidget);
+      await tester.tap(find.text('Үргэлжлүүлэх'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2/2'), findsOneWidget);
+      await tester.tap(find.text('Right'));
+      await tester.pumpAndSettle();
+
+      // What the lesson reports once the attempt is graded.
+      repository.exercise = sampleExercise(
+        quiz: sampleQuiz(
+          lastResult: sampleLastResult(correct: 1, total: 2, percent: 50),
+        ),
+      );
+      await tester.tap(find.text('Үргэлжлүүлэх'));
+      await tester.pumpAndSettle();
+
+      expect(repository.answerCalls, [
+        (sampleAttemptId, 101, 501),
+        (sampleAttemptId, 102, 504),
+      ]);
+      expect(repository.finishCalls, [sampleAttemptId]);
+      expect(find.text('Sample result'), findsOneWidget);
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('Та 2 асуултаас 1-д зөв хариуллаа'), findsOneWidget);
+
+      await tester.tap(find.text('Дуусгах'));
+      await tester.pumpAndSettle();
+
+      // Back on Exercise Detail: the summary was re-read from the lesson.
+      expect(repository.exerciseCalls, [2, 2]);
+      await tester.ensureVisible(find.text('Дахин quiz өгөх'));
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('Дахин quiz өгөх'), findsOneWidget);
+    });
+
+    testWidgets('a failed start shows its copy and a retry', (tester) async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(quiz: sampleQuiz()),
+        startQuizFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.noAttemptsLeft,
+        ),
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await startQuiz(tester);
+
+      expect(
+        find.text(CourseLearningStrings.quizNoAttemptsLeft),
+        findsOneWidget,
+      );
+
+      repository.startQuizFailure = null;
+      await tester.tap(find.text(CourseLearningStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(repository.startQuizCalls, [9, 9]);
+      expect(find.text('1/2'), findsOneWidget);
+    });
+
+    testWidgets('a spinner shows while the attempt is starting', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(quiz: sampleQuiz()),
+        holdStartQuiz: true,
+      );
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Start quiz'));
+      await tester.tap(find.text('Start quiz'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      repository.releaseStartQuiz();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('1/2'), findsOneWidget);
+    });
   });
 
   group('navigation', () {
@@ -922,6 +1047,30 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(CourseLearningStrings.startQuiz), findsNothing);
+    });
+
+    testWidgets('with a quiz, draws its card and starts the real attempt', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          title: 'Давталт',
+          assignmentFeedback: const [],
+          simulatesWrites: false,
+          quiz: sampleQuiz(id: 12, title: 'Давталтын quiz'),
+        ),
+      );
+      await pumpScreen(tester, repository, lessonId: 204);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Давталтын quiz'), findsOneWidget);
+      await tester.ensureVisible(find.text(CourseLearningStrings.startQuiz));
+      await tester.tap(find.text(CourseLearningStrings.startQuiz));
+      await tester.pumpAndSettle();
+
+      expect(repository.startQuizCalls, [12]);
+      expect(find.text('1/2'), findsOneWidget);
     });
 
     group('assignment state', () {

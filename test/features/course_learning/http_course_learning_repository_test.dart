@@ -1367,12 +1367,116 @@ void main() {
         });
       });
 
-      test('ignores a quiz summary it does not integrate', () async {
-        final body = lessonBody()..['quiz'] = {'id': 9, 'question_count': 5};
+      group('quiz (§2.7 summary)', () {
+        Map<String, Object?> quizBody({
+          Object? attemptsLeft,
+          Object? openAttemptId,
+          Object? lastResult,
+        }) => {
+          'id': 9,
+          'title': {'mn': 'Давталтын quiz', 'en': 'Loops quiz'},
+          'question_count': 5,
+          'pass_percent': 70,
+          'attempts_used': 1,
+          'attempts_left': attemptsLeft,
+          'open_attempt_id': openAttemptId,
+          'last_result': lastResult,
+        };
 
-        final exercise = await exerciseFrom(body);
+        test('reads the summary, Mongolian title first', () async {
+          final body = lessonBody()
+            ..['quiz'] = quizBody(attemptsLeft: 2, openAttemptId: 41);
 
-        expect(exercise.quiz, isNull);
+          final quiz = (await exerciseFrom(body)).quiz!;
+
+          expect(quiz.id, 9);
+          expect(quiz.title, 'Давталтын quiz');
+          expect(quiz.questionCount, 5);
+          expect(quiz.attemptsLeft, 2);
+          expect(quiz.openAttemptId, 41);
+          expect(quiz.lastResult, isNull);
+          expect(quiz.canRetake, isTrue);
+        });
+
+        test('null attempts_left is unlimited, 0 is none left', () async {
+          final unlimited = (await exerciseFrom(
+            lessonBody()..['quiz'] = quizBody(),
+          )).quiz!;
+          final none = (await exerciseFrom(
+            lessonBody()..['quiz'] = quizBody(attemptsLeft: 0),
+          )).quiz!;
+
+          expect(unlimited.attemptsLeft, isNull);
+          expect(unlimited.canRetake, isTrue);
+          expect(none.canRetake, isFalse);
+        });
+
+        test('reads last_result as the server sent it', () async {
+          final body = lessonBody()
+            ..['quiz'] = quizBody(
+              lastResult: {
+                'attempt_id': 40,
+                'correct': 4,
+                'total': 5,
+                'percent': 80,
+                'passed': true,
+                'finished_at': '2026-08-06T03:00:00+00:00',
+              },
+            );
+
+          final result = (await exerciseFrom(body)).quiz!.lastResult!;
+
+          expect(result.attemptId, 40);
+          expect(result.correct, 4);
+          expect(result.total, 5);
+          expect(result.percent, 80);
+          expect(result.passed, isTrue);
+        });
+
+        test('the result title is the module\'s, as the Figma frame writes '
+            'it', () async {
+          final body = lessonBody()..['quiz'] = quizBody();
+
+          final quiz = (await exerciseFrom(body)).quiz!;
+
+          expect(quiz.resultTitle, 'Level 2 - Хоёрдугаар');
+        });
+
+        test(
+          'with no module title, the quiz\'s own title heads the result',
+          () async {
+            final body = lessonBody()..['quiz'] = quizBody();
+            (body['module']! as Map<String, Object?>).remove('title');
+
+            final quiz = (await exerciseFrom(body)).quiz!;
+
+            expect(quiz.resultTitle, 'Давталтын quiz');
+          },
+        );
+
+        test('a malformed summary is a server fault', () async {
+          for (final quiz in <Object?>[
+            'quiz',
+            {...quizBody(), 'id': null},
+            {...quizBody(), 'question_count': '5'},
+            {...quizBody(), 'attempts_left': 'many'},
+            {...quizBody(), 'last_result': 'none'},
+            {
+              ...quizBody(),
+              'last_result': {'attempt_id': 40},
+            },
+          ]) {
+            final failure = await failureForExerciseBody(
+              lessonBody()..['quiz'] = quiz,
+            );
+
+            expect(
+              failure.kind,
+              CourseLearningFailureKind.server,
+              reason: '$quiz',
+            );
+          }
+        });
       });
     });
 
@@ -3035,6 +3139,388 @@ void main() {
           expect(failure.kind, CourseLearningFailureKind.server, reason: field);
           expect(failure.detail, contains(field.trim()), reason: field);
         }
+      });
+    });
+  });
+
+  group('quiz attempts (§2.7)', () {
+    Map<String, Object?> attemptBody({Object? firstAnswer}) => {
+      'attempt_id': 41,
+      'quiz_id': 9,
+      'status': 'in_progress',
+      'started_at': '2026-08-06T03:00:00+00:00',
+      'questions': [
+        {
+          'id': 101,
+          'order': 1,
+          'prompt': 'AI гэж юу вэ?',
+          'image': null,
+          'options': [
+            {'id': 501, 'text': 'Хиймэл оюун'},
+            {'id': 502, 'text': 'Тоглоом'},
+          ],
+          'answer': firstAnswer,
+        },
+        {
+          'id': 102,
+          'order': 2,
+          'prompt': 'Machine Learning гэж юу вэ?',
+          'image': null,
+          'options': [
+            {'id': 503, 'text': 'Өгөгдлөөс сурах'},
+          ],
+          'answer': null,
+        },
+      ],
+    };
+
+    Map<String, Object?> answerBody({Object? explanation = 'Учир нь…'}) => {
+      'question_id': 101,
+      'option_id': 502,
+      'correct': false,
+      'correct_option_id': 501,
+      'explanation': explanation,
+    };
+
+    Map<String, Object?> resultBody() => {
+      'attempt_id': 41,
+      'correct': 1,
+      'total': 2,
+      'percent': 50,
+      'passed': false,
+      'started_at': '2026-08-06T03:00:00+00:00',
+      'finished_at': '2026-08-06T03:05:00+00:00',
+      'questions': [
+        {'question_id': 101, 'order': 1, 'correct': true},
+        {'question_id': 102, 'order': 2, 'correct': false},
+      ],
+    };
+
+    Future<CourseLearningFailure> failureOf(
+      Future<Object?> Function() call,
+    ) async {
+      try {
+        await call();
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    group('startQuizAttempt', () {
+      test('POSTs to the quiz, with the token and no body', () async {
+        late http.Request sent;
+        final repository = repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(attemptBody(), 201);
+        });
+
+        await repository.startQuizAttempt(9);
+
+        expect(sent.method, 'POST');
+        expect(
+          sent.url.toString(),
+          'https://api.ai-academy.asia/me/quizzes/9/attempts',
+        );
+        expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+        expect(sent.body, isEmpty);
+      });
+
+      test('reads the attempt, its questions and options in order', () async {
+        final attempt = await repositoryReturning(
+          (_) async => jsonResponse(attemptBody(), 201),
+        ).startQuizAttempt(9);
+
+        expect(attempt.attemptId, 41);
+        expect(attempt.questions.map((q) => q.id), [101, 102]);
+        final first = attempt.questions.first;
+        expect(first.prompt, 'AI гэж юу вэ?');
+        expect(first.options.map((o) => (o.id, o.text)), [
+          (501, 'Хиймэл оюун'),
+          (502, 'Тоглоом'),
+        ]);
+        expect(first.answered, isFalse);
+      });
+
+      test('a resumed attempt (200) marks an answered question by its '
+          'answer\'s presence alone', () async {
+        final attempt = await repositoryReturning(
+          (_) async => jsonResponse(
+            attemptBody(firstAnswer: {'option_id': 502, 'correct': false}),
+          ),
+        ).startQuizAttempt(9);
+
+        expect(attempt.questions[0].answered, isTrue);
+        expect(attempt.questions[1].answered, isFalse);
+      });
+
+      test('409 no_attempts_left is its own kind', () async {
+        final failure = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse({'error': 'no_attempts_left'}, 409),
+          ).startQuizAttempt(9),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.noAttemptsLeft);
+      });
+
+      test('404 quiz_not_found is notFound, 403 notEnrolled', () async {
+        final notFound = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse({'error': 'quiz_not_found'}, 404),
+          ).startQuizAttempt(9),
+        );
+        final notEnrolled = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse({'error': 'not_enrolled'}, 403),
+          ).startQuizAttempt(9),
+        );
+
+        expect(notFound.kind, CourseLearningFailureKind.notFound);
+        expect(notEnrolled.kind, CourseLearningFailureKind.notEnrolled);
+      });
+
+      test('a malformed attempt is a server fault', () async {
+        for (final body in <Object?>[
+          'attempt',
+          {...attemptBody(), 'attempt_id': null},
+          {...attemptBody(), 'questions': 'none'},
+          {
+            ...attemptBody(),
+            'questions': [
+              {'id': 101, 'prompt': 'Q', 'options': 'none'},
+            ],
+          },
+          {
+            ...attemptBody(),
+            'questions': [
+              {
+                'id': 101,
+                'prompt': 'Q',
+                'options': [
+                  {'id': 501},
+                ],
+              },
+            ],
+          },
+        ]) {
+          final failure = await failureOf(
+            () => repositoryReturning(
+              (_) async => jsonResponse(body, 201),
+            ).startQuizAttempt(9),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+
+      test('without a session, nothing is sent', () async {
+        var sent = false;
+        final failure = await failureOf(
+          () => repositoryReturning((_) async {
+            sent = true;
+            return jsonResponse(attemptBody(), 201);
+          }, sessionStore: AuthSessionStore()).startQuizAttempt(9),
+        );
+
+        expect(sent, isFalse);
+        expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+      });
+    });
+
+    group('answerQuizQuestion', () {
+      test('POSTs the question and option to the attempt, as JSON', () async {
+        late http.Request sent;
+        final repository = repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(answerBody());
+        });
+
+        await repository.answerQuizQuestion(41, questionId: 101, optionId: 502);
+
+        expect(sent.method, 'POST');
+        expect(
+          sent.url.toString(),
+          'https://api.ai-academy.asia/me/quiz-attempts/41/answers',
+        );
+        expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+        expect(jsonDecode(sent.body), {'question_id': 101, 'option_id': 502});
+      });
+
+      test(
+        'reads the server\'s verdict, right option and explanation',
+        () async {
+          final answer = await repositoryReturning(
+            (_) async => jsonResponse(answerBody()),
+          ).answerQuizQuestion(41, questionId: 101, optionId: 502);
+
+          expect(answer.questionId, 101);
+          expect(answer.optionId, 502);
+          expect(answer.correct, isFalse);
+          expect(answer.correctOptionId, 501);
+          expect(answer.explanation, 'Учир нь…');
+        },
+      );
+
+      test('a missing explanation is no explanation, not a fault', () async {
+        final answer = await repositoryReturning(
+          (_) async => jsonResponse(answerBody(explanation: null)),
+        ).answerQuizQuestion(41, questionId: 101, optionId: 502);
+
+        expect(answer.explanation, isEmpty);
+      });
+
+      test(
+        '409 already_answered and attempt_finished are their own kinds',
+        () async {
+          final expected = {
+            'already_answered': CourseLearningFailureKind.alreadyAnswered,
+            'attempt_finished': CourseLearningFailureKind.attemptFinished,
+          };
+          for (final MapEntry(key: code, value: kind) in expected.entries) {
+            final failure = await failureOf(
+              () => repositoryReturning(
+                (_) async => jsonResponse({'error': code}, 409),
+              ).answerQuizQuestion(41, questionId: 101, optionId: 502),
+            );
+
+            expect(failure.kind, kind, reason: code);
+          }
+        },
+      );
+
+      test('400 invalid_option is unexpected', () async {
+        final failure = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse({'error': 'invalid_option'}, 400),
+          ).answerQuizQuestion(41, questionId: 101, optionId: 999),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.unexpected);
+      });
+
+      test('a malformed answer is a server fault', () async {
+        for (final body in <Object?>[
+          'answer',
+          {...answerBody(), 'correct': 'no'},
+          {...answerBody(), 'correct_option_id': null},
+        ]) {
+          final failure = await failureOf(
+            () => repositoryReturning(
+              (_) async => jsonResponse(body),
+            ).answerQuizQuestion(41, questionId: 101, optionId: 502),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+    });
+
+    group('finishQuizAttempt', () {
+      test('POSTs to the attempt\'s finish, with no body', () async {
+        late http.Request sent;
+        final repository = repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(resultBody());
+        });
+
+        await repository.finishQuizAttempt(41);
+
+        expect(sent.method, 'POST');
+        expect(
+          sent.url.toString(),
+          'https://api.ai-academy.asia/me/quiz-attempts/41/finish',
+        );
+        expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+        expect(sent.body, isEmpty);
+      });
+
+      test('reads the server-graded result as sent', () async {
+        final result = await repositoryReturning(
+          (_) async => jsonResponse(resultBody()),
+        ).finishQuizAttempt(41);
+
+        expect(result.attemptId, 41);
+        expect(result.correct, 1);
+        expect(result.total, 2);
+        expect(result.percent, 50);
+        expect(result.passed, isFalse);
+        expect(
+          result.questions.map((q) => (q.questionId, q.order, q.correct)),
+          [(101, 1, true), (102, 2, false)],
+        );
+      });
+
+      test('409 attempt_finished is its own kind', () async {
+        final failure = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse({'error': 'attempt_finished'}, 409),
+          ).finishQuizAttempt(41),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.attemptFinished);
+      });
+
+      test('a malformed result is a server fault', () async {
+        for (final body in <Object?>[
+          'result',
+          {...resultBody(), 'percent': null},
+          {...resultBody(), 'questions': 'none'},
+          {
+            ...resultBody(),
+            'questions': [
+              {'question_id': 101, 'order': 1},
+            ],
+          },
+        ]) {
+          final failure = await failureOf(
+            () => repositoryReturning(
+              (_) async => jsonResponse(body),
+            ).finishQuizAttempt(41),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$body',
+          );
+        }
+      });
+    });
+
+    group('getQuizAttempt', () {
+      test('GETs the attempt and reads it as the finish answer', () async {
+        late http.Request sent;
+        final result = await repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(resultBody());
+        }).getQuizAttempt(41);
+
+        expect(sent.method, 'GET');
+        expect(
+          sent.url.toString(),
+          'https://api.ai-academy.asia/me/quiz-attempts/41',
+        );
+        expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+        expect(result.percent, 50);
+      });
+
+      test('404 attempt_not_found is notFound', () async {
+        final failure = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse({'error': 'attempt_not_found'}, 404),
+          ).getQuizAttempt(41),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.notFound);
       });
     });
   });
