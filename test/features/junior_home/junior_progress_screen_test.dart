@@ -215,6 +215,50 @@ void main() {
     });
   });
 
+  testWidgets('an attended session draws the existing attended mark', (
+    tester,
+  ) async {
+    // What the repository produces once `/me/attendance` reports a present or
+    // late session on a day of the shown month.
+    await pumpScreen(
+      tester,
+      progress: JuniorProgress(
+        month: DateTime(2026, 6),
+        selectedDay: 20,
+        days: const {
+          16: JuniorDayStatus.attended,
+          18: JuniorDayStatus.attended,
+          20: JuniorDayStatus.lesson,
+        },
+      ),
+    );
+
+    final grid = find.byType(JuniorProgressCalendar);
+    final attended = find.descendant(
+      of: grid,
+      matching: find.byWidgetPredicate(
+        (w) => w is JuniorDayMark && w.status == JuniorDayStatus.attended,
+      ),
+    );
+    expect(attended, findsNWidgets(2));
+    final images = tester.widgetList<Image>(
+      find.descendant(of: attended, matching: find.byType(Image)),
+    );
+    expect(images.map((i) => (i.image as AssetImage).assetName).toSet(), {
+      JuniorProgressIcons.lessonAttended,
+    });
+    expect(
+      find.descendant(
+        of: grid,
+        matching: find.byWidgetPredicate(
+          (w) => w is JuniorDayMark && w.status == JuniorDayStatus.missed,
+        ),
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   group('loading, failure and empty', () {
     testWidgets('a spinner while the progress loads', (tester) async {
       final repository = FakeJuniorProgressRepository(hold: true);

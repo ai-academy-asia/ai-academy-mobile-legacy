@@ -19,10 +19,13 @@ import '../domain/junior_progress_repository.dart';
 ///  * attendance — the dashboard's `AttendanceStat`, the server's `summary`;
 ///  * next lesson — `EnrolledProgram.nextLesson`;
 ///  * calendar — today's month, today selected, and the cohort's scheduled
-///    days from `EnrolledProgram.schedule` marked as lesson days.
+///    days from `EnrolledProgram.schedule` marked as lesson days; a day the
+///    server reports an attended session on (`AttendanceSummary
+///    .attendedDates`) is marked attended instead. No day is marked missed:
+///    no missed/absent status has been confirmed.
 ///
 /// What the API does not report stays out (see `JuniorProgress`): the
-/// contract banner, the exam result, and any attended or missed day.
+/// contract banner, the exam result, and any missed day.
 class ApiJuniorProgressRepository implements JuniorProgressRepository {
   ApiJuniorProgressRepository({
     HomeDashboardRepository? dashboard,
@@ -42,17 +45,26 @@ class ApiJuniorProgressRepository implements JuniorProgressRepository {
     final now = _clock();
     final month = DateTime(now.year, now.month);
     final lessonDays = program.schedule?.lessonDaysIn(month) ?? const {};
+    final attendance = dashboard.stats
+        .whereType<AttendanceStat>()
+        .firstOrNull
+        ?.attendance;
+    final attendedDays = {
+      for (final date in attendance?.attendedDates ?? const <DateTime>{})
+        if (date.year == month.year && date.month == month.month) date.day,
+    };
 
     return JuniorProgress(
       month: month,
       selectedDay: now.day,
-      days: {for (final day in lessonDays) day: JuniorDayStatus.lesson},
+      days: {
+        for (final day in lessonDays) day: JuniorDayStatus.lesson,
+        // After the lesson days, so an attended session wins on its day.
+        for (final day in attendedDays) day: JuniorDayStatus.attended,
+      },
       contract: dashboard.contract,
       payment: dashboard.stats.whereType<PaymentStat>().firstOrNull?.payment,
-      attendance: dashboard.stats
-          .whereType<AttendanceStat>()
-          .firstOrNull
-          ?.attendance,
+      attendance: attendance,
       // BACKEND GAP: no exam/grade endpoint — see `JuniorProgress`.
       examPercent: null,
       nextLesson: program.nextLesson,

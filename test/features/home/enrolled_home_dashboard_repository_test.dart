@@ -368,6 +368,42 @@ void main() {
       expect(attendance.percent, 10);
     });
 
+    test('attended session dates pass through; nothing else does', () async {
+      final dashboard = await dashboardWith(
+        attendance: FakeAttendanceRepository(
+          attendance: CourseAttendance(
+            attended: 2,
+            totalPast: 3,
+            percent: 67,
+            sessions: [
+              AttendanceSession(date: DateTime(2026, 6, 16), status: 'present'),
+              AttendanceSession(date: DateTime(2026, 6, 20), status: 'late'),
+              // Not a confirmed status: neither attended nor missed.
+              AttendanceSession(date: DateTime(2026, 6, 23), status: 'other'),
+            ],
+          ),
+        ),
+      );
+
+      final attendance = attendanceOf(dashboard)!;
+      expect(attendance.attendedDates, {
+        DateTime(2026, 6, 16),
+        DateTime(2026, 6, 20),
+      });
+      // The card's own figures are still the server's summary.
+      expect(attendance.attended, 2);
+      expect(attendance.total, 3);
+      expect(attendance.percent, 67);
+    });
+
+    test('no sessions: no attended dates', () async {
+      final dashboard = await dashboardWith(
+        attendance: FakeAttendanceRepository(),
+      );
+
+      expect(attendanceOf(dashboard)!.attendedDates, isEmpty);
+    });
+
     test('attendance is asked for the resolved catalog slug', () async {
       final attendance = FakeAttendanceRepository();
       await dashboardWith(courses: [sampleCourse()], attendance: attendance);

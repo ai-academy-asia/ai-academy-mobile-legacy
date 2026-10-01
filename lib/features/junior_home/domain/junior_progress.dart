@@ -21,10 +21,11 @@ import '../../home/domain/home_dashboard.dart';
 ///    it has none or has ended.
 ///
 /// The calendar is the month on the device clock, today selected, with the
-/// cohort's scheduled lesson days marked. **No day is ever marked attended or
-/// missed from the backend**: `GET /me/attendance` lists `sessions`, but no
-/// session field is confirmed (BACKEND GAP), and calling a past lesson day
-/// "missed" because no attendance is known would be inventing a rule.
+/// cohort's scheduled lesson days marked, and a day with a `present` or
+/// `late` session in `GET /me/attendance` `sessions` marked attended instead.
+/// **No day is ever marked missed**: no missed/absent status has been
+/// confirmed (BACKEND GAP), and calling a past lesson day "missed" because no
+/// session is listed would be inventing a rule.
 class JuniorProgress {
   const JuniorProgress({
     required this.month,
@@ -56,9 +57,9 @@ class JuniorProgress {
 
 /// A calendar day's mark — the three the frame's legend names.
 ///
-/// The backend feeds [lesson] only (see [JuniorProgress]); [missed] and
-/// [attended] are drawn by the calendar and its legend, and wait on a
-/// confirmed per-session attendance contract.
+/// The backend feeds [lesson] (the cohort schedule) and [attended] (an
+/// attended session) — see [JuniorProgress]. [missed] is drawn by the
+/// calendar and its legend, and waits on a confirmed missed/absent status.
 enum JuniorDayStatus {
   /// "Хичээлтэй өдөр" — a scheduled lesson.
   lesson,
