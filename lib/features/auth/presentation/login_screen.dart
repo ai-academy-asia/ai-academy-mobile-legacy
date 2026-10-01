@@ -220,15 +220,16 @@ class _LoginScreenState extends State<LoginScreen> {
             // field takes "Утасны дугаар / Email хаяг" and `/auth/login` signs
             // in by `email`, but iOS's phone pad has no letter keys, so an
             // address could not be typed at all (Issue #142). The email
-            // keyboard still reaches digits through its number row. On iOS the
-            // `username` hint below already turns autocorrect off.
+            // keyboard still reaches digits through its number row.
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            autofillHints: const [
-              AutofillHints.username,
-              AutofillHints.telephoneNumber,
-              AutofillHints.email,
-            ],
+            // iOS reads only the first hint, as the field's content type: email,
+            // so it is never offered as a phone-number field (Issue #144). No
+            // telephone hint at all — Android reads every hint. `username`
+            // stays listed because Flutter turns autocorrect off on iOS when
+            // any hint is password-related; the password field below still
+            // makes the group a login form for password AutoFill.
+            autofillHints: const [AutofillHints.email, AutofillHints.username],
             onSubmitted: (_) => _passwordFocus.requestFocus(),
           ),
           const SizedBox(height: AppDimens.fieldGap),

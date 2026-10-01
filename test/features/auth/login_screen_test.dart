@@ -190,6 +190,45 @@ void main() {
       );
     });
 
+    testWidgets('is offered for autofill as an email, never a phone number', (
+      tester,
+    ) async {
+      await pumpLogin(tester, FakeAuthRepository());
+
+      final hints = tester.widget<TextField>(fieldAt(0)).autofillHints!;
+      // iOS reads only the first hint, as the field's content type.
+      expect(hints.first, AutofillHints.email);
+      // Android reads every hint, so none may name a phone number.
+      expect(hints, isNot(contains(AutofillHints.telephoneNumber)));
+      expect(hints, contains(AutofillHints.username));
+    });
+
+    testWidgets('keeps autocorrect off for the identifier on iOS', (
+      tester,
+    ) async {
+      await pumpLogin(tester, FakeAuthRepository());
+
+      final editable = tester.widget<EditableText>(
+        find.descendant(of: fieldAt(0), matching: find.byType(EditableText)),
+      );
+      expect(editable.autocorrect, isFalse);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+    testWidgets('a typed phone number still signs in, as plain text', (
+      tester,
+    ) async {
+      final repository = FakeAuthRepository(hold: true);
+      await pumpLogin(tester, repository);
+
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pump();
+
+      expect(repository.calls.single.email, '99112233');
+    });
+
     testWidgets('a typed email signs in through the email field', (
       tester,
     ) async {
