@@ -725,7 +725,21 @@ CourseExerciseMaterial sampleMaterial({
   int id = 1,
   String name = 'Course material 1',
   String sizeLabel = '10 MB',
-}) => CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel);
+  Uri? url,
+}) =>
+    CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel, url: url);
+
+/// A §2.4 `link` material — no size, opened at its own [url].
+CourseExerciseMaterial sampleLinkMaterial({
+  int id = 89,
+  String name = 'Reading list',
+  String url = 'https://reading.example.test/list?ref=lesson-204#part-2',
+}) => CourseExerciseMaterial(
+  id: id,
+  name: name,
+  sizeLabel: '',
+  url: Uri.parse(url),
+);
 
 /// The Assignment tab's own attachment — mirrors production's default.
 CourseExerciseMaterial sampleAttachment({

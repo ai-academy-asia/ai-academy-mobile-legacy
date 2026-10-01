@@ -1258,14 +1258,89 @@ void main() {
         );
       });
 
-      test('keeps file materials in order, and leaves links out', () async {
+      test('keeps file and link materials in the server\'s order', () async {
         final exercise = await exerciseFrom(lessonBody());
 
-        expect(exercise.materials.map((m) => m.id), [88, 90]);
+        expect(exercise.materials.map((m) => m.id), [88, 89, 90]);
         expect(exercise.materials.map((m) => m.name), [
           'Course material 1',
+          'Reading list',
           'Notes',
         ]);
+        expect(exercise.materials.map((m) => m.isLink), [false, true, false]);
+      });
+
+      test('a file has its size and no URL of its own', () async {
+        final file = (await exerciseFrom(lessonBody())).materials.first;
+
+        expect(file.url, isNull);
+        expect(file.sizeLabel, '10 MB');
+      });
+
+      test('a link keeps the server\'s URL exactly, and has no size', () async {
+        const raw = 'https://reading.example.test/list?ref=lesson-204#part-2';
+        final exercise = await exerciseFrom(
+          lessonBody(
+            materials: [
+              {
+                'id': 77,
+                'title': 'Further reading',
+                'type': 'link',
+                'url': raw,
+              },
+            ],
+          ),
+        );
+
+        final link = exercise.materials.single;
+        expect(link.id, 77);
+        expect(link.name, 'Further reading');
+        expect(link.url.toString(), raw);
+        expect(link.sizeLabel, isEmpty);
+      });
+
+      test('a link without a usable http(s) URL is a fault', () async {
+        for (final url in <Object?>[
+          null,
+          '',
+          42,
+          'www.example.test/no-scheme',
+          'ftp://files.example.test/a.pdf',
+          'javascript:alert(1)',
+          'https://',
+        ]) {
+          final failure = await failureForExerciseBody(
+            lessonBody(
+              materials: [
+                {'id': 89, 'title': 'Reading list', 'type': 'link', 'url': url},
+              ],
+            ),
+          );
+
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$url',
+          );
+          expect(failure.detail, contains('material.url'), reason: '$url');
+        }
+      });
+
+      test('a link without its title or id is a fault', () async {
+        for (final key in ['title', 'id']) {
+          final link = <String, Object?>{
+            'id': 89,
+            'title': 'Reading list',
+            'type': 'link',
+            'url': 'https://reading.example.test/list',
+          }..remove(key);
+
+          final failure = await failureForExerciseBody(
+            lessonBody(materials: [link]),
+          );
+
+          expect(failure.detail, contains('material.$key'), reason: key);
+        }
       });
 
       test('an unrecognised material type is left out, not a failure', () {
@@ -2442,6 +2517,8 @@ void main() {
           '/materials/88.pdf',
           'ftp://files.example.test/88.pdf',
           'javascript:alert(1)',
+          // Parses with an empty authority, but names no host to open.
+          'https://',
         ]) {
           final failure = await failureForBody(downloadBody(url: url));
 
