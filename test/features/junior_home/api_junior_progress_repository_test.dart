@@ -1,0 +1,170 @@
+import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
+import 'package:aia_mobile/features/home/domain/home_failure.dart';
+import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
+import 'package:aia_mobile/features/junior_home/data/api_junior_progress_repository.dart';
+import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../home/fake_home_dashboard_repository.dart';
+
+/// [ApiJuniorProgressRepository] is a mapper over the adult dashboard: these
+/// tests feed it a [HomeDashboard] and check what reaches [JuniorProgress] —
+/// and, as much, what does not.
+void main() {
+  // Monday 10 August 2026, mid-morning.
+  final now = DateTime(2026, 8, 10, 9, 30);
+
+  /// Mondays and Wednesdays, with no first or last day.
+  const monWed = LessonSchedule(
+    weekdays: {DateTime.monday, DateTime.wednesday},
+    start: (18, 0),
+    end: (20, 0),
+    firstDay: null,
+    lastDay: null,
+  );
+  final windowed = LessonSchedule(
+    weekdays: const {DateTime.monday, DateTime.wednesday},
+    start: (18, 0),
+    end: (20, 0),
+    firstDay: DateTime(2026, 8, 6),
+    lastDay: DateTime(2026, 10, 6),
+  );
+
+  ApiJuniorProgressRepository repository(HomeDashboard dashboard) =>
+      ApiJuniorProgressRepository(
+        dashboard: FakeHomeDashboardRepository(dashboard: dashboard),
+        clock: () => now,
+      );
+
+  test('enrolled in nothing answers null, not a failure', () async {
+    expect(await repository(const HomeDashboard()).getProgress(), isNull);
+  });
+
+  test('a dashboard failure propagates as the dashboard\'s own', () async {
+    final progress = ApiJuniorProgressRepository(
+      dashboard: FakeHomeDashboardRepository(
+        failure: const HomeFailure(HomeFailureKind.sessionExpired),
+      ),
+      clock: () => now,
+    );
+
+    await expectLater(
+      progress.getProgress(),
+      throwsA(
+        isA<HomeFailure>().having(
+          (f) => f.kind,
+          'kind',
+          HomeFailureKind.sessionExpired,
+        ),
+      ),
+    );
+  });
+
+  test(
+    'payment, attendance and next lesson are the dashboard\'s own',
+    () async {
+      final lesson = sampleLesson(start: DateTime(2026, 8, 10, 18));
+      final progress = (await repository(
+        HomeDashboard(
+          program: sampleProgram(nextLesson: lesson, schedule: windowed),
+          stats: const [
+            PaymentStat(PaymentStatus.dueIn(5), layout: HomeStatLayout.tile),
+            AttendanceStat(
+              AttendanceSummary(attended: 3, total: 6, percent: 50),
+              layout: HomeStatLayout.tile,
+            ),
+          ],
+        ),
+      ).getProgress())!;
+
+      expect(progress.payment!.daysUntilDue, 5);
+      expect(progress.attendance!.attended, 3);
+      expect(progress.attendance!.total, 6);
+      expect(progress.attendance!.percent, 50);
+      expect(progress.nextLesson, same(lesson));
+    },
+  );
+
+  test('an overdue payment stays overdue', () async {
+    final progress = (await repository(
+      HomeDashboard(
+        program: sampleProgram(),
+        stats: const [
+          PaymentStat(PaymentStatus.overdue(), layout: HomeStatLayout.row),
+        ],
+      ),
+    ).getProgress())!;
+
+    expect(progress.payment!.isOverdue, isTrue);
+  });
+
+  test('sections the dashboard left out stay out', () async {
+    final progress = (await repository(
+      HomeDashboard(program: sampleProgram()),
+    ).getProgress())!;
+
+    expect(progress.payment, isNull);
+    expect(progress.attendance, isNull);
+    expect(progress.nextLesson, isNull);
+  });
+
+  test('BACKEND GAPS: no contract, no exam figure — ever', () async {
+    final progress = (await repository(
+      HomeDashboard(
+        program: sampleProgram(schedule: windowed),
+        stats: const [
+          AttendanceStat(
+            AttendanceSummary(attended: 0, total: 0, percent: 0),
+            layout: HomeStatLayout.row,
+          ),
+        ],
+      ),
+    ).getProgress())!;
+
+    expect(progress.contract, isNull);
+    expect(progress.examPercent, isNull);
+  });
+
+  group('calendar', () {
+    test('this month, today selected', () async {
+      final progress = (await repository(
+        HomeDashboard(program: sampleProgram(schedule: windowed)),
+      ).getProgress())!;
+
+      expect(progress.month, DateTime(2026, 8));
+      expect(progress.selectedDay, 10);
+    });
+
+    test('the cohort\'s lesson days, and lesson days only', () async {
+      final progress = (await repository(
+        HomeDashboard(program: sampleProgram(schedule: windowed)),
+      ).getProgress())!;
+
+      // August 2026 Mondays/Wednesdays from the 6th on.
+      expect(progress.days.keys.toSet(), {10, 12, 17, 19, 24, 26, 31});
+      // Past lesson days (none attended as far as anyone knows) are still
+      // just lesson days: nothing is ever marked missed or attended.
+      expect(progress.days.values.toSet(), {JuniorDayStatus.lesson});
+    });
+
+    test(
+      'an unbounded schedule marks every meeting day of the month',
+      () async {
+        final progress = (await repository(
+          HomeDashboard(program: sampleProgram(schedule: monWed)),
+        ).getProgress())!;
+
+        expect(progress.days.keys.toSet(), {3, 5, 10, 12, 17, 19, 24, 26, 31});
+      },
+    );
+
+    test('no schedule: a calendar with no marks', () async {
+      final progress = (await repository(
+        HomeDashboard(program: sampleProgram()),
+      ).getProgress())!;
+
+      expect(progress.days, isEmpty);
+      expect(progress.month, DateTime(2026, 8));
+    });
+  });
+}

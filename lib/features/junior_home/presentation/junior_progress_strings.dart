@@ -1,3 +1,5 @@
+import '../../home/presentation/home_strings.dart';
+
 /// Every word on the Junior "Сурлагын явц" screen, verbatim from the frame.
 ///
 /// Three lines differ from how the task text spelled them, and the frame's
@@ -26,6 +28,10 @@ abstract final class JuniorProgressStrings {
 
   static const String paymentTitle = 'Дараанийн төлөлт:';
   static String paymentDueIn(int days) => '$days хоног дутуу';
+
+  /// An overdue payment — a state the Junior frame does not draw, so this is
+  /// the adult dashboard's own wording rather than new copy.
+  static const String paymentOverdue = HomeStrings.paymentOverdue;
   static const String payAction = 'Төлбөр төлөх';
 
   // --- Summary --------------------------------------------------------------

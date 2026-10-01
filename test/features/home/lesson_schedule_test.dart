@@ -111,4 +111,63 @@ void main() {
     expect(lesson.isLiveAt(wednesday.add(const Duration(hours: 18))), isTrue);
     expect(lesson.isLiveAt(wednesday.add(const Duration(hours: 20))), isFalse);
   });
+
+  group('lessonDaysIn', () {
+    LessonSchedule schedule({
+      List<String> meetingDays = const ['mon', 'wed'],
+    }) => LessonSchedule.of(sampleCohort(meetingDays: meetingDays))!;
+
+    test('the meeting days of a month, from the cohort\'s first day', () {
+      // August 2026: Mondays 3, 10, 17, 24, 31 and Wednesdays 5, 12, 19, 26;
+      // the cohort starts on the 6th, so the 3rd and the 5th are not in it.
+      expect(schedule().lessonDaysIn(DateTime(2026, 8)), {
+        10,
+        12,
+        17,
+        19,
+        24,
+        26,
+        31,
+      });
+    });
+
+    test('every meeting day of a month wholly inside the window', () {
+      expect(schedule().lessonDaysIn(DateTime(2026, 9)), {
+        2,
+        7,
+        9,
+        14,
+        16,
+        21,
+        23,
+        28,
+        30,
+      });
+    });
+
+    test('stops at the cohort\'s last day', () {
+      // The cohort ends on Tuesday 6 October: Monday the 5th is its last.
+      expect(schedule().lessonDaysIn(DateTime(2026, 10)), {5});
+    });
+
+    test('a month outside the cohort has no lesson days', () {
+      expect(schedule().lessonDaysIn(DateTime(2026, 7)), isEmpty);
+      expect(schedule().lessonDaysIn(DateTime(2026, 11)), isEmpty);
+    });
+
+    test('reads only the year and month it is given', () {
+      expect(
+        schedule().lessonDaysIn(DateTime(2026, 9, 30, 23, 59)),
+        schedule().lessonDaysIn(DateTime(2026, 9)),
+      );
+    });
+
+    test('no schedule at all when it cannot be parsed', () {
+      expect(LessonSchedule.of(sampleCohort(meetingDays: const [])), isNull);
+      expect(
+        LessonSchedule.of(sampleCohort(startTime: 'evening', endTime: 'late')),
+        isNull,
+      );
+    });
+  });
 }

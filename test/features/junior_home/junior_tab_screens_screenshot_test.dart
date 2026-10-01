@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
 import '../profile/fake_current_user_repository.dart';
+import 'fake_junior_progress_repository.dart';
 
 /// Deterministic captures of the two junior tab screens, for comparing
 /// against their reference exports (each 1179 wide — 3x the 393 frame — so a
@@ -50,7 +51,7 @@ void main() {
   ) async {
     await capture(
       tester,
-      const JuniorProgressScreen(),
+      JuniorProgressScreen(repository: FakeJuniorProgressRepository()),
       const Size(393, 1350),
       'junior_progress.png',
     );

@@ -1,3 +1,5 @@
+import 'lesson_schedule.dart';
+
 /// Everything the Home dashboard draws, in one value.
 ///
 /// **Every section is nullable and the screen draws each only when its field
@@ -78,6 +80,7 @@ class EnrolledProgram {
     this.uiMode,
     this.progress,
     this.nextLesson,
+    this.schedule,
   });
 
   final int cohortId;
@@ -106,6 +109,13 @@ class EnrolledProgram {
 
   final ModuleProgress? progress;
   final NextLesson? nextLesson;
+
+  /// The cohort's weekly schedule, as `GET /cohorts` confirms it — the same
+  /// fields [nextLesson] is derived from, kept so a screen can lay a calendar
+  /// over them (Junior "Сурлагын явц") without fetching the cohort again.
+  /// Adult Home does not draw it. Null when the cohort has no parseable
+  /// schedule.
+  final LessonSchedule? schedule;
 }
 
 /// How far through the course the student is.

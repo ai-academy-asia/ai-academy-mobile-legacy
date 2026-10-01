@@ -3,7 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/junior_home/data/sample_junior_progress.dart';
+import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
+import 'package:aia_mobile/features/home/domain/home_failure.dart';
+import 'package:aia_mobile/features/home/presentation/home_strings.dart';
+import 'package:aia_mobile/features/home/presentation/widgets/home_palette.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_progress_screen.dart';
@@ -16,21 +19,28 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'fake_junior_progress_repository.dart';
 
-/// Junior "Сурлагын явц" against the frame's own design state.
+/// Junior "Сурлагын явц": the frame's full design state (through the fake
+/// repository), each approved treatment of missing backend data, and the
+/// loading, failure and empty states.
 void main() {
   setUpAll(loadAppFonts);
 
   Future<void> pumpScreen(
     WidgetTester tester, {
     JuniorProgress? progress,
+    FakeJuniorProgressRepository? repository,
     Size size = const Size(393, 852),
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: JuniorProgressScreen(progress: progress),
+        home: JuniorProgressScreen(
+          repository:
+              repository ?? FakeJuniorProgressRepository(progress: progress),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -72,27 +82,196 @@ void main() {
     expect(find.text('Эцэг эхдээ үзүүлнэ үү 😊'), findsNWidgets(2));
   });
 
-  testWidgets('a signed contract hides the banner', (tester) async {
-    final reference = SampleJuniorProgress.reference;
-    await pumpScreen(
-      tester,
-      progress: JuniorProgress(
-        contractSigned: true,
-        paymentDaysLeft: reference.paymentDaysLeft,
-        attendedLessons: reference.attendedLessons,
-        totalLessons: reference.totalLessons,
-        attendancePercent: reference.attendancePercent,
-        examPercent: reference.examPercent,
-        nextLessonStart: reference.nextLessonStart,
-        nextLessonEnd: reference.nextLessonEnd,
-        month: reference.month,
-        selectedDay: reference.selectedDay,
-        days: reference.days,
-      ),
-    );
+  group('missing backend data draws nothing in its place', () {
+    testWidgets('no contract status: no banner (BACKEND GAP)', (tester) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(contract: null),
+      );
 
-    expect(find.text(JuniorProgressStrings.contractTitle), findsNothing);
-    expect(find.text(JuniorProgressStrings.paymentTitle), findsOneWidget);
+      expect(find.text(JuniorProgressStrings.contractTitle), findsNothing);
+      expect(find.text(JuniorProgressStrings.paymentTitle), findsOneWidget);
+    });
+
+    testWidgets('a signed contract draws no banner either', (tester) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(
+          contract: const ContractStatus(signed: true),
+        ),
+      );
+
+      expect(find.text(JuniorProgressStrings.contractTitle), findsNothing);
+    });
+
+    testWidgets('nothing due: no payment card', (tester) async {
+      await pumpScreen(tester, progress: figmaReferenceProgress(payment: null));
+
+      expect(find.text(JuniorProgressStrings.paymentTitle), findsNothing);
+      expect(find.text(JuniorProgressStrings.payAction), findsNothing);
+      expect(find.text(JuniorProgressStrings.attendance), findsOneWidget);
+    });
+
+    testWidgets('overdue: the adult wording, in the overdue red', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(
+          payment: const PaymentStatus.overdue(),
+        ),
+      );
+
+      final status = tester.widget<Text>(find.text('Хугацаа хэтэрсэн'));
+      expect(JuniorProgressStrings.paymentOverdue, HomeStrings.paymentOverdue);
+      expect(status.style!.color, HomePalette.overdueInk);
+      expect(find.textContaining('хоног дутуу'), findsNothing);
+    });
+
+    testWidgets('due in N days, as the server dates count it', (tester) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(
+          payment: const PaymentStatus.dueIn(12),
+        ),
+      );
+
+      final status = tester.widget<Text>(find.text('12 хоног дутуу'));
+      expect(status.style!.color, JuniorPalette.accent);
+    });
+
+    testWidgets('no attendance: the card keeps its title, no badge', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(attendance: null),
+      );
+
+      expect(find.text(JuniorProgressStrings.attendance), findsOneWidget);
+      expect(find.textContaining('/20'), findsNothing);
+      expect(find.text('0%'), findsOneWidget); // the exam badge, untouched
+    });
+
+    testWidgets('no exam result: the card keeps its title, no badge', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(examPercent: null),
+      );
+
+      expect(find.text(JuniorProgressStrings.exam), findsOneWidget);
+      expect(find.text('0%'), findsNothing);
+      expect(find.text('1/20 · 10%'), findsOneWidget);
+    });
+
+    testWidgets('no next lesson: its two lines are left out', (tester) async {
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(withNextLesson: false),
+      );
+
+      expect(find.text(JuniorProgressStrings.nextLesson), findsNothing);
+      expect(find.textContaining('09:00'), findsNothing);
+      expect(find.text('Наймдугаар сар, 2026'), findsOneWidget);
+    });
+
+    testWidgets('the API-shaped state: lesson days only, no fabrications', (
+      tester,
+    ) async {
+      // What `ApiJuniorProgressRepository` actually produces: no contract,
+      // no exam figure, and only lesson-day marks.
+      await pumpScreen(
+        tester,
+        progress: JuniorProgress(
+          month: DateTime(2026, 8),
+          selectedDay: 10,
+          days: const {10: JuniorDayStatus.lesson, 12: JuniorDayStatus.lesson},
+          payment: const PaymentStatus.dueIn(3),
+          attendance: const AttendanceSummary(
+            attended: 2,
+            total: 4,
+            percent: 50,
+          ),
+        ),
+      );
+
+      expect(find.text(JuniorProgressStrings.contractTitle), findsNothing);
+      expect(find.text('2/4 · 50%'), findsOneWidget);
+      expect(find.text('0%'), findsNothing);
+      final calendarMarks = tester
+          .widgetList<JuniorDayMark>(
+            find.descendant(
+              of: find.byType(JuniorProgressCalendar),
+              matching: find.byType(JuniorDayMark),
+            ),
+          )
+          .map((mark) => mark.status)
+          .whereType<JuniorDayStatus>()
+          .toSet();
+      expect(calendarMarks, {JuniorDayStatus.lesson});
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('loading, failure and empty', () {
+    testWidgets('a spinner while the progress loads', (tester) async {
+      final repository = FakeJuniorProgressRepository(hold: true);
+      useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: JuniorProgressScreen(repository: repository),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(JuniorProgressCalendar), findsNothing);
+      // The chrome is there throughout.
+      expect(find.byType(AppBottomNav), findsOneWidget);
+
+      repository.release();
+      await tester.pumpAndSettle();
+      expect(find.byType(JuniorProgressCalendar), findsOneWidget);
+    });
+
+    testWidgets('a failure shows its message, and retry asks again', (
+      tester,
+    ) async {
+      final repository = FakeJuniorProgressRepository(
+        failure: const HomeFailure(HomeFailureKind.network),
+      );
+      await pumpScreen(tester, repository: repository);
+
+      expect(
+        find.text(HomeStrings.messageFor(HomeFailureKind.network)),
+        findsOneWidget,
+      );
+      expect(find.byType(JuniorProgressCalendar), findsNothing);
+      expect(repository.callCount, 1);
+
+      repository.failure = null;
+      await tester.tap(find.text(JuniorHomeStrings.retry));
+      await tester.pumpAndSettle();
+
+      expect(repository.callCount, 2);
+      expect(find.byType(JuniorProgressCalendar), findsOneWidget);
+    });
+
+    testWidgets('enrolled in nothing: Junior Home\'s empty copy, no retry', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        repository: FakeJuniorProgressRepository(empty: true),
+      );
+
+      expect(find.text(JuniorHomeStrings.empty), findsOneWidget);
+      expect(find.text(JuniorHomeStrings.retry), findsNothing);
+      expect(find.byType(JuniorProgressCalendar), findsNothing);
+    });
   });
 
   group('bottom navigation', () {

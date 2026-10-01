@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
+import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard_repository.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
 
@@ -63,6 +64,7 @@ EnrolledProgram sampleProgram({
   String? uiMode = 'adult',
   ModuleProgress? progress,
   NextLesson? nextLesson,
+  LessonSchedule? schedule,
 }) => EnrolledProgram(
   cohortId: cohortId,
   cohortName: cohortName,
@@ -72,6 +74,7 @@ EnrolledProgram sampleProgram({
   uiMode: uiMode,
   progress: progress,
   nextLesson: nextLesson,
+  schedule: schedule,
 );
 
 /// A lesson running from [start] for [hours].
