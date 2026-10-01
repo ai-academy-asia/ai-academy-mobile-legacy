@@ -6,6 +6,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'fake_auth_repository.dart';
 
 void main() {
+  group('identifierKindOf', () {
+    LoginIdentifierKind kindOf(String value) => LoginController.identifierKindOf(value);
+
+    test('empty or partial input is not classified', () {
+      for (final value in [
+        '',
+        '   ',
+        '9',
+        '9911',
+        '+976',
+        'j',
+        'jr10.s01',
+        '@',
+        '@aia',
+      ]) {
+        expect(kindOf(value), LoginIdentifierKind.unknown, reason: '"$value"');
+      }
+    });
+
+    test('a whole phone number, as the validator accepts it, is a phone', () {
+      for (final value in ['99112233', ' 99112233 ', '+976 9911 2233', '9911-2233']) {
+        expect(kindOf(value), LoginIdentifierKind.phone, reason: '"$value"');
+      }
+    });
+
+    test('an "@" after a character is an address, even mid-way', () {
+      for (final value in ['jr10.s01@', 'jr10.s01@test.ai-academy.asia', '99112233@']) {
+        expect(kindOf(value), LoginIdentifierKind.email, reason: '"$value"');
+      }
+    });
+
+    test('the floating label follows the kind', () {
+      final controller = LoginController(repository: FakeAuthRepository());
+      addTearDown(controller.dispose);
+
+      expect(controller.identifierLabel, LoginStrings.identifierPlaceholder);
+      controller.identifier.text = '99112233';
+      expect(controller.identifierLabel, LoginStrings.identifierPhoneLabel);
+      controller.identifier.text = 'jr10.s01@test.ai-academy.asia';
+      expect(controller.identifierLabel, LoginStrings.identifierEmailLabel);
+    });
+
+    test('classifying never validates or changes what is sent', () async {
+      final repository = FakeAuthRepository();
+      final controller = LoginController(repository: repository);
+      addTearDown(controller.dispose);
+
+      controller.identifier.text = ' jr10.s01@test.ai-academy.asia ';
+      controller.password.text = 'nuutsug123';
+      expect(controller.identifierError, isNull);
+      await controller.submit();
+
+      expect(repository.calls.single.email, 'jr10.s01@test.ai-academy.asia');
+      expect(repository.calls.single.password, 'nuutsug123');
+    });
+  });
+
   group('validateIdentifier', () {
     test('rejects an empty value', () {
       expect(LoginController.validateIdentifier(''), LoginStrings.identifierRequired);

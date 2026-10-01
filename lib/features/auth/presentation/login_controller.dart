@@ -135,9 +135,37 @@ class LoginController extends ChangeNotifier {
       return _emailPattern.hasMatch(trimmed) ? null : LoginStrings.identifierInvalid;
     }
 
-    final digits = trimmed.replaceAll(RegExp(r'[\s()\-]'), '');
+    final digits = _phoneDigits(trimmed);
     return _phonePattern.hasMatch(digits) ? null : LoginStrings.identifierInvalid;
   }
+
+  /// What [value] is recognisably meant as, by [validateIdentifier]'s own
+  /// rules — never a guess from a partial entry:
+  ///
+  ///  * an "@" after at least one character is an address, as it is to the
+  ///    validator — a phone number never contains one;
+  ///  * a whole phone number (the validator's 8–15 digits) is a phone;
+  ///  * anything else — empty, a few digits, letters with no "@" yet — is
+  ///    [LoginIdentifierKind.unknown]. A number's first digits could still be
+  ///    an address's start ("99112233@…"), so they decide nothing.
+  static LoginIdentifierKind identifierKindOf(String value) {
+    final trimmed = value.trim();
+    if (trimmed.indexOf('@') > 0) return LoginIdentifierKind.email;
+    if (!trimmed.contains('@') && _phonePattern.hasMatch(_phoneDigits(trimmed))) {
+      return LoginIdentifierKind.phone;
+    }
+    return LoginIdentifierKind.unknown;
+  }
+
+  /// The identifier field's floating label: the kind [identifierKindOf] reads
+  /// from what is typed, or both while it cannot tell.
+  String get identifierLabel => switch (identifierKindOf(identifier.text)) {
+    LoginIdentifierKind.phone => LoginStrings.identifierPhoneLabel,
+    LoginIdentifierKind.email => LoginStrings.identifierEmailLabel,
+    LoginIdentifierKind.unknown => LoginStrings.identifierPlaceholder,
+  };
+
+  static String _phoneDigits(String value) => value.replaceAll(RegExp(r'[\s()\-]'), '');
 
   static String? validatePassword(String value) {
     if (value.isEmpty) return LoginStrings.passwordRequired;
@@ -160,3 +188,7 @@ class LoginController extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// What a login identifier is recognisably meant as — see
+/// [LoginController.identifierKindOf].
+enum LoginIdentifierKind { phone, email, unknown }

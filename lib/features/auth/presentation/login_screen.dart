@@ -213,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
           AppTextField(
             controller: _controller.identifier,
             placeholder: LoginStrings.identifierPlaceholder,
-            floatingLabel: LoginStrings.identifierLabel,
+            floatingLabel: _controller.identifierLabel,
             errorText: _controller.identifierError,
             enabled: !busy,
             // The email keyboard, not the phone pad `Sign in - 2` draws: the
