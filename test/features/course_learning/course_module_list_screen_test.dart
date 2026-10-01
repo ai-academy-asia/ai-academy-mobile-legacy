@@ -1,10 +1,10 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/course_learning/data/sample_course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
+import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_module_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -171,29 +171,104 @@ void main() {
     );
   });
 
-  group('exercise navigation', () {
-    testWidgets('tapping an unlocked module opens Exercise Detail directly', (
+  group('module navigation', () {
+    testWidgets('tapping an unlocked module opens its Lesson List', (
       tester,
     ) async {
-      // The Figma flow has no Lesson List step between Module List and
-      // Exercise Detail.
-      await pumpScreen(tester, FakeCourseLearningRepository());
+      final repository = FakeCourseLearningRepository();
+      await pumpScreen(tester, repository);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Prediction and Probabilities'));
       await tester.pumpAndSettle();
 
-      // Unchanged by the lesson-detail integration: a module card knows no
-      // lesson id, so it still opens the sample exercise it always showed —
-      // through the sample repository, never the screen's own (HTTP in
-      // production), which would be asked for a lesson id that is not one.
+      // The module's own id and title, through the screen's own repository
+      // (HTTP in production) — `GET /me/modules/1/lessons`.
+      final lessonList = tester.widget<LessonListScreen>(
+        find.byType(LessonListScreen),
+      );
+      expect(lessonList.moduleId, 1);
+      expect(lessonList.moduleTitle, 'Prediction and Probabilities');
+      expect(lessonList.repository, same(repository));
+      expect(repository.lessonCalls, [1]);
+      expect(repository.exerciseCalls, isEmpty);
+
+      // The lessons that call answered are what the screen draws.
+      expect(find.text('Introduction to loops'), findsOneWidget);
+      expect(find.text('Practice: matrix traversal'), findsOneWidget);
+    });
+
+    testWidgets('each module opens its own lessons, not a fixed one', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Language Model Training'));
+      await tester.pumpAndSettle();
+
+      final lessonList = tester.widget<LessonListScreen>(
+        find.byType(LessonListScreen),
+      );
+      expect(lessonList.moduleId, 2);
+      expect(lessonList.moduleTitle, 'Language Model Training');
+      expect(repository.lessonCalls, [2]);
+    });
+
+    testWidgets('a module card no longer opens Exercise Detail', (
+      tester,
+    ) async {
+      // The sample exercise it used to open is gone from this path: the
+      // card's destination is the Lesson List, and nothing is shown until a
+      // lesson there is chosen.
+      final repository = FakeCourseLearningRepository();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Prediction and Probabilities'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(repository.exerciseCalls, isEmpty);
+    });
+
+    testWidgets('tapping a locked module goes nowhere', (tester) async {
+      final repository = FakeCourseLearningRepository();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Deep network models'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LessonListScreen), findsNothing);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(find.byType(CourseModuleListScreen), findsOneWidget);
+      expect(repository.lessonCalls, isEmpty);
+    });
+
+    testWidgets('a lesson in the list opens Exercise Detail for that lesson', (
+      tester,
+    ) async {
+      final repository = FakeCourseLearningRepository();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Prediction and Probabilities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Introduction to loops'));
+      await tester.pumpAndSettle();
+
       final detail = tester.widget<CourseExerciseDetailScreen>(
         find.byType(CourseExerciseDetailScreen),
       );
-      expect(detail.lessonId, SampleCourseLearningRepository.previewLessonId);
-      expect(detail.repository, isA<SampleCourseLearningRepository>());
+      expect(detail.lessonId, 1);
+      expect(detail.repository, same(repository));
+      expect(repository.exerciseCalls, [1]);
     });
+  });
 
+  group('exercise navigation', () {
     testWidgets('tapping Continue learning opens Exercise Detail directly', (
       tester,
     ) async {
@@ -369,26 +444,37 @@ void main() {
       expect(find.byType(CourseModuleListScreen), findsNothing);
     });
 
-    testWidgets('the full chain: Exercise Detail back returns to Module List, '
-        'Module List back returns to the previous screen', (tester) async {
+    testWidgets('the full chain: Exercise Detail back returns to Lesson List, '
+        'Lesson List back returns to Module List, Module List back returns '
+        'to the previous screen', (tester) async {
       // The normal flow this screen sits in: previous screen (Home/Cohort
       // List, stood in for here by a plain "open" button) → Module List →
-      // Exercise Detail, with neither Course Detail nor Lesson List as an
-      // intermediate step.
+      // Lesson List → Exercise Detail.
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Prediction and Probabilities'));
       await tester.pumpAndSettle();
-      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
+      expect(find.byType(LessonListScreen), findsOneWidget);
       expect(find.byType(CourseModuleListScreen), findsNothing);
 
+      await tester.tap(find.text('Introduction to loops'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
+      expect(find.byType(LessonListScreen), findsNothing);
+
       // Exercise Detail's own back control is the video header's arrow, not
-      // the caret the Module List uses.
+      // the caret the Module List and Lesson List use.
       await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(find.byType(LessonListScreen), findsOneWidget);
+
+      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LessonListScreen), findsNothing);
       expect(find.byType(CourseModuleListScreen), findsOneWidget);
 
       await tester.tap(find.byIcon(AppIcons.caretLeft));

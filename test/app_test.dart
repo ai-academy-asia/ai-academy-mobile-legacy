@@ -66,4 +66,17 @@ void main() {
     expect(juniorHome!(context), isA<JuniorHomeScreen>());
     expect(app.routes, isNot(contains('/dev/junior-home')));
   });
+
+  testWidgets('registers no Exercise Detail preview route', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    tester.view.physicalSize = const Size(393, 852) * 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const AiAcademyApp());
+
+    // Issue #148: Exercise Detail is reached through Module List → Lesson
+    // List, so the sample-backed `/dev/course-exercise-preview` door is gone.
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.routes, isNot(contains('/dev/course-exercise-preview')));
+  });
 }

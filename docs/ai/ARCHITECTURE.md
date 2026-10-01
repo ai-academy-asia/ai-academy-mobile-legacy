@@ -69,9 +69,8 @@ Conventions that hold across the codebase:
 | `/courses` | `CourseCatalogScreen` — draft catalog, no longer reached from Home |
 | `/cohorts` | `CohortListScreen`, optional `int` course-id argument via `ModalRoute.settings.arguments` |
 | `/profile` | `ProfileScreen` (adult Профайл tab) |
-| `/dev/course-exercise-preview` | **TEMPORARY dev-only** — `CourseExerciseDetailScreen(moduleId: 2)` |
 
-**Everything deeper is pushed imperatively** with `Navigator.push(MaterialPageRoute(...))`: Course Detail, Course Module List, Exercise Detail, and the two Quiz screens. There is no deep-linking and no route-argument type safety beyond the one `/cohorts` cast.
+**Everything deeper is pushed imperatively** with `Navigator.push(MaterialPageRoute(...))`: Course Detail, Course Module List, Lesson List (from an unlocked module card), Exercise Detail, and the two Quiz screens. There is no deep-linking and no route-argument type safety beyond the one `/cohorts` cast.
 
 One navigation idiom worth knowing, in `course_learning`: `CourseQuizScreen` finishes by calling `pushReplacement` to `CourseQuizResultScreen`, passing the score as the **replaced route's** result. That completes the *original* `push` future immediately (not when the result screen later pops), which is invisible to the user because Exercise Detail is off-screen throughout. The result screen then pops once to return there.
 
