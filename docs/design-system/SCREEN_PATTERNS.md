@@ -54,7 +54,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Course Module List | pushed | back button | **sample** |
 | Lesson List | pushed from an unlocked module card | back button | `course_learning` — `GET /me/modules/{id}/lessons` (real) |
 | Exercise Detail | pushed | in-video back | **sample** |
-| Quiz / Quiz Result | pushed | close button / none | **sample** |
+| Quiz / Quiz Result | pushed | close button / none | `course_learning` — §2.7 quiz attempt endpoints (real) |
 
 ## 3. Documented exceptions
 

@@ -9,9 +9,11 @@ import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_repository.dart';
+import '../domain/course_quiz.dart';
 import '../domain/uploaded_file.dart';
 import 'course_exercise_detail_controller.dart';
 import 'course_learning_strings.dart';
+import 'course_quiz_screen.dart';
 import 'widgets/assignment_tab.dart';
 import 'widgets/course_learning_back_button.dart';
 import 'widgets/course_materials_tab.dart';
@@ -32,8 +34,6 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 ///
 /// Reached from `CourseModuleListScreen`'s "Continue learning" buttons, with
 /// the server's `continue.lesson_id`, and from `LessonListScreen`'s rows.
-/// The module cards still open the sample exercise — see
-/// `CourseModuleListScreen`'s own doc comment.
 ///
 /// **What reaches the backend.** Every lesson's Note tab saves through
 /// `CourseLearningRepository.saveNote` — `PUT /me/lessons/{id}/note` for a
@@ -44,10 +44,9 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// tab submits a link through `POST /me/assignments/{id}/submissions`. The
 /// file form (pick a file, upload it through `POST /me/files`, submit its
 /// id) is built behind the same tab but no backend lesson draws it yet — see
-/// [_formFor]. With no assignment its tab is
-/// disabled; and the quiz is not integrated, so the
-/// quiz card does not draw (the lesson detail carries a quiz summary, not
-/// questions). The layout is
+/// [_formFor]. With no assignment its tab is disabled. A lesson with a quiz
+/// draws its preview card from the lesson's own §2.7 summary, and the quiz
+/// itself runs against the quiz endpoints — see below. The layout is
 /// unchanged either way. The sample exercise keeps the local simulations
 /// described below, which the Figma states and the goldens were built
 /// against.
@@ -68,11 +67,10 @@ const Color _cardBorder = Color(0xFFEAEDF0);
 /// `QuizPreviewCard` below the tab card, and starting it pushes two more
 /// full screens (`CourseQuizScreen`, `CourseQuizResultScreen`) on top of
 /// this one — matching the reference, which draws the quiz as its own
-/// preview card and its own screens, not a fourth tab. Its score is held
-/// here (see `_quizResult`): the student pops back to this screen after
-/// finishing it, and the preview card needs to keep showing that result.
-/// None of this reaches a backend: the Quiz endpoints the contract documents
-/// are not integrated yet.
+/// preview card and its own screens, not a fourth tab. The attempt runs
+/// against §2.7 (`CourseQuizScreen`), and when the student comes back the
+/// lesson is re-read for its quiz summary (see `_openQuiz`), so the card
+/// shows the server's own `last_result` and `attempts_left`.
 /// Still out of scope, reserved for a separate future issue: the
 /// certificate. Every widget that would eventually carry a not-yet-built
 /// behaviour (the play button) is already in place and wired to nothing, the
@@ -134,17 +132,15 @@ class _CourseExerciseDetailScreenState
   bool _descriptionExpanded = false;
   ExerciseTab _selectedTab = ExerciseTab.assignment;
 
-  /// The Quiz's last completed attempt — null until the student finishes it
-  /// at least once. Held here, not inside `QuizPreviewCard`:
-  /// `CourseQuizScreen`/`CourseQuizResultScreen` are pushed on top of this
-  /// screen, so their result has to survive popping back to it.
-  ({int correct, int total})? _quizResult;
+  /// The one repository this screen's controller and its quiz share.
+  late final CourseLearningRepository _repository =
+      widget.repository ?? HttpCourseLearningRepository();
 
   @override
   void initState() {
     super.initState();
     _controller = CourseExerciseDetailController(
-      repository: widget.repository ?? HttpCourseLearningRepository(),
+      repository: _repository,
       lessonId: widget.lessonId,
       openUrl: widget.openUrl,
       pickFile: widget.pickFile,
@@ -155,6 +151,18 @@ class _CourseExerciseDetailScreenState
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Opens the quiz's own screens, then re-reads the summary however the
+  /// student left them — finished, or closed part-way with an attempt still
+  /// open — since either changes what the server reports.
+  Future<void> _openQuiz(CourseQuiz quiz) async {
+    await Navigator.of(context).push<QuizAttemptResult>(
+      MaterialPageRoute(
+        builder: (_) => CourseQuizScreen(quiz: quiz, repository: _repository),
+      ),
+    );
+    await _controller.refreshQuiz();
   }
 
   @override
@@ -235,8 +243,7 @@ class _CourseExerciseDetailScreenState
       isDownloadingMaterial: _controller.isDownloadingMaterial,
       isMaterialOpened: _controller.isMaterialOpened,
       materialDownloadErrorMessage: _controller.materialDownloadErrorMessage,
-      quizResult: _quizResult,
-      onQuizResult: (result) => setState(() => _quizResult = result),
+      onStartQuiz: _openQuiz,
     );
   }
 }
@@ -266,8 +273,7 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.isDownloadingMaterial,
     required this.isMaterialOpened,
     required this.materialDownloadErrorMessage,
-    required this.quizResult,
-    required this.onQuizResult,
+    required this.onStartQuiz,
   });
 
   final CourseExercise exercise;
@@ -294,8 +300,7 @@ class _ExerciseDetailBody extends StatelessWidget {
   final bool Function(int materialId) isDownloadingMaterial;
   final bool Function(int materialId) isMaterialOpened;
   final String? Function(int materialId) materialDownloadErrorMessage;
-  final ({int correct, int total})? quizResult;
-  final ValueChanged<({int correct, int total})> onQuizResult;
+  final ValueChanged<CourseQuiz> onStartQuiz;
 
   @override
   Widget build(BuildContext context) {
@@ -383,8 +388,9 @@ class _ExerciseDetailBody extends StatelessWidget {
                     QuizPreviewCard(
                       moduleCaption: exercise.moduleCaption,
                       quiz: exercise.quiz,
-                      result: quizResult,
-                      onResult: onQuizResult,
+                      onStart: () {
+                        if (exercise.quiz case final quiz?) onStartQuiz(quiz);
+                      },
                     ),
                   ],
                 ),

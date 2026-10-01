@@ -18,8 +18,8 @@ import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
 /// [getCourseLearning], [getLessons], [getExercise], [saveNote],
-/// [getMaterialDownload], [submitAssignment] and [uploadFile] are tracked
-/// independently, same reasoning as `FakeCourseRepository`'s
+/// [getMaterialDownload], [submitAssignment], [uploadFile] and the four quiz
+/// calls are tracked independently, same reasoning as `FakeCourseRepository`'s
 /// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
   FakeCourseLearningRepository({
@@ -44,6 +44,16 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.uploadedFile,
     this.holdUpload = false,
     this.uploadFailure,
+    this.quizAttempt,
+    this.holdStartQuiz = false,
+    this.startQuizFailure,
+    this.holdAnswer = false,
+    this.answerFailure,
+    this.finishResult,
+    this.holdFinish = false,
+    this.finishFailure,
+    this.attemptResult,
+    this.attemptReadFailure,
   });
 
   // --- getCourseLearning ---------------------------------------------------
@@ -321,6 +331,141 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     return uploadedFile ??
         sampleUploadedFile(fileName: fileName, sizeBytes: bytes.length);
   }
+
+  // --- startQuizAttempt ----------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleQuizAttempt] if unset.
+  QuizAttempt? quizAttempt;
+
+  /// Returned, one per call and in order, before [quizAttempt] is — how a
+  /// test makes a second start (a resume) answer differently from the first.
+  final List<QuizAttempt> nextQuizAttempts = [];
+
+  /// When true, [startQuizAttempt] blocks until [releaseStartQuiz] is called.
+  bool holdStartQuiz;
+
+  /// Thrown by [startQuizAttempt] instead of returning, after [holdStartQuiz]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? startQuizFailure;
+
+  /// Every quiz id [startQuizAttempt] was called with, in order.
+  final List<int> startQuizCalls = [];
+
+  Completer<void>? _startQuizGate;
+
+  void releaseStartQuiz() {
+    final gate = _startQuizGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<QuizAttempt> startQuizAttempt(int quizId) async {
+    startQuizCalls.add(quizId);
+
+    if (holdStartQuiz) {
+      _startQuizGate = Completer<void>();
+      await _startQuizGate!.future;
+    }
+
+    if (startQuizFailure case final failure?) throw failure;
+
+    if (nextQuizAttempts.isNotEmpty) return nextQuizAttempts.removeAt(0);
+    return quizAttempt ?? sampleQuizAttempt();
+  }
+
+  // --- answerQuizQuestion --------------------------------------------------
+
+  /// When true, [answerQuizQuestion] blocks until [releaseAnswer] is called.
+  bool holdAnswer;
+
+  /// Thrown by [answerQuizQuestion] instead of returning, after [holdAnswer]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? answerFailure;
+
+  /// Every `(attemptId, questionId, optionId)` [answerQuizQuestion] was
+  /// called with, in order.
+  final List<(int, int, int)> answerCalls = [];
+
+  Completer<void>? _answerGate;
+
+  void releaseAnswer() {
+    final gate = _answerGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  /// Answers as the server would for [sampleQuizAttempt]'s questions — see
+  /// [sampleAnswerResult]. The fake holds that key, never the screens.
+  @override
+  Future<QuizAnswerResult> answerQuizQuestion(
+    int attemptId, {
+    required int questionId,
+    required int optionId,
+  }) async {
+    answerCalls.add((attemptId, questionId, optionId));
+
+    if (holdAnswer) {
+      _answerGate = Completer<void>();
+      await _answerGate!.future;
+    }
+
+    if (answerFailure case final failure?) throw failure;
+
+    return sampleAnswerResult(questionId: questionId, optionId: optionId);
+  }
+
+  // --- finishQuizAttempt ---------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleAttemptResult] if unset.
+  QuizAttemptResult? finishResult;
+
+  /// When true, [finishQuizAttempt] blocks until [releaseFinish] is called.
+  bool holdFinish;
+
+  /// Thrown by [finishQuizAttempt] instead of returning, after [holdFinish]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? finishFailure;
+
+  /// Every attempt id [finishQuizAttempt] was called with, in order.
+  final List<int> finishCalls = [];
+
+  Completer<void>? _finishGate;
+
+  void releaseFinish() {
+    final gate = _finishGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<QuizAttemptResult> finishQuizAttempt(int attemptId) async {
+    finishCalls.add(attemptId);
+
+    if (holdFinish) {
+      _finishGate = Completer<void>();
+      await _finishGate!.future;
+    }
+
+    if (finishFailure case final failure?) throw failure;
+
+    return finishResult ?? sampleAttemptResult(attemptId: attemptId);
+  }
+
+  // --- getQuizAttempt ------------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleAttemptResult] if unset.
+  QuizAttemptResult? attemptResult;
+
+  /// Thrown by [getQuizAttempt] instead of returning.
+  CourseLearningFailure? attemptReadFailure;
+
+  /// Every attempt id [getQuizAttempt] was called with, in order.
+  final List<int> attemptReadCalls = [];
+
+  @override
+  Future<QuizAttemptResult> getQuizAttempt(int attemptId) async {
+    attemptReadCalls.add(attemptId);
+    if (attemptReadFailure case final failure?) throw failure;
+    return attemptResult ?? sampleAttemptResult(attemptId: attemptId);
+  }
 }
 
 /// A §2.8 upload answer.
@@ -589,27 +734,120 @@ CourseExerciseMaterial sampleAttachment({
   String sizeLabel = '1 MB',
 }) => CourseExerciseMaterial(id: id, name: name, sizeLabel: sizeLabel);
 
-/// A minimal two-question quiz — enough to exercise "some answered, not
-/// all", "all correct" and "some wrong" without a test having to reason
-/// about three questions' worth of state.
+/// A §2.7 quiz summary for a two-question quiz — enough to exercise "some
+/// answered, not all", "all correct" and "some wrong" without a test having
+/// to reason about three questions' worth of state. Never finished, unlimited
+/// attempts, unless a test says otherwise.
 CourseQuiz sampleQuiz({
+  int id = 9,
   String title = 'Sample quiz',
   String resultTitle = 'Sample result',
-  List<QuizQuestion> questions = const [
+  int questionCount = 2,
+  int? attemptsLeft,
+  int? openAttemptId,
+  QuizLastResult? lastResult,
+}) => CourseQuiz(
+  id: id,
+  title: title,
+  resultTitle: resultTitle,
+  questionCount: questionCount,
+  attemptsLeft: attemptsLeft,
+  openAttemptId: openAttemptId,
+  lastResult: lastResult,
+);
+
+/// §2.7's `last_result`.
+QuizLastResult sampleLastResult({
+  int attemptId = 40,
+  int correct = 4,
+  int total = 5,
+  int percent = 80,
+  bool passed = true,
+}) => QuizLastResult(
+  attemptId: attemptId,
+  correct: correct,
+  total: total,
+  percent: percent,
+  passed: passed,
+);
+
+/// The ids [sampleQuizAttempt] uses, so a test can name what it expects to
+/// be sent: attempt 41; question 101 ("Right" = 501, "Wrong" = 502) and
+/// question 102 ("Wrong" = 503, "Right" = 504).
+const int sampleAttemptId = 41;
+
+/// The correct option of each [sampleQuizAttempt] question — the key the
+/// fake's [FakeCourseLearningRepository.answerQuizQuestion] answers from, as
+/// the server would.
+const Map<int, int> sampleCorrectOptionIds = {101: 501, 102: 504};
+
+/// §2.7's start answer for [sampleQuiz] — no key in it, as on the wire.
+/// [answered] lists question ids a resumed attempt already holds answers for.
+QuizAttempt sampleQuizAttempt({
+  int attemptId = sampleAttemptId,
+  Set<int> answered = const {},
+}) => QuizAttempt(
+  attemptId: attemptId,
+  questions: [
     QuizQuestion(
+      id: 101,
       prompt: 'Pick the right answer (first question)',
-      options: ['Right', 'Wrong'],
-      correctOptionIndex: 0,
-      explanation: 'The first option is right.',
+      options: const [
+        QuizOption(id: 501, text: 'Right'),
+        QuizOption(id: 502, text: 'Wrong'),
+      ],
+      answered: answered.contains(101),
     ),
     QuizQuestion(
+      id: 102,
       prompt: 'Pick the right answer (second question)',
-      options: ['Wrong', 'Right'],
-      correctOptionIndex: 1,
-      explanation: 'The second option is right.',
+      options: const [
+        QuizOption(id: 503, text: 'Wrong'),
+        QuizOption(id: 504, text: 'Right'),
+      ],
+      answered: answered.contains(102),
     ),
   ],
-}) => CourseQuiz(title: title, resultTitle: resultTitle, questions: questions);
+);
+
+/// §2.7's answer to [optionId] on [questionId] of [sampleQuizAttempt].
+QuizAnswerResult sampleAnswerResult({
+  required int questionId,
+  required int optionId,
+}) {
+  final correctOptionId = sampleCorrectOptionIds[questionId] ?? 0;
+  return QuizAnswerResult(
+    questionId: questionId,
+    optionId: optionId,
+    correct: optionId == correctOptionId,
+    correctOptionId: correctOptionId,
+    explanation: questionId == 101
+        ? 'The first option is right.'
+        : 'The second option is right.',
+  );
+}
+
+/// §2.7's finish answer — by default both questions right. Its figures are
+/// the server's: a test that wants to prove they are shown as sent passes
+/// ones no client arithmetic would produce.
+QuizAttemptResult sampleAttemptResult({
+  int attemptId = sampleAttemptId,
+  int correct = 2,
+  int total = 2,
+  int percent = 100,
+  bool passed = true,
+  List<QuizQuestionResult> questions = const [
+    QuizQuestionResult(questionId: 101, order: 1, correct: true),
+    QuizQuestionResult(questionId: 102, order: 2, correct: true),
+  ],
+}) => QuizAttemptResult(
+  attemptId: attemptId,
+  correct: correct,
+  total: total,
+  percent: percent,
+  passed: passed,
+  questions: questions,
+);
 
 /// The sample module's own mentor response — mirrors production's default.
 List<AssignmentMentorFeedback> sampleAssignmentFeedback() => const [

@@ -20,7 +20,7 @@ Base URL `https://api.ai-academy.asia`, declared as `defaultBaseUrl` in each HTT
 | GET | `/me/attendance?course={course_slug}` | Bearer | `HttpAttendanceRepository` | `getRaw` |
 | GET | `/me/ledger` | Bearer | `HttpLedgerRepository` | `getRaw` |
 
-`HttpCourseLearningRepository` also calls `GET /me/modules/{id}/lessons`, `GET /me/lessons/{id}`, the lesson note, the material download, `POST /me/assignments/{id}/submissions` and `POST /me/files`; each is documented, with its verified shape, on that repository's own method.
+`HttpCourseLearningRepository` also calls `GET /me/modules/{id}/lessons`, `GET /me/lessons/{id}`, the lesson note, the material download, `POST /me/assignments/{id}/submissions`, `POST /me/files` and the four §2.7 quiz endpoints (`POST /me/quizzes/{id}/attempts`, `POST /me/quiz-attempts/{id}/answers`, `POST /me/quiz-attempts/{id}/finish`, `GET /me/quiz-attempts/{id}`); each is documented, with its shape, on that repository's own method.
 
 ### 1.1 Fields read by the Home dashboards
 
@@ -118,9 +118,9 @@ Future<CourseExercise> getExercise(int moduleId);
 
 `SampleCourseLearningRepository` ignores both `courseSlug` and `moduleId` — all content is fixed. Consequences to keep in mind:
 
-- Every write interaction (assignment submit/resubmit, note save, quiz answer/submit/retry, file download) is **local widget state**. Integrating any of them requires new repository methods **and** a failure model, neither of which exists.
+- Every write interaction (assignment submit/resubmit, note save, file download) is **local widget state**. Integrating any of them requires new repository methods **and** a failure model, neither of which exists.
 - Sample models carry **pre-formatted display strings where a real API would send structured data** — `scheduleLabel` `"08/04 • Да • 09:00"`, `durationLabel` `"24:15"`, `sizeLabel` `"10 MB"`, `timestampLabel` `"Today, 14:20"`. These are frontend requirements, **not** proposed backend fields.
-- `QuizQuestion.correctOptionIndex` lives client-side purely so the offline demo can grade itself. **It must never be proposed as a production response field** — shipping the answer key to the client before grading defeats the quiz.
+- **The quiz carries no answer key** (Issue #150). Correctness arrives one answered question at a time from `POST /me/quiz-attempts/{id}/answers`, and the score from `finish`. The sample quiz grades inside `SampleCourseLearningRepository` only; no model holds a key, and none should be proposed as a response field.
 - Most sample entities have **no id at all** (assignment, submission, note, feedback, quiz, question, option, attempt). Only `CourseModule.id`, `Lesson.id` and `CourseExerciseMaterial.id` exist, and all are hand-authored integers.
 
 Field-by-field analysis lives in `docs/course_learning_frontend_backend_requirements_v1.md`. Do not re-derive it; read it.

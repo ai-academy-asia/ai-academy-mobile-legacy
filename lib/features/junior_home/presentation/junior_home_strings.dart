@@ -69,6 +69,11 @@ abstract final class JuniorHomeStrings {
     CourseLearningFailureKind.invalidLink => unexpectedError,
     CourseLearningFailureKind.descriptionTooLong => unexpectedError,
     CourseLearningFailureKind.pastDue => unexpectedError,
+    // The quiz attempt's 409s — likewise never answered by the learning
+    // path.
+    CourseLearningFailureKind.noAttemptsLeft => unexpectedError,
+    CourseLearningFailureKind.attemptFinished => unexpectedError,
+    CourseLearningFailureKind.alreadyAnswered => unexpectedError,
     // The file upload's 400 and 413 — likewise never answered by the
     // learning path.
     CourseLearningFailureKind.unsupportedFileType => unexpectedError,

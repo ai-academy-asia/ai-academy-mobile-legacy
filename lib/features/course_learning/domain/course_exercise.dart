@@ -122,14 +122,20 @@ class CourseExercise {
   /// [assignmentAttachment] instead.
   final CourseAssignment? assignment;
 
-  /// This exercise's quiz, shown on the Quiz tab. Null means there is no
-  /// quiz for this exercise — `QuizTab` then renders nothing.
+  /// The lesson's quiz summary — §2.7's `quiz`, shown as `QuizPreviewCard`
+  /// below the tab card. Null means the lesson has no quiz, and the card
+  /// renders nothing.
   final CourseQuiz? quiz;
 
   /// This exercise with [note] in place of its own — what a successful
   /// `saveNote` leaves the screen holding.
   CourseExercise withNote(CourseExerciseNote note) =>
-      _copyWith(note: note, assignment: assignment);
+      _copyWith(note: note, assignment: assignment, quiz: quiz);
+
+  /// This exercise with [quiz] in place of its own — what re-reading the
+  /// lesson after a quiz attempt leaves the screen holding.
+  CourseExercise withQuiz(CourseQuiz? quiz) =>
+      _copyWith(note: note, assignment: assignment, quiz: quiz);
 
   /// This exercise with [submission] as its assignment's latest — what a
   /// successful `submitAssignment` leaves the screen holding. Only
@@ -140,12 +146,14 @@ class CourseExercise {
     return _copyWith(
       note: note,
       assignment: CourseAssignment(id: assignment.id, submission: submission),
+      quiz: quiz,
     );
   }
 
   CourseExercise _copyWith({
     required CourseExerciseNote? note,
     required CourseAssignment? assignment,
+    required CourseQuiz? quiz,
   }) => CourseExercise(
     lessonId: lessonId,
     moduleId: moduleId,

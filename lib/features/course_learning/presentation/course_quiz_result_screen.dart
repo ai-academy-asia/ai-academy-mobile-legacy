@@ -9,12 +9,12 @@ import 'widgets/exercise_submit_button.dart';
 import 'widgets/quiz_result_question_row.dart';
 
 /// The Quiz Result screen — its own full screen, reached by
-/// `CourseQuizScreen.pushReplacement`-ing itself in once the last question is
-/// answered. Shows the dynamically-computed score, a plain-language summary,
-/// and a per-question correct/incorrect list; "Дуусгах" pops back to
-/// Exercise Detail, whose `QuizPreviewCard` then switches to its own result
-/// state — see `CourseQuizScreen`'s own doc comment on how that score
-/// reaches it.
+/// `CourseQuizScreen.pushReplacement`-ing itself in once the attempt is
+/// finished. Shows the server-graded [result] as sent — its percentage, a
+/// plain-language summary from its counts, and its per-question
+/// correct/incorrect list — never a score worked out here. "Дуусгах" pops
+/// back to Exercise Detail, whose `QuizPreviewCard` then shows the quiz's
+/// refreshed `last_result`.
 /// Sampled off the Quiz result frame at 1:1. The title fits one line there;
 /// at the 22 this used it wrapped to two and pulled the whole column up.
 const Color _page = Color(0xFFF9FAFB);
@@ -37,19 +37,20 @@ const Color _rowDivider = Color(0xFFEAEDF0);
 
 class CourseQuizResultScreen extends StatelessWidget {
   const CourseQuizResultScreen({
-    required this.quiz,
-    required this.answers,
+    required this.title,
+    required this.result,
     super.key,
   });
 
-  final CourseQuiz quiz;
-  final Map<int, int> answers;
+  /// `CourseQuiz.resultTitle`.
+  final String title;
+
+  /// §2.7's finish answer.
+  final QuizAttemptResult result;
 
   @override
   Widget build(BuildContext context) {
-    final total = quiz.questions.length;
-    final correct = quizScore(quiz, answers);
-    final percent = total == 0 ? 0 : ((correct / total) * 100).round();
+    final questions = result.questions;
 
     return Scaffold(
       backgroundColor: _page,
@@ -67,7 +68,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      quiz.resultTitle,
+                      title,
                       textAlign: TextAlign.center,
                       style: AppTypography.heading.copyWith(
                         fontSize: _titleSize,
@@ -84,7 +85,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: _scoreLabelToScore),
                     Text(
-                      '$percent%',
+                      '${result.percent}%',
                       textAlign: TextAlign.center,
                       style: AppTypography.heading.copyWith(
                         fontSize: 32,
@@ -97,7 +98,10 @@ class CourseQuizResultScreen extends StatelessWidget {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        CourseLearningStrings.quizResultSummary(total, correct),
+                        CourseLearningStrings.quizResultSummary(
+                          result.total,
+                          result.correct,
+                        ),
                         style: AppTypography.settingsRowLabel.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -117,14 +121,12 @@ class CourseQuizResultScreen extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       child: Column(
                         children: [
-                          for (var i = 0; i < total; i++) ...[
+                          for (final (i, question) in questions.indexed) ...[
                             if (i != 0)
                               const Divider(height: 1, color: _rowDivider),
                             QuizResultQuestionRow(
                               number: i + 1,
-                              correct:
-                                  answers[i] ==
-                                  quiz.questions[i].correctOptionIndex,
+                              correct: question.correct,
                             ),
                           ],
                         ],

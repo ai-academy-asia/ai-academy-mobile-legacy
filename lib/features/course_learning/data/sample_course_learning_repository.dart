@@ -29,11 +29,14 @@ import 'course_module_visuals.dart';
 /// verbatim (Mongolian prompts/options, English explanations, exactly as
 /// captioned there) — its own separate frame from the "Nesting loops"
 /// Exercise Detail screen, which is why its subject (general AI/ML) does not
-/// match this exercise's own.
+/// match this exercise's own. Its attempt is simulated locally (see
+/// [startQuizAttempt]), as its note save is.
+///
+/// No longer reached by the app's own navigation: only tests construct it,
+/// the quiz goldens among them.
 class SampleCourseLearningRepository implements CourseLearningRepository {
   /// The sample lesson Exercise Detail's sample content stands for —
-  /// "Nesting loops", id 2 in [getLessons]. What the dev preview route and
-  /// the Module List's sample module-card destination open with.
+  /// "Nesting loops", id 2 in [getLessons].
   static const int previewLessonId = 2;
 
   @override
@@ -217,65 +220,14 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
         name: 'Assignment template.zip',
         sizeLabel: '1 MB',
       ),
-      quiz: const CourseQuiz(
+      quiz: CourseQuiz(
+        id: _sampleQuizId,
         title: 'Nesting loops quiz',
         resultTitle: 'Level 2 - Language Model Training',
-        questions: [
-          QuizQuestion(
-            prompt: 'AI гэж юу вэ?',
-            options: ['Хиймэл оюун', 'Тоглоом', 'Робот', 'Мэдэхгүй'],
-            correctOptionIndex: 0,
-            explanation:
-                'Artificial intelligence (AI) is a branch of computer '
-                'science focused on building systems capable of performing '
-                'tasks that typically require human intelligence. This '
-                'includes learning from data, recognizing patterns, '
-                'understanding language, solving problems, and making '
-                'decisions.',
-          ),
-          QuizQuestion(
-            prompt: 'Machine Learning гэж юу вэ?',
-            options: [
-              'Өгөгдлөөс сурах чадвар',
-              'Хатуу код бичих арга',
-              'Тоглоомын хөдөлгүүр',
-              'Мэдэхгүй',
-            ],
-            correctOptionIndex: 0,
-            explanation:
-                'Machine learning is a subset of AI where systems learn '
-                'patterns from data instead of following hardcoded rules, '
-                'improving their performance as they see more examples.',
-          ),
-          QuizQuestion(
-            prompt: 'Neural Network загвар юуг дуурайдаг вэ?',
-            options: [
-              'Хүний тархи',
-              'Компьютерийн CPU',
-              'Интернет сүлжээ',
-              'Мэдэхгүй',
-            ],
-            correctOptionIndex: 0,
-            explanation:
-                'Artificial neural networks are loosely inspired by the '
-                'human brain — layers of interconnected nodes ("neurons") '
-                'pass signals to one another to recognize patterns.',
-          ),
-          QuizQuestion(
-            prompt: 'Pre-training үе шатанд загварт юу өгдөг вэ?',
-            options: [
-              'Их хэмжээний текст өгөгдөл',
-              'Зөвхөн нэг зураг',
-              'Хэрэглэгчийн нууц үг',
-              'Мэдэхгүй',
-            ],
-            correctOptionIndex: 0,
-            explanation:
-                'During pre-training, a model is exposed to massive '
-                'amounts of text data so it can learn general language '
-                'patterns before being fine-tuned for a specific task.',
-          ),
-        ],
+        questionCount: _sampleQuestions.length,
+        attemptsLeft: null,
+        openAttemptId: null,
+        lastResult: null,
       ),
     );
   }
@@ -340,8 +292,164 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
     );
   }
 
+  // --- Quiz ----------------------------------------------------------------
+  //
+  // A local simulation of §2.7's attempt, the same way [saveNote] simulates
+  // §2.5: the sample has no server to grade against, so it grades here. The
+  // answer key stays inside this class — it is never part of a model, and the
+  // screens only ever see what the server would send.
+
+  /// Question id → option id answered, for the one attempt this instance
+  /// runs. Cleared by each [startQuizAttempt], so every start is fresh.
+  final Map<int, int> _quizAnswers = {};
+
+  /// A fresh attempt at the sample quiz — the questions without their key.
+  @override
+  Future<QuizAttempt> startQuizAttempt(int quizId) async {
+    _quizAnswers.clear();
+    return QuizAttempt(
+      attemptId: _sampleAttemptId,
+      questions: [
+        for (final (index, question) in _sampleQuestions.indexed)
+          QuizQuestion(
+            id: _questionId(index),
+            prompt: question.prompt,
+            options: [
+              for (final (optionIndex, text) in question.options.indexed)
+                QuizOption(id: _optionId(index, optionIndex), text: text),
+            ],
+            answered: false,
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<QuizAnswerResult> answerQuizQuestion(
+    int attemptId, {
+    required int questionId,
+    required int optionId,
+  }) async {
+    final index = questionId - 1;
+    final question = _sampleQuestions[index];
+    final correctOptionId = _optionId(index, question.correctOptionIndex);
+    _quizAnswers[questionId] = optionId;
+    return QuizAnswerResult(
+      questionId: questionId,
+      optionId: optionId,
+      correct: optionId == correctOptionId,
+      correctOptionId: correctOptionId,
+      explanation: question.explanation,
+    );
+  }
+
+  @override
+  Future<QuizAttemptResult> finishQuizAttempt(int attemptId) async =>
+      _sampleResult();
+
+  @override
+  Future<QuizAttemptResult> getQuizAttempt(int attemptId) async =>
+      _sampleResult();
+
+  /// Graded the way §2.7 describes the server doing it: an unanswered
+  /// question counts as wrong, and the percentage is rounded down.
+  QuizAttemptResult _sampleResult() {
+    final questions = [
+      for (final (index, question) in _sampleQuestions.indexed)
+        QuizQuestionResult(
+          questionId: _questionId(index),
+          order: index + 1,
+          correct:
+              _quizAnswers[_questionId(index)] ==
+              _optionId(index, question.correctOptionIndex),
+        ),
+    ];
+    final correct = questions.where((q) => q.correct).length;
+    final total = questions.length;
+    final percent = total == 0 ? 0 : correct * 100 ~/ total;
+    return QuizAttemptResult(
+      attemptId: _sampleAttemptId,
+      correct: correct,
+      total: total,
+      percent: percent,
+      passed: percent >= _samplePassPercent,
+      questions: questions,
+    );
+  }
+
+  static const int _sampleQuizId = 1;
+  static const int _sampleAttemptId = 1;
+
+  /// §2.7's own example `pass_percent`.
+  static const int _samplePassPercent = 70;
+
+  static int _questionId(int index) => index + 1;
+  static int _optionId(int questionIndex, int optionIndex) =>
+      (questionIndex + 1) * 10 + optionIndex + 1;
+
   static String _asset(String name) => 'assets/images/course_learning/$name';
 }
+
+/// One sample question, with the key the sample grades against.
+typedef _SampleQuestion = ({
+  String prompt,
+  List<String> options,
+  int correctOptionIndex,
+  String explanation,
+});
+
+/// The four questions of the Figma quiz-flow reference, verbatim.
+const List<_SampleQuestion> _sampleQuestions = [
+  (
+    prompt: 'AI гэж юу вэ?',
+    options: ['Хиймэл оюун', 'Тоглоом', 'Робот', 'Мэдэхгүй'],
+    correctOptionIndex: 0,
+    explanation:
+        'Artificial intelligence (AI) is a branch of computer '
+        'science focused on building systems capable of performing '
+        'tasks that typically require human intelligence. This '
+        'includes learning from data, recognizing patterns, '
+        'understanding language, solving problems, and making '
+        'decisions.',
+  ),
+  (
+    prompt: 'Machine Learning гэж юу вэ?',
+    options: [
+      'Өгөгдлөөс сурах чадвар',
+      'Хатуу код бичих арга',
+      'Тоглоомын хөдөлгүүр',
+      'Мэдэхгүй',
+    ],
+    correctOptionIndex: 0,
+    explanation:
+        'Machine learning is a subset of AI where systems learn '
+        'patterns from data instead of following hardcoded rules, '
+        'improving their performance as they see more examples.',
+  ),
+  (
+    prompt: 'Neural Network загвар юуг дуурайдаг вэ?',
+    options: ['Хүний тархи', 'Компьютерийн CPU', 'Интернет сүлжээ', 'Мэдэхгүй'],
+    correctOptionIndex: 0,
+    explanation:
+        'Artificial neural networks are loosely inspired by the '
+        'human brain — layers of interconnected nodes ("neurons") '
+        'pass signals to one another to recognize patterns.',
+  ),
+  (
+    prompt: 'Pre-training үе шатанд загварт юу өгдөг вэ?',
+    options: [
+      'Их хэмжээний текст өгөгдөл',
+      'Зөвхөн нэг зураг',
+      'Хэрэглэгчийн нууц үг',
+      'Мэдэхгүй',
+    ],
+    correctOptionIndex: 0,
+    explanation:
+        'During pre-training, a model is exposed to massive '
+        'amounts of text data so it can learn general language '
+        'patterns before being fine-tuned for a specific task.',
+  ),
+];
 
 /// Every sample module's lesson count — the length of the one hand-authored
 /// lesson list [SampleCourseLearningRepository.getLessons] serves.

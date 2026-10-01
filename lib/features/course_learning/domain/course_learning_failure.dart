@@ -33,13 +33,15 @@ enum CourseLearningFailureKind {
   /// `error` out of the body and giving `forbidden` its own kind and copy.
   notEnrolled,
 
-  /// HTTP 404 — the contract's `course_not_found`, `module_not_found` or
-  /// `lesson_not_found`: an id or slug that no longer resolves.
+  /// HTTP 404 — the contract's `course_not_found`, `module_not_found`,
+  /// `lesson_not_found`, `quiz_not_found`, `attempt_not_found` and the like:
+  /// an id or slug that no longer resolves.
   notFound,
 
-  /// HTTP 409 — §2.3's `lesson_locked`: the lesson's module is still locked.
-  /// Its own kind so the state is never mistaken for a transient fault; the
-  /// copy is the generic one until the design gives it words of its own.
+  /// HTTP 409 — §2.3's `lesson_locked`: the lesson's module is still locked,
+  /// and any 409 whose code has no kind of its own. Its own kind so the state
+  /// is never mistaken for a transient fault; the copy is the generic one
+  /// until the design gives it words of its own.
   locked,
 
   /// HTTP 400 `content_required` — §2.5's note save was sent empty once the
@@ -65,6 +67,19 @@ enum CourseLearningFailureKind {
   /// it takes no more submissions. Read from the body's `error` code: every
   /// other 409 is still [locked].
   pastDue,
+
+  /// HTTP 409 `no_attempts_left` — §2.7: the quiz's attempt limit is reached,
+  /// so no attempt can be started.
+  noAttemptsLeft,
+
+  /// HTTP 409 `attempt_finished` — §2.7: the attempt is already finished, so
+  /// it takes no more answers and cannot be finished again. Its result is
+  /// still readable.
+  attemptFinished,
+
+  /// HTTP 409 `already_answered` — §2.7: the question already holds an answer
+  /// in this attempt, and answers are final.
+  alreadyAnswered,
 
   /// HTTP 400 `unsupported_file_type` — §2.8's upload is not one of the
   /// accepted types.
