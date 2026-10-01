@@ -62,7 +62,8 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 - **Student file submission** — the picker, the upload (`POST /me/files`) and the `file_id` submission are built and tested, but **no backend lesson shows the file form**: nothing confirmed says whether an assignment takes a link or a file, so every one keeps the link form. `BACKEND GAP` — see `_formFor` in `course_exercise_detail_screen.dart`.
 - **Certificate** — the certification section renders two bundled PNGs. There is no per-student certificate status, availability or download.
 - **Lesson List screen** — built and tested, but nothing navigates to it; the design goes Module List → Exercise Detail directly.
-- **Profile rows** — Terms of Service, Privacy Policy, language and theme controls have no destination yet.
+- **Profile rows** — Terms of Service, Privacy Policy, language and theme controls have no destination yet. The same holds on Junior Profile.
+- **Junior "Сурлагын явц" data** — `JuniorProgressScreen` renders `SampleJuniorProgress.reference`, the Figma frame's own design state. No confirmed endpoint reports a junior student's per-day attendance, exam score, payment or contract state (`BACKEND GAP`).
 
 ## 4. Known constraints and sharp edges
 

@@ -11,6 +11,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
+import '../../auth/presentation/student_tabs.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
 
@@ -91,21 +92,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             AppBottomNavItem(
               icon: AppIcons.house,
               label: ProfileStrings.navHome,
-              // Home is always the root of the stack once signed in — every
-              // screen reached from it is a `push`, never a replace — so
-              // popping back to it needs no route of its own. `isFirst` is
-              // the fallback for a stack that (in a test, say) never carries
-              // a route actually named '/home', so this always terminates.
-              onTap: () => Navigator.of(context).popUntil(
-                (route) => route.isFirst || route.settings.name == '/home',
-              ),
+              // Back to Home, the root of the stack.
+              onTap: () =>
+                  openStudentTab(context, StudentTrack.adult, StudentTab.home),
             ),
             AppBottomNavItem(
               icon: AppIcons.bookOpenText,
               label: ProfileStrings.navCourses,
-              // Profile is pushed on top of the courses flow, so returning to
-              // "Хичээл" is the same pop every other screen's tab performs.
-              onTap: () => Navigator.of(context).maybePop(),
+              // Always the student's own cohorts, whichever screen opened
+              // Profile — a pop would land on Home when Home opened it.
+              onTap: () => openStudentTab(
+                context,
+                StudentTrack.adult,
+                StudentTab.progress,
+              ),
             ),
             const AppBottomNavItem(
               icon: AppIcons.user,

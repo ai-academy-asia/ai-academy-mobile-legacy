@@ -418,15 +418,21 @@ void main() {
       ]);
     });
 
-    testWidgets('the courses tab pops back to whatever pushed Profile', (
+    testWidgets('the courses tab opens the student\'s cohorts in its place', (
       tester,
     ) async {
+      // Profile opened straight from Home: a pop would land back on Home,
+      // which is not the tab that was tapped.
       final navigatorKey = GlobalKey<NavigatorState>();
       await tester.pumpWidget(
         MaterialApp(
           navigatorKey: navigatorKey,
           theme: AppTheme.light,
-          home: const Scaffold(body: Text('previous screen')),
+          initialRoute: '/home',
+          routes: {
+            '/home': (_) => const Scaffold(body: Text('home route')),
+            '/my-cohorts': (_) => const Scaffold(body: Text('my cohorts')),
+          },
         ),
       );
 
@@ -439,8 +445,13 @@ void main() {
       await tester.tap(find.byIcon(AppIcons.bookOpenText));
       await tester.pumpAndSettle();
 
-      expect(find.text('previous screen'), findsOneWidget);
+      expect(find.text('my cohorts'), findsOneWidget);
       expect(find.text(ProfileStrings.heading), findsNothing);
+
+      // Replaced, not stacked: one pop is Home.
+      navigatorKey.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('home route'), findsOneWidget);
     });
 
     testWidgets('the home tab returns to the Home route', (tester) async {

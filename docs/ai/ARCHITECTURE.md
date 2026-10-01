@@ -61,18 +61,21 @@ Conventions that hold across the codebase:
 | `/` | `SplashScreen` — animates, then `pushReplacement` to `/login` after 7s |
 | `/login` | `LoginScreen` |
 | `/reset-password` | `ResetPasswordScreen` |
-| `/home` | `HomeScreen` (Нүүр tab) |
-| `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (Хичээл tab) |
+| `/home` | `HomeScreen` (adult Нүүр tab) |
+| `/junior-home` | `JuniorHomeScreen` (junior Нүүр tab) — `homeRouteFor` picks between the two |
+| `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (adult Хичээл tab) |
+| `/junior-progress` | `JuniorProgressScreen` (junior Сурлагын явц tab) |
+| `/junior-profile` | `JuniorProfileScreen` (junior Профайл tab) |
 | `/courses` | `CourseCatalogScreen` — draft catalog, no longer reached from Home |
 | `/cohorts` | `CohortListScreen`, optional `int` course-id argument via `ModalRoute.settings.arguments` |
-| `/profile` | `ProfileScreen` (Профайл tab) |
+| `/profile` | `ProfileScreen` (adult Профайл tab) |
 | `/dev/course-exercise-preview` | **TEMPORARY dev-only** — `CourseExerciseDetailScreen(moduleId: 2)` |
 
 **Everything deeper is pushed imperatively** with `Navigator.push(MaterialPageRoute(...))`: Course Detail, Course Module List, Exercise Detail, and the two Quiz screens. There is no deep-linking and no route-argument type safety beyond the one `/cohorts` cast.
 
 One navigation idiom worth knowing, in `course_learning`: `CourseQuizScreen` finishes by calling `pushReplacement` to `CourseQuizResultScreen`, passing the score as the **replaced route's** result. That completes the *original* `push` future immediately (not when the result screen later pops), which is invisible to the user because Exercise Detail is off-screen throughout. The result screen then pops once to return there.
 
-**Bottom navigation** (`AppBottomNav`) appears on exactly three screens: Home, Cohort List, Profile.
+**Bottom navigation** (`AppBottomNav`) appears on the six tab screens — each track's Home, progress and profile screen. The two tracks share the bar's *behaviour* but never its screens: every tab switch goes through `openStudentTab(context, track, tab)` (`auth/presentation/student_tabs.dart`), which pops back to Home for Нүүр and otherwise replaces whatever tab sits above Home with the track's own route (`StudentTabRoutes.of`) — so the stack is never deeper than Home plus one tab. The junior screens draw the bar through `JuniorBottomNav`, which carries the junior frames' smaller labels, 16pt gutter and `#2970FF` selection.
 
 ## 4. Repository pattern
 
@@ -139,7 +142,7 @@ Known pre-existing failure, unrelated to new work: `test/features/courses/course
 
 ```
 assets/fonts/    Manrope (5 weights) + Phosphor.ttf (+ PHOSPHOR-LICENSE.txt)
-assets/icons/    14 single-purpose SVGs (adult, junior, certificate, profile rows, …)
+assets/icons/    single-purpose SVGs (adult, junior, certificate, profile rows, junior calendar marks, …)
 assets/images/   brand + certificate PNGs
 assets/images/course_learning/   feature-specific SVGs (module icons, exercise chrome)
 assets/icon/     launcher-icon sources for flutter_launcher_icons (build-time only)

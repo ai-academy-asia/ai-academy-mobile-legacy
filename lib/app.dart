@@ -4,12 +4,15 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/home_route.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
+import 'features/auth/presentation/student_tabs.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/course_learning/data/sample_course_learning_repository.dart';
 import 'features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/junior_home/presentation/junior_home_screen.dart';
+import 'features/junior_home/presentation/junior_profile_screen.dart';
+import 'features/junior_home/presentation/junior_progress_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/splash/presentation/splash_screen.dart';
 
@@ -61,8 +64,13 @@ class AiAcademyApp extends StatelessWidget {
         // `homeRouteFor`. `/home` is the adult Нүүр tab, the dashboard.
         HomeRoutes.adult: (_) => const HomeScreen(),
         HomeRoutes.junior: (_) => const JuniorHomeScreen(),
-        // The student's own cohorts — Home's Хичээл tab opens this directly.
-        '/my-cohorts': (_) => const CohortListScreen(enrolledOnly: true),
+        // Each Home's other two tabs — the adult pair and the junior pair;
+        // see `openStudentTab`.
+        StudentTabRoutes.adultProgress: (_) =>
+            const CohortListScreen(enrolledOnly: true),
+        StudentTabRoutes.adultProfile: (_) => const ProfileScreen(),
+        StudentTabRoutes.juniorProgress: (_) => const JuniorProgressScreen(),
+        StudentTabRoutes.juniorProfile: (_) => const JuniorProfileScreen(),
         // The draft course catalog. No longer reached from Home's Хичээл tab
         // (or anywhere else); still registered, and still pushes `/cohorts`
         // with a course id, until it is deleted.
@@ -74,7 +82,6 @@ class AiAcademyApp extends StatelessWidget {
           final courseId = ModalRoute.of(context)?.settings.arguments;
           return CohortListScreen(courseId: courseId is int ? courseId : null);
         },
-        '/profile': (_) => const ProfileScreen(),
       },
     );
   }
