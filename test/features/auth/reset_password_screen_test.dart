@@ -443,12 +443,11 @@ void main() {
     ) async {
       await pumpReset(tester, FakePasswordRepository());
 
-      // The reference draws a full QWERTY under every one of these, unlike
-      // login's identifier field, which asks for the phone pad.
+      // The reference draws a full QWERTY under every one of these.
       for (var i = 0; i < 3; i++) {
         expect(
           tester.widget<TextField>(fieldAt(i)).keyboardType,
-          isNot(TextInputType.phone),
+          TextInputType.text,
           reason: 'field $i',
         );
         expect(tester.widget<TextField>(fieldAt(i)).obscureText, isTrue);
