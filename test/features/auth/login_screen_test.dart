@@ -177,15 +177,33 @@ void main() {
       expect(floatingLabelColourAt(tester, 0), isNot(AppColors.blue));
     });
 
-    testWidgets('asks for the phone pad the reference draws', (tester) async {
+    testWidgets('asks for the email keyboard, so an address can be typed', (
+      tester,
+    ) async {
       await pumpLogin(tester, FakeAuthRepository());
 
-      // `Sign in - 2` shows a phone keypad under this field, matching its own
-      // floating label ("Утасны дугаар").
+      // Not the phone pad `Sign in - 2` draws: it has no letter keys, and
+      // `/auth/login` signs in by email (Issue #142).
       expect(
         tester.widget<TextField>(fieldAt(0)).keyboardType,
-        TextInputType.phone,
+        TextInputType.emailAddress,
       );
+    });
+
+    testWidgets('a typed email signs in through the email field', (
+      tester,
+    ) async {
+      final repository = FakeAuthRepository(hold: true);
+      await pumpLogin(tester, repository);
+
+      await tester.enterText(fieldAt(0), ' jr10.s01@test.ai-academy.asia ');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pump();
+
+      expect(repository.calls.single.email, 'jr10.s01@test.ai-academy.asia');
+      expect(repository.calls.single.password, 'nuutsug123');
     });
 
     testWidgets('keeps the label lifted once a number is typed', (
@@ -219,15 +237,12 @@ void main() {
       expect(tester.widget<TextField>(fieldAt(1)).obscureText, isTrue);
     });
 
-    testWidgets('takes the default text keyboard, not the phone pad', (
-      tester,
-    ) async {
+    testWidgets('takes the default text keyboard', (tester) async {
       await pumpLogin(tester, FakeAuthRepository());
 
-      // `Sign in - 3` draws a full alphanumeric keyboard here, unlike the
-      // identifier field above it.
+      // `Sign in - 3` draws a full alphanumeric keyboard here.
       final password = tester.widget<TextField>(fieldAt(1));
-      expect(password.keyboardType, isNot(TextInputType.phone));
+      expect(password.keyboardType, TextInputType.text);
       expect(password.obscureText, isTrue);
     });
 

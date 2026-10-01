@@ -216,17 +216,13 @@ class _LoginScreenState extends State<LoginScreen> {
             floatingLabel: LoginStrings.identifierLabel,
             errorText: _controller.identifierError,
             enabled: !busy,
-            // The phone pad the reference draws in `Sign in - 2`, matching the
-            // field's own floating label there ("Утасны дугаар").
-            //
-            // **This narrows what can actually be typed.** The resting
-            // placeholder still offers "/ Email хаяг" and `LoginController.
-            // validateIdentifier` still accepts an address, but iOS's phone pad
-            // has no letter keys, so an email can no longer be entered by hand
-            // — only pasted or autofilled. The reference is internally
-            // inconsistent on this point (a phone-only pad under a
-            // phone-or-email placeholder); this follows the pad it draws.
-            keyboardType: TextInputType.phone,
+            // The email keyboard, not the phone pad `Sign in - 2` draws: the
+            // field takes "Утасны дугаар / Email хаяг" and `/auth/login` signs
+            // in by `email`, but iOS's phone pad has no letter keys, so an
+            // address could not be typed at all (Issue #142). The email
+            // keyboard still reaches digits through its number row. On iOS the
+            // `username` hint below already turns autocorrect off.
+            keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             autofillHints: const [
               AutofillHints.username,
