@@ -9,11 +9,17 @@ import 'user_type.dart';
 class AuthSession {
   const AuthSession({
     required this.accessToken,
+    this.refreshToken,
     this.expiresIn,
     this.userType = UserType.unknown,
   });
 
   final String accessToken;
+
+  /// The login response's `refresh_token`, kept only so sign-out can revoke
+  /// it (`POST /auth/logout`). Null when the response carried none. Nothing
+  /// refreshes a session with it.
+  final String? refreshToken;
 
   /// Which app experience the login response says to open. [UserType.unknown]
   /// when it carried none.

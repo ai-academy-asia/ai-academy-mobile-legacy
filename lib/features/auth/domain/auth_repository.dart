@@ -10,4 +10,10 @@ abstract interface class AuthRepository {
   ///
   /// Throws [AuthFailure] when the exchange does not succeed.
   Future<AuthSession> signIn({required String email, required String password});
+
+  /// Revokes [refreshToken] on the server — this device's session only.
+  ///
+  /// Throws [AuthFailure] when the request does not succeed. Signing out
+  /// locally never depends on it: see `signOutToLogin`.
+  Future<void> signOut({required String refreshToken});
 }

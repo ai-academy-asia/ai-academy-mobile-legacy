@@ -8,13 +8,19 @@ import '../domain/auth_session.dart';
 import '../domain/user_type.dart';
 import 'auth_http.dart';
 
-/// Signs in against the AI Academy API.
-///
-/// One endpoint, the confirmed one:
+/// Signs in and out against the AI Academy API.
 ///
 ///     POST https://api.ai-academy.asia/auth/login
 ///     { "email": "...", "password": "..." }
-///     -> { "access_token": "...", "expires_in": 3600, "user_type": "adult" }
+///     -> { "access_token": "...", "refresh_token": "...", "expires_in": 3600,
+///          "user_type": "adult" }
+///
+///     POST https://api.ai-academy.asia/auth/logout      (no auth)
+///     { "refresh_token": "..." }
+///
+/// The logout shape is the Postman collection's "Logout (this device)" — see
+/// `docs/course_learning_backend_api_audit_v2.md`. Its response body has no
+/// confirmed shape, so only the status is read.
 ///
 /// `user_type` is read into [AuthSession.userType] — see [UserType].
 /// `expires_in` is optional — the backend does not always report it — so a
@@ -65,12 +71,26 @@ class HttpAuthRepository implements AuthRepository {
     }
 
     final expiresIn = decoded['expires_in'];
+    final refreshToken = decoded['refresh_token'];
     return AuthSession(
       accessToken: token,
+      refreshToken: refreshToken is String && refreshToken.isNotEmpty
+          ? refreshToken
+          : null,
       expiresIn: expiresIn is num && expiresIn > 0
           ? Duration(seconds: expiresIn.toInt())
           : null,
       userType: UserType.fromApi(decoded['user_type']),
+    );
+  }
+
+  @override
+  Future<void> signOut({required String refreshToken}) async {
+    await postJson(
+      client: _client,
+      url: _baseUrl.resolve('/auth/logout'),
+      body: {'refresh_token': refreshToken},
+      timeout: timeout,
     );
   }
 }
