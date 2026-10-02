@@ -166,7 +166,9 @@ List<AttendanceSession> _sessions(Object? value) {
       if (entry is Map<String, dynamic>)
         AttendanceSession(
           date: _requireDate(entry, 'date'),
-          status: _requireString(entry, 'status'),
+          // Null for a session not held yet (Issue #170); any other
+          // non-string is still a malformed response.
+          status: _optionalString(entry, 'status'),
         )
       else
         throw AttendanceFailure(
@@ -189,12 +191,14 @@ DateTime _requireDate(Map<String, dynamic> json, String key) {
   return DateTime(parsed.year, parsed.month, parsed.day);
 }
 
-String _requireString(Map<String, dynamic> json, String key) {
+String? _optionalString(Map<String, dynamic> json, String key) {
   final value = json[key];
+  if (value == null) return null;
   if (value is String) return value;
   throw AttendanceFailure(
     AttendanceFailureKind.server,
-    detail: 'sessions[].$key: expected a string, got ${value.runtimeType}',
+    detail:
+        'sessions[].$key: expected a string or null, got ${value.runtimeType}',
   );
 }
 

@@ -156,6 +156,115 @@ void main() {
     });
   });
 
+  group('the verified adult response (corp.s01, cohort 3, Issue #170)', () {
+    /// Captured from production for `corp.s01` in `ai-corporate-leaders`:
+    /// nine held sessions, then three not held yet whose status is null.
+    /// Only `date` and `status` matter to the parser; the other fields are
+    /// kept as the server sends them.
+    final sessions = [
+      for (final (date, status) in [
+        ('2026-08-06', 'present'),
+        ('2026-08-13', 'present'),
+        ('2026-08-20', 'late'),
+        ('2026-08-27', 'present'),
+        ('2026-09-03', 'present'),
+        ('2026-09-10', 'present'),
+        ('2026-09-17', 'present'),
+        ('2026-09-24', 'present'),
+        ('2026-10-01', 'absent'),
+        ('2026-10-08', null),
+        ('2026-10-15', null),
+        ('2026-10-22', null),
+      ])
+        {
+          'date': date,
+          'end_time': '21:30',
+          'session_id': 96,
+          'start_time': '18:30',
+          'status': status,
+          'topic_id': 8,
+        },
+    ];
+
+    Future<CourseAttendance> adult() => repositoryReturning(
+      (_) async => http.Response(
+        verifiedBody(
+          attended: 8,
+          totalPast: 9,
+          percent: 88,
+          sessions: sessions,
+        ),
+        200,
+      ),
+    ).getCourseAttendance('ai-corporate-leaders');
+
+    test('parses despite the null statuses, summary untouched', () async {
+      final attendance = await adult();
+
+      expect(attendance.sessions, hasLength(12));
+      expect(attendance.attended, 8);
+      expect(attendance.totalPast, 9);
+      expect(attendance.percent, 88);
+    });
+
+    test('reads every status verbatim, null included', () async {
+      final statuses = (await adult()).sessions.map((s) => s.status).toList();
+
+      expect(statuses.where((s) => s == 'present'), hasLength(7));
+      expect(statuses.where((s) => s == 'late'), hasLength(1));
+      expect(statuses.where((s) => s == 'absent'), hasLength(1));
+      expect(statuses.where((s) => s == null), hasLength(3));
+      expect(
+        (await adult()).sessions
+            .where((s) => s.status == null)
+            .map((s) => s.date),
+        [DateTime(2026, 10, 8), DateTime(2026, 10, 15), DateTime(2026, 10, 22)],
+      );
+    });
+
+    test(
+      'present and late count as attended; absent and null do not',
+      () async {
+        final attendance = await adult();
+        bool counts(String? status) => attendance.sessions
+            .firstWhere((s) => s.status == status)
+            .countsAsAttended;
+
+        expect(counts('present'), isTrue);
+        expect(counts('late'), isTrue);
+        expect(counts('absent'), isFalse);
+        expect(counts(null), isFalse);
+        // 7 present + 1 late = summary.attended 8.
+        expect(
+          attendance.sessions.where((s) => s.countsAsAttended),
+          hasLength(attendance.attended),
+        );
+      },
+    );
+
+    test(
+      'a status that is neither a string nor null is still rejected',
+      () async {
+        for (final status in [42, true, <String, Object?>{}, <Object?>[]]) {
+          final failure = await failureFrom(
+            repositoryReturning(
+              (_) async => http.Response(
+                verifiedBody(
+                  sessions: [
+                    {'date': '2026-10-08', 'status': status},
+                  ],
+                ),
+                200,
+              ),
+            ),
+          );
+          expect(failure.kind, AttendanceFailureKind.server, reason: '$status');
+          expect(failure.detail, contains('status'), reason: '$status');
+        }
+      },
+    );
+  });
+
   group('the verified junior response (cohort 7, junior-ai-summer-10-14)', () {
     /// Captured from production for the junior test student, verbatim.
     const juniorBody = r'''

@@ -36,9 +36,9 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 
 **`/me/attendance` `sessions`** — confirmed populated by the junior test student's production response (cohort 7, `junior-ai-summer-10-14`, Issue #138). Each entry: `date` (`"2026-06-16"`), `start_time`, `end_time` (`"09:00"`/`"12:00"`), `session_id` (int), `status` (string), `topic_id` (int). Only `date` and `status` are modelled (`AttendanceSession`); the other four are confirmed but unread. The adult test account's response has `sessions: []`.
 
-- **Status values seen:** `"present"` and `"late"` only — kept as a raw `String`, the set is not known to be closed.
-- **`late` counts as attended:** that response lists 10 `present` + 1 `late`, and its `summary.attended` is 11 of `total_past` 11. `AttendanceSession.countsAsAttended` is true for exactly those two values; anything else is unknown and gets no mark.
-- **No missed/absent value has been seen**, so no day is ever marked missed — and none is inferred from a past lesson date with no session.
+- **Status values seen:** `"present"`, `"late"`, `"absent"`, and **`null`** — kept as a raw `String?`, the set is not known to be closed. `absent` and `null` were confirmed by the adult `corp.s01`–`corp.s10` responses (cohort 3, `ai-corporate-leaders`, Issue #170): each lists 9 past sessions with a status and **3 future sessions (not held yet) with `"status": null`**. Before #170 the parser required a string, so a single future session failed the whole response and the attendance card disappeared.
+- **`late` counts as attended:** that response lists 10 `present` + 1 `late`, and its `summary.attended` is 11 of `total_past` 11; the adult `corp.s01` response agrees (7 `present` + 1 `late` = `attended` 8 of `total_past` 9). `AttendanceSession.countsAsAttended` is true for exactly those two values; `absent`, `null` and anything unknown get no attended mark.
+- **No day is ever marked missed** — not for `absent`, and none is inferred from a past lesson date with no session. A missed mark would be a design decision no frame has made.
 
 **Not read, because not confirmed:** `/me/ledger` `installments` (the verified response had it empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no exam figure is worked out from assignment or quiz scores.
 
