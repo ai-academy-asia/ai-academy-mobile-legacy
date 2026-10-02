@@ -7,43 +7,98 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
-import '../../../shared/widgets/app_button.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
 
-/// The student's profile and app settings.
+// Measured off the Figma "Adults - Profile" frame at 1:1 (393 wide, a 44pt
+// status-bar inset). Where the frame shares a component with the Junior
+// Profile frame, the values match `JuniorProfileScreen`'s own measurements —
+// the two frames are drawn from the same parts.
+
+/// The white header under the status bar, down to its rule.
+const double _headerHeight = 63;
+
+/// The hero band: the avatar 32 below the rule above it, 31 above the one
+/// under it, and the edit control centred on the same line.
+const double _avatarSize = 72;
+const double _heroTop = 32;
+const double _heroBottom = 31;
+const double _avatarToName = 11;
+const double _editSize = 48;
+
+/// The edit glyph's box — the exported SVG's own 20, whose pencil inks the
+/// frame's 16.
+const double _editGlyph = 20;
+
+/// A settings row, and the caption band above each group — the caption's
+/// line 16 below the band's top.
+const double _rowHeight = 55;
+const double _captionBand = 40;
+const double _captionTop = 16;
+
+/// The contact rows, which the frame runs without rules between them.
+const double _contactRowHeight = 56;
+
+/// A row's icon box and its gap to the label — 8 on this frame, a point
+/// tighter than the junior frame's 9.
+const double _rowIcon = 20;
+const double _iconToLabel = 8;
+
+/// The E-Contract pill — a full 32-tall pill here, taller than the junior
+/// frame's — and the gap from it to the "1/2" count.
+const double _badgeHeight = 32;
+const double _badgePadding = 12;
+const double _badgeToCount = 8;
+
+/// The MN/EN control — see [_LanguageToggle].
+const double _toggleHeight = 35;
+const double _toggleInset = 4;
+const double _capsuleWidth = 44;
+const double _otherSegmentWidth = 41;
+const double _toggleRadius = 12;
+const double _capsuleRadius = 8;
+
+/// The footer: Log out 32 below the last contact row, the version 18 below
+/// it, and 32 of page under the version.
+const double _contactToLogOut = 32;
+const double _logOutToVersion = 18;
+const double _bottomPadding = 32;
+
+/// The student's profile and app settings — the Figma "Adults - Profile"
+/// frame.
 ///
-/// Reuses the established system rather than restating it: the same
-/// [AppTypography] scale, the same [AppDimens.screenPadding] gutters and
-/// [AppDimens.maxContentWidth] cap, the same heading style, the same
-/// [AppButton] for the one action on screen, and the same [AppBottomNav]
-/// `CohortListScreen` already carries.
+/// **Not the Junior Profile.** `JuniorProfileScreen` is its own screen for
+/// the "Kids - Profile" frame; this one keeps the adult frame's differences —
+/// the edit control, the "1/2" count on E-Contract, the Light mode row and
+/// no "Payment receipt" — while sharing its measured parts (the header,
+/// avatar, caption bands, rows, MN/EN control, switch and log-out pill).
 ///
 /// **Every row but the header and Change password is UI only.** E-Contract,
 /// Certificate, Transaction history, edit profile, Help center, Term of
 /// Service and Privacy Policy have no destination yet, and the language,
 /// light-mode and notification controls hold local state that nothing else
 /// reads — there is no locale mechanism, no dark palette and no
-/// notification-preference endpoint in the app to hand them to. Each is a
-/// separate issue; this one is the layout.
+/// notification-preference endpoint in the app to hand them to. Log out has
+/// no action yet either: signing out is its own issue.
 ///
 /// Change password pushes [ResetPasswordScreen] rather than a screen of its
 /// own: that screen already is this flow (three fields, [PasswordPolicy]
 /// validation, `POST /auth/change-password` through the same
-/// `PasswordRepository`, the same loading/error handling) — it only reaches
-/// it from the login flow's forgotten-password entry today. Its default
-/// [ResetPasswordScreen.onCompleted] (pop, with a success snackbar) already
-/// lands back here, since this row pushes it rather than replacing the route.
+/// `PasswordRepository`, the same loading/error handling). Its default
+/// [ResetPasswordScreen.onCompleted] (pop, with a success snackbar) lands
+/// back here, since this row pushes it rather than replacing the route.
 ///
 /// The header's name loads from `GET /auth/me` through [ProfileController],
-/// the same way `CohortListScreen` loads `EnrolledCohortsController` —
 /// falling back to [ProfileStrings.name] while that fetch is loading or has
 /// failed. The join date stays the design's placeholder copy: the confirmed
-/// `/auth/me` response carries no join date. See [ProfileStrings].
+/// `/auth/me` response carries no join date. No confirmed response carries an
+/// avatar URL either, so the avatar is a placeholder disc — the frame's photo
+/// is design content, not app data.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.repository});
 
@@ -86,8 +141,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
+        // The frame's bar: the tabs inset 16 from the screen edges, its own
+        // `#2970FF` for the current tab and the solid user glyph — the same
+        // geometry `JuniorBottomNav` measured off the junior frames, with the
+        // adult tabs and labels.
         bottomNavigationBar: AppBottomNav(
           currentIndex: 2,
+          labelSize: _navLabelSize,
+          horizontalPadding: AppDimens.screenPadding,
+          selectedColor: HomePalette.accent,
           items: [
             AppBottomNavItem(
               icon: AppIcons.house,
@@ -110,46 +172,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const AppBottomNavItem(
               icon: AppIcons.user,
               label: ProfileStrings.navProfile,
+              selectedAsset: ProfileIcons.navProfileSelected,
               // Already here.
             ),
           ],
         ),
-        body: SafeArea(
-          bottom: false,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppDimens.maxContentWidth,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ColoredBox(
-                    color: AppColors.surface,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // White behind the status bar as well as the title, as the frame
+            // draws it.
+            ColoredBox(
+              color: AppColors.surface,
+              child: SafeArea(
+                bottom: false,
+                child: _constrained(
+                  const SizedBox(
+                    height: _headerHeight,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppDimens.screenPadding,
-                        AppDimens.resetHeadingTop,
-                        AppDimens.screenPadding,
-                        AppDimens.headingToForm,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppDimens.screenPadding,
                       ),
-                      child: Text(
-                        ProfileStrings.heading,
-                        style: AppTypography.heading,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          ProfileStrings.heading,
+                          style: _headingStyle,
+                        ),
                       ),
                     ),
                   ),
-                  const _Divider(),
-                  Expanded(child: _buildBody()),
-                ],
+                ),
               ),
             ),
-          ),
+            const _Rule(),
+            Expanded(child: _constrained(_buildBody())),
+          ],
         ),
       ),
     );
   }
+
+  /// Caps the column at [AppDimens.maxContentWidth], centred, as every other
+  /// screen does on a wide window.
+  Widget _constrained(Widget child) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
+      child: child,
+    ),
+  );
 
   Widget _buildBody() {
     // A `SingleChildScrollView` rather than a `ListView`: the rows are a
@@ -159,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // end. Laying all of it out gives an exact extent, so one fling reaches
     // the bottom.
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: _bottomPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -169,41 +241,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               name: _profile.user?.displayName ?? ProfileStrings.name,
             ),
           ),
-          const _Divider(),
+          const _Rule(),
 
-          const _SectionLabel(ProfileStrings.accountSection),
-          _SettingsGroup(
+          const _Caption(ProfileStrings.accountSection),
+          const _Group(
             rows: [
-              _SettingsRow(
+              _Row(
                 icon: ProfileIcons.eContract,
                 label: ProfileStrings.eContract,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const _StatusBadge(ProfileStrings.eContractStatus),
-                    const SizedBox(width: 12),
-                    Text(
-                      ProfileStrings.eContractCount,
-                      style: AppTypography.catalogSectionValue,
-                    ),
+                    _StatusBadge(ProfileStrings.eContractStatus),
+                    SizedBox(width: _badgeToCount),
+                    _ContractCount(),
                   ],
                 ),
               ),
-              const _SettingsRow(
+              _Row(
                 icon: ProfileIcons.certificate,
                 label: ProfileStrings.certificate,
               ),
-              const _SettingsRow(
+              _Row(
                 icon: ProfileIcons.transactionHistory,
                 label: ProfileStrings.transactionHistory,
               ),
             ],
           ),
 
-          const _SectionLabel(ProfileStrings.appSettingsSection),
-          _SettingsGroup(
+          const _Caption(ProfileStrings.appSettingsSection),
+          _Group(
             rows: [
-              _SettingsRow(
+              _Row(
                 icon: ProfileIcons.language,
                 label: ProfileStrings.language,
                 trailing: _LanguageToggle(
@@ -211,16 +280,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onChanged: (value) => setState(() => _english = value),
                 ),
               ),
-              _SettingsRow(
+              _Row(
                 icon: ProfileIcons.lightMode,
                 label: ProfileStrings.lightMode,
-                trailing: _Toggle(
+                trailing: _Switch(
                   value: _lightMode,
                   onChanged: (value) => setState(() => _lightMode = value),
                   semanticLabel: ProfileStrings.lightMode,
                 ),
               ),
-              _SettingsRow(
+              _Row(
                 icon: ProfileIcons.changePassword,
                 label: ProfileStrings.changePassword,
                 onTap: () => Navigator.of(context).push(
@@ -232,13 +301,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
 
-          const _SectionLabel(ProfileStrings.notificationSection),
-          _SettingsGroup(
+          const _Caption(ProfileStrings.notificationSection),
+          _Group(
             rows: [
-              _SettingsRow(
+              _Row(
                 icon: ProfileIcons.notification,
                 label: ProfileStrings.notification,
-                trailing: _Toggle(
+                trailing: _Switch(
                   value: _notifications,
                   onChanged: (value) => setState(() => _notifications = value),
                   semanticLabel: ProfileStrings.notification,
@@ -247,43 +316,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
 
-          const _SectionLabel(ProfileStrings.contactSection),
-          const _SettingsGroup(
-            rows: [
-              _SettingsRow(
-                icon: ProfileIcons.helpCenter,
-                label: ProfileStrings.helpCenter,
-              ),
-              _SettingsRow(
-                icon: ProfileIcons.termsOfService,
-                label: ProfileStrings.termsOfService,
-              ),
-              _SettingsRow(
-                icon: ProfileIcons.privacyPolicy,
-                label: ProfileStrings.privacyPolicy,
-              ),
-            ],
-          ),
+          const _Caption(ProfileStrings.contactSection),
+          for (final (icon, label) in const [
+            (ProfileIcons.helpCenter, ProfileStrings.helpCenter),
+            (ProfileIcons.termsOfService, ProfileStrings.termsOfService),
+            (ProfileIcons.privacyPolicy, ProfileStrings.privacyPolicy),
+          ])
+            _Row(icon: icon, label: label, height: _contactRowHeight),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: _contactToLogOut),
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.logOutInset,
+              horizontal: AppDimens.screenPadding,
             ),
-            child: AppButton(
-              label: ProfileStrings.logOut,
-              variant: AppButtonVariant.outlined,
-              // Signing out is its own issue. The button is deliberately
-              // given an empty callback rather than null: null renders
-              // `AppButton`'s disabled treatment — grey label, grey border —
-              // and the reference draws it in full contrast.
-              onPressed: () {},
-            ),
+            // Signing out is its own issue. An empty callback rather than null
+            // keeps the frame's full contrast.
+            child: _LogOutButton(onPressed: () {}),
           ),
-          const SizedBox(height: 12),
-          Text(
+          const SizedBox(height: _logOutToVersion),
+          const Text(
             ProfileStrings.version,
-            style: AppTypography.cardSupporting,
+            style: _versionStyle,
             textAlign: TextAlign.center,
           ),
         ],
@@ -293,8 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 /// The avatar, name and join date, with the edit control at the trailing
-/// edge. The avatar is a generic glyph rather than an image: no avatar URL
-/// exists on any confirmed response to load one from.
+/// edge, on the page grey.
 class _Header extends StatelessWidget {
   const _Header({required this.name});
 
@@ -305,26 +357,29 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.screenPadding,
-        vertical: 10,
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.screenPadding,
+        _heroTop,
+        AppDimens.screenPadding,
+        _heroBottom,
       ),
       child: Row(
         children: [
           Container(
-            width: AppDimens.avatarSize,
-            height: AppDimens.avatarSize,
-            decoration: const BoxDecoration(
+            width: _avatarSize,
+            height: _avatarSize,
+            decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               shape: BoxShape.circle,
+              border: Border.all(color: HomePalette.border),
             ),
             child: const Icon(
               Icons.person,
-              size: 24,
+              size: 36,
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: _avatarToName),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,14 +387,14 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: AppTypography.profileName,
+                  style: _nameStyle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                Text(
+                const SizedBox(height: 4),
+                const Text(
                   ProfileStrings.joinedDate,
-                  style: AppTypography.profileJoinedDate,
+                  style: _joinedStyle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -354,6 +409,8 @@ class _Header extends StatelessWidget {
   }
 }
 
+/// The frame's edit control: a white 48 circle in the border grey, the
+/// pencil centred in it. No destination yet — see [ProfileScreen].
 class _EditButton extends StatelessWidget {
   const _EditButton();
 
@@ -363,53 +420,53 @@ class _EditButton extends StatelessWidget {
       button: true,
       label: ProfileStrings.editProfile,
       child: Container(
-        width: AppDimens.avatarEditSize,
-        height: AppDimens.avatarEditSize,
+        width: _editSize,
+        height: _editSize,
         decoration: BoxDecoration(
           color: AppColors.surface,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.border,
-            width: AppDimens.borderWidth,
-          ),
+          border: Border.all(color: HomePalette.border),
         ),
         child: Center(
-          child: SvgPicture.asset(ProfileIcons.edit, width: 18, height: 18),
+          child: SvgPicture.asset(
+            ProfileIcons.edit,
+            width: _editGlyph,
+            height: _editGlyph,
+          ),
         ),
       ),
     );
   }
 }
 
-/// A grey caption over a group of rows, sitting on the page rather than on
-/// the white the rows themselves use.
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label);
+/// A grey caption naming the group under it.
+class _Caption extends StatelessWidget {
+  const _Caption(this.label);
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimens.screenPadding,
-        12,
-        AppDimens.screenPadding,
-        4,
+    return SizedBox(
+      height: _captionBand,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.screenPadding,
+          _captionTop,
+          AppDimens.screenPadding,
+          0,
+        ),
+        child: Text(label, style: captionStyle),
       ),
-      child: Text(label, style: AppTypography.catalogSectionLabel),
     );
   }
 }
 
-/// Rows with a hairline between each, and one closing the group off from the
-/// caption below it.
-///
-/// No rule between a caption and its own first row: the reference runs the
-/// caption straight into the group it names, and only separates one group
-/// from the next.
-class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({required this.rows});
+/// Rows with a rule after each one, the last closing the group off. No rule
+/// between a caption and its own first row: the frame runs the caption
+/// straight into the group it names.
+class _Group extends StatelessWidget {
+  const _Group({required this.rows});
 
   final List<Widget> rows;
 
@@ -417,26 +474,22 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const _Divider(),
-          rows[i],
-        ],
-        const _Divider(),
+        for (final row in rows) ...[row, const _Rule()],
       ],
     );
   }
 }
 
-/// One row: a leading icon, a label, and an optional trailing control.
-///
-/// No chevron: the reference draws none on any row, including the ones that
-/// will eventually open a screen of their own.
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
+/// One row: icon, label, and an optional trailing control. No chevron — the
+/// frame draws none on any row, including the ones that will eventually open
+/// a screen of their own.
+class _Row extends StatelessWidget {
+  const _Row({
     required this.icon,
     required this.label,
     this.trailing,
     this.onTap,
+    this.height = _rowHeight,
   });
 
   /// Path to the row's exported SVG — see [ProfileIcons].
@@ -451,27 +504,24 @@ class _SettingsRow extends StatelessWidget {
   /// destination yet — see the class doc on [ProfileScreen].
   final VoidCallback? onTap;
 
+  final double height;
+
   @override
   Widget build(BuildContext context) {
-    final row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: AppDimens.settingsRowHeight),
+    final row = SizedBox(
+      height: height,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.screenPadding,
-          vertical: 4,
         ),
         child: Row(
           children: [
-            SvgPicture.asset(
-              icon,
-              width: AppDimens.settingsRowIconSize,
-              height: AppDimens.settingsRowIconSize,
-            ),
-            const SizedBox(width: 12),
+            SvgPicture.asset(icon, width: _rowIcon, height: _rowIcon),
+            const SizedBox(width: _iconToLabel),
             Expanded(
               child: Text(
                 label,
-                style: AppTypography.settingsRowLabel,
+                style: rowLabelStyle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -496,7 +546,8 @@ class _SettingsRow extends StatelessWidget {
   }
 }
 
-/// The amber pill on the E-Contract row.
+/// The amber pill on the E-Contract row — the contract banner's own pale
+/// amber, with the junior frame's softer outline.
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge(this.label);
 
@@ -505,27 +556,45 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      height: _badgeHeight,
+      padding: const EdgeInsets.symmetric(horizontal: _badgePadding),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.4),
-          width: AppDimens.borderWidth,
-        ),
+        color: HomePalette.contractFill,
+        borderRadius: BorderRadius.circular(_badgeHeight / 2),
+        border: Border.all(color: _badgeOutline),
       ),
-      child: Text(
-        label,
-        style: AppTypography.catalogStatusLabel.copyWith(
-          color: AppColors.warning,
-        ),
-      ),
+      child: Text(label, style: _badgeStyle, maxLines: 1),
     );
   }
 }
 
-/// The MN/EN segmented control: a blue capsule with the selected half
-/// picked out in white.
+/// "1/2" — the frame inks the first figure dark and "/2" in the caption
+/// grey.
+class _ContractCount extends StatelessWidget {
+  const _ContractCount();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      const TextSpan(
+        text: ProfileStrings.eContractSigned,
+        children: [
+          TextSpan(
+            text: ProfileStrings.eContractTotal,
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+      style: _countStyle,
+    );
+  }
+}
+
+/// The MN/EN control: a blue rounded rectangle with the selected language on
+/// a white capsule inset 4 inside it — 93 x 35 overall, the capsule 44 x 27,
+/// as on the junior frame. The halves are not equal: the capsule is 44 wide
+/// and the other language centres in the 41 left over.
 class _LanguageToggle extends StatelessWidget {
   const _LanguageToggle({required this.english, required this.onChanged});
 
@@ -535,10 +604,11 @@ class _LanguageToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(2),
+      height: _toggleHeight,
+      padding: const EdgeInsets.all(_toggleInset),
       decoration: BoxDecoration(
-        color: AppColors.blue,
-        borderRadius: BorderRadius.circular(999),
+        color: HomePalette.accent,
+        borderRadius: BorderRadius.circular(_toggleRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -576,18 +646,20 @@ class _Segment extends StatelessWidget {
       button: true,
       selected: selected,
       label: label,
+      excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          width: selected ? _capsuleWidth : _otherSegmentWidth,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? AppColors.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(_capsuleRadius),
           ),
           child: Text(
             label,
-            style: AppTypography.segmentLabel.copyWith(
-              color: selected ? AppColors.blue : AppColors.onPrimary,
+            style: _segmentStyle.copyWith(
+              color: selected ? _segmentInk : AppColors.onPrimary,
             ),
           ),
         ),
@@ -596,11 +668,10 @@ class _Segment extends StatelessWidget {
   }
 }
 
-/// A row's on/off control. Flutter's own [Switch], recoloured to the
-/// palette — the design draws a stock switch, so this is not hand-rolled the
-/// way `RememberMeCheckbox` had to be.
-class _Toggle extends StatelessWidget {
-  const _Toggle({
+/// The frame's switch: a 44 x 24 grey track with a white knob — smaller than
+/// Flutter's own [Switch], so drawn here rather than scaled.
+class _Switch extends StatelessWidget {
+  const _Switch({
     required this.value,
     required this.onChanged,
     required this.semanticLabel,
@@ -613,31 +684,203 @@ class _Toggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      toggled: value,
       label: semanticLabel,
-      child: Transform.scale(
-        scale: 0.9,
-        child: Switch(
-          value: value,
-          onChanged: onChanged,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          thumbColor: const WidgetStatePropertyAll(AppColors.onPrimary),
-          trackColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? AppColors.blue
-                : AppColors.disabled,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => onChanged(!value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 44,
+          height: 24,
+          padding: const EdgeInsets.all(2),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: value ? HomePalette.accent : HomePalette.border,
+            borderRadius: BorderRadius.circular(12),
           ),
-          trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+          child: Container(
+            width: 20,
+            height: 20,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _Divider extends StatelessWidget {
-  const _Divider();
+/// The full-width outlined pill.
+class _LogOutButton extends StatelessWidget {
+  const _LogOutButton({required this.onPressed});
+
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Container(height: AppDimens.borderWidth, color: AppColors.border);
+    const radius = BorderRadius.all(Radius.circular(AppDimens.buttonRadius));
+    return Semantics(
+      button: true,
+      label: ProfileStrings.logOut,
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(color: HomePalette.border),
+        ),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const RoundedRectangleBorder(borderRadius: radius),
+          child: const SizedBox(
+            height: AppDimens.buttonHeight,
+            child: Center(
+              child: Text(ProfileStrings.logOut, style: _logOutStyle),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
+
+class _Rule extends StatelessWidget {
+  const _Rule();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: AppDimens.borderWidth,
+      color: HomePalette.headerRule,
+    );
+  }
+}
+
+// --- Colour and type ---------------------------------------------------------
+//
+// Sampled and measured off the frame at 1:1; sizes from cap heights (Manrope's
+// cap height is 0.72 em). The colours are the same ones `JuniorProfileScreen`
+// sampled off the junior frame.
+
+/// The tab labels' size — the frame's labels ink at the junior bar's 10pt.
+const double _navLabelSize = 10;
+
+/// The E-Contract pill's outline.
+const Color _badgeOutline = Color(0xFFFFE8A3);
+
+/// The E-Contract pill's label.
+const Color _badgeInk = Color(0xFFDD940E);
+
+/// "MN" on the white half of the language control — a deep indigo, not the
+/// capsule's blue.
+const Color _segmentInk = Color(0xFF1501A6);
+
+/// The join date's cool grey.
+const Color _joinedInk = Color(0xFF9CA3AF);
+
+/// The version line's slate.
+const Color _versionInk = Color(0xFF4B5563);
+
+const TextStyle _headingStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 24,
+  height: 32 / 24,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _nameStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 18,
+  height: 24 / 18,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _joinedStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w400,
+  color: _joinedInk,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+/// A section caption's style. Public so the screen's tests can tell the
+/// "Notification" caption from the "Notification" row.
+@visibleForTesting
+const TextStyle captionStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 12,
+  height: 16 / 12,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textSecondary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+/// A settings row's label style — see [captionStyle].
+@visibleForTesting
+const TextStyle rowLabelStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 16,
+  height: 24 / 16,
+  fontWeight: FontWeight.w400,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _badgeStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 12,
+  height: 16 / 12,
+  fontWeight: FontWeight.w600,
+  color: _badgeInk,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _countStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _segmentStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 12,
+  height: 16 / 12,
+  fontWeight: FontWeight.w700,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _logOutStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 16,
+  height: 24 / 16,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  leadingDistribution: TextLeadingDistribution.even,
+);
+
+const TextStyle _versionStyle = TextStyle(
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 14,
+  height: 20 / 14,
+  fontWeight: FontWeight.w400,
+  color: _versionInk,
+  leadingDistribution: TextLeadingDistribution.even,
+);

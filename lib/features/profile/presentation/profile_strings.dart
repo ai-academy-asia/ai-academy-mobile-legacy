@@ -31,7 +31,12 @@ abstract final class ProfileStrings {
 
   /// The amber pill on the E-Contract row: "no contract signed yet".
   static const String eContractStatus = 'Гэрээ байгуулаагүй байна';
-  static const String eContractCount = '1/2';
+
+  /// "1/2", inked in two parts as the frame draws it — the first figure dark,
+  /// "/2" in the caption grey. [eContractCount] is the whole string.
+  static const String eContractSigned = '1';
+  static const String eContractTotal = '/2';
+  static const String eContractCount = '$eContractSigned$eContractTotal';
 
   static const String certificate = 'Certificate';
   static const String transactionHistory = 'Transaction history';
@@ -117,4 +122,8 @@ abstract final class ProfileIcons {
   static const String helpCenter = '$_dir/help_center.svg';
   static const String termsOfService = '$_dir/term_of_service.svg';
   static const String privacyPolicy = '$_dir/privacy_policy.svg';
+
+  /// The current Профайл tab's solid user glyph — the frame's own export, the
+  /// same file the junior bar draws.
+  static const String navProfileSelected = '$_dir/nav_profile_selected.svg';
 }

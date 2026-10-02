@@ -1,12 +1,12 @@
+import 'dart:ui' show Tristate;
+
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
-import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -29,16 +29,12 @@ Future<void> _loadFonts() async {
 /// `find.text` alone is ambiguous. These match on the style each role uses.
 Finder sectionCaption(String label) => find.byWidgetPredicate(
   (widget) =>
-      widget is Text &&
-      widget.data == label &&
-      widget.style == AppTypography.catalogSectionLabel,
+      widget is Text && widget.data == label && widget.style == captionStyle,
 );
 
 Finder rowLabel(String label) => find.byWidgetPredicate(
   (widget) =>
-      widget is Text &&
-      widget.data == label &&
-      widget.style == AppTypography.settingsRowLabel,
+      widget is Text && widget.data == label && widget.style == rowLabelStyle,
 );
 
 void main() {
@@ -141,10 +137,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.widgetWithText(AppButton, ProfileStrings.logOut),
-        findsOneWidget,
-      );
+      expect(find.text(ProfileStrings.logOut), findsOneWidget);
       expect(find.text(ProfileStrings.version), findsOneWidget);
     });
 
@@ -224,10 +217,7 @@ void main() {
       // to stop short of the end. Laid out in full, it goes all the way.
       expect(position.pixels, position.maxScrollExtent);
       expect(rowLabel(ProfileStrings.helpCenter), findsOneWidget);
-      expect(
-        find.widgetWithText(AppButton, ProfileStrings.logOut),
-        findsOneWidget,
-      );
+      expect(find.text(ProfileStrings.logOut), findsOneWidget);
       expect(find.text(ProfileStrings.version), findsOneWidget);
     });
 
@@ -334,20 +324,23 @@ void main() {
       (tester) async {
         await pumpProfile(tester);
 
-        final switches = find.byType(Switch);
-        expect(switches, findsNWidgets(2));
-        expect(
-          tester.widgetList<Switch>(switches).map((s) => s.value),
-          everyElement(isFalse),
-        );
+        // Each switch carries its row's label; `.last` is the switch, not the
+        // row's own text.
+        bool toggled(String label) =>
+            tester
+                .getSemantics(find.bySemanticsLabel(label).last)
+                .flagsCollection
+                .isToggled ==
+            Tristate.isTrue;
 
-        await tester.tap(switches.first);
+        expect(toggled(ProfileStrings.lightMode), isFalse);
+        expect(toggled(ProfileStrings.notification), isFalse);
+
+        await tester.tap(find.bySemanticsLabel(ProfileStrings.lightMode).last);
         await tester.pumpAndSettle();
 
-        expect(
-          tester.widgetList<Switch>(find.byType(Switch)).first.value,
-          isTrue,
-        );
+        expect(toggled(ProfileStrings.lightMode), isTrue);
+        expect(toggled(ProfileStrings.notification), isFalse);
       },
     );
   });
@@ -388,6 +381,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // The test window is 800 x 600; the row sits below its fold, as it
+        // does on a short phone, so scroll it into view first.
+        await tester.ensureVisible(rowLabel(ProfileStrings.changePassword));
+        await tester.pumpAndSettle();
         await tester.tap(rowLabel(ProfileStrings.changePassword));
         await tester.pumpAndSettle();
         expect(find.byType(ResetPasswordScreen), findsOneWidget);
