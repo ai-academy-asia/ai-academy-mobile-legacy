@@ -28,9 +28,13 @@ import 'junior_map_path_painter.dart';
 /// behind a node's rounded square, and the cards sit over the scenery the way
 /// the frame draws them, covering the island and the coin behind each one.
 class JuniorLearningMapView extends StatelessWidget {
-  const JuniorLearningMapView({required this.map, super.key});
+  const JuniorLearningMapView({required this.map, super.key, this.onNodeTap});
 
   final JuniorLearningMap map;
+
+  /// Called with a completed or current node when it is tapped; locked nodes
+  /// never call it. Null leaves every node inert.
+  final ValueChanged<JuniorMapNode>? onNodeTap;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +98,15 @@ class JuniorLearningMapView extends StatelessWidget {
                           JuniorMapGeometry.nodeSize,
                           JuniorMapGeometry.nodeSize,
                         ),
-                    JuniorMapNodeTile(node: map.nodes[i], scale: scale),
+                    JuniorMapNodeTile(
+                      node: map.nodes[i],
+                      scale: scale,
+                      onTap:
+                          onNodeTap == null ||
+                              map.nodes[i].state == JuniorNodeState.locked
+                          ? null
+                          : () => onNodeTap!(map.nodes[i]),
+                    ),
                   ),
 
                 at(

@@ -31,10 +31,21 @@ class ExerciseTabs extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     super.key,
+    this.tabs = ExerciseTab.values,
   });
 
   final ExerciseTab selected;
   final ValueChanged<ExerciseTab> onSelected;
+
+  /// The tabs drawn, in order. Every tab by default; the Junior course
+  /// flow leaves out [ExerciseTab.note] (Issue #174).
+  final List<ExerciseTab> tabs;
+
+  static String _label(ExerciseTab tab) => switch (tab) {
+    ExerciseTab.assignment => CourseLearningStrings.assignmentTab,
+    ExerciseTab.materials => CourseLearningStrings.courseMaterialsTab,
+    ExerciseTab.note => CourseLearningStrings.noteTab,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -46,23 +57,14 @@ class ExerciseTabs extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _TabLabel(
-                  label: CourseLearningStrings.assignmentTab,
-                  selected: selected == ExerciseTab.assignment,
-                  onTap: () => onSelected(ExerciseTab.assignment),
-                ),
-                const SizedBox(width: 8),
-                _TabLabel(
-                  label: CourseLearningStrings.courseMaterialsTab,
-                  selected: selected == ExerciseTab.materials,
-                  onTap: () => onSelected(ExerciseTab.materials),
-                ),
-                const SizedBox(width: 8),
-                _TabLabel(
-                  label: CourseLearningStrings.noteTab,
-                  selected: selected == ExerciseTab.note,
-                  onTap: () => onSelected(ExerciseTab.note),
-                ),
+                for (var i = 0; i < tabs.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  _TabLabel(
+                    label: _label(tabs[i]),
+                    selected: selected == tabs[i],
+                    onTap: () => onSelected(tabs[i]),
+                  ),
+                ],
               ],
             ),
           ),

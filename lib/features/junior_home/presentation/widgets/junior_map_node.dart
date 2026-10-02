@@ -22,9 +22,21 @@ import 'junior_map_geometry.dart';
 /// frame draws. Guessing a codepoint is what `DEVELOPMENT_RULES.md` §6
 /// forbids, so the design's own glyphs are used.
 class JuniorMapNodeTile extends StatelessWidget {
-  const JuniorMapNodeTile({required this.node, required this.scale, super.key});
+  const JuniorMapNodeTile({
+    required this.node,
+    required this.scale,
+    super.key,
+    this.onTap,
+  });
 
   final JuniorMapNode node;
+
+  /// Opens the course, or null for an inert node. The map passes one for
+  /// completed and current nodes only — a locked module stays inert, as a
+  /// locked module card does on the Adult course screen (Issue #174). No
+  /// pressed state is drawn: the frame has none, so the node looks exactly
+  /// as it did.
+  final VoidCallback? onTap;
 
   /// The map's design-space-to-pixels factor.
   final double scale;
@@ -33,29 +45,35 @@ class JuniorMapNodeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = _NodeStyle.of(node.state);
 
+    final onTap = this.onTap;
     return Semantics(
       label: JuniorHomeStrings.nodeLabel(node.id, node.state),
-      child: Container(
-        decoration: BoxDecoration(
-          color: style.fill,
-          borderRadius: BorderRadius.circular(
-            JuniorMapGeometry.nodeRadius * scale,
+      button: onTap != null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: style.fill,
+            borderRadius: BorderRadius.circular(
+              JuniorMapGeometry.nodeRadius * scale,
+            ),
+            border: Border.all(
+              color: style.border,
+              width: JuniorMapGeometry.nodeBorder * scale,
+            ),
+            boxShadow: JuniorPalette.nodeDepth(
+              style.border,
+              JuniorMapGeometry.nodeDepth * scale,
+            ),
           ),
-          border: Border.all(
-            color: style.border,
-            width: JuniorMapGeometry.nodeBorder * scale,
-          ),
-          boxShadow: JuniorPalette.nodeDepth(
-            style.border,
-            JuniorMapGeometry.nodeDepth * scale,
-          ),
-        ),
-        child: Center(
-          child: Image.asset(
-            JuniorMapGeometry.sprite(style.glyph),
-            width: JuniorMapGeometry.nodeGlyph * scale,
-            height: JuniorMapGeometry.nodeGlyph * scale,
-            filterQuality: FilterQuality.high,
+          child: Center(
+            child: Image.asset(
+              JuniorMapGeometry.sprite(style.glyph),
+              width: JuniorMapGeometry.nodeGlyph * scale,
+              height: JuniorMapGeometry.nodeGlyph * scale,
+              filterQuality: FilterQuality.high,
+            ),
           ),
         ),
       ),

@@ -91,7 +91,13 @@ class JuniorLearningMap {
     required this.certificate,
     this.continueModuleId,
     this.continueLessonId,
+    this.courseSlug,
   });
+
+  /// The learning path's own `Course.slug` — which course a node opens
+  /// (Issue #174). Null for content that is not a real course (the sample
+  /// map), which leaves the nodes inert.
+  final String? courseSlug;
 
   final JuniorCourseProgress progress;
 

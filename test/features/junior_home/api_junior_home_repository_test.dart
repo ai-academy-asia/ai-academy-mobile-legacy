@@ -127,6 +127,13 @@ void main() {
       expect(map.certificate.courseName, 'AI BootCamp');
     });
 
+    test('keeps the course slug, so a node can open the course (#174)', () {
+      expect(
+        mapOf(samplePath(courseSlug: 'junior-ai')).courseSlug,
+        'junior-ai',
+      );
+    });
+
     test('maps completed and locked straight off the server', () {
       final map = mapOf(
         samplePath(
