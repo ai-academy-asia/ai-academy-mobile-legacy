@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'dart:ui' show Tristate;
 
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/auth/data/http_current_user_repository.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
@@ -11,6 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'fake_current_user_repository.dart';
 
@@ -194,6 +200,56 @@ void main() {
       expect(find.text(ProfileStrings.name), findsNothing);
       // The join date has no confirmed source in the contract yet.
       expect(find.text(ProfileStrings.joinedDate), findsOneWidget);
+    });
+
+    testWidgets('shows the real name when /auth/me has a null ui_mode', (
+      tester,
+    ) async {
+      // Issue #168: the production response for the adult `corp.s01` account,
+      // through the real parser. It used to fail as a whole over `ui_mode`,
+      // leaving the placeholder name up.
+      final client = MockClient(
+        (_) async => http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'actor_id': 25,
+              'actor_type': 'student',
+              'email': 'corp.s01@test.ai-academy.asia',
+              'id': 25,
+              'is_active': true,
+              'must_change_password': false,
+              'profile': {
+                'first_name': 'Ганбат',
+                'id': 25,
+                'last_name': 'Должин',
+                'phone': '99000000',
+                'ui_mode': null,
+              },
+              'role': 'student',
+              'user_type': 'adult',
+            }),
+          ),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
+      final store = AuthSessionStore()
+        ..save(const AuthSession(accessToken: 'token'));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: ProfileScreen(
+            repository: HttpCurrentUserRepository(
+              client: client,
+              sessionStore: store,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ганбат Должин'), findsOneWidget);
+      expect(find.text(ProfileStrings.name), findsNothing);
     });
   });
 

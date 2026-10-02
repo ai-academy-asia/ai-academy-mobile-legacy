@@ -66,7 +66,7 @@ void main() {
     String firstName = 'CRUD',
     String lastName = 'TestStudent',
     String phone = '99123456',
-    String uiMode = 'kids',
+    Object? uiMode = 'kids',
     String? userType = 'child',
   }) => jsonEncode({
     'actor_id': actorId,
@@ -184,6 +184,28 @@ void main() {
       expect(user.profile.uiMode, 'kids');
     });
 
+    test('a null profile.ui_mode parses, as null (Issue #168)', () async {
+      // The production shape for the adult `corp.s01`/`corp.s02` accounts:
+      // every field as the contract has it, `ui_mode` null.
+      final repository = repositoryReturning(
+        (_) async => http.Response(
+          validBody(
+            firstName: 'Ganbat',
+            lastName: 'Dolzhin',
+            uiMode: null,
+            userType: 'adult',
+          ),
+          200,
+        ),
+      );
+
+      final user = await repository.getCurrentUser();
+
+      expect(user.profile.uiMode, isNull);
+      expect(user.displayName, 'Ganbat Dolzhin');
+      expect(user.userType, UserType.adult);
+    });
+
     test('a response without user_type still parses, as unknown', () async {
       final repository = repositoryReturning(
         (_) async => http.Response(validBody(userType: null), 200),
@@ -287,6 +309,16 @@ void main() {
       );
       expect(failure.kind, CurrentUserFailureKind.server);
       expect(failure.detail, contains('last_name'));
+    });
+
+    test('a ui_mode that is neither a string nor null is still a server fault', () async {
+      for (final uiMode in [42, true, <String, Object?>{}, <Object?>[]]) {
+        final failure = await failureFrom(
+          repositoryReturning((_) async => http.Response(validBody(uiMode: uiMode), 200)),
+        );
+        expect(failure.kind, CurrentUserFailureKind.server, reason: '$uiMode');
+        expect(failure.detail, contains('ui_mode'), reason: '$uiMode');
+      }
     });
   });
 
