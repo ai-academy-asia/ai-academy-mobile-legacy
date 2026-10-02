@@ -396,6 +396,37 @@ void main() {
       expect(attendance.percent, 67);
     });
 
+    test('future null-status and absent sessions keep the card, unmarked '
+        '(Issue #170)', () async {
+      // The adult corp.s01 shape: past present/late/absent sessions, and
+      // sessions not held yet with a null status.
+      final dashboard = await dashboardWith(
+        attendance: FakeAttendanceRepository(
+          attendance: CourseAttendance(
+            attended: 2,
+            totalPast: 3,
+            percent: 66,
+            sessions: [
+              AttendanceSession(date: DateTime(2026, 9, 24), status: 'present'),
+              AttendanceSession(date: DateTime(2026, 8, 20), status: 'late'),
+              AttendanceSession(date: DateTime(2026, 10, 1), status: 'absent'),
+              AttendanceSession(date: DateTime(2026, 10, 8), status: null),
+              AttendanceSession(date: DateTime(2026, 10, 15), status: null),
+            ],
+          ),
+        ),
+      );
+
+      final attendance = attendanceOf(dashboard)!;
+      expect(attendance.attendedDates, {
+        DateTime(2026, 9, 24),
+        DateTime(2026, 8, 20),
+      });
+      expect(attendance.attended, 2);
+      expect(attendance.total, 3);
+      expect(attendance.percent, 66);
+    });
+
     test('no sessions: no attended dates', () async {
       final dashboard = await dashboardWith(
         attendance: FakeAttendanceRepository(),

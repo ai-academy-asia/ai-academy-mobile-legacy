@@ -39,7 +39,7 @@ class CourseAttendance {
   final List<AttendanceSession> sessions;
 }
 
-/// One held session from `GET /me/attendance` `sessions`.
+/// One session from `GET /me/attendance` `sessions` — held, or still to come.
 ///
 /// Modelled: [date] and [status] — what the Junior calendar marks. The entry
 /// also carries `session_id`, `start_time`, `end_time` and `topic_id`
@@ -51,18 +51,21 @@ class AttendanceSession {
   /// The session's calendar day, as a local date.
   final DateTime date;
 
-  /// The raw wire value. Only `"present"` and `"late"` have been seen, which
-  /// is not enough to call the set closed, so it stays a `String` — the same
-  /// policy `Cohort.status` follows.
-  final String status;
+  /// The raw wire value. Seen: `"present"`, `"late"`, `"absent"`, and `null`
+  /// for a session not held yet (Issue #170). That is not enough to call the
+  /// set closed, so it stays a `String` — the same policy `Cohort.status`
+  /// follows.
+  final String? status;
 
   /// Whether the server counts this session as attended.
   ///
   /// `present` and `late` only. The evidence is the server's own arithmetic:
   /// the confirmed response lists 10 `present` sessions and 1 `late`, and its
   /// `summary.attended` is 11 of `total_past` 11 — `late` is counted as
-  /// attended. Any other value is not known to mean anything, so it answers
-  /// false: no attended mark, and no "missed" mark either (no missed/absent
-  /// value has been confirmed).
+  /// attended (and the adult `corp.s01` response agrees: 7 `present` + 1
+  /// `late` = `attended` 8). `absent`, a `null` status (a session not held
+  /// yet) and any unknown value answer false: no attended mark. Nothing here
+  /// draws a "missed" mark either — that is a design decision no frame has
+  /// made.
   bool get countsAsAttended => status == 'present' || status == 'late';
 }
