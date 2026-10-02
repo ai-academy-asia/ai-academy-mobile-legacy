@@ -24,6 +24,12 @@ class FakeAuthRepository implements AuthRepository {
   /// Every call, in order — so a test can assert what was actually sent.
   final List<({String email, String password})> calls = [];
 
+  /// Thrown by [signOut] instead of completing, when set.
+  AuthFailure? signOutFailure;
+
+  /// Every refresh token [signOut] was asked to revoke, in order.
+  final List<String> signOutCalls = [];
+
   Completer<void>? _gate;
 
   /// Lets a held [signIn] finish.
@@ -45,5 +51,12 @@ class FakeAuthRepository implements AuthRepository {
     if (failure != null) throw failure;
 
     return session ?? const AuthSession(accessToken: 'test-token');
+  }
+
+  @override
+  Future<void> signOut({required String refreshToken}) async {
+    signOutCalls.add(refreshToken);
+    final failure = signOutFailure;
+    if (failure != null) throw failure;
   }
 }

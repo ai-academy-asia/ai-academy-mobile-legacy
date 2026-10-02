@@ -6,8 +6,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../auth/data/http_current_user_repository.dart';
+import '../../auth/domain/auth_repository.dart';
+import '../../auth/domain/auth_session_store.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
+import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import '../../profile/presentation/profile_controller.dart';
@@ -72,14 +75,25 @@ const double _iconToLabel = 9;
 ///
 /// **Gaps.** No confirmed response carries an avatar URL, so the avatar is
 /// a placeholder disc, as on the adult Profile — the frame's photo is design
-/// content, not app data. Every other row, the toggles and Log
-/// out have no destination yet, as on the adult Profile; the toggles hold
-/// local state that nothing reads.
+/// content, not app data. Every other row and the toggles have no
+/// destination yet, as on the adult Profile; the toggles hold local state
+/// that nothing reads. Log out signs out for real through the same
+/// [signOutToLogin] the adult Profile uses.
 class JuniorProfileScreen extends StatefulWidget {
-  const JuniorProfileScreen({super.key, this.repository});
+  const JuniorProfileScreen({
+    super.key,
+    this.repository,
+    this.authRepository,
+    this.sessionStore,
+  });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
   final CurrentUserRepository? repository;
+
+  /// Where "Гарах" revokes the session, and the session it clears — both
+  /// default to the app's own (see [signOutToLogin]). Injected in tests.
+  final AuthRepository? authRepository;
+  final AuthSessionStore? sessionStore;
 
   @override
   State<JuniorProfileScreen> createState() => _JuniorProfileScreenState();
@@ -104,6 +118,20 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
   void dispose() {
     _profile.dispose();
     super.dispose();
+  }
+
+  bool _signingOut = false;
+
+  /// "Гарах" — see [signOutToLogin]. A second tap while the first is still
+  /// running does nothing.
+  Future<void> _signOut() async {
+    if (_signingOut) return;
+    _signingOut = true;
+    await signOutToLogin(
+      Navigator.of(context),
+      repository: widget.authRepository,
+      sessionStore: widget.sessionStore,
+    );
   }
 
   @override
@@ -252,9 +280,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.screenPadding,
             ),
-            // Signing out is its own issue, as on the adult Profile. An empty
-            // callback rather than null keeps the frame's full contrast.
-            child: _LogOutButton(onPressed: () {}),
+            child: _LogOutButton(onPressed: _signOut),
           ),
           const SizedBox(height: 20),
           const Text(

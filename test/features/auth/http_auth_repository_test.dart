@@ -239,6 +239,94 @@ void main() {
     });
   });
 
+  group('the refresh token', () {
+    test('is kept from the login response, for sign-out to revoke', () async {
+      final repository = repositoryReturning(
+        (_) async => http.Response(
+          jsonEncode({'access_token': 'tok', 'refresh_token': 'ref-123'}),
+          200,
+        ),
+      );
+
+      final session = await repository.signIn(email: 'a@b.mn', password: 'p');
+
+      expect(session.refreshToken, 'ref-123');
+    });
+
+    test('a missing or empty refresh_token is null, not a failure', () async {
+      for (final body in [
+        {'access_token': 'tok'},
+        {'access_token': 'tok', 'refresh_token': ''},
+        {'access_token': 'tok', 'refresh_token': 42},
+      ]) {
+        final repository = repositoryReturning(
+          (_) async => http.Response(jsonEncode(body), 200),
+        );
+
+        final session = await repository.signIn(email: 'a@b.mn', password: 'p');
+
+        expect(session.refreshToken, isNull, reason: '$body');
+      }
+    });
+  });
+
+  group('sign-out', () {
+    test('posts the refresh token to /auth/logout, with no bearer token', () async {
+      late http.Request sent;
+      final repository = repositoryReturning((request) async {
+        sent = request;
+        return http.Response('', 204);
+      });
+
+      await repository.signOut(refreshToken: 'ref-123');
+
+      expect(sent.method, 'POST');
+      expect(sent.url.toString(), 'https://api.ai-academy.asia/auth/logout');
+      expect(sent.headers[HttpHeaders.contentTypeHeader], contains('application/json'));
+      expect(sent.headers.containsKey(HttpHeaders.authorizationHeader), isFalse);
+      expect(jsonDecode(sent.body), {'refresh_token': 'ref-123'});
+    });
+
+    test('any 2xx is success, whatever the body', () async {
+      for (final response in [
+        http.Response('', 204),
+        http.Response(jsonEncode({'ok': true}), 200),
+        http.Response('not json', 200),
+      ]) {
+        final repository = repositoryReturning((_) async => response);
+
+        await expectLater(repository.signOut(refreshToken: 'ref'), completes);
+      }
+    });
+
+    test('a refusal or server fault is reported as an AuthFailure', () async {
+      for (final (status, kind) in [
+        (401, AuthFailureKind.invalidCredentials),
+        (500, AuthFailureKind.server),
+      ]) {
+        final repository = repositoryReturning((_) async => http.Response('', status));
+
+        await expectLater(
+          repository.signOut(refreshToken: 'ref'),
+          throwsA(isA<AuthFailure>().having((f) => f.kind, 'kind', kind)),
+        );
+      }
+    });
+
+    test('an unreachable host is a network failure', () async {
+      final repository = repositoryReturning(
+        (_) async => throw const SocketException('offline'),
+      );
+
+      await expectLater(
+        repository.signOut(refreshToken: 'ref'),
+        throwsA(
+          isA<AuthFailure>().having((f) => f.kind, 'kind', AuthFailureKind.network),
+        ),
+      );
+    });
+  });
+
   group('configuration', () {
     test('the default base URL is the contract host', () {
       expect(HttpAuthRepository.defaultBaseUrl, 'https://api.ai-academy.asia');

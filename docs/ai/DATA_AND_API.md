@@ -46,7 +46,7 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 
 Present in the Postman collection (see `docs/course_learning_backend_api_audit_v2.md` §3), deliberately unused here. Wiring any of them is a task of its own, not a refactor.
 
-`POST /auth/refresh` · `POST /auth/logout` · `POST /auth/logout-all` · `GET /cohorts/{cohort_id}` · `DELETE /cohorts/{cohort_id}/enroll`
+`POST /auth/refresh` · `POST /auth/logout-all` · `GET /cohorts/{cohort_id}` · `DELETE /cohorts/{cohort_id}/enroll`
 
 The absence of `/auth/refresh` in the app is why an expired token means "sign in again" and nothing else.
 
@@ -93,6 +93,7 @@ Facts that constrain any auth-adjacent work:
 
 - **In memory only.** `AuthSessionStore` holds the session in a field. **The token does not survive an app restart.** Persisting it means a keychain dependency and platform entitlements, which the codebase deliberately has not taken on.
 - **Singleton with injection** — `AuthSessionStore.instance` is the app's store; every repository accepts one so tests can pass their own.
+- **Sign-out** (`signOutToLogin`, both Profiles' "Гарах"): `POST /auth/logout` with the login response's `refresh_token` (kept on `AuthSession.refreshToken` for this alone), then `AuthSessionStore.clear()` **whatever the revoke did**, then the stack is replaced with `/login`. A failed revoke is never shown.
 - **No refresh.** Nothing renews a token. `isExpired()` only reports expiry when the backend supplied `expires_in`; when it did not, the session is never locally considered expired and the backend's 401 is the authority.
 - **`GET /auth/me`** returns `CurrentUser { id, actorId, actorType, email, role, isActive, mustChangePassword, profile }` with `UserProfile { id, firstName, lastName, phone, uiMode }`. `profile.uiMode` is what drives the Home track badge — nothing on a cohort or course reports it.
 

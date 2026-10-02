@@ -8,8 +8,11 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../auth/data/http_current_user_repository.dart';
+import '../../auth/domain/auth_repository.dart';
+import '../../auth/domain/auth_session_store.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
+import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
@@ -83,8 +86,11 @@ const double _bottomPadding = 32;
 /// Service and Privacy Policy have no destination yet, and the language,
 /// light-mode and notification controls hold local state that nothing else
 /// reads — there is no locale mechanism, no dark palette and no
-/// notification-preference endpoint in the app to hand them to. Log out has
-/// no action yet either: signing out is its own issue.
+/// notification-preference endpoint in the app to hand them to.
+///
+/// Log out signs out for real through [signOutToLogin]: it revokes the
+/// session server-side when it can, always clears it locally, and lands on
+/// Login.
 ///
 /// Change password pushes [ResetPasswordScreen] rather than a screen of its
 /// own: that screen already is this flow (three fields, [PasswordPolicy]
@@ -100,10 +106,20 @@ const double _bottomPadding = 32;
 /// avatar URL either, so the avatar is a placeholder disc — the frame's photo
 /// is design content, not app data.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, this.repository});
+  const ProfileScreen({
+    super.key,
+    this.repository,
+    this.authRepository,
+    this.sessionStore,
+  });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
   final CurrentUserRepository? repository;
+
+  /// Where "Гарах" revokes the session, and the session it clears — both
+  /// default to the app's own (see [signOutToLogin]). Injected in tests.
+  final AuthRepository? authRepository;
+  final AuthSessionStore? sessionStore;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -130,6 +146,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _profile.dispose();
     super.dispose();
+  }
+
+  bool _signingOut = false;
+
+  /// "Гарах" — see [signOutToLogin]. A second tap while the first is still
+  /// running does nothing.
+  Future<void> _signOut() async {
+    if (_signingOut) return;
+    _signingOut = true;
+    await signOutToLogin(
+      Navigator.of(context),
+      repository: widget.authRepository,
+      sessionStore: widget.sessionStore,
+    );
   }
 
   @override
@@ -329,9 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.screenPadding,
             ),
-            // Signing out is its own issue. An empty callback rather than null
-            // keeps the frame's full contrast.
-            child: _LogOutButton(onPressed: () {}),
+            child: _LogOutButton(onPressed: _signOut),
           ),
           const SizedBox(height: _logOutToVersion),
           const Text(
