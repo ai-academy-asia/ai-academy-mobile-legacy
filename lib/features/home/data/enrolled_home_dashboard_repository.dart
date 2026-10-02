@@ -208,11 +208,11 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   /// Its own request, and its own failure handling: the badge is decoration,
   /// so an account fetch that fails — whatever the reason — leaves the badge
   /// off rather than taking the whole dashboard down with it when the cohort
-  /// itself loaded fine. An empty `ui_mode` reads the same as none.
+  /// itself loaded fine. A null or empty `ui_mode` reads the same as none.
   Future<String?> _uiMode() async {
     try {
       final uiMode = (await _currentUser.getCurrentUser()).profile.uiMode;
-      return uiMode.isEmpty ? null : uiMode;
+      return uiMode == null || uiMode.isEmpty ? null : uiMode;
     } catch (_) {
       return null;
     }

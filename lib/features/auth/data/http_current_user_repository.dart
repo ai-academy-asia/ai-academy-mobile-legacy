@@ -134,7 +134,9 @@ UserProfile _profileFrom(Map<String, dynamic> json) {
     firstName: _requireString(json, 'first_name'),
     lastName: _requireString(json, 'last_name'),
     phone: _requireString(json, 'phone'),
-    uiMode: _requireString(json, 'ui_mode'),
+    // Null for some real adult accounts (Issue #168); any other non-string
+    // is still a malformed response.
+    uiMode: _optionalString(json, 'ui_mode'),
   );
 }
 
@@ -162,6 +164,16 @@ String _requireString(Map<String, dynamic> json, String key) {
   throw CurrentUserFailure(
     CurrentUserFailureKind.server,
     detail: '$key: expected a string, got ${value.runtimeType}',
+  );
+}
+
+String? _optionalString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is String) return value;
+  throw CurrentUserFailure(
+    CurrentUserFailureKind.server,
+    detail: '$key: expected a string or null, got ${value.runtimeType}',
   );
 }
 

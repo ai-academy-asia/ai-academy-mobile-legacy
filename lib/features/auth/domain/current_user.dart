@@ -66,5 +66,8 @@ class UserProfile {
   final String firstName;
   final String lastName;
   final String phone;
-  final String uiMode;
+
+  /// Null when the account has none — production sends `"ui_mode": null`
+  /// for some adult accounts (Issue #168).
+  final String? uiMode;
 }

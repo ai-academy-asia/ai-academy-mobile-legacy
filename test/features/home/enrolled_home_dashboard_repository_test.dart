@@ -73,7 +73,7 @@ void main() {
   );
 
   /// The `/auth/me` account with only its `ui_mode` chosen.
-  FakeCurrentUserRepository accountWithUiMode(String uiMode) =>
+  FakeCurrentUserRepository accountWithUiMode(String? uiMode) =>
       FakeCurrentUserRepository(
         user: CurrentUser(
           id: 9,
@@ -708,6 +708,17 @@ void main() {
 
       expect(first.program!.uiMode, 'kids');
       expect(second.program!.uiMode, 'adult');
+    });
+
+    test('a null ui_mode reads as none (Issue #168)', () async {
+      final dashboard = await repository(
+        enrolled: enrolledInOne(),
+        cohorts: [sampleCohort(id: 1, name: 'Cohort 01')],
+        currentUser: accountWithUiMode(null),
+      ).getDashboard();
+
+      expect(dashboard.program!.uiMode, isNull);
+      expect(dashboard.program!.cohortName, 'Cohort 01');
     });
 
     test('an empty ui_mode reads as none', () async {
