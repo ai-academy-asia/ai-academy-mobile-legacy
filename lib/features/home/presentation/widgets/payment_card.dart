@@ -61,6 +61,9 @@ class PaymentCard extends StatelessWidget {
               label: HomeStrings.payAction,
               height: statActionHeight,
               onPressed: overdue ? onPay : null,
+              // Flat in the frames, live or muted — unlike the attendance
+              // action above it.
+              raised: false,
             )
           : HomePillButton(
               label: HomeStrings.details,
