@@ -47,6 +47,38 @@ void main() {
     expect(store.isExpired(now: DateTime(2099)), isFalse);
   });
 
+  test('a refreshable session is not expired when its access token is '
+      '(Issue #176)', () {
+    final now = DateTime(2026, 9, 11, 12);
+    store.save(
+      const AuthSession(
+        accessToken: 'tok',
+        refreshToken: 'ref',
+        expiresIn: Duration(hours: 1),
+      ),
+      now: now,
+    );
+    final later = now.add(const Duration(hours: 2));
+
+    expect(store.canRefresh, isTrue);
+    expect(store.isAccessTokenExpired(now: later), isTrue);
+    // The next request renews it, so the session is still usable.
+    expect(store.isExpired(now: later), isFalse);
+  });
+
+  test('without a refresh token, an expired access token ends the session', () {
+    final now = DateTime(2026, 9, 11, 12);
+    store.save(
+      const AuthSession(accessToken: 'tok', expiresIn: Duration(hours: 1)),
+      now: now,
+    );
+    final later = now.add(const Duration(hours: 2));
+
+    expect(store.canRefresh, isFalse);
+    expect(store.isAccessTokenExpired(now: later), isTrue);
+    expect(store.isExpired(now: later), isTrue);
+  });
+
   test('clearing forgets the token and its expiry', () {
     store.save(const AuthSession(accessToken: 'tok', expiresIn: Duration(hours: 1)));
 

@@ -46,9 +46,8 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 
 Present in the Postman collection (see `docs/course_learning_backend_api_audit_v2.md` §3), deliberately unused here. Wiring any of them is a task of its own, not a refactor.
 
-`POST /auth/refresh` · `POST /auth/logout-all` · `GET /cohorts/{cohort_id}` · `DELETE /cohorts/{cohort_id}/enroll`
+`POST /auth/logout-all` · `GET /cohorts/{cohort_id}` · `DELETE /cohorts/{cohort_id}/enroll`
 
-The absence of `/auth/refresh` in the app is why an expired token means "sign in again" and nothing else.
 
 ## 3. Transport layer
 
@@ -93,8 +92,13 @@ Facts that constrain any auth-adjacent work:
 
 - **In memory only.** `AuthSessionStore` holds the session in a field. **The token does not survive an app restart.** Persisting it means a keychain dependency and platform entitlements, which the codebase deliberately has not taken on.
 - **Singleton with injection** — `AuthSessionStore.instance` is the app's store; every repository accepts one so tests can pass their own.
-- **Sign-out** (`signOutToLogin`, both Profiles' "Гарах"): `POST /auth/logout` with the login response's `refresh_token` (kept on `AuthSession.refreshToken` for this alone), then `AuthSessionStore.clear()` **whatever the revoke did**, then the stack is replaced with `/login`. A failed revoke is never shown.
-- **No refresh.** Nothing renews a token. `isExpired()` only reports expiry when the backend supplied `expires_in`; when it did not, the session is never locally considered expired and the backend's 401 is the authority.
+- **Sign-out** (`signOutToLogin`, both Profiles' "Гарах"): `POST /auth/logout` with the login response's `refresh_token` (kept on `AuthSession.refreshToken`, and rotated by every renewal), then `AuthSessionStore.clear()` **whatever the revoke did**, then the stack is replaced with `/login`. A failed revoke is never shown.
+- **Refresh and retry** (Issue #176). Every authenticated repository sends through `AuthenticatedClient.instance` (`auth/data/authenticated_client.dart`), which acts only on requests carrying `Authorization`:
+  - **before sending**, an access token past its reported `expires_in` is renewed first (`isAccessTokenExpired()`);
+  - **on a 401** whose `error` is one of the contract's token codes — `authentication_required`, `token_expired`, `invalid_token`, `account_inactive` — the session is renewed and the request **retried once** (body buffered, so uploads replay too). A second refusal is returned as is: no loop. Any other 401 (`invalid_credentials` from change-password's wrong current password, or no code) passes through untouched.
+  - **Renewal** is `SessionRefresher.instance`: `POST /auth/refresh {refresh_token}` → the login response's shape with a **rotated** refresh token (confirmed live; a spent token answers `401 refresh_token_reused`, an unknown one `invalid_refresh_token`). It is **single-flight** — concurrent 401s wait for one refresh, and a request refused on an already-replaced token just retries — because two refreshes with one token would end the session.
+  - **When renewal fails** (refused, no refresh token, network), the session is cleared — no `/auth/logout`, the token is already dead — and `onSessionEnded` fires once; `main` wires it (`returnToLoginWhenSessionEnds`) to replace the whole stack with `/login` through `appNavigatorKey`.
+  - `isExpired()` now means the *session* is dead: access token past its lifetime **and** no refresh token to renew it. When the backend sent no `expires_in`, the 401 is the authority.
 - **`GET /auth/me`** returns `CurrentUser { id, actorId, actorType, email, role, isActive, mustChangePassword, profile }` with `UserProfile { id, firstName, lastName, phone, uiMode }`. `profile.uiMode` is what drives the Home track badge — nothing on a cohort or course reports it.
 
 ## 6. Bilingual and unconfirmed-shape handling
@@ -126,4 +130,4 @@ The contract is the source of truth for the API. `docs/course_learning_frontend_
 2. **Never widen a model on speculation.** A field is modelled non-nullable only where a confirmed response showed a value; `HttpCourseRepository` fails loudly on a missing required field precisely so the gap surfaces as a parse error rather than a silent wrong value.
 3. **Do not convert sample data into an API contract.** Sample fields describe what the UI needs, not what the backend sends.
 4. **Keep failure families separate.** Do not merge the failure enums to "simplify"; the split is what keeps `switch` statements honest.
-5. **A new authenticated endpoint** reads its token from an injected `AuthSessionStore`, uses `getRaw`/`postWithoutBody` (which return all statuses), and maps 401 to that feature's "session expired" case.
+5. **A new authenticated endpoint** reads its token from an injected `AuthSessionStore`, defaults its `http.Client` to `AuthenticatedClient.instance` (so an expired token is renewed and the request retried), uses `getRaw`/`postWithoutBody` (which return all statuses), and maps a 401 that survives renewal to that feature's "session expired" case.

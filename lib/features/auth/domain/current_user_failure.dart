@@ -5,8 +5,9 @@
 /// sends no password, only the session's bearer token.
 enum CurrentUserFailureKind {
   /// No usable session: nobody is signed in, the session's reported lifetime
-  /// has run out, or the API refused the token with a 401. Signing in again is
-  /// the only recovery — the API has no refresh endpoint.
+  /// has run out, or the API refused the token with a 401 that
+  /// `AuthenticatedClient` could not renew (Issue #176). Signing in again is
+  /// the only recovery.
   sessionExpired,
 
   /// The API refused the request itself — a 4xx other than 401. The contract

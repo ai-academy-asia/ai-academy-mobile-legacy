@@ -8,6 +8,7 @@ import '../../auth/domain/auth_session_store.dart';
 import '../domain/enrollment.dart';
 import '../domain/enrollment_failure.dart';
 import '../domain/enrollment_repository.dart';
+import '../../auth/data/authenticated_client.dart';
 
 /// Enrolls the signed-in student against the AI Academy API.
 ///
@@ -27,7 +28,9 @@ class HttpEnrollmentRepository implements EnrollmentRepository {
     Uri? baseUrl,
     AuthSessionStore? sessionStore,
     this.timeout = const Duration(seconds: 15),
-  }) : _client = client ?? http.Client(),
+  }) : // The shared client that renews an expired session and retries
+       // once (Issue #176). Injected in tests.
+       _client = client ?? AuthenticatedClient.instance,
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance;
 

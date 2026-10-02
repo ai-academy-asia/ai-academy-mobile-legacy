@@ -90,8 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final session = await _controller.submit();
     if (session == null) return;
 
-    // Hold the token before navigating: it is the only copy, and the API has
-    // no refresh endpoint, so losing it here means signing in again.
+    // Hold the session before navigating: it is the only copy of the access
+    // and refresh tokens, so losing it here means signing in again.
     (widget.sessionStore ?? AuthSessionStore.instance).save(session);
 
     if (!mounted) return;

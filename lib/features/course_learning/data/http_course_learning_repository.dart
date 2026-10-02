@@ -17,6 +17,7 @@ import '../domain/lesson.dart';
 import '../domain/material_download.dart';
 import '../domain/uploaded_file.dart';
 import 'course_module_visuals.dart';
+import '../../auth/data/authenticated_client.dart';
 
 /// Reads one course's learning path — hero, progress, module list — one
 /// module's lessons, and one lesson's content against the AI Academy API.
@@ -76,7 +77,9 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     DateTime Function()? clock,
     this.timeout = const Duration(seconds: 15),
     this.uploadTimeout = const Duration(minutes: 3),
-  }) : _client = client ?? http.Client(),
+  }) : // The shared client that renews an expired session and retries
+       // once (Issue #176). Injected in tests.
+       _client = client ?? AuthenticatedClient.instance,
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance,
        _clock = clock ?? DateTime.now;

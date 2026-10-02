@@ -10,8 +10,9 @@
 /// `CourseLearningStrings`.
 enum CourseLearningFailureKind {
   /// No usable session: nobody is signed in, the session's reported lifetime
-  /// has run out, or the API refused the token with a 401. Signing in again
-  /// is the only recovery — the API has no refresh endpoint this app calls.
+  /// has run out, or the API refused the token with a 401 that
+  /// `AuthenticatedClient` could not renew (Issue #176). Signing in again
+  /// is the only recovery.
   sessionExpired,
 
   /// HTTP 403. `course_learning_api_contract_v1.md` §2.1 documents exactly one

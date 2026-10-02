@@ -13,9 +13,10 @@ import 'auth_session.dart';
 /// this change deliberately does not reach for. Swapping the storage later
 /// means reimplementing this one class; nothing above it changes.
 ///
-/// There is no refresh endpoint, so nothing here renews a token. [isExpired]
-/// exists so a caller can tell a dead session from a live one and send the user
-/// back to login, which is the only recovery the API offers.
+/// A session holding a refresh token is renewed by `SessionRefresher`
+/// (`POST /auth/refresh`, Issue #176) when its access token runs out, so
+/// [isExpired] calls a session dead only when it can no longer be renewed;
+/// [isAccessTokenExpired] is the access token's own lifetime.
 class AuthSessionStore {
   AuthSessionStore();
 
@@ -35,12 +36,22 @@ class AuthSessionStore {
 
   bool get isSignedIn => _session != null;
 
-  /// True once a reported lifetime has run out.
+  /// Whether the session holds a refresh token to renew itself with.
+  bool get canRefresh => _session?.refreshToken != null;
+
+  /// True once the session can no longer authenticate: its access token's
+  /// reported lifetime has run out ([isAccessTokenExpired]) and it holds no
+  /// refresh token to renew it with. A refreshable session is not expired —
+  /// the next authenticated request renews it.
+  bool isExpired({DateTime? now}) =>
+      isAccessTokenExpired(now: now) && !canRefresh;
+
+  /// True once the access token's reported lifetime has run out.
   ///
   /// A session whose lifetime was never reported is never called expired here:
   /// guessing one would sign people out for no reason. The backend rejecting
   /// the token with a 401 is the authority in that case.
-  bool isExpired({DateTime? now}) {
+  bool isAccessTokenExpired({DateTime? now}) {
     final expiry = _expiresAt;
     if (expiry == null) return false;
     return !(now ?? DateTime.now()).isBefore(expiry);

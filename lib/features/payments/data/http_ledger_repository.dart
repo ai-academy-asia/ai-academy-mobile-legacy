@@ -8,6 +8,7 @@ import '../../auth/domain/auth_session_store.dart';
 import '../domain/ledger_entry.dart';
 import '../domain/ledger_failure.dart';
 import '../domain/ledger_repository.dart';
+import '../../auth/data/authenticated_client.dart';
 
 /// Reads the signed-in student's ledger against the AI Academy API.
 ///
@@ -31,7 +32,9 @@ class HttpLedgerRepository implements LedgerRepository {
     Uri? baseUrl,
     AuthSessionStore? sessionStore,
     this.timeout = const Duration(seconds: 15),
-  }) : _client = client ?? http.Client(),
+  }) : // The shared client that renews an expired session and retries
+       // once (Issue #176). Injected in tests.
+       _client = client ?? AuthenticatedClient.instance,
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance;
 

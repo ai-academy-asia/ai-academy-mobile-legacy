@@ -327,6 +327,67 @@ void main() {
     });
   });
 
+  group('refresh (Issue #176)', () {
+    test('posts the refresh token to /auth/refresh, with no bearer token', () async {
+      late http.Request sent;
+      final repository = repositoryReturning((request) async {
+        sent = request;
+        return http.Response(
+          jsonEncode({
+            'access_token': 'new',
+            'refresh_token': 'rotated',
+            'expires_in': 3600,
+            'refresh_expires_in': 2592000,
+            'token_type': 'Bearer',
+            'user_type': 'adult',
+            'must_change_password': false,
+          }),
+          200,
+        );
+      });
+
+      final session = await repository.refresh(refreshToken: 'r1');
+
+      expect(sent.method, 'POST');
+      expect(sent.url.toString(), 'https://api.ai-academy.asia/auth/refresh');
+      expect(sent.headers.containsKey(HttpHeaders.authorizationHeader), isFalse);
+      expect(jsonDecode(sent.body), {'refresh_token': 'r1'});
+      // The login parser: the new token, the rotated refresh token, the
+      // lifetime and the user type.
+      expect(session.accessToken, 'new');
+      expect(session.refreshToken, 'rotated');
+      expect(session.expiresIn, const Duration(hours: 1));
+      expect(session.userType, UserType.adult);
+    });
+
+    test('a spent or unknown refresh token is an AuthFailure', () async {
+      for (final code in ['refresh_token_reused', 'invalid_refresh_token']) {
+        final repository = repositoryReturning(
+          (_) async => http.Response(jsonEncode({'error': code}), 401),
+        );
+
+        await expectLater(
+          repository.refresh(refreshToken: 'r1'),
+          throwsA(isA<AuthFailure>()),
+          reason: code,
+        );
+      }
+    });
+
+    test('a 200 without an access token is a server fault', () async {
+      final repository = repositoryReturning(
+        (_) async => http.Response(jsonEncode({'refresh_token': 'r'}), 200),
+      );
+
+      await expectLater(
+        repository.refresh(refreshToken: 'r1'),
+        throwsA(
+          isA<AuthFailure>().having((f) => f.kind, 'kind', AuthFailureKind.server),
+        ),
+      );
+    });
+  });
+
   group('configuration', () {
     test('the default base URL is the contract host', () {
       expect(HttpAuthRepository.defaultBaseUrl, 'https://api.ai-academy.asia');

@@ -16,4 +16,11 @@ abstract interface class AuthRepository {
   /// Throws [AuthFailure] when the request does not succeed. Signing out
   /// locally never depends on it: see `signOutToLogin`.
   Future<void> signOut({required String refreshToken});
+
+  /// Exchanges [refreshToken] for a new session — a new access token and a
+  /// rotated refresh token (`POST /auth/refresh`). The old refresh token is
+  /// spent: sending it again is refused.
+  ///
+  /// Throws [AuthFailure] when the exchange does not succeed.
+  Future<AuthSession> refresh({required String refreshToken});
 }

@@ -7,8 +7,9 @@
 /// classifies; the words the student reads live with the screen.
 enum EnrollmentFailureKind {
   /// No usable session: nobody is signed in, the session's reported lifetime
-  /// has run out, or the API refused the token with a 401. Signing in again is
-  /// the only recovery — the API has no refresh endpoint.
+  /// has run out, or the API refused the token with a 401 that
+  /// `AuthenticatedClient` could not renew (Issue #176). Signing in again is
+  /// the only recovery.
   sessionExpired,
 
   /// The API refused the enrollment itself — a 4xx other than 401. The
