@@ -84,6 +84,7 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 /// Public so the mapping can be tested directly against a [CourseLearningPath]
 /// built from a contract response, without standing up two repositories.
 JuniorLearningMap juniorMapFrom(CourseLearningPath path) => JuniorLearningMap(
+  courseSlug: path.courseSlug,
   progress: JuniorCourseProgress(
     title: path.courseTitle,
     // Displayed, never derived: the contract computes this server-side from

@@ -6,6 +6,8 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../course_learning/domain/course_learning_repository.dart';
+import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../data/api_junior_home_repository.dart';
 import '../domain/junior_home_repository.dart';
@@ -37,10 +39,18 @@ import 'widgets/junior_learning_map_view.dart';
 /// Сурлагын явц opens `JuniorProgressScreen` and Профайл `JuniorProfileScreen`
 /// — the junior track's own screens, never the adult ones.
 class JuniorHomeScreen extends StatefulWidget {
-  const JuniorHomeScreen({super.key, this.repository});
+  const JuniorHomeScreen({
+    super.key,
+    this.repository,
+    this.courseLearningRepository,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final JuniorHomeRepository? repository;
+
+  /// What the course screens a node opens load through — the real API by
+  /// default (`CourseModuleListScreen`'s own). Injected in tests.
+  final CourseLearningRepository? courseLearningRepository;
 
   @override
   State<JuniorHomeScreen> createState() => _JuniorHomeScreenState();
@@ -115,7 +125,29 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
     return Semantics(
       label: JuniorHomeStrings.learningMap,
       container: true,
-      child: JuniorLearningMapView(map: map),
+      child: JuniorLearningMapView(
+        map: map,
+        onNodeTap: switch (map.courseSlug) {
+          final slug? => (_) => _openCourse(slug),
+          null => null,
+        },
+      ),
+    );
+  }
+
+  /// Junior Course Detail (Issue #174): the Adult course screens on the same
+  /// `GET /me/courses/{slug}/learning` data, without the Note tab. Every
+  /// unlocked node opens the course — a node is a module, and the course
+  /// screen is where its modules, lessons, materials and assignment live.
+  void _openCourse(String slug) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CourseModuleListScreen(
+          courseSlug: slug,
+          repository: widget.courseLearningRepository,
+          showNotes: false,
+        ),
+      ),
     );
   }
 }

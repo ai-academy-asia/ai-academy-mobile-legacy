@@ -100,7 +100,15 @@ class CourseModuleListScreen extends StatefulWidget {
     required this.courseSlug,
     super.key,
     this.repository,
+    this.showNotes = true,
   });
+
+  /// Whether the lessons this screen opens offer the Note tab. False for the
+  /// Junior course (Issue #174), opened from the Junior Home map: the same
+  /// screens, the same data, no notes. Read by [_openExerciseDetail] and
+  /// [_openLessonList] off this screen, so the widgets between them and it
+  /// do not each carry it.
+  final bool showNotes;
 
   /// `Course.slug` — which course's learning path to load.
   final String courseSlug;
@@ -297,16 +305,25 @@ int? _continueLessonId(CourseLearningPath path) {
   return path.continueLessonId;
 }
 
+/// [CourseModuleListScreen.showNotes] for the screen [context] is under.
+bool _showNotes(BuildContext context) =>
+    context
+        .findAncestorWidgetOfExactType<CourseModuleListScreen>()
+        ?.showNotes ??
+    true;
+
 void _openExerciseDetail(
   BuildContext context,
   int lessonId,
   CourseLearningRepository repository,
 ) {
+  final showNotes = _showNotes(context);
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => CourseExerciseDetailScreen(
         lessonId: lessonId,
         repository: repository,
+        showNotes: showNotes,
       ),
     ),
   );
@@ -324,12 +341,14 @@ void _openLessonList(
   CourseModule module,
   CourseLearningRepository repository,
 ) {
+  final showNotes = _showNotes(context);
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => LessonListScreen(
         moduleId: module.id,
         moduleTitle: module.title,
         repository: repository,
+        showNotes: showNotes,
       ),
     ),
   );
