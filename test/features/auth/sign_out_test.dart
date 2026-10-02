@@ -5,6 +5,8 @@ import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/sign_out.dart';
+import 'package:aia_mobile/features/auth/presentation/sign_out_strings.dart';
+import 'package:aia_mobile/features/auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
@@ -17,8 +19,9 @@ import '../../support/screenshot.dart';
 import '../profile/fake_current_user_repository.dart';
 import 'fake_auth_repository.dart';
 
-/// "Гарах" on both Profiles, end to end: the revoke request, the local
-/// sign-out, the landing on Login, and a second account signing in after.
+/// "Гарах" on both Profiles, end to end: the confirmation dialog, the revoke
+/// request, the local sign-out, the landing on Login, and a second account
+/// signing in after.
 ///
 /// Every test runs against its own [AuthSessionStore], never the app-wide
 /// one, so no token leaks into whatever runs next.
@@ -93,10 +96,22 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> tapLogOut(WidgetTester tester, String label) async {
+  final dialog = find.byType(SignOutConfirmationDialog);
+  Finder inDialog(String text) =>
+      find.descendant(of: dialog, matching: find.text(text));
+
+  /// Taps the Profile's own "Гарах", which opens the confirmation.
+  Future<void> openConfirmation(WidgetTester tester, String label) async {
     await tester.ensureVisible(find.text(label));
     await tester.pumpAndSettle();
     await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
+  /// The whole confirmed sign-out: the Profile's "Гарах", then the dialog's.
+  Future<void> tapLogOut(WidgetTester tester, String label) async {
+    await openConfirmation(tester, label);
+    await tester.tap(inDialog(SignOutStrings.confirm));
     await tester.pumpAndSettle();
   }
 
@@ -116,6 +131,143 @@ void main() {
         expect(store.authorizationHeader, isEmpty);
         expect(find.byType(LoginScreen), findsOneWidget);
         expect(find.text(profile.logOut), findsNothing);
+      });
+
+      testWidgets('"Гарах" opens the confirmation, without signing out', (
+        tester,
+      ) async {
+        final auth = FakeAuthRepository();
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+
+        await openConfirmation(tester, profile.logOut);
+
+        expect(dialog, findsOneWidget);
+        expect(inDialog(SignOutStrings.title), findsOneWidget);
+        expect(inDialog(SignOutStrings.message), findsOneWidget);
+        expect(inDialog(SignOutStrings.cancel), findsOneWidget);
+        expect(inDialog(SignOutStrings.confirm), findsOneWidget);
+        expect(auth.signOutCalls, isEmpty);
+        expect(store.isSignedIn, isTrue);
+        expect(find.byType(LoginScreen), findsNothing);
+      });
+
+      testWidgets('the dialog is built from the app\'s own button pair', (
+        tester,
+      ) async {
+        final auth = FakeAuthRepository();
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+        await openConfirmation(tester, profile.logOut);
+
+        AppButton button(String label) => tester.widget<AppButton>(
+          find.descendant(
+            of: dialog,
+            matching: find.widgetWithText(AppButton, label),
+          ),
+        );
+        expect(button(SignOutStrings.confirm).variant, AppButtonVariant.filled);
+        expect(
+          button(SignOutStrings.cancel).variant,
+          AppButtonVariant.outlined,
+        );
+        // The confirmation sits above the way back, as on Login.
+        expect(
+          tester.getTopLeft(inDialog(SignOutStrings.confirm)).dy,
+          lessThan(tester.getTopLeft(inDialog(SignOutStrings.cancel)).dy),
+        );
+      });
+
+      testWidgets('"Цуцлах" closes the dialog and keeps the session', (
+        tester,
+      ) async {
+        final auth = FakeAuthRepository();
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+        await openConfirmation(tester, profile.logOut);
+
+        await tester.tap(inDialog(SignOutStrings.cancel));
+        await tester.pumpAndSettle();
+
+        expect(dialog, findsNothing);
+        expect(auth.signOutCalls, isEmpty);
+        expect(store.isSignedIn, isTrue);
+        expect(find.text(profile.logOut), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
+      });
+
+      testWidgets('tapping outside the dialog keeps the session', (
+        tester,
+      ) async {
+        final auth = FakeAuthRepository();
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+        await openConfirmation(tester, profile.logOut);
+
+        await tester.tapAt(const Offset(8, 8));
+        await tester.pumpAndSettle();
+
+        expect(dialog, findsNothing);
+        expect(auth.signOutCalls, isEmpty);
+        expect(store.isSignedIn, isTrue);
+        expect(find.text(profile.logOut), findsOneWidget);
+      });
+
+      testWidgets('the system back gesture keeps the session', (tester) async {
+        final auth = FakeAuthRepository();
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+        await openConfirmation(tester, profile.logOut);
+
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        expect(dialog, findsNothing);
+        expect(auth.signOutCalls, isEmpty);
+        expect(store.isSignedIn, isTrue);
+        expect(find.text(profile.logOut), findsOneWidget);
+      });
+
+      testWidgets('a double tap on the confirmation signs out once', (
+        tester,
+      ) async {
+        final auth = FakeAuthRepository();
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+        await openConfirmation(tester, profile.logOut);
+
+        await tester.tap(inDialog(SignOutStrings.confirm));
+        await tester.tap(inDialog(SignOutStrings.confirm), warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        expect(auth.signOutCalls, ['refresh-1']);
+        expect(store.isSignedIn, isFalse);
+        expect(find.byType(LoginScreen), findsOneWidget);
+        // The second tap did not pop the stand-in Home out from under Login.
+        expect(find.text('home'), findsNothing);
+      });
+
+      testWidgets('"Гарах" again while a sign-out is running does nothing', (
+        tester,
+      ) async {
+        final auth = FakeAuthRepository()..holdSignOut = true;
+        final store = AuthSessionStore()..save(signedIn);
+        await pumpProfile(tester, profile.build(auth, store), auth, store);
+        await openConfirmation(tester, profile.logOut);
+        await tester.tap(inDialog(SignOutStrings.confirm));
+        await tester.pumpAndSettle();
+
+        // The revoke is still in flight: the Profile is up, its button live.
+        await tester.tap(find.text(profile.logOut));
+        await tester.pumpAndSettle();
+        expect(dialog, findsNothing);
+        expect(auth.signOutCalls, ['refresh-1']);
+
+        auth.releaseSignOut();
+        await tester.pumpAndSettle();
+        expect(auth.signOutCalls, ['refresh-1']);
+        expect(store.isSignedIn, isFalse);
+        expect(find.byType(LoginScreen), findsOneWidget);
       });
 
       testWidgets('leaves no authenticated screen to go back to', (
