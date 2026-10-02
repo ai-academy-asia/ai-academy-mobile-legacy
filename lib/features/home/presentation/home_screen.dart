@@ -114,30 +114,47 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        body: SafeArea(
-          bottom: false,
-          child: ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) => Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppDimens.maxContentWidth,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const HomeHeader(),
-                    Container(
-                      height: AppDimens.borderWidth,
-                      color: HomePalette.headerRule,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // White behind the status bar, as every frame draws it, rather
+            // than the page's grey.
+            ColoredBox(
+              color: AppColors.surface,
+              child: SizedBox(height: MediaQuery.paddingOf(context).top),
+            ),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: SafeArea(
+                  bottom: false,
+                  child: ListenableBuilder(
+                    listenable: _controller,
+                    builder: (context, _) => Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: AppDimens.maxContentWidth,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const HomeHeader(),
+                            Container(
+                              height: AppDimens.borderWidth,
+                              color: HomePalette.headerRule,
+                            ),
+                            Expanded(child: _buildBody()),
+                          ],
+                        ),
+                      ),
                     ),
-                    Expanded(child: _buildBody()),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

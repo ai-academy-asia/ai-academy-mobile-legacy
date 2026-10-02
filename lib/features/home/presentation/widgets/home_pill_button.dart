@@ -44,6 +44,7 @@ class HomePillButton extends StatelessWidget {
     this.variant = HomePillVariant.primary,
     this.height = 36,
     this.icon,
+    this.raised = true,
   });
 
   final String label;
@@ -59,6 +60,12 @@ class HomePillButton extends StatelessWidget {
   /// Drawn 20pt ahead of the label, 6pt from it.
   final IconData? icon;
 
+  /// Whether a primary pill sits on its [_depth] band. False — the payment
+  /// tiles' "Төлбөр төлөх", drawn flat in the frames, live or muted — gives
+  /// it only the faint band the secondary pill wears. The attendance action
+  /// keeps its band: the frames draw one under it.
+  final bool raised;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
@@ -70,30 +77,36 @@ class HomePillButton extends StatelessWidget {
     final Color ink;
     final BoxShadow depth;
 
+    const faintDepth = BoxShadow(
+      color: HomePalette.secondaryDepth,
+      offset: Offset(0, _secondaryDepth),
+    );
+
     if (secondary) {
       fill = AppColors.surface;
       outline = enabled ? HomePalette.border : HomePalette.mutedOutline;
       ink = enabled ? AppColors.textPrimary : HomePalette.mutedInk;
-      depth = const BoxShadow(
-        color: HomePalette.secondaryDepth,
-        offset: Offset(0, _secondaryDepth),
-      );
+      depth = faintDepth;
     } else if (filled) {
       fill = HomePalette.accent;
       outline = null;
       ink = AppColors.onPrimary;
-      depth = const BoxShadow(
-        color: AppColors.primaryDepth,
-        offset: Offset(0, _depth),
-      );
+      depth = raised
+          ? const BoxShadow(
+              color: AppColors.primaryDepth,
+              offset: Offset(0, _depth),
+            )
+          : faintDepth;
     } else {
       fill = HomePalette.mutedFill;
       outline = HomePalette.mutedOutline;
       ink = HomePalette.mutedInk;
-      depth = const BoxShadow(
-        color: AppColors.mutedDepth,
-        offset: Offset(0, _depth),
-      );
+      depth = raised
+          ? const BoxShadow(
+              color: AppColors.mutedDepth,
+              offset: Offset(0, _depth),
+            )
+          : faintDepth;
     }
 
     final radius = BorderRadius.circular(height / 2);
