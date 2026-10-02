@@ -24,12 +24,17 @@ import 'features/splash/presentation/splash_screen.dart';
 /// short animation, then waits for a tap before it hands off to `/login`
 /// (see [SplashScreen.nextRoute]) — nothing else in the app should ever
 /// navigate back to `/`.
+/// The app's navigator — how a session that could not be renewed returns to
+/// Login from outside the widget tree (see `returnToLoginWhenSessionEnds`).
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
 class AiAcademyApp extends StatelessWidget {
   const AiAcademyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'AI academy Asia',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,

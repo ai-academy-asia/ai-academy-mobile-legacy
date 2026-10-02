@@ -8,8 +8,8 @@
 /// callers never see which underlying call went wrong.
 enum HomeFailureKind {
   /// No usable session: nobody is signed in, the session's reported lifetime
-  /// has run out, or the API refused the token. Signing in again is the only
-  /// recovery — the API has no refresh endpoint.
+  /// has run out, or the API refused the token — after `AuthenticatedClient`
+  /// could not renew it (Issue #176). Signing in again is the only recovery.
   sessionExpired,
 
   /// The request never completed — no connectivity, DNS failure, timeout.

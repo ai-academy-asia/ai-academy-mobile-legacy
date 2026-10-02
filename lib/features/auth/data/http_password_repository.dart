@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../domain/auth_session_store.dart';
 import '../domain/password_repository.dart';
 import 'auth_http.dart';
+import 'authenticated_client.dart';
 
 /// Changes the signed-in user's password against the AI Academy API.
 ///
@@ -26,7 +27,9 @@ class HttpPasswordRepository implements PasswordRepository {
     Uri? baseUrl,
     AuthSessionStore? sessionStore,
     this.timeout = const Duration(seconds: 15),
-  }) : _client = client ?? http.Client(),
+  }) : // The shared client that renews an expired session and retries
+       // once (Issue #176). Injected in tests.
+       _client = client ?? AuthenticatedClient.instance,
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance;
 

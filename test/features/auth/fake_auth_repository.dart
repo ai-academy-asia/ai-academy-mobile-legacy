@@ -65,6 +65,26 @@ class FakeAuthRepository implements AuthRepository {
     return session ?? const AuthSession(accessToken: 'test-token');
   }
 
+  /// Returned by [refresh], when set; otherwise [refresh] throws
+  /// [refreshFailure], or a default refusal.
+  AuthSession? refreshed;
+  AuthFailure? refreshFailure;
+
+  /// Every refresh token [refresh] was asked to exchange, in order.
+  final List<String> refreshCalls = [];
+
+  /// When set, [refresh] waits for it — how a test holds a refresh in flight.
+  Completer<void>? refreshGate;
+
+  @override
+  Future<AuthSession> refresh({required String refreshToken}) async {
+    refreshCalls.add(refreshToken);
+    if (refreshGate case final gate?) await gate.future;
+    if (refreshed case final session?) return session;
+    throw refreshFailure ??
+        const AuthFailure(AuthFailureKind.invalidCredentials, detail: 'HTTP 401');
+  }
+
   @override
   Future<void> signOut({required String refreshToken}) async {
     signOutCalls.add(refreshToken);

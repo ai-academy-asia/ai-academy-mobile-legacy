@@ -9,6 +9,7 @@ import '../domain/current_user.dart';
 import '../domain/current_user_failure.dart';
 import '../domain/current_user_repository.dart';
 import '../domain/user_type.dart';
+import 'authenticated_client.dart';
 
 /// Reads the signed-in user's own account against the AI Academy API.
 ///
@@ -25,7 +26,9 @@ class HttpCurrentUserRepository implements CurrentUserRepository {
     Uri? baseUrl,
     AuthSessionStore? sessionStore,
     this.timeout = const Duration(seconds: 15),
-  }) : _client = client ?? http.Client(),
+  }) : // The shared client that renews an expired session and retries
+       // once (Issue #176). Injected in tests.
+       _client = client ?? AuthenticatedClient.instance,
        _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
        _sessionStore = sessionStore ?? AuthSessionStore.instance;
 

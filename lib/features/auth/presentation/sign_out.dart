@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../data/http_auth_repository.dart';
+import '../data/session_refresher.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session_store.dart';
 
@@ -43,5 +44,25 @@ Future<void> signOutToLogin(
   }
 
   store.clear();
-  navigator.pushNamedAndRemoveUntil(loginRoute, (_) => false);
+  returnToLogin(navigator);
+}
+
+/// Replaces the whole stack with [loginRoute], so no authenticated screen is
+/// left to go back to — the end of both an explicit sign-out and a session
+/// that could not be renewed.
+void returnToLogin(NavigatorState navigator) =>
+    navigator.pushNamedAndRemoveUntil(loginRoute, (_) => false);
+
+/// Sends the app to Login whenever [refresher] cannot renew the session
+/// (Issue #176). The refresher has already cleared it and signals once per
+/// failed renewal, however many requests were waiting on it, so Login is
+/// pushed once.
+void returnToLoginWhenSessionEnds(
+  SessionRefresher refresher,
+  GlobalKey<NavigatorState> navigatorKey,
+) {
+  refresher.onSessionEnded = () {
+    final navigator = navigatorKey.currentState;
+    if (navigator != null) returnToLogin(navigator);
+  };
 }

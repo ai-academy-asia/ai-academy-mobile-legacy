@@ -18,6 +18,16 @@ import 'auth_http.dart';
 ///     POST https://api.ai-academy.asia/auth/logout      (no auth)
 ///     { "refresh_token": "..." }
 ///
+///     POST https://api.ai-academy.asia/auth/refresh     (no auth)
+///     { "refresh_token": "..." }
+///     -> the login response's shape, with a rotated refresh_token
+///
+/// Refresh was confirmed against a test account (Issue #176): 200 carries
+/// `access_token`, a new `refresh_token`, `expires_in` and `user_type`, read
+/// by the same parser as sign-in; re-sending a spent refresh token answers
+/// `401 {"error": "refresh_token_reused"}`, an unknown one
+/// `401 {"error": "invalid_refresh_token"}`.
+///
 /// The logout shape is the Postman collection's "Logout (this device)" — see
 /// `docs/course_learning_backend_api_audit_v2.md`. Its response body has no
 /// confirmed shape, so only the status is read.
@@ -47,7 +57,22 @@ class HttpAuthRepository implements AuthRepository {
       body: {'email': email, 'password': password},
       timeout: timeout,
     );
+    return _sessionFrom(response);
+  }
 
+  @override
+  Future<AuthSession> refresh({required String refreshToken}) async {
+    final response = await postJson(
+      client: _client,
+      url: _baseUrl.resolve('/auth/refresh'),
+      body: {'refresh_token': refreshToken},
+      timeout: timeout,
+    );
+    return _sessionFrom(response);
+  }
+
+  /// A session out of a sign-in or refresh response — the two share a shape.
+  AuthSession _sessionFrom(http.Response response) {
     final Object? decoded;
     try {
       decoded = jsonDecode(response.body);

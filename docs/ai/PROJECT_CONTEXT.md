@@ -82,7 +82,7 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 
 ## 4. Known constraints and sharp edges
 
-1. **The auth session does not survive an app restart.** `AuthSessionStore` is in-memory only (a deliberate choice documented in the class — persisting a bearer token means a keychain dependency and platform entitlements). There is also **no token refresh**, even though `/auth/refresh` exists on the backend. A 401 means "send the user back to login".
+1. **The auth session does not survive an app restart.** `AuthSessionStore` is in-memory only (a deliberate choice documented in the class — persisting a bearer token means a keychain dependency and platform entitlements). An expired access token is renewed with the refresh token and the request retried once (Issue #176, `DATA_AND_API.md` §5); only a session that cannot be renewed sends the user back to Login.
 2. **There is no dev-only route any more.** `/dev/course-exercise-preview` was removed once Exercise Detail became reachable through Module List → Lesson List (Issue #148). The sample-backed Exercise Detail is now reached only from tests; a real lesson's quiz runs against the backend (Issue #150).
 3. **Three iOS files carry persistent local changes that must never be reverted.** See [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3 — this is a hard rule.
 4. **One pre-existing test failure** exists on `main` and is unrelated to any new work. Record it as pre-existing in reports rather than fixing it in an unrelated task. (`flutter analyze` reports no issues.) See [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §5.
