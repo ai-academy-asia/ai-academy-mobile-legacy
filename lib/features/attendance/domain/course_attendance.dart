@@ -68,4 +68,10 @@ class AttendanceSession {
   /// draws a "missed" mark either — that is a design decision no frame has
   /// made.
   bool get countsAsAttended => status == 'present' || status == 'late';
+
+  /// Whether the server recorded the student as not attending: `absent`
+  /// only — the confirmed value (Issue #170) the Adult attendance frame's
+  /// "Хичээлдээ суугаагүй" mark stands for (Issue #172). `null` (a session
+  /// not held yet) and any unknown value answer false: neither mark.
+  bool get countsAsMissed => status == 'absent';
 }

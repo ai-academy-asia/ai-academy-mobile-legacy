@@ -71,6 +71,10 @@ abstract final class HomeStrings {
   /// The action on both statistic cards.
   static const String details = 'Дэлгэрэнгүй';
 
+  /// The Adult attendance screen's legend row for an `absent` session — the
+  /// frame's own wording, unlike the Junior frame's "Хичээлээ тасалсан".
+  static const String attendanceMissed = 'Хичээлдээ суугаагүй';
+
   // --- States ---------------------------------------------------------------
 
   static const String empty = 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';

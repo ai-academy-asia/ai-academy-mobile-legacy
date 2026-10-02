@@ -20,9 +20,13 @@ const Color _borderColor = Color(0xFFD6DBE1);
 /// outline, a soft shadow), and that is now what this implements, on
 /// direction to match it rather than defer to the plainer app-wide pattern.
 class CourseLearningBackButton extends StatelessWidget {
-  const CourseLearningBackButton({super.key});
+  const CourseLearningBackButton({super.key, this.icon = AppIcons.caretLeft});
 
   static const double _size = 40;
+
+  /// The glyph in the circle: the caret every Course Learning frame draws by
+  /// default; the Adult attendance frame draws [AppIcons.arrowLeft].
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -48,14 +52,10 @@ class CourseLearningBackButton extends StatelessWidget {
             child: InkWell(
               onTap: () => Navigator.of(context).maybePop(),
               customBorder: const CircleBorder(),
-              child: const SizedBox(
+              child: SizedBox(
                 width: _size,
                 height: _size,
-                child: Icon(
-                  AppIcons.caretLeft,
-                  size: 20,
-                  color: AppColors.textPrimary,
-                ),
+                child: Icon(icon, size: 20, color: AppColors.textPrimary),
               ),
             ),
           ),

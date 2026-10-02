@@ -296,6 +296,10 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
           for (final session in attendance.sessions)
             if (session.countsAsAttended) session.date,
         },
+        missedDates: {
+          for (final session in attendance.sessions)
+            if (session.countsAsMissed) session.date,
+        },
       );
     } catch (_) {
       return null;

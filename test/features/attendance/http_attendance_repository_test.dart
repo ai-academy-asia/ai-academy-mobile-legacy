@@ -234,6 +234,14 @@ void main() {
         expect(counts('late'), isTrue);
         expect(counts('absent'), isFalse);
         expect(counts(null), isFalse);
+        // Only absent counts as missed (Issue #172); null is neither.
+        bool missed(String? status) => attendance.sessions
+            .firstWhere((s) => s.status == status)
+            .countsAsMissed;
+        expect(missed('absent'), isTrue);
+        expect(missed('present'), isFalse);
+        expect(missed('late'), isFalse);
+        expect(missed(null), isFalse);
         // 7 present + 1 late = summary.attended 8.
         expect(
           attendance.sessions.where((s) => s.countsAsAttended),

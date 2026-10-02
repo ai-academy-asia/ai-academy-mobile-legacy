@@ -183,6 +183,7 @@ class AttendanceSummary {
     required this.total,
     this._percent,
     this.attendedDates = const {},
+    this.missedDates = const {},
   });
 
   final int attended;
@@ -193,6 +194,11 @@ class AttendanceSummary {
   /// calendar marks. Adult Home does not draw them. Empty when no session is
   /// attended or the source listed none.
   final Set<DateTime> attendedDates;
+
+  /// The days of the sessions the server recorded as missed
+  /// (`AttendanceSession.countsAsMissed` — `absent`), as local dates — what
+  /// the Adult attendance calendar marks missed. Empty when none is.
+  final Set<DateTime> missedDates;
 
   /// The percentage a source reported, when it reported one.
   final int? _percent;
