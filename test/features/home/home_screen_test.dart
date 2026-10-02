@@ -2,6 +2,8 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
+import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
+import 'package:aia_mobile/features/home/presentation/attendance_detail_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/attendance_card.dart';
@@ -400,6 +402,54 @@ void main() {
       // alongside it, so it cannot drift from the figure beside it.
       expect(find.text('1/20  · 5%'), findsOneWidget);
     });
+
+    Finder attendanceDetails() => find.descendant(
+      of: find.byType(AttendanceCard),
+      matching: find.text(HomeStrings.details),
+    );
+
+    for (final layout in HomeStatLayout.values) {
+      testWidgets(
+        '"Дэлгэрэнгүй" opens the attendance screen (${layout.name})',
+        (tester) async {
+          const schedule = LessonSchedule(
+            weekdays: {DateTime.wednesday},
+            start: (9, 0),
+            end: (11, 0),
+          );
+          final lesson = sampleLesson(start: lessonStart);
+          final attendance = AttendanceSummary(
+            attended: 8,
+            total: 9,
+            percent: 88,
+            attendedDates: {DateTime(2026, 4, 1)},
+            missedDates: {DateTime(2026, 3, 25)},
+          );
+          await pumpHome(
+            tester,
+            FakeHomeDashboardRepository(
+              dashboard: HomeDashboard(
+                program: sampleProgram(schedule: schedule, nextLesson: lesson),
+                stats: [AttendanceStat(attendance, layout: layout)],
+              ),
+            ),
+          );
+
+          await tester.ensureVisible(attendanceDetails());
+          await tester.tap(attendanceDetails());
+          await tester.pumpAndSettle();
+
+          // The dashboard's own figures, handed over — nothing re-fetched.
+          final screen = tester.widget<AttendanceDetailScreen>(
+            find.byType(AttendanceDetailScreen),
+          );
+          expect(screen.attendance, same(attendance));
+          expect(screen.schedule, same(schedule));
+          expect(screen.nextLesson, same(lesson));
+          expect(find.text('8/9 · 88%'), findsOneWidget);
+        },
+      );
+    }
   });
 
   group('statistic layout', () {

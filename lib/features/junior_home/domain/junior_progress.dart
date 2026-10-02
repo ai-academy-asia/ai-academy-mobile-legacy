@@ -71,7 +71,11 @@ class JuniorProgress {
 /// opens on and any the student pages to — so a month's marks never depend
 /// on how it was reached.
 class JuniorCalendarSource {
-  const JuniorCalendarSource({this.schedule, this.attendedDates = const {}});
+  const JuniorCalendarSource({
+    this.schedule,
+    this.attendedDates = const {},
+    this.missedDates = const {},
+  });
 
   /// The cohort's schedule (`GET /cohorts`); null when it has none parseable.
   final LessonSchedule? schedule;
@@ -80,14 +84,25 @@ class JuniorCalendarSource {
   /// (`AttendanceSession.countsAsAttended` — `present` and `late`).
   final Set<DateTime> attendedDates;
 
-  /// [month]'s marks: its scheduled lesson days, and the day of each attended
-  /// session in it marked attended instead — on an unscheduled day too, since
-  /// the server recorded the session. Nothing is ever marked missed (see
-  /// [JuniorProgress]). Only [month]'s year and month are read.
+  /// Local dates of the sessions the server recorded as missed
+  /// (`AttendanceSession.countsAsMissed` — `absent`). The Adult attendance
+  /// screen passes them (Issue #172); the Junior screen does not yet, so it
+  /// still marks nothing missed.
+  final Set<DateTime> missedDates;
+
+  /// [month]'s marks: its scheduled lesson days, then the day of each missed
+  /// session, then the day of each attended one — each later rule winning on
+  /// its day, and on an unscheduled day too, since the server recorded the
+  /// session. A day is marked missed only from [missedDates], never inferred
+  /// from a past lesson day with no session. Only [month]'s year and month
+  /// are read.
   Map<int, JuniorDayStatus> marksIn(DateTime month) => {
     for (final day in schedule?.lessonDaysIn(month) ?? const <int>{})
       day: JuniorDayStatus.lesson,
-    // After the lesson days, so an attended session wins on its day.
+    for (final date in missedDates)
+      if (date.year == month.year && date.month == month.month)
+        date.day: JuniorDayStatus.missed,
+    // Last, so an attended session wins on its day.
     for (final date in attendedDates)
       if (date.year == month.year && date.month == month.month)
         date.day: JuniorDayStatus.attended,

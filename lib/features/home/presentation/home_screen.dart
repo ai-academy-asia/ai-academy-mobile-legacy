@@ -12,6 +12,7 @@ import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../data/enrolled_home_dashboard_repository.dart';
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
+import 'attendance_detail_screen.dart';
 import 'home_controller.dart';
 import 'home_strings.dart';
 import 'widgets/attendance_card.dart';
@@ -174,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return _DashboardView(
       dashboard: dashboard,
       now: widget.clock?.call() ?? DateTime.now(),
+      clock: widget.clock,
       onRefresh: _controller.load,
     );
   }
@@ -184,11 +186,16 @@ class _DashboardView extends StatelessWidget {
   const _DashboardView({
     required this.dashboard,
     required this.now,
+    required this.clock,
     required this.onRefresh,
   });
 
   final HomeDashboard dashboard;
   final DateTime now;
+
+  /// [HomeScreen.clock], passed on to the attendance screen so its calendar
+  /// opens on the same "today" the dashboard used.
+  final DateTime Function()? clock;
   final Future<void> Function() onRefresh;
 
   @override
@@ -218,7 +225,22 @@ class _DashboardView extends StatelessWidget {
         ),
       if (contract != null && !contract.signed)
         ContractBanner(onTap: noDestinationYet),
-      ..._statRows(dashboard.stats, noDestinationYet),
+      ..._statRows(
+        dashboard.stats,
+        noDestinationYet,
+        // "Дэлгэрэнгүй" on the attendance card: the attendance screen, drawn
+        // from the figures this dashboard already loaded (Issue #172).
+        (attendance) => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => AttendanceDetailScreen(
+              attendance: attendance,
+              schedule: program?.schedule,
+              nextLesson: program?.nextLesson,
+              clock: clock,
+            ),
+          ),
+        ),
+      ),
     ];
 
     return RefreshIndicator(
@@ -247,6 +269,7 @@ class _DashboardView extends StatelessWidget {
   static List<Widget> _statRows(
     List<HomeStat> stats,
     VoidCallback noDestinationYet,
+    void Function(AttendanceSummary attendance) openAttendance,
   ) {
     Widget card(HomeStat stat) => switch (stat) {
       PaymentStat(:final payment, :final layout) => PaymentCard(
@@ -258,7 +281,7 @@ class _DashboardView extends StatelessWidget {
       AttendanceStat(:final attendance, :final layout) => AttendanceCard(
         attendance: attendance,
         layout: layout,
-        onDetails: noDestinationYet,
+        onDetails: () => openAttendance(attendance),
       ),
     };
 

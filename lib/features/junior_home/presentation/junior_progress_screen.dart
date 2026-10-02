@@ -17,6 +17,7 @@ import '../domain/junior_progress_repository.dart';
 import 'junior_home_strings.dart';
 import 'junior_progress_controller.dart';
 import 'junior_progress_strings.dart';
+import 'widgets/attendance_panel_parts.dart';
 import 'widgets/junior_bottom_nav.dart';
 import 'widgets/junior_home_palette.dart';
 import 'widgets/junior_progress_calendar.dart';
@@ -38,9 +39,6 @@ const double _panelBorder = 2;
 /// which needs the width, only 6.
 const double _panelInset = 14;
 const double _calendarInset = 6;
-
-/// The legend's discs, smaller than the calendar's.
-const double _legendDisc = 24;
 
 /// The junior student's "Сурлагын явц" (learning progress) — the Figma
 /// "Junior Learning Progress" frame.
@@ -255,7 +253,7 @@ class _PaymentCard extends StatelessWidget {
                   children: [
                     const Text(
                       JuniorProgressStrings.paymentTitle,
-                      style: _labelStyle,
+                      style: attendanceLabelStyle,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -411,21 +409,10 @@ class _ProgressPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (progress.nextLesson case final lesson?) ...[
-                  const Text(
-                    JuniorProgressStrings.nextLesson,
-                    style: _labelStyle,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    JuniorProgressStrings.nextLessonTime(
-                      lesson.startsAt,
-                      lesson.endsAt,
-                    ),
-                    style: _timeStyle,
-                  ),
+                  AttendanceNextLesson(lesson),
                   const SizedBox(height: 22),
                 ],
-                _MonthHeader(
+                AttendanceMonthHeader(
                   month: month,
                   onPrevious: onPreviousMonth,
                   onNext: onNextMonth,
@@ -450,7 +437,7 @@ class _ProgressPanel extends StatelessWidget {
           const _PanelRule(),
           const Padding(
             padding: EdgeInsets.fromLTRB(_panelInset, 14, _panelInset, 9),
-            child: _Legend(),
+            child: AttendanceLegend(),
           ),
         ],
       ),
@@ -483,112 +470,16 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: _cardTitleStyle,
+            style: attendanceCardTitleStyle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           if (value case final value?) ...[
             const SizedBox(height: 12),
-            Container(
-              // Sized by its label: 2 + a 20 line + 2 is the frame's 24.
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-              decoration: BoxDecoration(
-                color: JuniorPalette.dayLesson,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: JuniorPalette.badgeOutline),
-              ),
-              child: Text(value, style: _badgeStyle, maxLines: 1),
-            ),
+            AttendancePill(value),
           ],
         ],
       ),
-    );
-  }
-}
-
-/// "Наймдугаар сар, 2026" with the previous/next arrows at the trailing
-/// edge, centred on the label's line.
-class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({
-    required this.month,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final DateTime month;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    // A bare GestureDetector rather than an InkWell: the frame draws no
-    // pressed state, and the arrows must look exactly as they did inert.
-    Widget arrow(IconData icon, String label, VoidCallback onTap) => Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 24,
-          // The frame centres the carets 2 above the label's own centre.
-          padding: const EdgeInsets.only(bottom: 4),
-          // 19 inks the frame's 7 x 14 caret.
-          child: Icon(icon, size: 19, color: AppColors.textPrimary),
-        ),
-      ),
-    );
-
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            JuniorProgressStrings.monthLabel(month),
-            style: _monthStyle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        arrow(
-          AppIcons.caretLeft,
-          JuniorProgressStrings.previousMonth,
-          onPrevious,
-        ),
-        arrow(AppIcons.caretRight, JuniorProgressStrings.nextMonth, onNext),
-      ],
-    );
-  }
-}
-
-/// "Тайлбар:", its hint, and one row per mark.
-class _Legend extends StatelessWidget {
-  const _Legend();
-
-  @override
-  Widget build(BuildContext context) {
-    Widget row(JuniorDayStatus status, String label) => Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          JuniorDayMark(status: status, size: _legendDisc),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: _legendLabelStyle)),
-        ],
-      ),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(JuniorProgressStrings.legendTitle, style: _labelStyle),
-        const SizedBox(height: 8),
-        const Text(JuniorProgressStrings.legendHint, style: _hintStyle),
-        const SizedBox(height: 7),
-        row(JuniorDayStatus.lesson, JuniorProgressStrings.lessonDay),
-        row(JuniorDayStatus.missed, JuniorProgressStrings.lessonMissed),
-        row(JuniorDayStatus.attended, JuniorProgressStrings.lessonAttended),
-      ],
     );
   }
 }
@@ -673,27 +564,6 @@ class _PanelRule extends StatelessWidget {
 //
 // Sizes read off the frame's cap heights (Manrope's cap height is 0.72 em).
 
-/// The two summary cards' titles. 16 bold.
-const TextStyle _cardTitleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// The smaller titles — "Дараанийн төлөлт:", "Дараагийн хичээл:",
-/// "Тайлбар:". 14 semibold.
-const TextStyle _labelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w600,
-  color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
 /// "3 хоног дутуу". 14 bold, blue.
 const TextStyle _statusStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
@@ -720,55 +590,5 @@ const TextStyle _payStyle = TextStyle(
   height: 20 / 16,
   fontWeight: FontWeight.w600,
   color: AppColors.onPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// The summary badges. 14 medium, blue.
-const TextStyle _badgeStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w500,
-  color: JuniorPalette.accent,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// "08/08 • 09:00 – 11:00". 15 regular, blue.
-const TextStyle _timeStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 15,
-  height: 22 / 15,
-  fontWeight: FontWeight.w400,
-  color: JuniorPalette.accent,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// "Наймдугаар сар, 2026". 14 regular, grey.
-const TextStyle _monthStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 22 / 14,
-  fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// The legend's hint, two lines. 14 regular, grey.
-const TextStyle _hintStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// A legend row's label. 14 regular, grey.
-const TextStyle _legendLabelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );

@@ -27,6 +27,12 @@ abstract final class AppIcons {
   /// glyph table.
   static const IconData caretLeft = IconData(0xe138, fontFamily: _family);
 
+  /// Back arrow (←) — the Adult attendance frame's back control. The bundled
+  /// font names its glyphs only `uniXXXX`, so this was confirmed by rendering
+  /// `0xe058` from `assets/fonts/Phosphor.ttf` beside [caretLeft]: it draws
+  /// Phosphor's "arrow-left".
+  static const IconData arrowLeft = IconData(0xe058, fontFamily: _family);
+
   /// Tick inside a checked checkbox.
   static const IconData check = IconData(0xe182, fontFamily: _family);
 

@@ -422,6 +422,8 @@ void main() {
         DateTime(2026, 9, 24),
         DateTime(2026, 8, 20),
       });
+      // `absent` is missed (Issue #172); the null-status days are neither.
+      expect(attendance.missedDates, {DateTime(2026, 10, 1)});
       expect(attendance.attended, 2);
       expect(attendance.total, 3);
       expect(attendance.percent, 66);

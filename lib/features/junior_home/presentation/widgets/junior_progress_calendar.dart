@@ -46,10 +46,15 @@ class JuniorProgressCalendar extends StatelessWidget {
     required this.selectedDay,
     required this.days,
     super.key,
+    this.missedRing,
   });
 
   /// Only its year and month are read.
   final DateTime month;
+
+  /// The outline around a missed day's disc, or null for none. The Adult
+  /// attendance frame rings it (Issue #172); the Junior frame does not.
+  final Color? missedRing;
 
   /// Null for none.
   final int? selectedDay;
@@ -108,7 +113,12 @@ class JuniorProgressCalendar extends StatelessWidget {
 
   Widget _cellAt(int day, int dayCount) {
     if (day < 1 || day > dayCount) return const SizedBox(height: _cellHeight);
-    return _DayCell(day: day, status: days[day], selected: day == selectedDay);
+    return _DayCell(
+      day: day,
+      status: days[day],
+      selected: day == selectedDay,
+      missedRing: missedRing,
+    );
   }
 }
 
@@ -117,11 +127,13 @@ class _DayCell extends StatelessWidget {
     required this.day,
     required this.status,
     required this.selected,
+    this.missedRing,
   });
 
   final int day;
   final JuniorDayStatus? status;
   final bool selected;
+  final Color? missedRing;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +157,12 @@ class _DayCell extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: _discTop),
-          JuniorDayMark(status: status, size: _discSize, ringed: true),
+          JuniorDayMark(
+            status: status,
+            size: _discSize,
+            ringed: true,
+            missedRing: missedRing,
+          ),
           const SizedBox(height: _discToNumber),
           Text(
             '$day',
@@ -176,6 +193,7 @@ class JuniorDayMark extends StatelessWidget {
     required this.status,
     required this.size,
     this.ringed = false,
+    this.missedRing,
     super.key,
   });
 
@@ -187,6 +205,10 @@ class JuniorDayMark extends StatelessWidget {
   /// Draws the attended mark's calendar ring. Ignored by the other marks.
   final bool ringed;
 
+  /// An outline on the missed mark's disc edge, or null for none — the Adult
+  /// attendance calendar's red ring. Ignored by the other marks.
+  final Color? missedRing;
+
   @override
   Widget build(BuildContext context) {
     final mark = SizedBox.square(
@@ -197,9 +219,10 @@ class JuniorDayMark extends StatelessWidget {
           color: JuniorPalette.dayLesson,
           asset: JuniorProgressIcons.lessonDay,
         ),
-        JuniorDayStatus.missed => const _Disc(
+        JuniorDayStatus.missed => _Disc(
           color: JuniorPalette.dayMissed,
           asset: JuniorProgressIcons.lessonMissed,
+          ring: missedRing,
         ),
         JuniorDayStatus.attended => _AttendedDisc(ringed: ringed),
       },
@@ -216,16 +239,26 @@ class JuniorDayMark extends StatelessWidget {
 }
 
 class _Disc extends StatelessWidget {
-  const _Disc({required this.color, this.asset});
+  const _Disc({required this.color, this.asset, this.ring});
 
   final Color color;
   final String? asset;
 
+  /// Drawn inside the disc's edge, at the attended ring's weight.
+  final Color? ring;
+
   @override
   Widget build(BuildContext context) {
     final asset = this.asset;
+    final ring = this.ring;
     return DecoratedBox(
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: ring == null
+            ? null
+            : Border.all(color: ring, width: AppDimens.borderWidthEmphasis),
+      ),
       child: asset == null ? null : Center(child: SvgPicture.asset(asset)),
     );
   }
