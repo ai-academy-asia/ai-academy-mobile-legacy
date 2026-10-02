@@ -11,6 +11,7 @@ import '../../auth/domain/auth_session_store.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
 import '../../auth/presentation/sign_out.dart';
+import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import '../../profile/presentation/profile_controller.dart';
@@ -122,10 +123,12 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
 
   bool _signingOut = false;
 
-  /// "Гарах" — see [signOutToLogin]. A second tap while the first is still
-  /// running does nothing.
+  /// "Гарах" — asks first ([confirmSignOut]), and only a confirmation runs
+  /// [signOutToLogin]. A tap while a sign-out is already running does nothing.
   Future<void> _signOut() async {
     if (_signingOut) return;
+    final confirmed = await confirmSignOut(context);
+    if (!confirmed || !mounted || _signingOut) return;
     _signingOut = true;
     await signOutToLogin(
       Navigator.of(context),

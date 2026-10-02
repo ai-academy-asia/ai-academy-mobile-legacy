@@ -30,6 +30,18 @@ class FakeAuthRepository implements AuthRepository {
   /// Every refresh token [signOut] was asked to revoke, in order.
   final List<String> signOutCalls = [];
 
+  /// When true, [signOut] blocks until [releaseSignOut] is called — how a
+  /// test holds a sign-out in flight.
+  bool holdSignOut = false;
+
+  Completer<void>? _signOutGate;
+
+  /// Lets a held [signOut] finish.
+  void releaseSignOut() {
+    final gate = _signOutGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
   Completer<void>? _gate;
 
   /// Lets a held [signIn] finish.
@@ -56,6 +68,10 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signOut({required String refreshToken}) async {
     signOutCalls.add(refreshToken);
+    if (holdSignOut) {
+      _signOutGate = Completer<void>();
+      await _signOutGate!.future;
+    }
     final failure = signOutFailure;
     if (failure != null) throw failure;
   }
