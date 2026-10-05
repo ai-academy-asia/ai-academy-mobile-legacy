@@ -209,20 +209,25 @@ void main() {
       );
     });
 
-    testWidgets('the selected Courses tab keeps its outline book glyph', (
+    testWidgets('the selected Courses tab draws its book filled blue', (
       tester,
     ) async {
       await pumpCatalog(tester);
 
-      // One drawing per destination on every screen (Issue #188): selection
-      // tints the outline glyph rather than swapping in other artwork.
+      // The filled weight of the same Phosphor book (Issue #188), scaled with
+      // the bar's icon size and tinted with its selected colour.
       final nav = find.byType(AppBottomNav);
-      expect(
+      final svg = tester.widget<SvgPicture>(
         find.descendant(of: nav, matching: find.byType(SvgPicture)),
-        findsNothing,
       );
-      final book = tester.widget<Icon>(find.byIcon(AppIcons.bookOpenText));
-      expect(book.color, const Color(0xFF2970FF));
+      expect(svg.bytesLoader.toString(), contains('nav_courses_selected'));
+      expect(
+        svg.colorFilter,
+        const ColorFilter.mode(Color(0xFF2970FF), BlendMode.srcIn),
+      );
+      expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
+
+      // The inactive tabs keep their outline glyphs.
       expect(find.byIcon(AppIcons.house), findsOneWidget);
       expect(find.byIcon(AppIcons.user), findsOneWidget);
     });

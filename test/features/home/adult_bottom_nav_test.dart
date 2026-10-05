@@ -25,25 +25,57 @@ void main() {
   );
 
   const glyphs = [AppIcons.house, AppIcons.bookOpenText, AppIcons.user];
+  const filled = [
+    'nav_home_selected.svg',
+    'nav_courses_selected.svg',
+    'nav_profile_selected.svg',
+  ];
+
+  Iterable<String> drawnAssets(WidgetTester tester) => tester
+      .widgetList<SvgPicture>(find.byType(SvgPicture))
+      .map((svg) => svg.bytesLoader.toString());
 
   for (final current in StudentTab.values) {
-    testWidgets('with ${current.name} current, every tab keeps its one glyph '
-        'and only the colour marks the selection', (tester) async {
+    testWidgets('with ${current.name} current, the active tab is its own '
+        'glyph filled blue and the others gray outlines', (tester) async {
       await pumpNav(tester, current);
 
-      // No tab swaps in other artwork when selected (Issue #188).
-      expect(find.byType(SvgPicture), findsNothing);
       for (var i = 0; i < glyphs.length; i++) {
-        final icon = tester.widget<Icon>(find.byIcon(glyphs[i]));
-        expect(
-          icon.color,
-          i == current.index
-              ? const Color(0xFF2970FF)
-              : AppColors.textSecondary,
-        );
+        if (i == current.index) {
+          // The filled weight of the same glyph, never a font outline.
+          expect(find.byIcon(glyphs[i]), findsNothing);
+        } else {
+          final icon = tester.widget<Icon>(find.byIcon(glyphs[i]));
+          expect(icon.color, AppColors.textSecondary);
+        }
       }
+      final assets = drawnAssets(tester).toList();
+      expect(assets, hasLength(1));
+      expect(assets.single, contains(filled[current.index]));
+      final svg = tester.widget<SvgPicture>(find.byType(SvgPicture));
+      expect(
+        svg.colorFilter,
+        const ColorFilter.mode(Color(0xFF2970FF), BlendMode.srcIn),
+      );
     });
   }
+
+  testWidgets('a destination draws the same filled glyph on every screen', (
+    tester,
+  ) async {
+    // The selected assets are fixed per destination, not per screen.
+    final perScreen = <List<String?>>[];
+    for (final current in StudentTab.values) {
+      await pumpNav(tester, current);
+      final nav = tester.widget<AppBottomNav>(find.byType(AppBottomNav));
+      perScreen.add([for (final item in nav.items) item.selectedAsset]);
+    }
+    expect(perScreen[1], perScreen[0]);
+    expect(perScreen[2], perScreen[0]);
+    for (var i = 0; i < filled.length; i++) {
+      expect(perScreen[0][i], endsWith(filled[i]));
+    }
+  });
 
   testWidgets('draws the shared bar unmodified, with the adult labels', (
     tester,
@@ -61,7 +93,6 @@ void main() {
       HomeStrings.navCourses,
       HomeStrings.navProfile,
     ]);
-    expect(nav.items.map((item) => item.selectedAsset), [null, null, null]);
   });
 
   testWidgets('the current tab is inert unless the screen asks otherwise', (

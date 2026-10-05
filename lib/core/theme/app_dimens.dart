@@ -188,11 +188,10 @@ abstract final class AppDimens {
   /// [buttonHeight] in the reference, not a near match to it.
   static const double statIconTile = 36;
 
-  /// The circular notification control in the Home header. The reference
-  /// draws it at [avatarSize]'s 44; it is one 4pt step up so it keeps pace
-  /// with [headerLogoHeight] (a product decision, Issue #188). The header's
-  /// height follows it, so its rule sits 4pt lower than the reference's.
-  static const double headerActionSize = 48;
+  /// The circular notification control in the Home header. Matches
+  /// [avatarSize], the app's other 44pt circle — the reference's own size,
+  /// kept when the lockup beside it was scaled up (Issue #188).
+  static const double headerActionSize = avatarSize;
 
   /// Height of the brand lockup in the Home header. The reference draws it at
   /// 32; it is drawn two 4pt steps up, at 40, so the header holds its own
