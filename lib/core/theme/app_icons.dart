@@ -80,4 +80,17 @@ abstract final class AppIcons {
 
   /// The attendance action's leading glyph — Phosphor "QrCode".
   static const IconData qrCode = IconData(0xe3e6, fontFamily: _family);
+
+  // --- Manager contact sheet (Issue #186) --------------------------------
+  //
+  // Phosphor's own "Regular" codepoints (`phosphor_flutter` 2.1.0's
+  // `PhosphorIconsRegular.phone` / `.envelope`), confirmed present in this
+  // bundled font's cmap and rendered from it beside [caretRight] and [house]
+  // to check each draws the named glyph.
+
+  /// "Утасдах" — Phosphor "Phone".
+  static const IconData phone = IconData(0xe3b8, fontFamily: _family);
+
+  /// "Email бичих" — Phosphor "Envelope".
+  static const IconData envelope = IconData(0xe214, fontFamily: _family);
 }

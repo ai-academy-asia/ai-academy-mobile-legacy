@@ -64,6 +64,15 @@ Practical consequence: **do not hardcode 361.** A widget that fills its parent s
 - **In-video back button** (`ExerciseVideoHeader`) — a second copy of the same visual, `Positioned` over the video. **It must be offset by `MediaQuery.paddingOf(context).top`.** Without that, on a real scrolling screen iOS's status-bar touch handling claims taps before Flutter sees them and the button silently does nothing — a bug a zero-inset widget test cannot catch. There is a regression test that simulates a real notch inset; keep it.
 - **Tab header** (`ExerciseTabs`) — 49 tall, bottom divider, 2pt blue underline under the active label. Wrapped in a horizontal `SingleChildScrollView` so a longer label or larger text scale cannot reintroduce overflow.
 
+### Modals
+
+Two exist, neither drawn by a Figma frame, so both are assembled from existing tokens and components rather than new design:
+
+- **`SignOutConfirmationDialog`** (`auth`, #166) — a white `Dialog` at `cardRadius` and `cardPadding`: `cardHeading` title, `statLabel` message, then the filled `AppButton` over the outlined one.
+- **`ManagerContactSheet`** (`auth`, #186) — a Material bottom sheet on `AppColors.surface` with `cardRadius` top corners, capped at `maxContentWidth`, inside the bottom safe area: `cardHeading` heading, two options drawn as the Login frame's `ContactManagerCard` (80pt, 1pt border, trailing caret; a leading Phosphor glyph, `cardTitle` action over `cardSupporting` contact), and the outlined `AppButton` to cancel.
+
+Both guard against a second tap popping the screen underneath, and every way out other than the action (cancel, barrier, system back) completes as "nothing chosen". Mirror them for any new modal.
+
 ## 6. Loading, empty and error states
 
 The established trio (canonical implementation: `cohort_list_screen.dart`):

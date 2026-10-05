@@ -12,6 +12,7 @@ import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/widgets/contact_manager_card.dart';
+import 'package:aia_mobile/features/auth/presentation/widgets/manager_contact_sheet.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
@@ -1001,17 +1002,23 @@ void main() {
     });
   });
 
-  group('manager contact (Issue #184)', () {
+  group('manager contact sheet (Issues #184, #186)', () {
     const phone = 'tel:+97675051055';
     const email = 'mailto:info@ai-academy.asia';
 
     /// Login with the routes a tap could reach, recording every link handed
     /// to the OS; only those in [opens] open.
-    Future<({List<String> opened, FakePasswordRepository passwords})>
+    Future<
+      ({
+        List<String> opened,
+        FakePasswordRepository passwords,
+        FakeAuthRepository auth,
+      })
+    >
     pumpWithContact(
       WidgetTester tester, {
       AuthSessionStore? sessionStore,
-      Set<String> opens = const {phone},
+      Set<String> opens = const {phone, email},
       FakeAuthRepository? repository,
     }) async {
       tester.view.devicePixelRatio = 3;
@@ -1020,6 +1027,7 @@ void main() {
 
       final opened = <String>[];
       final passwords = FakePasswordRepository();
+      final auth = repository ?? FakeAuthRepository();
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -1031,7 +1039,7 @@ void main() {
             HomeRoutes.junior: (_) => const Scaffold(body: Text('junior home')),
           },
           home: LoginScreen(
-            repository: repository ?? FakeAuthRepository(),
+            repository: auth,
             sessionStore: sessionStore ?? AuthSessionStore(),
             currentUserRepository: FakeCurrentUserRepository(
               user: _account(mustChangePassword: false),
@@ -1043,48 +1051,66 @@ void main() {
           ),
         ),
       );
-      return (opened: opened, passwords: passwords);
+      return (opened: opened, passwords: passwords, auth: auth);
     }
 
     Finder contactCard() => find.byType(ContactManagerCard);
+    Finder sheet() => find.byType(ManagerContactSheet);
 
-    testWidgets('the "Менежертэй холбогдоорой" card calls +976 7505 1055', (
+    Future<void> choose(WidgetTester tester, String label) async {
+      await tester.tap(
+        find.descendant(of: sheet(), matching: find.text(label)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the card opens the sheet — and launches nothing by itself', (
       tester,
     ) async {
-      final (:opened, passwords: _) = await pumpWithContact(tester);
+      final (:opened, passwords: _, auth: _) = await pumpWithContact(tester);
 
       await tester.tap(contactCard());
       await tester.pumpAndSettle();
 
+      expect(sheet(), findsOneWidget);
+      expect(opened, isEmpty);
+    });
+
+    testWidgets('Утасдах calls +976 7505 1055', (tester) async {
+      final (:opened, passwords: _, auth: _) = await pumpWithContact(tester);
+
+      await tester.tap(contactCard());
+      await tester.pumpAndSettle();
+      await choose(tester, LoginStrings.contactCall);
+
       expect(opened, [phone]);
+      expect(sheet(), findsNothing);
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text(LoginStrings.unexpectedError), findsNothing);
     });
 
-    testWidgets('with no phone app, the card writes to info@ai-academy.asia', (
-      tester,
-    ) async {
-      final (:opened, passwords: _) = await pumpWithContact(
-        tester,
-        opens: const {email},
-      );
+    testWidgets('Email бичих writes to info@ai-academy.asia', (tester) async {
+      final (:opened, passwords: _, auth: _) = await pumpWithContact(tester);
 
       await tester.tap(contactCard());
       await tester.pumpAndSettle();
+      await choose(tester, LoginStrings.contactEmail);
 
-      expect(opened, [phone, email]);
+      expect(opened, [email]);
     });
 
-    testWidgets('signed out, "Нууц үг сэргээх" opens the same contact and '
-        'never the change-password flow', (tester) async {
-      final (:opened, :passwords) = await pumpWithContact(tester);
+    testWidgets('signed out, "Нууц үг сэргээх" opens the same sheet and never '
+        'the change-password flow', (tester) async {
+      final (:opened, :passwords, auth: _) = await pumpWithContact(tester);
 
       await tester.tap(resetButton());
       await tester.pumpAndSettle();
+      expect(sheet(), findsOneWidget);
+      expect(opened, isEmpty);
 
+      await choose(tester, LoginStrings.contactCall);
       expect(opened, [phone]);
       expect(find.byType(ResetPasswordScreen), findsNothing);
-      expect(find.byType(LoginScreen), findsOneWidget);
       expect(passwords.calls, isEmpty);
     });
 
@@ -1092,21 +1118,18 @@ void main() {
       // Past its lifetime, with no refresh token to renew it.
       final store = AuthSessionStore()
         ..save(const AuthSession(accessToken: 'tok', expiresIn: Duration.zero));
-      final (:opened, passwords: _) = await pumpWithContact(
-        tester,
-        sessionStore: store,
-      );
+      await pumpWithContact(tester, sessionStore: store);
 
       await tester.tap(resetButton());
       await tester.pumpAndSettle();
 
-      expect(opened, [phone]);
+      expect(sheet(), findsOneWidget);
       expect(find.byType(ResetPasswordScreen), findsNothing);
     });
 
     testWidgets('with a live session held, "Нууц үг сэргээх" still opens the '
-        'change-password screen', (tester) async {
-      final (:opened, passwords: _) = await pumpWithContact(
+        'change-password screen, with no sheet', (tester) async {
+      final (:opened, passwords: _, auth: _) = await pumpWithContact(
         tester,
         sessionStore: AuthSessionStore()
           ..save(const AuthSession(accessToken: 'tok')),
@@ -1116,30 +1139,51 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ResetPasswordScreen), findsOneWidget);
+      expect(sheet(), findsNothing);
       expect(opened, isEmpty);
     });
 
-    testWidgets('when neither link opens, the message band says so', (
-      tester,
-    ) async {
-      final (:opened, passwords: _) = await pumpWithContact(
+    testWidgets('Цуцлах returns to Login with nothing launched and the auth '
+        'state untouched', (tester) async {
+      final store = AuthSessionStore();
+      final (:opened, :passwords, :auth) = await pumpWithContact(
+        tester,
+        sessionStore: store,
+      );
+
+      await tester.tap(contactCard());
+      await tester.pumpAndSettle();
+      await choose(tester, LoginStrings.contactCancel);
+
+      expect(sheet(), findsNothing);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(opened, isEmpty);
+      expect(find.text(LoginStrings.unexpectedError), findsNothing);
+      expect(store.isSignedIn, isFalse);
+      expect(auth.calls, isEmpty);
+      expect(passwords.calls, isEmpty);
+    });
+
+    testWidgets('a chosen link that cannot open shows the existing message, '
+        'and the other is not tried', (tester) async {
+      final (:opened, passwords: _, auth: _) = await pumpWithContact(
         tester,
         opens: const {},
       );
 
       await tester.tap(resetButton());
       await tester.pumpAndSettle();
+      await choose(tester, LoginStrings.contactCall);
 
-      expect(opened, [phone, email]);
+      expect(opened, [phone]);
       expect(find.text(LoginStrings.unexpectedError), findsOneWidget);
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
     testWidgets('the card is inert while a sign-in is running', (tester) async {
-      final auth = FakeAuthRepository(hold: true);
-      final (:opened, passwords: _) = await pumpWithContact(
+      final (:opened, passwords: _, :auth) = await pumpWithContact(
         tester,
-        repository: auth,
+        repository: FakeAuthRepository(hold: true),
       );
       await tester.enterText(fieldAt(0), '99112233');
       await tester.enterText(fieldAt(1), 'nuutsug123');
@@ -1149,7 +1193,7 @@ void main() {
 
       await tester.tap(contactCard(), warnIfMissed: false);
       await tester.pump();
-      expect(opened, isEmpty);
+      expect(sheet(), findsNothing);
 
       auth.release();
       await tester.pumpAndSettle();
