@@ -36,8 +36,19 @@ abstract final class LoginStrings {
   /// Supporting line in the bottom card.
   static const String contactSupporting = 'Бүртгэлгүй эсвэл нууц үгээ мартсан бол';
 
-  /// Title line in the bottom card.
+  /// Title line in the bottom card — and the contact sheet's heading.
   static const String contactManager = 'Менежертэй холбогдоорой';
+
+  // --- Contact sheet (Issue #186) ------------------------------------------
+
+  /// Opens the manager's phone number.
+  static const String contactCall = 'Утасдах';
+
+  /// Opens a new email to the manager's address.
+  static const String contactEmail = 'Email бичих';
+
+  /// Closes the sheet. The same word the sign-out dialog uses for its way back.
+  static const String contactCancel = 'Цуцлах';
 
   // --- Validation ----------------------------------------------------------
 

@@ -151,17 +151,16 @@ class LoginController extends ChangeNotifier {
     }
   }
 
-  /// Opens the confirmed manager contact ([ManagerContact], Issue #184): the
-  /// phone, or — when no app takes it — the email. Answers whether either
-  /// opened.
+  /// Opens the manager contact the student chose in the contact sheet —
+  /// [ManagerContact.phone] or [ManagerContact.email] (Issues #184, #186) —
+  /// and only that one: they picked it, so there is no fallback to the other.
+  /// Answers whether it opened.
   ///
-  /// When neither can be opened the message band says so with the generic
+  /// When it cannot be opened the message band says so with the generic
   /// [LoginStrings.unexpectedError], as a material that fails to open does on
   /// Exercise Detail; there is no copy of its own for it.
-  Future<bool> contactManager() async {
-    for (final url in [ManagerContact.phone, ManagerContact.email]) {
-      if (await _openUrl(url)) return true;
-    }
+  Future<bool> openContact(Uri contact) async {
+    if (await _openUrl(contact)) return true;
     _formError = LoginStrings.unexpectedError;
     _notify();
     return false;

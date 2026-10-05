@@ -341,7 +341,7 @@ void main() {
     });
   });
 
-  group('contactManager (Issue #184)', () {
+  group('openContact (Issues #184, #186)', () {
     /// Records every link handed to the OS, opening only those in [opens].
     ({LoginController controller, List<String> opened}) withLauncher(
       Set<String> opens,
@@ -361,34 +361,27 @@ void main() {
         'info@ai-academy.asia', () {
       expect(ManagerContact.phone.toString(), 'tel:+97675051055');
       expect(ManagerContact.email.toString(), 'mailto:info@ai-academy.asia');
+      expect(ManagerContact.phoneLabel, '+976 7505 1055');
+      expect(ManagerContact.emailLabel, 'info@ai-academy.asia');
     });
 
-    test('opens the phone, and stops there when it opens', () async {
-      final (:controller, :opened) = withLauncher({'tel:+97675051055'});
+    test('opens exactly the chosen link — and only it', () async {
+      for (final chosen in [ManagerContact.phone, ManagerContact.email]) {
+        final (:controller, :opened) = withLauncher({chosen.toString()});
 
-      expect(await controller.contactManager(), isTrue);
-      expect(opened, ['tel:+97675051055']);
-      expect(controller.formError, isNull);
-      controller.dispose();
+        expect(await controller.openContact(chosen), isTrue);
+        expect(opened, [chosen.toString()]);
+        expect(controller.formError, isNull);
+        controller.dispose();
+      }
     });
 
-    test('falls back to the email when no app takes the phone', () async {
-      final (:controller, :opened) = withLauncher({
-        'mailto:info@ai-academy.asia',
-      });
-
-      expect(await controller.contactManager(), isTrue);
-      expect(opened, ['tel:+97675051055', 'mailto:info@ai-academy.asia']);
-      expect(controller.formError, isNull);
-      controller.dispose();
-    });
-
-    test('when neither opens, the message band says so with the generic '
-        'copy', () async {
+    test('a chosen link that cannot open is not swapped for the other; the '
+        'message band says so with the generic copy', () async {
       final (:controller, :opened) = withLauncher(const {});
 
-      expect(await controller.contactManager(), isFalse);
-      expect(opened, ['tel:+97675051055', 'mailto:info@ai-academy.asia']);
+      expect(await controller.openContact(ManagerContact.phone), isFalse);
+      expect(opened, ['tel:+97675051055']);
       expect(controller.formError, LoginStrings.unexpectedError);
       expect(controller.message, LoginStrings.unexpectedError);
       controller.dispose();
@@ -398,7 +391,7 @@ void main() {
       'a keystroke clears that message, like any stale form error',
       () async {
         final (:controller, opened: _) = withLauncher(const {});
-        await controller.contactManager();
+        await controller.openContact(ManagerContact.email);
 
         controller.identifier.text = '9';
         expect(controller.formError, isNull);

@@ -15,8 +15,8 @@ import '../domain/current_user_repository.dart';
 import 'home_route.dart';
 import 'login_controller.dart';
 import 'login_strings.dart';
-import 'manager_contact.dart';
 import 'widgets/contact_manager_card.dart';
+import 'widgets/manager_contact_sheet.dart';
 import 'widgets/remember_me_checkbox.dart';
 
 /// Sign in.
@@ -74,9 +74,9 @@ class LoginScreen extends StatefulWidget {
   /// What the "Нууц үг сэргээх" button does. Defaults to the change-password
   /// screen (`/reset-password`) while a live session is held — the only case
   /// its authenticated `POST /auth/change-password` can succeed in — and,
-  /// signed out, to the confirmed manager contact the bottom card opens
-  /// ([ManagerContact], Issue #184): the frame's own card says that is where
-  /// a forgotten password goes.
+  /// signed out, to the same contact sheet the bottom card opens
+  /// ([chooseManagerContact], Issues #184, #186): the frame's own card says
+  /// that is where a forgotten password goes.
   final VoidCallback? onResetPassword;
 
   /// Opens the manager contact's `tel:`/`mailto:` link. Defaults to
@@ -146,13 +146,17 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       // Signed out, changing a password is impossible — the request needs the
       // session. The frame sends a forgotten password to the manager instead.
-      _controller.contactManager();
+      _contactManager();
     }
   }
 
-  void _contactManager() {
+  /// Lets the student choose call or email, then opens that one. Closing the
+  /// sheet any other way opens nothing and leaves Login as it was.
+  Future<void> _contactManager() async {
     FocusScope.of(context).unfocus();
-    _controller.contactManager();
+    final contact = await chooseManagerContact(context);
+    if (contact == null || !mounted) return;
+    await _controller.openContact(contact);
   }
 
   @override
