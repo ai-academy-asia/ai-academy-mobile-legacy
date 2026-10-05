@@ -15,6 +15,7 @@ import '../domain/current_user_repository.dart';
 import 'home_route.dart';
 import 'login_controller.dart';
 import 'login_strings.dart';
+import 'manager_contact.dart';
 import 'widgets/contact_manager_card.dart';
 import 'widgets/remember_me_checkbox.dart';
 
@@ -50,6 +51,7 @@ class LoginScreen extends StatefulWidget {
     this.currentUserRepository,
     this.onSignedIn,
     this.onResetPassword,
+    this.openUrl,
   });
 
   /// Defaults to the real API. Injected in tests.
@@ -69,8 +71,17 @@ class LoginScreen extends StatefulWidget {
   /// here — see [openSignedIn].
   final VoidCallback? onSignedIn;
 
-  /// What the "Нууц үг сэргээх" button does. Defaults to `/reset-password`.
+  /// What the "Нууц үг сэргээх" button does. Defaults to the change-password
+  /// screen (`/reset-password`) while a live session is held — the only case
+  /// its authenticated `POST /auth/change-password` can succeed in — and,
+  /// signed out, to the confirmed manager contact the bottom card opens
+  /// ([ManagerContact], Issue #184): the frame's own card says that is where
+  /// a forgotten password goes.
   final VoidCallback? onResetPassword;
+
+  /// Opens the manager contact's `tel:`/`mailto:` link. Defaults to
+  /// `openExternalUrl`; injected in tests, which must not reach the platform.
+  final Future<bool> Function(Uri url)? openUrl;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -90,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
           HttpCurrentUserRepository(
             sessionStore: widget.sessionStore ?? AuthSessionStore.instance,
           ),
+      openUrl: widget.openUrl,
     );
   }
 
@@ -126,9 +138,21 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     if (widget.onResetPassword != null) {
       widget.onResetPassword!();
-    } else {
-      Navigator.of(context).pushNamed('/reset-password');
+      return;
     }
+    final store = widget.sessionStore ?? AuthSessionStore.instance;
+    if (store.isSignedIn && !store.isExpired()) {
+      Navigator.of(context).pushNamed('/reset-password');
+    } else {
+      // Signed out, changing a password is impossible — the request needs the
+      // session. The frame sends a forgotten password to the manager instead.
+      _controller.contactManager();
+    }
+  }
+
+  void _contactManager() {
+    FocusScope.of(context).unfocus();
+    _controller.contactManager();
   }
 
   @override
@@ -202,6 +226,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   supportingText:
                                       LoginStrings.contactSupporting,
                                   title: LoginStrings.contactManager,
+                                  onTap: _controller.submitting
+                                      ? null
+                                      : _contactManager,
                                 ),
                                 const SizedBox(height: AppDimens.cardPadding),
                               ],

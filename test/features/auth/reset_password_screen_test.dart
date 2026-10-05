@@ -2,6 +2,8 @@ import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
@@ -497,7 +499,8 @@ void main() {
   });
 
   group('navigation from login', () {
-    testWidgets('the reset button opens the reset screen', (tester) async {
+    testWidgets('with a live session held, the reset button opens the reset '
+        'screen', (tester) async {
       tester.view.devicePixelRatio = 3;
       tester.view.physicalSize = const Size(393 * 3, 852 * 3);
       addTearDown(tester.view.reset);
@@ -505,7 +508,14 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
-          home: LoginScreen(repository: FakeAuthRepository()),
+          // Only a held session can change a password; signed out, the
+          // button opens the manager contact instead (Issue #184) — covered
+          // in `login_screen_test.dart`.
+          home: LoginScreen(
+            repository: FakeAuthRepository(),
+            sessionStore: AuthSessionStore()
+              ..save(const AuthSession(accessToken: 'tok')),
+          ),
           routes: {
             '/reset-password': (_) =>
                 ResetPasswordScreen(repository: FakePasswordRepository()),

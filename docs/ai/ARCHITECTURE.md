@@ -60,7 +60,7 @@ Conventions that hold across the codebase:
 |---|---|
 | `/` | `SplashScreen` — animates, then `pushReplacement` to `/login` after 7s |
 | `/login` | `LoginScreen` — on success, `openSignedIn` opens the `homeRouteFor` Home, or first "Нууц үгээ тохируулах" when `must_change_password` (Issue #182) |
-| `/reset-password` | `ResetPasswordScreen` |
+| `/reset-password` | `ResetPasswordScreen` — the authenticated change-password form: from Profile's Change password, from Login's "Нууц үг сэргээх" only while a live session is held, and in place of Home when `must_change_password` (#182). Signed out, "Нууц үг сэргээх" and the "Менежертэй холбогдоорой" card open the business-confirmed contact instead — `tel:+97675051055`, falling back to `mailto:info@ai-academy.asia` (`ManagerContact`, Issue #184) |
 | `/home` | `HomeScreen` (adult Нүүр tab) |
 | `/junior-home` | `JuniorHomeScreen` (junior Нүүр tab) — `homeRouteFor` picks between the two |
 | `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (adult Хичээл tab) |
