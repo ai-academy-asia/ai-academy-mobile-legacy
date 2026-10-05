@@ -11,6 +11,7 @@ import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_map_
 import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_progress_ring.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -170,18 +171,41 @@ void main() {
         isNot(JuniorPalette.accent),
       );
 
-      final homeIcon = tester.widget<Icon>(
-        find.descendant(
-          of: find
-              .ancestor(
-                of: find.text(JuniorHomeStrings.navHome),
-                matching: find.byType(Column),
-              )
-              .first,
-          matching: find.byType(Icon),
-        ),
+      // The current tab's icon is the outline house's own Phosphor Fill, in
+      // the same blue, rather than a font glyph from another family (Issue
+      // #190).
+      final homeTab = find
+          .ancestor(
+            of: find.text(JuniorHomeStrings.navHome),
+            matching: find.byType(Column),
+          )
+          .first;
+      expect(
+        find.descendant(of: homeTab, matching: find.byType(Icon)),
+        findsNothing,
       );
-      expect(homeIcon.color, JuniorPalette.accent);
+      final homeIcon = tester.widget<SvgPicture>(
+        find.descendant(of: homeTab, matching: find.byType(SvgPicture)),
+      );
+      expect(homeIcon.bytesLoader.toString(), contains('nav_home_selected'));
+      expect(
+        homeIcon.colorFilter,
+        const ColorFilter.mode(JuniorPalette.accent, BlendMode.srcIn),
+      );
+    });
+
+    testWidgets('draws the shared bar unmodified, as the adult screens do', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      // Same scale, inset and selection colour as the adult bar (Issue #190).
+      final nav = tester.widget<AppBottomNav>(find.byType(AppBottomNav));
+      const shared = AppBottomNav(items: [], currentIndex: 0);
+      expect(nav.iconSize, shared.iconSize);
+      expect(nav.labelSize, shared.labelSize);
+      expect(nav.horizontalPadding, shared.horizontalPadding);
+      expect(nav.selectedColor, shared.selectedColor);
     });
   });
 
