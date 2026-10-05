@@ -72,8 +72,9 @@ class AppBottomNavItem {
 /// [AppDimens.bottomNavHeight], the tabs inset [AppDimens.screenPadding] from
 /// both edges (tab centres at 76, 196.5 and 317 on a 393pt screen, as the
 /// Adult Home reference places them) and the sizes above — is identical on
-/// all three (Issue #188). The junior frames draw the same bar with a smaller
-/// label, which [labelSize] carries; [iconSize] lets a bar pin its own.
+/// all three (Issue #188). The junior tab screens draw it the same way,
+/// through `JuniorBottomNav` (Issue #190); [iconSize] and [labelSize] remain
+/// for a bar that must pin its own.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.items,

@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../shared/widgets/app_bottom_nav.dart';
 import '../../../auth/presentation/student_tabs.dart';
 import '../junior_home_strings.dart';
-import 'junior_home_palette.dart';
 
-/// The tab labels' size — see the class doc on [JuniorBottomNav].
-const double _labelSize = 10;
+/// The current Нүүр tab's glyph: Phosphor "House" Fill, the filled weight of
+/// the outline house beside it — the same export `AdultBottomNav` draws.
+const String _homeSelectedAsset = 'assets/icons/nav_home_selected.svg';
 
-/// The tab icons' nominal size — the junior frames' 24, the adult bar's too,
-/// passed explicitly so the junior bar stays pinned to its own frames.
-const double _iconSize = 24;
-
-/// The current Профайл tab's glyph, exported from the Junior Profile frame.
+/// The current Профайл tab's glyph: Phosphor "User" Fill, exported from the
+/// Junior Profile frame — the same export `AdultBottomNav` draws.
 const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
 
 /// The junior tab bar, as Junior Home, Junior "Сурлагын явц" and Junior
@@ -22,25 +18,27 @@ const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
 /// match its height and rule — with the junior labels and glyphs, and every
 /// tab switched through [openStudentTab] on the junior track.
 ///
-/// One thing differs from the adult bar, and both junior reference frames
-/// agree on it: the labels ink at 10pt where the adult bar's are 12 (a
-/// "Сурлагын явц" 68 wide, not 85). The 24pt icon box, the tab centres (76,
-/// 196.5 and 317, inside the screen's 16pt gutter) and the selected tab's
-/// [JuniorPalette.accent] (`#2970FF`) are the junior frames' and also the
-/// shared bar's defaults since Issue #188; they are passed explicitly so the
-/// junior bar stays pinned to its own frames.
+/// **The same bar as the adult one** (Issue #190): [AppBottomNav]'s shared
+/// defaults with no overrides — 24pt icons, 12pt labels, the tabs inset 16pt
+/// from both edges, `#2970FF` for the current tab — so the two tracks' bars
+/// share one scale, spacing and alignment. The junior frames drew 10pt
+/// labels; the requester moved them to the adult bar's 12.
 ///
-/// Each tab has an outline glyph and a solid one for when it is the current
-/// tab, as the three frames draw them. The bundled `Phosphor.ttf` carries one
-/// (outline) weight only, so the solid house and the calendar — which has no
-/// confirmed Phosphor codepoint — are the Material fallback
-/// `DEVELOPMENT_RULES.md` §6 asks for in place of a guessed codepoint:
+/// Each tab has an outline glyph, gray, and the same glyph filled, blue, for
+/// when it is the current tab:
 ///
-///   * Нүүр — Phosphor's outline house; a solid house when current.
-///   * Сурлагын явц — a calendar with a tick, outline and solid.
-///   * Профайл — Phosphor's outline user; when current, the frame's own
-///     exported solid user ([_profileSelectedAsset]), drawn through
-///     [AppBottomNavItem.selectedAsset] as the adult bar draws its own.
+///   * Нүүр — Phosphor's outline house; its Phosphor Fill
+///     ([_homeSelectedAsset]) when current.
+///   * Сурлагын явц — Material's `event_available`, outline and filled. The
+///     bundled `Phosphor.ttf` carries the outline weight only and the repo
+///     has no Phosphor "CalendarCheck" Fill export, so this tab keeps the
+///     Material pair — `DEVELOPMENT_RULES.md` §6's fallback — rather than an
+///     outline from one family and a fill from another.
+///   * Профайл — Phosphor's outline user; its Phosphor Fill
+///     ([_profileSelectedAsset]) when current.
+///
+/// Filled exports go through [AppBottomNavItem.selectedAsset], which the bar
+/// scales and tints exactly as it does on the adult bar.
 class JuniorBottomNav extends StatelessWidget {
   const JuniorBottomNav({required this.current, super.key});
 
@@ -69,15 +67,11 @@ class JuniorBottomNav extends StatelessWidget {
 
     return AppBottomNav(
       currentIndex: current.index,
-      iconSize: _iconSize,
-      labelSize: _labelSize,
-      horizontalPadding: AppDimens.screenPadding,
-      selectedColor: JuniorPalette.accent,
       items: [
         item(
           StudentTab.home,
           icon: AppIcons.house,
-          selectedIcon: Icons.home,
+          selectedAsset: _homeSelectedAsset,
           label: JuniorHomeStrings.navHome,
         ),
         item(
