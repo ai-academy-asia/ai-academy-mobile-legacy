@@ -1,9 +1,13 @@
+import 'package:flutter/material.dart';
+
 import '../domain/user_type.dart';
+import 'reset_password_screen.dart';
+import 'reset_password_strings.dart';
 
 /// The route a signed-in account lands on — the one place `user_type` picks
 /// an app experience. Both sign-in (`LoginScreen`) and a launch that finds a
-/// live session already held (`SplashScreen`) go through here, so the two
-/// cannot disagree.
+/// live session already held (`SplashScreen`) go through here, and through
+/// [openSignedIn], so the two cannot disagree.
 ///
 /// Only `child` has an experience of its own. Everything else lands where
 /// sign-in always has:
@@ -20,6 +24,48 @@ String homeRouteFor(UserType userType) => switch (userType) {
   UserType.staff ||
   UserType.unknown => HomeRoutes.adult,
 };
+
+/// Opens the signed-in experience in place of the current route — the one
+/// hand-off both sign-in (`LoginScreen`) and a restored session
+/// (`SplashScreen`) make, so neither can skip what the other enforces.
+///
+/// When the account must change its password (`GET /auth/me`
+/// `must_change_password`, Issue #182) it is **required**: the existing
+/// "Нууц үгээ тохируулах" screen (`ResetPasswordScreen`, Figma `Sign in - 6`
+/// … `10`) replaces the current route instead of [homeRoute]. That screen
+/// draws no skip or back control, and nothing sits under it to pop back to,
+/// so Home is reached only by changing the password: then the screen's own
+/// success message shows and [openHome] runs.
+///
+/// [openHome] defaults to replacing the route with [homeRoute]; `LoginScreen`
+/// passes its injected `onSignedIn` through it.
+void openSignedIn(
+  BuildContext context, {
+  required String homeRoute,
+  required bool mustChangePassword,
+  void Function(BuildContext context)? openHome,
+}) {
+  void goHome(BuildContext context) => openHome != null
+      ? openHome(context)
+      : Navigator.of(context).pushReplacementNamed(homeRoute);
+
+  if (!mustChangePassword) {
+    goHome(context);
+    return;
+  }
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute<void>(
+      builder: (context) => ResetPasswordScreen(
+        onCompleted: () {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            const SnackBar(content: Text(ResetPasswordStrings.success)),
+          );
+          goHome(context);
+        },
+      ),
+    ),
+  );
+}
 
 /// The two landing routes `AiAcademyApp` registers.
 abstract final class HomeRoutes {

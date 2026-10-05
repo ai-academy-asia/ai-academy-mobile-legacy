@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session.dart';
+import '../domain/current_user_repository.dart';
 import 'login_strings.dart';
 
 /// Form state and submission for the login screen.
@@ -13,12 +14,16 @@ import 'login_strings.dart';
 /// Validation is quiet until the first submit, then eager: complaining about a
 /// half-typed email on the third keystroke trains people to ignore the message.
 class LoginController extends ChangeNotifier {
-  LoginController({required this._repository}) {
+  LoginController({required this._repository, this._currentUserRepository}) {
     identifier.addListener(_onFieldChanged);
     password.addListener(_onFieldChanged);
   }
 
   final AuthRepository _repository;
+
+  /// Reads the signed-in account for [passwordChangeRequired]. Null asks
+  /// nothing — the check answers false.
+  final CurrentUserRepository? _currentUserRepository;
 
   /// The first field. Takes a phone number *or* an email address — the design
   /// labels it "Утасны дугаар / Email хаяг" — and whatever is typed is sent as
@@ -100,6 +105,36 @@ class LoginController extends ChangeNotifier {
     } catch (error) {
       _formError = LoginStrings.unexpectedError;
       return null;
+    } finally {
+      _submitting = false;
+      _notify();
+    }
+  }
+
+  /// Whether the account just signed in must change its password before
+  /// anything else — `GET /auth/me`'s `must_change_password` (Issue #182).
+  /// Call it once [submit]'s session is saved, since the request carries it.
+  ///
+  /// [submitting] stays true while it asks, so the form stays locked and the
+  /// button keeps its spinner until the screen navigates.
+  ///
+  /// The flag is read from `/auth/me`, where it is confirmed; whether the login
+  /// response carries it too is UNKNOWN. **When the check itself fails** it
+  /// answers false and sign-in continues to Home as it did before the check
+  /// existed — the same fallback `SplashScreen` gives a failed `/auth/me` —
+  /// and the next sign-in asks again. That fallback is a PRODUCT DECISION
+  /// recorded on Issue #182, not a backend rule.
+  Future<bool> passwordChangeRequired() async {
+    final repository = _currentUserRepository;
+    if (repository == null) return false;
+
+    _submitting = true;
+    _notify();
+    try {
+      final user = await repository.getCurrentUser();
+      return user.mustChangePassword;
+    } catch (_) {
+      return false;
     } finally {
       _submitting = false;
       _notify();

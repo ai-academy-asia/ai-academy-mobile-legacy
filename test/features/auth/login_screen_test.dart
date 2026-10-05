@@ -5,16 +5,21 @@ import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/auth/domain/current_user.dart';
+import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/domain/user_type.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
+import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
+import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../profile/fake_current_user_repository.dart';
 import 'fake_auth_repository.dart';
 
 /// Loads the real Manrope and Phosphor faces.
@@ -53,6 +58,7 @@ void main() {
     FakeAuthRepository repository, {
     VoidCallback? onSignedIn,
     AuthSessionStore? sessionStore,
+    FakeCurrentUserRepository? currentUser,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -67,6 +73,13 @@ void main() {
           // Never the app-wide store: a test must not leave a token behind for
           // whatever runs next.
           sessionStore: sessionStore ?? AuthSessionStore(),
+          // An account with no password change pending, unless a test says
+          // otherwise — the sign-in these tests were written for.
+          currentUserRepository:
+              currentUser ??
+              FakeCurrentUserRepository(
+                user: _account(mustChangePassword: false),
+              ),
           onSignedIn: onSignedIn,
         ),
       ),
@@ -803,4 +816,201 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('must_change_password (Issue #182)', () {
+    const adultHome = 'ADULT HOME';
+    const juniorHome = 'JUNIOR HOME';
+
+    /// The real hand-off: no `onSignedIn`, the two Home routes registered.
+    Future<void> signInThrough(
+      WidgetTester tester,
+      FakeCurrentUserRepository currentUser, {
+      UserType userType = UserType.child,
+      bool settle = true,
+    }) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          routes: {
+            HomeRoutes.adult: (_) => const Scaffold(body: Text(adultHome)),
+            HomeRoutes.junior: (_) => const Scaffold(body: Text(juniorHome)),
+          },
+          home: LoginScreen(
+            repository: FakeAuthRepository(
+              session: AuthSession(accessToken: 'tok', userType: userType),
+            ),
+            sessionStore: AuthSessionStore(),
+            currentUserRepository: currentUser,
+          ),
+        ),
+      );
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      if (settle) await tester.pumpAndSettle();
+    }
+
+    bool canPop(WidgetTester tester) =>
+        tester.state<NavigatorState>(find.byType(Navigator)).canPop();
+
+    testWidgets('true: "Нууц үгээ тохируулах" opens instead of Home', (
+      tester,
+    ) async {
+      final currentUser = FakeCurrentUserRepository(
+        user: _account(mustChangePassword: true),
+      );
+      await signInThrough(tester, currentUser);
+
+      expect(currentUser.callCount, 1);
+      expect(find.byType(ResetPasswordScreen), findsOneWidget);
+      expect(find.text(ResetPasswordStrings.title), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(find.text(juniorHome), findsNothing);
+      expect(find.text(adultHome), findsNothing);
+    });
+
+    testWidgets('true: there is no way back past it — nothing to pop to', (
+      tester,
+    ) async {
+      await signInThrough(
+        tester,
+        FakeCurrentUserRepository(user: _account(mustChangePassword: true)),
+      );
+
+      expect(canPop(tester), isFalse);
+      // A system back press does not leave the screen for Login or Home.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(find.text(juniorHome), findsNothing);
+    });
+
+    testWidgets('once the password is changed, the account\'s Home opens with '
+        'the screen\'s own success message', (tester) async {
+      await signInThrough(
+        tester,
+        FakeCurrentUserRepository(user: _account(mustChangePassword: true)),
+      );
+
+      // What `ResetPasswordScreen` calls after `POST /auth/change-password`
+      // succeeds — its own form and request are covered by its own tests.
+      tester
+          .widget<ResetPasswordScreen>(find.byType(ResetPasswordScreen))
+          .onCompleted!();
+      await tester.pumpAndSettle();
+
+      expect(find.text(juniorHome), findsOneWidget);
+      expect(find.text(ResetPasswordStrings.success), findsOneWidget);
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+      expect(canPop(tester), isFalse);
+    });
+
+    testWidgets('an adult account continues to the adult Home', (tester) async {
+      await signInThrough(
+        tester,
+        FakeCurrentUserRepository(user: _account(mustChangePassword: true)),
+        userType: UserType.adult,
+      );
+      tester
+          .widget<ResetPasswordScreen>(find.byType(ResetPasswordScreen))
+          .onCompleted!();
+      await tester.pumpAndSettle();
+
+      expect(find.text(adultHome), findsOneWidget);
+    });
+
+    testWidgets('false: Home opens directly, as before', (tester) async {
+      await signInThrough(
+        tester,
+        FakeCurrentUserRepository(user: _account(mustChangePassword: false)),
+      );
+
+      expect(find.text(juniorHome), findsOneWidget);
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+    });
+
+    testWidgets('a failed /auth/me check continues to Home, as before', (
+      tester,
+    ) async {
+      await signInThrough(
+        tester,
+        FakeCurrentUserRepository(
+          failure: const CurrentUserFailure(CurrentUserFailureKind.network),
+        ),
+      );
+
+      expect(find.text(juniorHome), findsOneWidget);
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+    });
+
+    testWidgets('the button keeps its spinner while the account is checked', (
+      tester,
+    ) async {
+      final currentUser = FakeCurrentUserRepository(
+        user: _account(mustChangePassword: true),
+        hold: true,
+      );
+      await signInThrough(tester, currentUser, settle: false);
+      await tester.pump();
+
+      expect(currentUser.callCount, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.widget<TextField>(fieldAt(0)).enabled, isFalse);
+
+      currentUser.release();
+      await tester.pumpAndSettle();
+      expect(find.byType(ResetPasswordScreen), findsOneWidget);
+    });
+
+    testWidgets('an injected onSignedIn runs only after the change', (
+      tester,
+    ) async {
+      var signedIn = 0;
+      await pumpLogin(
+        tester,
+        FakeAuthRepository(),
+        onSignedIn: () => signedIn++,
+        currentUser: FakeCurrentUserRepository(
+          user: _account(mustChangePassword: true),
+        ),
+      );
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pumpAndSettle();
+
+      expect(signedIn, 0);
+      expect(find.byType(ResetPasswordScreen), findsOneWidget);
+
+      tester
+          .widget<ResetPasswordScreen>(find.byType(ResetPasswordScreen))
+          .onCompleted!();
+      await tester.pumpAndSettle();
+      expect(signedIn, 1);
+    });
+  });
 }
+
+/// A `GET /auth/me` account, differing only in [mustChangePassword].
+CurrentUser _account({required bool mustChangePassword}) => CurrentUser(
+  id: 9,
+  actorId: 5,
+  actorType: 'student',
+  email: 'student@example.mn',
+  role: 'student',
+  isActive: true,
+  mustChangePassword: mustChangePassword,
+  profile: const UserProfile(
+    id: 5,
+    firstName: 'A',
+    lastName: 'B',
+    phone: '99123456',
+    uiMode: null,
+  ),
+);

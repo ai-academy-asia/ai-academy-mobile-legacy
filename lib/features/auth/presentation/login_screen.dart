@@ -8,8 +8,10 @@ import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../data/http_auth_repository.dart';
+import '../data/http_current_user_repository.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session_store.dart';
+import '../domain/current_user_repository.dart';
 import 'home_route.dart';
 import 'login_controller.dart';
 import 'login_strings.dart';
@@ -45,6 +47,7 @@ class LoginScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.sessionStore,
+    this.currentUserRepository,
     this.onSignedIn,
     this.onResetPassword,
   });
@@ -55,8 +58,15 @@ class LoginScreen extends StatefulWidget {
   /// Where the issued token is kept. Defaults to the app-wide store.
   final AuthSessionStore? sessionStore;
 
+  /// Reads the signed-in account's `must_change_password` (Issue #182).
+  /// Defaults to the real `GET /auth/me` over [sessionStore]. Injected in
+  /// tests.
+  final CurrentUserRepository? currentUserRepository;
+
   /// Where to go after a successful sign-in. Defaults to the route the
-  /// session's `user_type` selects — see [homeRouteFor].
+  /// session's `user_type` selects — see [homeRouteFor]. An account that must
+  /// change its password goes to "Нууц үгээ тохируулах" first, and only then
+  /// here — see [openSignedIn].
   final VoidCallback? onSignedIn;
 
   /// What the "Нууц үг сэргээх" button does. Defaults to `/reset-password`.
@@ -75,6 +85,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _controller = LoginController(
       repository: widget.repository ?? HttpAuthRepository(),
+      currentUserRepository:
+          widget.currentUserRepository ??
+          HttpCurrentUserRepository(
+            sessionStore: widget.sessionStore ?? AuthSessionStore.instance,
+          ),
     );
   }
 
@@ -94,15 +109,17 @@ class _LoginScreenState extends State<LoginScreen> {
     // and refresh tokens, so losing it here means signing in again.
     (widget.sessionStore ?? AuthSessionStore.instance).save(session);
 
+    // Asked with the session just saved, before anything is shown.
+    final mustChangePassword = await _controller.passwordChangeRequired();
     if (!mounted) return;
 
-    if (widget.onSignedIn != null) {
-      widget.onSignedIn!();
-    } else {
-      Navigator.of(
-        context,
-      ).pushReplacementNamed(homeRouteFor(session.userType));
-    }
+    final onSignedIn = widget.onSignedIn;
+    openSignedIn(
+      context,
+      homeRoute: homeRouteFor(session.userType),
+      mustChangePassword: mustChangePassword,
+      openHome: onSignedIn == null ? null : (_) => onSignedIn(),
+    );
   }
 
   void _openResetPassword() {
