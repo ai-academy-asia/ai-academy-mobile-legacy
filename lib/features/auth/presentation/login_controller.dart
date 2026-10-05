@@ -1,10 +1,12 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../core/utils/open_external_url.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session.dart';
 import '../domain/current_user_repository.dart';
 import 'login_strings.dart';
+import 'manager_contact.dart';
 
 /// Form state and submission for the login screen.
 ///
@@ -14,7 +16,11 @@ import 'login_strings.dart';
 /// Validation is quiet until the first submit, then eager: complaining about a
 /// half-typed email on the third keystroke trains people to ignore the message.
 class LoginController extends ChangeNotifier {
-  LoginController({required this._repository, this._currentUserRepository}) {
+  LoginController({
+    required this._repository,
+    this._currentUserRepository,
+    Future<bool> Function(Uri url)? openUrl,
+  }) : _openUrl = openUrl ?? openExternalUrl {
     identifier.addListener(_onFieldChanged);
     password.addListener(_onFieldChanged);
   }
@@ -24,6 +30,10 @@ class LoginController extends ChangeNotifier {
   /// Reads the signed-in account for [passwordChangeRequired]. Null asks
   /// nothing — the check answers false.
   final CurrentUserRepository? _currentUserRepository;
+
+  /// Hands a contact link to the OS — [openExternalUrl] unless a test injects
+  /// its own. Answers whether the link was opened.
+  final Future<bool> Function(Uri url) _openUrl;
 
   /// The first field. Takes a phone number *or* an email address — the design
   /// labels it "Утасны дугаар / Email хаяг" — and whatever is typed is sent as
@@ -139,6 +149,22 @@ class LoginController extends ChangeNotifier {
       _submitting = false;
       _notify();
     }
+  }
+
+  /// Opens the confirmed manager contact ([ManagerContact], Issue #184): the
+  /// phone, or — when no app takes it — the email. Answers whether either
+  /// opened.
+  ///
+  /// When neither can be opened the message band says so with the generic
+  /// [LoginStrings.unexpectedError], as a material that fails to open does on
+  /// Exercise Detail; there is no copy of its own for it.
+  Future<bool> contactManager() async {
+    for (final url in [ManagerContact.phone, ManagerContact.email]) {
+      if (await _openUrl(url)) return true;
+    }
+    _formError = LoginStrings.unexpectedError;
+    _notify();
+    return false;
   }
 
   static String _messageFor(AuthFailureKind kind) => switch (kind) {

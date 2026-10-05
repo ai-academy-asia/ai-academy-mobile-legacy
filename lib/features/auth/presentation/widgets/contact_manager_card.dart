@@ -11,8 +11,9 @@ import '../../../../core/theme/app_typography.dart';
 /// centred on the right edge. The reference draws it as a white surface with
 /// the same thin border as the fields — not as a filled grey block.
 ///
-/// Its destination does not exist yet, so [onTap] is optional and the card
-/// simply sits inert until there is somewhere for it to go.
+/// [onTap] opens the confirmed manager contact (`ManagerContact`, Issue
+/// #184); null leaves the card drawn but inert, as `LoginScreen` does while a
+/// sign-in is running.
 class ContactManagerCard extends StatelessWidget {
   const ContactManagerCard({
     required this.supportingText,

@@ -3,6 +3,7 @@ import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/login_controller.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
+import 'package:aia_mobile/features/auth/presentation/manager_contact.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
@@ -338,5 +339,71 @@ void main() {
       expect(controller.submitting, isFalse);
       controller.dispose();
     });
+  });
+
+  group('contactManager (Issue #184)', () {
+    /// Records every link handed to the OS, opening only those in [opens].
+    ({LoginController controller, List<String> opened}) withLauncher(
+      Set<String> opens,
+    ) {
+      final opened = <String>[];
+      final controller = LoginController(
+        repository: FakeAuthRepository(),
+        openUrl: (url) async {
+          opened.add(url.toString());
+          return opens.contains(url.toString());
+        },
+      );
+      return (controller: controller, opened: opened);
+    }
+
+    test('the confirmed contact, exactly: +976 7505 1055 and '
+        'info@ai-academy.asia', () {
+      expect(ManagerContact.phone.toString(), 'tel:+97675051055');
+      expect(ManagerContact.email.toString(), 'mailto:info@ai-academy.asia');
+    });
+
+    test('opens the phone, and stops there when it opens', () async {
+      final (:controller, :opened) = withLauncher({'tel:+97675051055'});
+
+      expect(await controller.contactManager(), isTrue);
+      expect(opened, ['tel:+97675051055']);
+      expect(controller.formError, isNull);
+      controller.dispose();
+    });
+
+    test('falls back to the email when no app takes the phone', () async {
+      final (:controller, :opened) = withLauncher({
+        'mailto:info@ai-academy.asia',
+      });
+
+      expect(await controller.contactManager(), isTrue);
+      expect(opened, ['tel:+97675051055', 'mailto:info@ai-academy.asia']);
+      expect(controller.formError, isNull);
+      controller.dispose();
+    });
+
+    test('when neither opens, the message band says so with the generic '
+        'copy', () async {
+      final (:controller, :opened) = withLauncher(const {});
+
+      expect(await controller.contactManager(), isFalse);
+      expect(opened, ['tel:+97675051055', 'mailto:info@ai-academy.asia']);
+      expect(controller.formError, LoginStrings.unexpectedError);
+      expect(controller.message, LoginStrings.unexpectedError);
+      controller.dispose();
+    });
+
+    test(
+      'a keystroke clears that message, like any stale form error',
+      () async {
+        final (:controller, opened: _) = withLauncher(const {});
+        await controller.contactManager();
+
+        controller.identifier.text = '9';
+        expect(controller.formError, isNull);
+        controller.dispose();
+      },
+    );
   });
 }

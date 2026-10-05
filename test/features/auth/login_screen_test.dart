@@ -11,6 +11,7 @@ import 'package:aia_mobile/features/auth/domain/user_type.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
+import 'package:aia_mobile/features/auth/presentation/widgets/contact_manager_card.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
@@ -21,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
 import 'fake_auth_repository.dart';
+import 'fake_password_repository.dart';
 
 /// Loads the real Manrope and Phosphor faces.
 ///
@@ -59,6 +61,7 @@ void main() {
     VoidCallback? onSignedIn,
     AuthSessionStore? sessionStore,
     FakeCurrentUserRepository? currentUser,
+    Future<bool> Function(Uri url)? openUrl,
     Size size = const Size(393, 852),
   }) async {
     tester.view.devicePixelRatio = 3;
@@ -81,6 +84,8 @@ void main() {
                 user: _account(mustChangePassword: false),
               ),
           onSignedIn: onSignedIn,
+          // Never the platform channel: a link "opens" unless a test says not.
+          openUrl: openUrl ?? (_) async => true,
         ),
       ),
     );
@@ -993,6 +998,163 @@ void main() {
           .onCompleted!();
       await tester.pumpAndSettle();
       expect(signedIn, 1);
+    });
+  });
+
+  group('manager contact (Issue #184)', () {
+    const phone = 'tel:+97675051055';
+    const email = 'mailto:info@ai-academy.asia';
+
+    /// Login with the routes a tap could reach, recording every link handed
+    /// to the OS; only those in [opens] open.
+    Future<({List<String> opened, FakePasswordRepository passwords})>
+    pumpWithContact(
+      WidgetTester tester, {
+      AuthSessionStore? sessionStore,
+      Set<String> opens = const {phone},
+      FakeAuthRepository? repository,
+    }) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      addTearDown(tester.view.reset);
+
+      final opened = <String>[];
+      final passwords = FakePasswordRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          routes: {
+            '/reset-password': (_) =>
+                ResetPasswordScreen(repository: passwords),
+            // Where a completed sign-in lands; stand-ins, not the real homes.
+            HomeRoutes.adult: (_) => const Scaffold(body: Text('adult home')),
+            HomeRoutes.junior: (_) => const Scaffold(body: Text('junior home')),
+          },
+          home: LoginScreen(
+            repository: repository ?? FakeAuthRepository(),
+            sessionStore: sessionStore ?? AuthSessionStore(),
+            currentUserRepository: FakeCurrentUserRepository(
+              user: _account(mustChangePassword: false),
+            ),
+            openUrl: (url) async {
+              opened.add(url.toString());
+              return opens.contains(url.toString());
+            },
+          ),
+        ),
+      );
+      return (opened: opened, passwords: passwords);
+    }
+
+    Finder contactCard() => find.byType(ContactManagerCard);
+
+    testWidgets('the "Менежертэй холбогдоорой" card calls +976 7505 1055', (
+      tester,
+    ) async {
+      final (:opened, passwords: _) = await pumpWithContact(tester);
+
+      await tester.tap(contactCard());
+      await tester.pumpAndSettle();
+
+      expect(opened, [phone]);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.text(LoginStrings.unexpectedError), findsNothing);
+    });
+
+    testWidgets('with no phone app, the card writes to info@ai-academy.asia', (
+      tester,
+    ) async {
+      final (:opened, passwords: _) = await pumpWithContact(
+        tester,
+        opens: const {email},
+      );
+
+      await tester.tap(contactCard());
+      await tester.pumpAndSettle();
+
+      expect(opened, [phone, email]);
+    });
+
+    testWidgets('signed out, "Нууц үг сэргээх" opens the same contact and '
+        'never the change-password flow', (tester) async {
+      final (:opened, :passwords) = await pumpWithContact(tester);
+
+      await tester.tap(resetButton());
+      await tester.pumpAndSettle();
+
+      expect(opened, [phone]);
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(passwords.calls, isEmpty);
+    });
+
+    testWidgets('a held but dead session counts as signed out', (tester) async {
+      // Past its lifetime, with no refresh token to renew it.
+      final store = AuthSessionStore()
+        ..save(const AuthSession(accessToken: 'tok', expiresIn: Duration.zero));
+      final (:opened, passwords: _) = await pumpWithContact(
+        tester,
+        sessionStore: store,
+      );
+
+      await tester.tap(resetButton());
+      await tester.pumpAndSettle();
+
+      expect(opened, [phone]);
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+    });
+
+    testWidgets('with a live session held, "Нууц үг сэргээх" still opens the '
+        'change-password screen', (tester) async {
+      final (:opened, passwords: _) = await pumpWithContact(
+        tester,
+        sessionStore: AuthSessionStore()
+          ..save(const AuthSession(accessToken: 'tok')),
+      );
+
+      await tester.tap(resetButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ResetPasswordScreen), findsOneWidget);
+      expect(opened, isEmpty);
+    });
+
+    testWidgets('when neither link opens, the message band says so', (
+      tester,
+    ) async {
+      final (:opened, passwords: _) = await pumpWithContact(
+        tester,
+        opens: const {},
+      );
+
+      await tester.tap(resetButton());
+      await tester.pumpAndSettle();
+
+      expect(opened, [phone, email]);
+      expect(find.text(LoginStrings.unexpectedError), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('the card is inert while a sign-in is running', (tester) async {
+      final auth = FakeAuthRepository(hold: true);
+      final (:opened, passwords: _) = await pumpWithContact(
+        tester,
+        repository: auth,
+      );
+      await tester.enterText(fieldAt(0), '99112233');
+      await tester.enterText(fieldAt(1), 'nuutsug123');
+      await tester.pump();
+      await tester.tap(signInButton());
+      await tester.pump();
+
+      await tester.tap(contactCard(), warnIfMissed: false);
+      await tester.pump();
+      expect(opened, isEmpty);
+
+      auth.release();
+      await tester.pumpAndSettle();
+      expect(find.text('adult home'), findsOneWidget);
+      expect(opened, isEmpty);
     });
   });
 }
