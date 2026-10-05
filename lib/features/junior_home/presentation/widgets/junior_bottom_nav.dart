@@ -23,7 +23,7 @@ const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
 /// tab switched through [openStudentTab] on the junior track.
 ///
 /// One thing differs from the adult bar, and both junior reference frames
-/// agree on it: the labels ink at 10pt where the adult bar's are 13 (a
+/// agree on it: the labels ink at 10pt where the adult bar's are 12 (a
 /// "Сурлагын явц" 68 wide, not 85). The 24pt icon box, the tab centres (76,
 /// 196.5 and 317, inside the screen's 16pt gutter) and the selected tab's
 /// [JuniorPalette.accent] (`#2970FF`) are the junior frames' and also the

@@ -11,7 +11,7 @@ const Color _dividerColor = Color(0xFFEAEDF0);
 
 /// The icon's nominal size. A Phosphor glyph inks about 0.88 of it — the
 /// reference's ~21. A 26pt step up was tried and read too dominant on a
-/// device beside the 13pt labels, so the bar keeps the reference's 24 (Issue
+/// device beside the labels, so the bar keeps the reference's 24 (Issue
 /// #188). An [AppBottomNavItem.selectedAsset] is scaled with it — see
 /// [_assetGlyphBox].
 const double _iconSize = 24;
@@ -28,12 +28,13 @@ const double _assetGlyphBox = 24;
 const double _iconToLabelGap = 3;
 
 /// The label size. The Adult Home reference inks its labels at 10pt; the
-/// adult bar uses 13 — the type scale's existing `statLabel` step, three up
-/// from [AppTypography.badgeLabel]'s 10 — so the shell reads at the same
-/// scale as the page content (a product decision, Issue #188). The style is
-/// shared with three other widgets, so the size is overridden here rather
-/// than on the token.
-const double _labelSize = 13;
+/// adult bar uses 12 — two up from [AppTypography.badgeLabel]'s 10, an
+/// existing step of the type scale — so the shell reads at the page
+/// content's scale (a product decision, Issue #188). 13 was tried and its
+/// labels competed with the 24pt icons on a device. The style is shared with
+/// three other widgets, so the size is overridden here rather than on the
+/// token.
+const double _labelSize = 12;
 
 /// The selected tab's icon and label — the Adult Home and Profile frames'
 /// `#2970FF`, the same blue the selected-tab SVGs carry. Not [AppColors.blue]
