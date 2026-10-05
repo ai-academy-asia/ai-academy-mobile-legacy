@@ -7,6 +7,7 @@ import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/domain/user_type.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
+import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_strings.dart';
 import 'package:flutter/material.dart';
@@ -306,14 +307,17 @@ void main() {
     AuthSessionStore signedIn() =>
         AuthSessionStore()..save(const AuthSession(accessToken: 'tok'));
 
-    CurrentUser accountOf(UserType userType) => CurrentUser(
+    CurrentUser accountOf(
+      UserType userType, {
+      bool mustChangePassword = false,
+    }) => CurrentUser(
       id: 9,
       actorId: 5,
       actorType: 'student',
       email: 'student@example.mn',
       role: 'student',
       isActive: true,
-      mustChangePassword: false,
+      mustChangePassword: mustChangePassword,
       // `ui_mode` deliberately disagrees with `user_type` in the adult case
       // below: routing must follow `user_type`.
       profile: const UserProfile(
@@ -346,6 +350,35 @@ void main() {
       expect(currentUser.callCount, 1);
       expect(find.text('junior home'), findsOneWidget);
       expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    testWidgets('a held session that must change its password opens '
+        '"Нууц үгээ тохируулах" first, then its Home (Issue #182)', (
+      tester,
+    ) async {
+      await pumpSplash(
+        tester,
+        sessionStore: signedIn(),
+        currentUser: FakeCurrentUserRepository(
+          user: accountOf(UserType.child, mustChangePassword: true),
+        ),
+      );
+
+      await runToHandOff(tester);
+
+      expect(find.byType(ResetPasswordScreen), findsOneWidget);
+      expect(find.text('junior home'), findsNothing);
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(
+        tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
+        isFalse,
+      );
+
+      tester
+          .widget<ResetPasswordScreen>(find.byType(ResetPasswordScreen))
+          .onCompleted!();
+      await tester.pumpAndSettle();
+      expect(find.text('junior home'), findsOneWidget);
     });
 
     testWidgets('a held adult session lands on the adult dashboard', (

@@ -53,7 +53,9 @@ import 'splash_strings.dart';
 /// rather than after it. No session, an expired one, or any failure of that
 /// request falls back to Login, the only recovery the API offers. (The store
 /// is in-memory today, so a cold start finds nothing; this is the one place
-/// that changes nothing when it starts persisting.)
+/// that changes nothing when it starts persisting.) An account whose
+/// `must_change_password` is true goes to "Нууц үгээ тохируулах" first,
+/// exactly as after sign-in — see [openSignedIn] (Issue #182).
 ///
 /// Both halves of the lockup are Figma exports — [SplashAssets.mark] and
 /// [SplashAssets.wordmark] — rather than a bundled icon beside live text, so
@@ -124,8 +126,8 @@ class _SplashScreenState extends State<SplashScreen>
   /// start it again — see the class doc.
   bool _navigating = false;
 
-  /// The home an already-held session lands on, or null for Login.
-  late final Future<String?> _restoredRoute;
+  /// Where an already-held session lands, or null for Login.
+  late final Future<_RestoredSession?> _restoredRoute;
 
   @override
   void initState() {
@@ -175,7 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   /// See the class doc's "An existing session skips sign-in".
-  Future<String?> _resolveRestoredRoute() async {
+  Future<_RestoredSession?> _resolveRestoredRoute() async {
     final store = widget.sessionStore ?? AuthSessionStore.instance;
     if (!store.isSignedIn || store.isExpired()) return null;
     try {
@@ -183,7 +185,10 @@ class _SplashScreenState extends State<SplashScreen>
           widget.currentUserRepository ??
           HttpCurrentUserRepository(sessionStore: store);
       final user = await repository.getCurrentUser();
-      return homeRouteFor(user.userType);
+      return (
+        homeRoute: homeRouteFor(user.userType),
+        mustChangePassword: user.mustChangePassword,
+      );
     } catch (_) {
       return null;
     }
@@ -197,10 +202,16 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _handOff() async {
-    final restoredRoute = await _restoredRoute;
+    final restored = await _restoredRoute;
     if (!mounted) return;
-    if (restoredRoute != null) {
-      Navigator.of(context).pushReplacementNamed(restoredRoute);
+    if (restored != null) {
+      // The same hand-off sign-in makes, so a held session that must change
+      // its password cannot skip "Нууц үгээ тохируулах" (Issue #182).
+      openSignedIn(
+        context,
+        homeRoute: restored.homeRoute,
+        mustChangePassword: restored.mustChangePassword,
+      );
       return;
     }
     // A plain `PageRouteBuilder` rather than `pushReplacementNamed`: a named
@@ -333,3 +344,7 @@ class _Wordmark extends StatelessWidget {
     );
   }
 }
+
+/// What a held session resolves to: its Home, and whether the account must
+/// change its password before reaching it.
+typedef _RestoredSession = ({String homeRoute, bool mustChangePassword});

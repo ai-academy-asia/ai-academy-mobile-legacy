@@ -1,8 +1,11 @@
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
+import 'package:aia_mobile/features/auth/domain/current_user.dart';
+import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/login_controller.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../profile/fake_current_user_repository.dart';
 import 'fake_auth_repository.dart';
 
 void main() {
@@ -249,6 +252,91 @@ void main() {
       await first;
 
       expect(repository.calls, hasLength(1));
+    });
+  });
+
+  group('passwordChangeRequired (Issue #182)', () {
+    CurrentUser account({required bool mustChangePassword}) => CurrentUser(
+      id: 9,
+      actorId: 5,
+      actorType: 'student',
+      email: 'student@example.mn',
+      role: 'student',
+      isActive: true,
+      mustChangePassword: mustChangePassword,
+      profile: const UserProfile(
+        id: 5,
+        firstName: 'A',
+        lastName: 'B',
+        phone: '99123456',
+        uiMode: null,
+      ),
+    );
+
+    LoginController controllerWith(FakeCurrentUserRepository? currentUser) =>
+        LoginController(
+          repository: FakeAuthRepository(),
+          currentUserRepository: currentUser,
+        );
+
+    test('answers GET /auth/me\'s must_change_password', () async {
+      for (final flag in [true, false]) {
+        final currentUser = FakeCurrentUserRepository(
+          user: account(mustChangePassword: flag),
+        );
+        final controller = controllerWith(currentUser);
+
+        expect(await controller.passwordChangeRequired(), flag);
+        expect(currentUser.callCount, 1);
+        controller.dispose();
+      }
+    });
+
+    test(
+      'a failed check answers false — sign-in continues as before',
+      () async {
+        for (final kind in CurrentUserFailureKind.values) {
+          final controller = controllerWith(
+            FakeCurrentUserRepository(failure: CurrentUserFailure(kind)),
+          );
+
+          expect(
+            await controller.passwordChangeRequired(),
+            isFalse,
+            reason: kind.name,
+          );
+          expect(controller.submitting, isFalse);
+          expect(
+            controller.formError,
+            isNull,
+            reason: 'the sign-in itself succeeded',
+          );
+          controller.dispose();
+        }
+      },
+    );
+
+    test('with no account source it asks nothing and answers false', () async {
+      final controller = controllerWith(null);
+      expect(await controller.passwordChangeRequired(), isFalse);
+      controller.dispose();
+    });
+
+    test('keeps submitting true while the check is in flight', () async {
+      final currentUser = FakeCurrentUserRepository(
+        user: account(mustChangePassword: true),
+        hold: true,
+      );
+      final controller = controllerWith(currentUser);
+
+      final pending = controller.passwordChangeRequired();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.submitting, isTrue);
+
+      currentUser.release();
+      expect(await pending, isTrue);
+      expect(controller.submitting, isFalse);
+      controller.dispose();
     });
   });
 }

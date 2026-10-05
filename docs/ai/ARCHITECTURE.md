@@ -59,7 +59,7 @@ Conventions that hold across the codebase:
 | Route | Screen |
 |---|---|
 | `/` | `SplashScreen` — animates, then `pushReplacement` to `/login` after 7s |
-| `/login` | `LoginScreen` |
+| `/login` | `LoginScreen` — on success, `openSignedIn` opens the `homeRouteFor` Home, or first "Нууц үгээ тохируулах" when `must_change_password` (Issue #182) |
 | `/reset-password` | `ResetPasswordScreen` |
 | `/home` | `HomeScreen` (adult Нүүр tab) |
 | `/junior-home` | `JuniorHomeScreen` (junior Нүүр tab) — `homeRouteFor` picks between the two |
