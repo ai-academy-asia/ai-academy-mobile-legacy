@@ -23,11 +23,11 @@ import '../../home/domain/lesson_schedule.dart';
 ///
 /// The calendar opens on the month on the device clock ([month]), today
 /// selected, and pages to any other month through [calendar]. Each month has
-/// the cohort's scheduled lesson days marked, and a day with a `present` or
-/// `late` session in `GET /me/attendance` `sessions` marked attended instead.
-/// **No day is ever marked missed**: no missed/absent status has been
-/// confirmed (BACKEND GAP), and calling a past lesson day "missed" because no
-/// session is listed would be inventing a rule.
+/// the cohort's scheduled lesson days marked, a day with an `absent` session
+/// in `GET /me/attendance` `sessions` marked missed (Issue #180), and a day
+/// with a `present` or `late` session marked attended. **A day is marked
+/// missed only from an `absent` session**: calling a past lesson day
+/// "missed" because no session is listed would be inventing a rule.
 class JuniorProgress {
   const JuniorProgress({
     required this.month,
@@ -65,7 +65,8 @@ class JuniorProgress {
 }
 
 /// The backend facts the Junior calendar marks, independent of any month:
-/// the cohort's confirmed schedule and the days of its attended sessions.
+/// the cohort's confirmed schedule and the days of its attended and missed
+/// sessions.
 ///
 /// [marksIn] is the one rule for every month — the current one the screen
 /// opens on and any the student pages to — so a month's marks never depend
@@ -85,9 +86,9 @@ class JuniorCalendarSource {
   final Set<DateTime> attendedDates;
 
   /// Local dates of the sessions the server recorded as missed
-  /// (`AttendanceSession.countsAsMissed` — `absent`). The Adult attendance
-  /// screen passes them (Issue #172); the Junior screen does not yet, so it
-  /// still marks nothing missed.
+  /// (`AttendanceSession.countsAsMissed` — `absent`). Both the Adult
+  /// attendance screen (Issue #172) and the Junior "Сурлагын явц" calendar
+  /// (Issue #180) pass them.
   final Set<DateTime> missedDates;
 
   /// [month]'s marks: its scheduled lesson days, then the day of each missed
@@ -111,9 +112,9 @@ class JuniorCalendarSource {
 
 /// A calendar day's mark — the three the frame's legend names.
 ///
-/// The backend feeds [lesson] (the cohort schedule) and [attended] (an
-/// attended session) — see [JuniorProgress]. [missed] is drawn by the
-/// calendar and its legend, and waits on a confirmed missed/absent status.
+/// The backend feeds all three — see [JuniorProgress]: [lesson] from the
+/// cohort schedule, [missed] from an `absent` session, [attended] from a
+/// `present` or `late` one.
 enum JuniorDayStatus {
   /// "Хичээлтэй өдөр" — a scheduled lesson.
   lesson,

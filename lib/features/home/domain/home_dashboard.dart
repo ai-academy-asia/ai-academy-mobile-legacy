@@ -197,7 +197,8 @@ class AttendanceSummary {
 
   /// The days of the sessions the server recorded as missed
   /// (`AttendanceSession.countsAsMissed` — `absent`), as local dates — what
-  /// the Adult attendance calendar marks missed. Empty when none is.
+  /// the Adult attendance calendar and the Junior calendar mark missed. Empty
+  /// when none is.
   final Set<DateTime> missedDates;
 
   /// The percentage a source reported, when it reported one.
