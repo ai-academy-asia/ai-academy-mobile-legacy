@@ -1,18 +1,15 @@
-# AI Academy Mobile
+# AI Academy Mobile — Claude Code
 
-## Rules
-- Flutter app. Follow the existing project architecture and patterns.
-- Reuse existing components, theme tokens, and utilities before creating new ones.
-- App UI follows the established Login design system; keep new screens visually consistent.
-- Inspect only files relevant to the current task.
-- Do not invent API contracts.
-- Keep changes scoped; avoid unrelated refactors or dependencies.
-- Manual tasks: do not commit or push unless explicitly asked.
-- Agentic Issue tasks ("Implement Issue #N"): commit, push the feature branch, and open a PR as part of the workflow — then stop.
-- Never merge a PR; merging is a human decision in both modes.
-- Never run destructive git (`reset --hard`, `clean`, `stash`, force push), and never touch the three protected iOS files (`docs/ai/DEVELOPMENT_RULES.md` §3).
+@AGENTS.md
 
-## Workflow
-- Implement the requested task, then run relevant tests and `flutter analyze`.
-- Keep final reports concise: changed files, validation results, remaining issues.
-- When the task is a GitHub Issue, follow the lifecycle in `docs/ai/AGENT_WORKFLOW.md`: discover → context → gap analysis → plan → implement → validate → self-fix → review diff → commit → push → PR → human review.
+`AGENTS.md` (imported above) is canonical: modes, authority order, safety rules and the document map live there and in `docs/ai/`. This file adds only what is specific to Claude Code.
+
+## Claude-specific notes
+
+- **Mode first.** Before touching Git or GitHub, decide which mode you are in (`AGENTS.md` §2). In agentic mode, run the full lifecycle in `docs/ai/AGENT_WORKFLOW.md` — including creating the Issue and the branch yourself — and stop once the PR is open.
+- **GitHub** is driven with the `gh` CLI (`gh issue create`, `gh pr create`). Use heredoc bodies so Markdown survives quoting.
+- **Commit and PR attribution:** end commit messages and PR descriptions with the attribution lines Claude Code supplies for the session.
+- **Auto-memory is recall, not authority.** A remembered fact ranks as an agent assumption (`AGENTS.md` §1, level 6) until verified against the repository, a confirmed contract or Figma. When memory and a canonical document disagree, the document wins; update or delete the stale memory.
+- **Figma MCP:** when the Figma plugin is authenticated and has quota, load the `figma:figma-design-to-code` skill before any `get_design_context` call, and only read from the **"App UI"** page. When it is unavailable, work from the frames/exports supplied in the task — do not block on it.
+- **Subagents** (Explore/Plan) are for read-only investigation; Git, GitHub and file edits stay in the main session.
+- **A denied tool call or permission prompt** means the user declined it: adjust, do not retry it verbatim, and never work around it with a different destructive command.

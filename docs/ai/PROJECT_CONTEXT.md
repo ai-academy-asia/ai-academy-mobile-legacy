@@ -1,6 +1,6 @@
 # Project Context
 
-> **Purpose of this file:** the first thing a new Claude/Cursor session should read. It says what this project is, what state it is in, and which claims in this repository are trustworthy.
+> **Purpose of this file:** the first project document to read after the root [AGENTS.md](../../AGENTS.md) (modes, authority order, safety rules). It says what this project is, what state it is in, and which claims in this repository are trustworthy.
 >
 > **Scope rule:** this describes the codebase **as it is today**, not a target architecture. Where something is unknown, it says `UNKNOWN`. Nothing here is aspirational.
 
@@ -104,7 +104,7 @@ Only endpoints and response shapes confirmed by the Postman collection, a captur
 Existing architecture, theme tokens and widgets should be reused where they genuinely fit. Reuse never outranks Figma on visuals or a confirmed contract on data.
 
 ### Unknown-data policy
-When a fact is not established by the repository, the Postman collection or the task itself: say `UNKNOWN`, explain what would confirm it, and proceed without it. Do not fill the gap with a plausible guess, and do not carry an assumption forward from an earlier conversation.
+When a fact is not established by the repository, the Postman collection or the task itself: say `UNKNOWN` (or `BACKEND GAP` / `PRODUCT DECISION`, as defined in [AGENTS.md](../../AGENTS.md) §3), explain what would confirm it, and proceed without it. Do not fill the gap with a plausible guess, and do not carry an assumption forward from an earlier conversation.
 
 ## 6. Where to go next
 

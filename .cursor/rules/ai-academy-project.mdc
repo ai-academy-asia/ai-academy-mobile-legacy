@@ -1,51 +1,29 @@
 ---
-description: AI Academy Mobile — project identity, architecture, feature map, source-of-truth and unknown-data rules. Read before any work in this repository.
+description: AI Academy Mobile — entry point. Points to AGENTS.md (modes, authority order, safety) and the canonical docs. Applies to every task in this repository.
 globs:
 alwaysApply: true
 ---
 
-# AI Academy Mobile — Project
+# AI Academy Mobile
 
-Student-facing Flutter app (`aia_mobile`) for AI Academy Asia, a cohort-based education provider.
-API base URL `https://api.ai-academy.asia`. Dart `^3.12.2`.
+**Read `AGENTS.md` at the repository root first — it is canonical.** It defines the modes, the authority order and the safety rules; `docs/ai/` and `docs/design-system/` hold everything else (map in `AGENTS.md` §6). This rule only points there; where it and a canonical document ever differ, the document wins.
 
-**Full detail:** `docs/ai/PROJECT_CONTEXT.md` · `docs/ai/ARCHITECTURE.md` · `docs/ai/DATA_AND_API.md`
-The repository root `CLAUDE.md` also carries project rules — it remains authoritative for its own items.
+## Modes (detail: `AGENTS.md` §2, `docs/ai/AGENT_WORKFLOW.md`)
 
-## Architecture
+- **Agentic (default for change requests):** the agent turns the user's natural-language request into a GitHub Issue it creates itself, branches `feature/<issue>-<slug>` from updated `main`, investigates, plans, implements, validates, self-fixes, reviews the diff, commits, pushes, opens the PR — and **stops**.
+- **Manual:** only when the user explicitly asks for a manual/isolated operation. No Issue, branch, commit or push unless asked.
+- **Read-only** requests (questions, audits) change nothing.
 
-- `lib/core/` — `api/` (transport + `ApiFailure`), `models/`, `theme/` (design tokens), `utils/`
-- `lib/shared/widgets/` — `AppButton`, `AppTextField`, `AppBottomNav`
-- `lib/features/<feature>/` — `data/` (HTTP repos) · `domain/` (models, interfaces, failures) · `presentation/` (screens, controllers, `*_strings.dart`, `widgets/`)
-- **Dependency direction:** `presentation → domain ← data`. Screens depend on repository *interfaces* and get the implementation injected.
-- **State:** `ChangeNotifier` + `ListenableBuilder`. **No state-management, routing, or DI package.** Controller shape: `_disposed` guard, `_loading`, `_hasLoadedOnce`, nullable data, `String? errorMessage`.
-- **Navigation:** named routes in `lib/app.dart`; deeper screens pushed with `MaterialPageRoute`.
-- **Tests:** `test/` mirrors `lib/features/`, with `fake_*_repository.dart` doubles per feature.
+## Authority order (`AGENTS.md` §1)
 
-## Feature maturity — know this before touching anything
+1 Safety rules → 2 the user's explicit task scope → 3 confirmed backend contracts and Figma ("App UI" page) → 4 `docs/ai` + `docs/design-system` → 5 existing code → 6 agent assumptions. Unknowns are written `UNKNOWN` / `BACKEND GAP` / `PRODUCT DECISION`, never invented.
 
-| Data source | Features |
-|---|---|
-| Real API | `auth`, `courses`, `cohorts`, `enrollments`, `home` (composed), `junior_home` (composed), `attendance`, `payments`, `profile`, `course_learning` |
-| None | `splash` |
+## Safety — never, in any mode (`AGENTS.md` §4)
 
-`course_learning` runs on the real API: `HttpCourseLearningRepository` implements all eleven `CourseLearningRepository` methods — learning path, module lessons, lesson detail, note save, material download, assignment submission, file upload, and the four quiz-attempt calls — against `course_learning_api_contract_v1.md` §2.1–§2.8, with `CourseLearningFailure` as its failure model. `SampleCourseLearningRepository` is constructed only by tests. Not integrated, each for a recorded reason: lesson completion, the certificate endpoints (#155), `assignment.attachment` (#154), and the file submission form (no backend rule for link vs file). Details: `docs/ai/PROJECT_CONTEXT.md` §2–§3 and `docs/ai/DATA_AND_API.md` §7.
+Repeated here deliberately because it is authority level 1:
 
-## Source-of-truth rules
-
-1. **Visual → Figma.** The existing Flutter UI is *not* the design authority; it may contain mismatches and is what changes when it disagrees with Figma. Figma MCP is unavailable (quota exhausted) — use screenshots/exports supplied in the task.
-2. **Backend → confirmed contracts only.** Never invent an endpoint, response field, status code, business rule or user data.
-3. **Implementation → reuse, but never override.** Reuse existing architecture/tokens/widgets where they fit; reuse never outranks Figma on visuals or a confirmed contract on data.
-
-## Unknown-data policy
-
-If a fact is not established by the repository, the Postman collection, or the task itself: **write `UNKNOWN` or `BACKEND GAP`**, say what would confirm it, and proceed without it. Do not guess, and do not carry an assumption forward from an earlier conversation.
-
-## Conventions
-
-- Reuse existing components, theme tokens and utilities before creating new ones. **When you do not reuse, say why in a doc comment** — that is the house habit.
-- UI copy lives in the feature's `*_strings.dart`, verbatim from the design (mixed Mongolian/English is intentional). **No localization framework** — do not add one.
-- Doc comments carry the *reasoning* (why a value, why not reused). Match that; avoid inline noise.
-- **No `TODO`/`FIXME` markers exist in `lib/` or `test/`.** Do not introduce them.
-- No new dependency without a task that asks for one.
-- Inspect only files relevant to the current task; keep changes scoped; no unrelated refactors.
+- `git reset --hard`, `git clean`, `git stash`, force push, pushing to / working on / deleting `main`, merging or approving a PR.
+- `git add -A` / `git add .` / `git commit -a` — stage edited files by explicit path.
+- `dart format lib/` — format only the files you edited.
+- Restore, stash, check out, stage or commit the protected files: `ios/Runner.xcodeproj/project.pbxproj`, `ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`, `ios/Runner/AppDelegate.swift`. Report them as *pre-existing, protected, untouched*.
+- After 3 failures of the same type, stop and report.
