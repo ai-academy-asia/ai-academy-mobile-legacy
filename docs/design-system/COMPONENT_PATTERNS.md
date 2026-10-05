@@ -59,7 +59,7 @@ Practical consequence: **do not hardcode 361.** A widget that fills its parent s
 
 ## 5. Navigation chrome
 
-- **`AppBottomNav`** (`shared/widgets`) — on Home, Cohort List and Profile only. `AppBottomNavItem { icon, label, onTap }` + `currentIndex`. Height `AppDimens.bottomNavHeight` (56) plus the device's bottom inset.
+- **`AppBottomNav`** (`shared/widgets`) — the adult tab screens (Home, Cohort List, Profile) draw it with **its defaults and no overrides**, so the bar is identical on all three (Issue #188): tabs inset `AppDimens.screenPadding` (16) from both edges, 12pt labels, `#2970FF` selection, 24pt icon box. `AppBottomNavItem { icon, label, onTap, selectedAsset }` + `currentIndex`. Height `AppDimens.bottomNavHeight` (72) plus the device's bottom inset. The junior screens use it through `JuniorBottomNav`, which only shrinks the labels to 10pt. Each adult screen test asserts the defaults, so a page-level override fails a test. The labels are two points above the Adult Home reference's 10, a product decision for readability.
 - **`CourseLearningBackButton`** — a standalone row above the page.
 - **In-video back button** (`ExerciseVideoHeader`) — a second copy of the same visual, `Positioned` over the video. **It must be offset by `MediaQuery.paddingOf(context).top`.** Without that, on a real scrolling screen iOS's status-bar touch handling claims taps before Flutter sees them and the button silently does nothing — a bug a zero-inset widget test cannot catch. There is a regression test that simulates a real notch inset; keep it.
 - **Tab header** (`ExerciseTabs`) — 49 tall, bottom divider, 2pt blue underline under the active label. Wrapped in a horizontal `SingleChildScrollView` so a longer label or larger text scale cannot reintroduce overflow.

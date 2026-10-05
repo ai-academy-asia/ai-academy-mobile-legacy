@@ -1352,6 +1352,13 @@ void main() {
       final nav = tester.widget<AppBottomNav>(find.byType(AppBottomNav));
       expect(nav.currentIndex, 1);
       expect(nav.items[1].onTap, isNull);
+
+      // The shared adult bar, unmodified — the geometry is the same on every
+      // adult tab screen (Issue #188).
+      const shared = AppBottomNav(items: [], currentIndex: 0);
+      expect(nav.labelSize, shared.labelSize);
+      expect(nav.horizontalPadding, shared.horizontalPadding);
+      expect(nav.selectedColor, shared.selectedColor);
     });
   });
 

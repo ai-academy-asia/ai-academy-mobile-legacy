@@ -174,15 +174,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        // The frame's bar: the tabs inset 16 from the screen edges, its own
-        // `#2970FF` for the current tab and the solid user glyph — the same
-        // geometry `JuniorBottomNav` measured off the junior frames, with the
-        // adult tabs and labels.
+        // The shared adult bar, unmodified — the same one Home and the cohort
+        // list draw — with the frame's solid user glyph for the current tab.
         bottomNavigationBar: AppBottomNav(
           currentIndex: 2,
-          labelSize: _navLabelSize,
-          horizontalPadding: AppDimens.screenPadding,
-          selectedColor: HomePalette.accent,
           items: [
             AppBottomNavItem(
               icon: AppIcons.house,
@@ -802,9 +797,6 @@ class _Rule extends StatelessWidget {
 // Sampled and measured off the frame at 1:1; sizes from cap heights (Manrope's
 // cap height is 0.72 em). The colours are the same ones `JuniorProfileScreen`
 // sampled off the junior frame.
-
-/// The tab labels' size — the frame's labels ink at the junior bar's 10pt.
-const double _navLabelSize = 10;
 
 /// The E-Contract pill's outline.
 const Color _badgeOutline = Color(0xFFFFE8A3);

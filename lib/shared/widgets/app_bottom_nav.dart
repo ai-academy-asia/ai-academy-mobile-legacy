@@ -19,10 +19,17 @@ const double _iconSize = 24;
 /// remainder — set by measuring the render, not by arithmetic on the spec.
 const double _iconToLabelGap = 3;
 
-/// The label, sized so it inks the 10 the reference draws — two up from
-/// [AppTypography.badgeLabel]'s 10. The style is shared with three other
-/// widgets, so the size is overridden here rather than on the token.
+/// The label size. The Adult Home reference inks its labels at 10pt; the
+/// adult bar keeps 12 — two up from [AppTypography.badgeLabel]'s 10 — so the
+/// shell reads at the same scale as the page content (a product decision,
+/// Issue #188). The style is shared with three other widgets, so the size is
+/// overridden here rather than on the token.
 const double _labelSize = 12;
+
+/// The selected tab's icon and label — the Adult Home and Profile frames'
+/// `#2970FF`, the same blue the selected-tab SVGs carry. Not [AppColors.blue]
+/// (`#296CFF`), which is close but sampled from a different capture.
+const Color _selectedColor = Color(0xFF2970FF);
 
 /// One tab of [AppBottomNav].
 class AppBottomNavItem {
@@ -48,22 +55,22 @@ class AppBottomNavItem {
 }
 
 /// The app-wide bottom tab bar: an icon and label per tab, the selected one
-/// in [AppColors.blue].
+/// in the frames' `#2970FF`.
 ///
-/// Home, the cohort list and Profile all draw this one bar, so its geometry —
-/// [AppDimens.bottomNavHeight] and the sizes below, measured off the Course
-/// Catalog frame — is the geometry on all three. The junior frames draw the
-/// same bar with a smaller label, the tabs inset from the screen edges and
-/// their own blue, which [labelSize], [horizontalPadding] and
-/// [selectedColor] carry; each defaults to the adult bar's.
+/// Home, the cohort list and Profile all draw this one bar with its defaults
+/// and no overrides, so its geometry — [AppDimens.bottomNavHeight], the tabs
+/// inset [AppDimens.screenPadding] from both edges (tab centres at 76, 196.5
+/// and 317 on a 393pt screen, as the Adult Home reference places them) and
+/// the sizes above — is identical on all three (Issue #188). The junior
+/// frames draw the same bar with a smaller label, which [labelSize] carries.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.items,
     required this.currentIndex,
     super.key,
     this.labelSize = _labelSize,
-    this.horizontalPadding = 0,
-    this.selectedColor = AppColors.blue,
+    this.horizontalPadding = AppDimens.screenPadding,
+    this.selectedColor = _selectedColor,
   });
 
   final List<AppBottomNavItem> items;

@@ -192,8 +192,10 @@ abstract final class AppDimens {
   /// [avatarSize], the app's other 44pt circle, rather than inventing a size.
   static const double headerActionSize = avatarSize;
 
-  /// Height of the brand lockup in the Home header. A touch under
-  /// [avatarEditSize] — the reference's header reads more compact than the
-  /// rest of the app's 36–44pt marks.
-  static const double headerLogoHeight = 32;
+  /// Height of the brand lockup in the Home header. The reference draws it at
+  /// 32; it is drawn at [avatarEditSize]'s 36 so the header holds its own
+  /// against the page's large cards and type (a product decision, Issue
+  /// #188). Still under [headerActionSize], so the bell sets the header's
+  /// height and the rule below it does not move.
+  static const double headerLogoHeight = 36;
 }

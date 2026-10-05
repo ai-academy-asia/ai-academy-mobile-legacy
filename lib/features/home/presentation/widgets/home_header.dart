@@ -18,9 +18,9 @@ import 'home_palette.dart';
 /// "Asia" drawn as live text ([AppTypography.homeLogoWordmark]) — the same
 /// icon-plus-text split the splash screen uses, in place of the one flattened
 /// `ai_academy_logo.png` export this used to show. Both pieces are sized so
-/// the whole lockup still sits at [AppDimens.headerLogoHeight] (32), same as
-/// the old image did — the header's own height, padding and the bell's
-/// position are unchanged.
+/// the whole lockup sits at [AppDimens.headerLogoHeight] (36) — the frame's
+/// 32 scaled up a step (Issue #188). The lockup stays shorter than the bell,
+/// so the header's own height, padding and the bell's position are unchanged.
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key, this.onNotifications});
 
@@ -58,8 +58,9 @@ class HomeHeader extends StatelessWidget {
 }
 
 /// Icon mark + two-line wordmark, both held to
-/// [AppDimens.headerLogoHeight] (32) so the pair reads as one lockup at the
-/// same footprint the single flattened logo image used to occupy.
+/// [AppDimens.headerLogoHeight] (36) so the pair reads as one lockup. The
+/// gap and the wordmark's nudge are the frame's (3.5 and 4 beside a 32pt
+/// mark) scaled by the same 36 / 32 as the mark itself.
 class _BrandLockup extends StatelessWidget {
   const _BrandLockup();
 
@@ -75,13 +76,13 @@ class _BrandLockup extends StatelessWidget {
             height: AppDimens.headerLogoHeight,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 3.5),
-          // The reference sets the two lines 4pt below the mark's centre —
+          const SizedBox(width: 4),
+          // The reference sets the two lines below the mark's centre —
           // "Asia" sits on the mark's baseline — so the block is nudged down
           // rather than centred. A paint-time offset, so the lockup keeps
-          // its 32pt footprint.
+          // its 36pt footprint.
           Transform.translate(
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 4.5),
             child: Text(
               '${HomeStrings.wordmarkLine1}\n${HomeStrings.wordmarkLine2}',
               style: AppTypography.homeLogoWordmark,

@@ -79,7 +79,7 @@ Manrope, five weights, bundled (`assets/fonts/`), full Cyrillic coverage for the
 | `settingsRowLabel` | 14 / 20 / 500 | Settings row label |
 | `catalogSectionValue` | 13 / 18 / 600 | Value under a card caption |
 | `statLabel` | 13 / 18 / 500 | Statistic caption |
-| `homeLogoWordmark` | 13 / 1.2 / 800 | Home header wordmark |
+| `homeLogoWordmark` | 12.4 / 15.3 / 800 | Home header wordmark (the frame's 11 / 13.6 scaled with the 36pt lockup, Issue #188) |
 | `fieldValue` · `fieldPlaceholder` | 12 / 20 / 500 | Field text / placeholder |
 | `buttonLabel` | 12 / 20 / 600 | Button label |
 | `cardTitle` | 12 / 20 / 600 | Bottom-card title |
@@ -108,7 +108,7 @@ All carry `leadingDistribution: TextLeadingDistribution.even`. Local `.copyWith(
 | `screenPadding` | 16 | Left/right gutter |
 | `contentWidth` | 361 | `393 − 2×16`. Every block is this wide |
 
-Also global: `maxContentWidth` 480 (the column stops and centres on tablet/desktop rather than stretching), `fieldHeight` 56, `fieldGap` 12, `buttonHeight` 44, `buttonGap` 12, `cardPadding` 16, `caretSize` 18, `avatarSize` 44, `avatarEditSize` 36, `settingsRowHeight` 40, `settingsRowIconSize` 20, `bottomNavHeight` 56, `statIconTile` 36, `headerLogoHeight` 32, `progressBarHeight` 6, `strengthBarHeight` 6.
+Also global: `maxContentWidth` 480 (the column stops and centres on tablet/desktop rather than stretching), `fieldHeight` 56, `fieldGap` 12, `buttonHeight` 44, `buttonGap` 12, `cardPadding` 16, `caretSize` 18, `avatarSize` 44, `avatarEditSize` 36, `settingsRowHeight` 40, `settingsRowIconSize` 20, `bottomNavHeight` 72, `statIconTile` 36, `headerLogoHeight` 36 (the frame draws 32; one step up per Issue #188), `progressBarHeight` 6, `strengthBarHeight` 6.
 
 **Radii:** `fieldRadius` 12 · `cardRadius` 12 · `homeCardRadius` 16 (Home/Course-Learning cards are visibly rounder) · `checkboxRadius` 4 · `buttonRadius` = `buttonHeight / 2` (a pill).
 

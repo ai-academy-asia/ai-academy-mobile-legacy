@@ -293,14 +293,15 @@ abstract final class AppTypography {
 
   /// "AI academy" / "Asia" beside the icon mark in the Home header — the same
   /// brand wordmark [splashWordmark] draws, scaled down to fit
-  /// [AppDimens.headerLogoHeight] (32) rather than the splash screen's own
+  /// [AppDimens.headerLogoHeight] (36) rather than the splash screen's own
   /// 48pt lockup. Same family, weight and [AppColors.navy] colour as
-  /// [splashWordmark]. Measured off the Adult Home frames at 1:1: 11pt, the
-  /// two lines' caps 13.6 apart.
+  /// [splashWordmark]. The Adult Home frames draw it at 11pt, the two lines'
+  /// caps 13.6 apart, beside a 32pt mark; both are scaled by the lockup's
+  /// own 36 / 32 so the pair keeps the frame's proportions (Issue #188).
   static const TextStyle homeLogoWordmark = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 11,
-    height: 13.6 / 11,
+    fontSize: 12.4,
+    height: 15.3 / 12.4,
     fontWeight: FontWeight.w800,
     color: AppColors.navy,
     leadingDistribution: TextLeadingDistribution.even,
