@@ -10,8 +10,8 @@ import 'junior_home_palette.dart';
 /// The tab labels' size — see the class doc on [JuniorBottomNav].
 const double _labelSize = 10;
 
-/// The tab icons' nominal size — the junior frames' 24, under the adult
-/// bar's 26 (Issue #188).
+/// The tab icons' nominal size — the junior frames' 24, the adult bar's too,
+/// passed explicitly so the junior bar stays pinned to its own frames.
 const double _iconSize = 24;
 
 /// The current Профайл tab's glyph, exported from the Junior Profile frame.
@@ -22,11 +22,10 @@ const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
 /// match its height and rule — with the junior labels and glyphs, and every
 /// tab switched through [openStudentTab] on the junior track.
 ///
-/// Two things differ from the adult bar, and both junior reference frames
-/// agree on them: the icons sit in the frames' 24 box where the adult bar's
-/// are 26, and the labels ink at 10pt where the adult bar's are 13 (a
-/// "Сурлагын явц" 68 wide, not 85). The tab centres (76, 196.5 and 317,
-/// inside the screen's 16pt gutter) and the selected tab's
+/// One thing differs from the adult bar, and both junior reference frames
+/// agree on it: the labels ink at 10pt where the adult bar's are 13 (a
+/// "Сурлагын явц" 68 wide, not 85). The 24pt icon box, the tab centres (76,
+/// 196.5 and 317, inside the screen's 16pt gutter) and the selected tab's
 /// [JuniorPalette.accent] (`#2970FF`) are the junior frames' and also the
 /// shared bar's defaults since Issue #188; they are passed explicitly so the
 /// junior bar stays pinned to its own frames.

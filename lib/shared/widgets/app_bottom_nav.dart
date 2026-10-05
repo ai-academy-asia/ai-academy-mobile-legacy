@@ -9,17 +9,17 @@ import '../../core/theme/app_typography.dart';
 /// sampled off the reference frame at 1:1.
 const Color _dividerColor = Color(0xFFEAEDF0);
 
-/// The icon's nominal size. A Phosphor glyph inks about 0.88 of it: the
-/// reference's ~21 at 24, ~23 at the adult bar's 26 — one step up, close to
-/// the iOS tab-bar glyph's 25, so the shell reads at the page content's scale
-/// (a product decision, Issue #188). An [AppBottomNavItem.selectedAsset] is
-/// scaled with it — see [_assetGlyphBox].
-const double _iconSize = 26;
+/// The icon's nominal size. A Phosphor glyph inks about 0.88 of it — the
+/// reference's ~21. A 26pt step up was tried and read too dominant on a
+/// device beside the 13pt labels, so the bar keeps the reference's 24 (Issue
+/// #188). An [AppBottomNavItem.selectedAsset] is scaled with it — see
+/// [_assetGlyphBox].
+const double _iconSize = 24;
 
 /// The glyph box the selected-tab SVGs were exported for. They are the
 /// Phosphor *Fill* weight of the same glyphs the font draws in outline, sized
 /// for a 24pt glyph, so each is scaled by `iconSize / 24`: filled and outline
-/// stay the same size in any bar, and the junior bar's 24 draws them 1:1.
+/// stay the same size in any bar, and at the default 24 they draw 1:1.
 const double _assetGlyphBox = 24;
 
 /// The box between the icon and the label. The reference's 9 of clear space
@@ -71,8 +71,8 @@ class AppBottomNavItem {
 /// [AppDimens.bottomNavHeight], the tabs inset [AppDimens.screenPadding] from
 /// both edges (tab centres at 76, 196.5 and 317 on a 393pt screen, as the
 /// Adult Home reference places them) and the sizes above — is identical on
-/// all three (Issue #188). The junior frames draw the same bar with the
-/// reference's smaller icon and label, which [iconSize] and [labelSize] carry.
+/// all three (Issue #188). The junior frames draw the same bar with a smaller
+/// label, which [labelSize] carries; [iconSize] lets a bar pin its own.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.items,
