@@ -3,9 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
@@ -16,6 +14,7 @@ import '../../enrollments/domain/enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrollment_repository.dart';
 import '../../enrollments/presentation/enrolled_cohorts_controller.dart';
 import '../../enrollments/presentation/enrollment_controller.dart';
+import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import '../data/http_cohort_repository.dart';
 import '../domain/cohort.dart';
 import '../domain/cohort_repository.dart';
@@ -37,10 +36,6 @@ const Color _ruleColor = Color(0xFFEAEDF0);
 /// still clears the status bar; the reference's own chain confirms it, at a
 /// 59pt inset: 59 + 34 (box) + 14 = 107, the rule, and +1+16 = 124, card one.
 const double _headingTop = 0;
-
-/// The Courses tab's active glyph, which the design ships as artwork rather
-/// than as a weight of the icon font.
-const String _navCoursesSelectedAsset = 'assets/icons/nav_courses_selected.svg';
 
 /// The cohort list — every scheduled cohort across every course, or, when
 /// reached with a [courseId], only that course's cohorts. With [enrolledOnly]
@@ -157,37 +152,14 @@ class _CohortListScreenState extends State<CohortListScreen> {
         // grey page carrying white ones. The cards keep their own tint from
         // `cohort_background.svg`, so only the page changes here.
         backgroundColor: AppColors.surface,
-        bottomNavigationBar: AppBottomNav(
-          currentIndex: 1,
-          items: [
-            AppBottomNavItem(
-              icon: AppIcons.house,
-              label: CohortListStrings.navHome,
-              // Back to Home, the root of the stack.
-              onTap: () =>
-                  openStudentTab(context, StudentTrack.adult, StudentTab.home),
-            ),
-            AppBottomNavItem(
-              icon: AppIcons.bookOpenText,
-              selectedAsset: _navCoursesSelectedAsset,
-              label: CohortListStrings.navCourses,
-              // The student's own list *is* the Хичээл tab, so there is
-              // nowhere to go. Any other list was pushed from the course
-              // catalog, where returning to "Хичээл" is a plain pop.
-              onTap: widget.enrolledOnly
-                  ? null
-                  : () => Navigator.of(context).maybePop(),
-            ),
-            AppBottomNavItem(
-              icon: AppIcons.user,
-              label: CohortListStrings.navProfile,
-              onTap: () => openStudentTab(
-                context,
-                StudentTrack.adult,
-                StudentTab.profile,
-              ),
-            ),
-          ],
+        bottomNavigationBar: AdultBottomNav(
+          current: StudentTab.progress,
+          // The student's own list *is* the Хичээл tab, so there is nowhere
+          // to go. Any other list was pushed from the course catalog, where
+          // returning to "Хичээл" is a plain pop.
+          onCurrentTap: widget.enrolledOnly
+              ? null
+              : () => Navigator.of(context).maybePop(),
         ),
         body: SafeArea(
           bottom: false,

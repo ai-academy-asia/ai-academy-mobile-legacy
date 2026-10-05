@@ -3,9 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
@@ -15,6 +13,7 @@ import '../domain/home_dashboard_repository.dart';
 import 'attendance_detail_screen.dart';
 import 'home_controller.dart';
 import 'home_strings.dart';
+import 'widgets/adult_bottom_nav.dart';
 import 'widgets/attendance_card.dart';
 import 'widgets/contract_banner.dart';
 import 'widgets/home_header.dart';
@@ -86,35 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        bottomNavigationBar: AppBottomNav(
-          currentIndex: 0,
-          items: [
-            const AppBottomNavItem(
-              icon: AppIcons.house,
-              label: HomeStrings.navHome,
-              selectedAsset: HomeIcons.navHomeSelected,
-              // Already here.
-            ),
-            AppBottomNavItem(
-              icon: AppIcons.bookOpenText,
-              label: HomeStrings.navCourses,
-              onTap: () => openStudentTab(
-                context,
-                StudentTrack.adult,
-                StudentTab.progress,
-              ),
-            ),
-            AppBottomNavItem(
-              icon: AppIcons.user,
-              label: HomeStrings.navProfile,
-              onTap: () => openStudentTab(
-                context,
-                StudentTrack.adult,
-                StudentTab.profile,
-              ),
-            ),
-          ],
-        ),
+        bottomNavigationBar: const AdultBottomNav(current: StudentTab.home),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

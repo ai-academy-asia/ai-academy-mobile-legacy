@@ -12,16 +12,9 @@ abstract final class HomeStrings {
   /// Accessibility label for the header's notification control.
   static const String notifications = 'Мэдэгдэл';
 
-  /// Accessibility label for the brand lockup in the header.
+  /// Accessibility label for the brand lockup in the header — announced in
+  /// place of the wordmark artwork, one line as the splash screen reads it.
   static const String logo = 'AI academy Asia';
-
-  /// The wordmark's two lines, beside the icon mark — matches
-  /// `SplashStrings.wordmarkLine1`/`wordmarkLine2` verbatim (same brand mark,
-  /// kept as its own local copy rather than a cross-feature import, the same
-  /// way `NoteTab`'s sample student identity duplicates `ProfileStrings.name`
-  /// instead of importing it).
-  static const String wordmarkLine1 = 'AI academy';
-  static const String wordmarkLine2 = 'Asia';
 
   // --- Cohort card ----------------------------------------------------------
 
@@ -118,10 +111,14 @@ abstract final class HomeIcons {
   static const String _dir = 'assets/icons';
 
   /// The icon half of the header's brand lockup — the same bundled mark the
-  /// splash screen shows. The "AI academy" / "Asia" wordmark beside it is
-  /// drawn as text ([AppTypography.homeLogoWordmark]), not read off an image;
-  /// see `HomeHeader`'s own doc comment.
+  /// splash screen shows.
   static const String appIcon = 'assets/images/ai_academy_app_icon.png';
+
+  /// The "AI academy" / "Asia" half: the Figma frame's wordmark as outlined
+  /// vector paths, the same export the splash screen draws
+  /// (`SplashAssets.wordmark`). The design does not set it in Manrope, so
+  /// drawing it as live text could only approximate it (Issue #188).
+  static const String wordmark = 'assets/images/splash_wordmark.svg';
 
   static const String notification = '$_dir/notification.svg';
 
@@ -130,9 +127,6 @@ abstract final class HomeIcons {
   /// Profile's `e_contract.svg`, which is single-colour.
   static const String contract = '$_dir/contract_warning.svg';
 
-  /// The Home tab's selected glyph: Phosphor "House" filled, in the frames'
-  /// blue. The font only carries the outline weight.
-  static const String navHomeSelected = '$_dir/nav_home_selected.svg';
   static const String adult = '$_dir/adult.svg';
   static const String junior = '$_dir/junior.svg';
 

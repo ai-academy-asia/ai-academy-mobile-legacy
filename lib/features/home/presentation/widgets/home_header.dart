@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../home_strings.dart';
 import 'home_palette.dart';
 
@@ -14,13 +13,14 @@ import 'home_palette.dart';
 /// one, which is why this sits on [AppColors.surface] with a rule under it
 /// while the content below scrolls on the page grey.
 ///
-/// The lockup is the icon mark ([HomeIcons.appIcon]) beside "AI academy" /
-/// "Asia" drawn as live text ([AppTypography.homeLogoWordmark]) — the same
-/// icon-plus-text split the splash screen uses, in place of the one flattened
-/// `ai_academy_logo.png` export this used to show. Both pieces are sized so
-/// the whole lockup still sits at [AppDimens.headerLogoHeight] (32), same as
-/// the old image did — the header's own height, padding and the bell's
-/// position are unchanged.
+/// The lockup is the icon mark ([HomeIcons.appIcon]) beside the "AI academy"
+/// / "Asia" wordmark ([HomeIcons.wordmark]) — the same two Figma exports the
+/// splash screen draws. The wordmark is the frame's outlined vector paths,
+/// not live text: it is not set in Manrope, so text could only approximate
+/// it (Issue #188). The lockup sits at [AppDimens.headerLogoHeight] (40) —
+/// the frame's 32 scaled by 1.25 — while the bell stays at the frame's
+/// [AppDimens.headerActionSize] (44), so the header keeps the reference's
+/// height.
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key, this.onNotifications});
 
@@ -57,11 +57,20 @@ class HomeHeader extends StatelessWidget {
   }
 }
 
-/// Icon mark + two-line wordmark, both held to
-/// [AppDimens.headerLogoHeight] (32) so the pair reads as one lockup at the
-/// same footprint the single flattened logo image used to occupy.
+/// Icon mark + two-line wordmark, both drawn at [AppDimens.headerLogoHeight]
+/// (40) and sharing a bottom edge.
+///
+/// That one height reproduces the reference's proportions with the exports
+/// as they are: the wordmark's ink fills 29.9–96.4 of its 97-unit box, so it
+/// inks 27.4 tall with "Asia" sitting on the mark's baseline — the reference
+/// draws 0.675 × the mark (27.0 at 40) on the same baseline. [_gap] makes the
+/// ink-to-ink gap the reference's 5.3 beside a 32pt mark, scaled to 6.6.
 class _BrandLockup extends StatelessWidget {
   const _BrandLockup();
+
+  /// The box between the two exports: 6.6 of clear space less the mark's
+  /// own 1.65 of transparent margin and the wordmark's 1.93.
+  static const double _gap = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -75,17 +84,12 @@ class _BrandLockup extends StatelessWidget {
             height: AppDimens.headerLogoHeight,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 3.5),
-          // The reference sets the two lines 4pt below the mark's centre —
-          // "Asia" sits on the mark's baseline — so the block is nudged down
-          // rather than centred. A paint-time offset, so the lockup keeps
-          // its 32pt footprint.
-          Transform.translate(
-            offset: const Offset(0, 4),
-            child: Text(
-              '${HomeStrings.wordmarkLine1}\n${HomeStrings.wordmarkLine2}',
-              style: AppTypography.homeLogoWordmark,
-            ),
+          const SizedBox(width: _gap),
+          SvgPicture.asset(
+            HomeIcons.wordmark,
+            height: AppDimens.headerLogoHeight,
+            // The lockup's own [Semantics] announces it.
+            excludeFromSemantics: true,
           ),
         ],
       ),
@@ -93,8 +97,9 @@ class _BrandLockup extends StatelessWidget {
   }
 }
 
-/// The circular bell. Same 44pt circle, white fill and hairline border the
-/// profile header's edit control uses — one control shape, drawn twice.
+/// The circular bell: a white circle with a hairline border, the same control
+/// shape as the profile header's edit button, at the frame's
+/// [AppDimens.headerActionSize] (44) with its 20pt glyph.
 class _NotificationButton extends StatelessWidget {
   const _NotificationButton({required this.onTap});
 

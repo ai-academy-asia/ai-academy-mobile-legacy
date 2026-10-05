@@ -209,27 +209,25 @@ void main() {
       );
     });
 
-    testWidgets('the selected Courses tab draws the design\'s own glyph', (
+    testWidgets('the selected Courses tab draws its book filled blue', (
       tester,
     ) async {
       await pumpCatalog(tester);
 
-      // The reference ships the active Courses icon as artwork, not as a
-      // weight of the icon font, so the tab swaps the font glyph for the
-      // exact asset while selected.
-      final asset = find.byWidgetPredicate(
-        (w) =>
-            w is SvgPicture &&
-            w.bytesLoader.toString().contains('nav_courses_selected'),
+      // The filled weight of the same Phosphor book (Issue #188), scaled with
+      // the bar's icon size and tinted with its selected colour.
+      final nav = find.byType(AppBottomNav);
+      final svg = tester.widget<SvgPicture>(
+        find.descendant(of: nav, matching: find.byType(SvgPicture)),
       );
-      expect(asset, findsOneWidget);
-      // ...and therefore does not also draw the font glyph it replaces.
+      expect(svg.bytesLoader.toString(), contains('nav_courses_selected'));
+      expect(
+        svg.colorFilter,
+        const ColorFilter.mode(Color(0xFF2970FF), BlendMode.srcIn),
+      );
       expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
 
-      // Drawn at the asset's own 21x18 rather than scaled to the icon box.
-      expect(tester.getSize(asset), const Size(21, 18));
-
-      // The unselected tabs keep their font glyphs.
+      // The inactive tabs keep their outline glyphs.
       expect(find.byIcon(AppIcons.house), findsOneWidget);
       expect(find.byIcon(AppIcons.user), findsOneWidget);
     });
@@ -1352,6 +1350,14 @@ void main() {
       final nav = tester.widget<AppBottomNav>(find.byType(AppBottomNav));
       expect(nav.currentIndex, 1);
       expect(nav.items[1].onTap, isNull);
+
+      // The shared adult bar, unmodified — the geometry is the same on every
+      // adult tab screen (Issue #188).
+      const shared = AppBottomNav(items: [], currentIndex: 0);
+      expect(nav.iconSize, shared.iconSize);
+      expect(nav.labelSize, shared.labelSize);
+      expect(nav.horizontalPadding, shared.horizontalPadding);
+      expect(nav.selectedColor, shared.selectedColor);
     });
   });
 

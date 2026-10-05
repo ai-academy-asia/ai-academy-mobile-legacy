@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
+import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
@@ -465,10 +466,18 @@ void main() {
       final nav = tester.widget<AppBottomNav>(find.byType(AppBottomNav));
       expect(nav.currentIndex, 2);
       expect(nav.items.map((item) => item.label), [
-        ProfileStrings.navHome,
-        ProfileStrings.navCourses,
-        ProfileStrings.navProfile,
+        HomeStrings.navHome,
+        HomeStrings.navCourses,
+        HomeStrings.navProfile,
       ]);
+
+      // The shared adult bar, unmodified — the geometry is the same on every
+      // adult tab screen (Issue #188).
+      const shared = AppBottomNav(items: [], currentIndex: 0);
+      expect(nav.iconSize, shared.iconSize);
+      expect(nav.labelSize, shared.labelSize);
+      expect(nav.horizontalPadding, shared.horizontalPadding);
+      expect(nav.selectedColor, shared.selectedColor);
     });
 
     testWidgets('the courses tab opens the student\'s cohorts in its place', (

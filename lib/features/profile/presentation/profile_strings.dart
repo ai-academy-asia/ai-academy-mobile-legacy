@@ -70,12 +70,6 @@ abstract final class ProfileStrings {
   /// a new dependency (`package_info_plus`), which this screen does not need.
   static const String version = 'Version 1.2.4 (2025)';
 
-  // --- Bottom navigation --------------------------------------------------
-
-  static const String navHome = 'Нүүр';
-  static const String navCourses = 'Хичээл';
-  static const String navProfile = 'Профайл';
-
   // --- /auth/me failures ----------------------------------------------------
   //
   // Not shown on screen yet — the header falls back to [name] instead, the
@@ -122,8 +116,4 @@ abstract final class ProfileIcons {
   static const String helpCenter = '$_dir/help_center.svg';
   static const String termsOfService = '$_dir/term_of_service.svg';
   static const String privacyPolicy = '$_dir/privacy_policy.svg';
-
-  /// The current Профайл tab's solid user glyph — the frame's own export, the
-  /// same file the junior bar draws.
-  static const String navProfileSelected = '$_dir/nav_profile_selected.svg';
 }

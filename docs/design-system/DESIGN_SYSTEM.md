@@ -79,7 +79,6 @@ Manrope, five weights, bundled (`assets/fonts/`), full Cyrillic coverage for the
 | `settingsRowLabel` | 14 / 20 / 500 | Settings row label |
 | `catalogSectionValue` | 13 / 18 / 600 | Value under a card caption |
 | `statLabel` | 13 / 18 / 500 | Statistic caption |
-| `homeLogoWordmark` | 13 / 1.2 / 800 | Home header wordmark |
 | `fieldValue` · `fieldPlaceholder` | 12 / 20 / 500 | Field text / placeholder |
 | `buttonLabel` | 12 / 20 / 600 | Button label |
 | `cardTitle` | 12 / 20 / 600 | Bottom-card title |
@@ -108,7 +107,9 @@ All carry `leadingDistribution: TextLeadingDistribution.even`. Local `.copyWith(
 | `screenPadding` | 16 | Left/right gutter |
 | `contentWidth` | 361 | `393 − 2×16`. Every block is this wide |
 
-Also global: `maxContentWidth` 480 (the column stops and centres on tablet/desktop rather than stretching), `fieldHeight` 56, `fieldGap` 12, `buttonHeight` 44, `buttonGap` 12, `cardPadding` 16, `caretSize` 18, `avatarSize` 44, `avatarEditSize` 36, `settingsRowHeight` 40, `settingsRowIconSize` 20, `bottomNavHeight` 56, `statIconTile` 36, `headerLogoHeight` 32, `progressBarHeight` 6, `strengthBarHeight` 6.
+Also global: `maxContentWidth` 480 (the column stops and centres on tablet/desktop rather than stretching), `fieldHeight` 56, `fieldGap` 12, `buttonHeight` 44, `buttonGap` 12, `cardPadding` 16, `caretSize` 18, `avatarSize` 44, `avatarEditSize` 36, `settingsRowHeight` 40, `settingsRowIconSize` 20, `bottomNavHeight` 72, `statIconTile` 36, `headerLogoHeight` 40 (the frame draws 32; scaled up per Issue #188) beside `headerActionSize` 44 (the frame's own, so the Home header keeps the frame's height), `progressBarHeight` 6, `strengthBarHeight` 6.
+
+The Home header's "AI academy" / "Asia" wordmark is not a text style. It is the Figma export of outlined paths (`splash_wordmark.svg`, the splash screen's own), drawn at the lockup's height. The design does not set it in Manrope, so live text could only approximate it (Issue #188).
 
 **Radii:** `fieldRadius` 12 · `cardRadius` 12 · `homeCardRadius` 16 (Home/Course-Learning cards are visibly rounder) · `checkboxRadius` 4 · `buttonRadius` = `buttonHeight / 2` (a pill).
 
