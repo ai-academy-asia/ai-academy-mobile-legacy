@@ -67,10 +67,11 @@ const double _calendarInset = 6;
 ///  * the next-lesson lines — only when the schedule names one;
 ///  * the calendar — opens on today's month; the previous/next arrows page
 ///    to any other month, locally, without asking the API again. Each month
-///    shows the cohort's lesson days, and the days of attended (present or
-///    late) sessions marked attended. Today is selected only in its own
-///    month. Missed days are never marked: no missed/absent status is
-///    confirmed (BACKEND GAP).
+///    shows the cohort's lesson days, the days of `absent` sessions marked
+///    missed ("Хичээлээ тасалсан", unringed as the Junior frame draws it),
+///    and the days of attended (present or late) sessions marked attended.
+///    Today is selected only in its own month. A day is never marked missed
+///    without an `absent` session.
 ///
 /// Loading, failure and empty states are Junior Home's: a spinner, the same
 /// message strings with a retry, and the same empty copy.

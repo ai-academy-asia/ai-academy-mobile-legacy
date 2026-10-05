@@ -21,12 +21,12 @@ import '../domain/junior_progress_repository.dart';
 ///  * calendar — opens on today's month with today selected; its marks, for
 ///    that month and any the student pages to, come from a
 ///    [JuniorCalendarSource]: the cohort's scheduled days
-///    (`EnrolledProgram.schedule`) as lesson days, and the days of attended
-///    sessions (`AttendanceSummary.attendedDates`) as attended. No day is
-///    marked missed: no missed/absent status has been confirmed.
+///    (`EnrolledProgram.schedule`) as lesson days, the days of `absent`
+///    sessions (`AttendanceSummary.missedDates`) as missed, and the days of
+///    attended sessions (`AttendanceSummary.attendedDates`) as attended.
 ///
 /// What the API does not report stays out (see `JuniorProgress`): the
-/// contract banner, the exam result, and any missed day.
+/// contract banner and the exam result.
 class ApiJuniorProgressRepository implements JuniorProgressRepository {
   ApiJuniorProgressRepository({
     HomeDashboardRepository? dashboard,
@@ -52,6 +52,7 @@ class ApiJuniorProgressRepository implements JuniorProgressRepository {
     final calendar = JuniorCalendarSource(
       schedule: program.schedule,
       attendedDates: attendance?.attendedDates ?? const {},
+      missedDates: attendance?.missedDates ?? const {},
     );
 
     return JuniorProgress(

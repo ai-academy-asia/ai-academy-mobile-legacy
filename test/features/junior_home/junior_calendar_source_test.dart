@@ -45,7 +45,7 @@ void main() {
     expect(source.marksIn(september), isEmpty);
   });
 
-  test('without missed dates nothing is marked missed — Junior today', () {
+  test('without missed dates nothing is marked missed — never inferred', () {
     final source = JuniorCalendarSource(
       schedule: schedule,
       attendedDates: {DateTime(2026, 9, 1)},

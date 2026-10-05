@@ -244,7 +244,7 @@ void main() {
       );
 
       test('an attended day wins over its lesson mark; others stay lessons; '
-          'nothing is ever marked missed', () async {
+          'with no absent session nothing is marked missed', () async {
         // Only one of August's (Mon/Wed) lesson days has a session reported.
         final progress = (await ApiJuniorProgressRepository(
           dashboard: FakeHomeDashboardRepository(
@@ -297,6 +297,116 @@ void main() {
           ).getProgress())!;
 
           expect(progress.days[14], JuniorDayStatus.attended);
+        },
+      );
+    });
+
+    group('missed sessions (GET /me/attendance status "absent")', () {
+      // Cohort 7's shape (Tue/Thu/Sat, 16 Jun – 9 Jul 2026), seen in
+      // October: 23 June and 2 July absent, 9 July with no session at all.
+      final cohort7 = LessonSchedule(
+        weekdays: const {
+          DateTime.tuesday,
+          DateTime.thursday,
+          DateTime.saturday,
+        },
+        start: (9, 0),
+        end: (12, 0),
+        firstDay: DateTime(2026, 6, 16),
+        lastDay: DateTime(2026, 7, 9),
+      );
+
+      Future<JuniorProgress> progressWith({
+        required Set<DateTime> attendedDates,
+        required Set<DateTime> missedDates,
+        DateTime? at,
+      }) async => (await ApiJuniorProgressRepository(
+        dashboard: FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(
+            program: sampleProgram(schedule: cohort7),
+            stats: [
+              AttendanceStat(
+                AttendanceSummary(
+                  attended: attendedDates.length,
+                  total: attendedDates.length + missedDates.length,
+                  percent: 80,
+                  attendedDates: attendedDates,
+                  missedDates: missedDates,
+                ),
+                layout: HomeStatLayout.row,
+              ),
+            ],
+          ),
+        ),
+        clock: () => at ?? DateTime(2026, 10, 1, 10),
+      ).getProgress())!;
+
+      final attendedDates = {
+        for (final d in [16, 18, 20, 25, 27, 30]) DateTime(2026, 6, d),
+        for (final d in [4, 7]) DateTime(2026, 7, d),
+      };
+      final missedDates = {DateTime(2026, 6, 23), DateTime(2026, 7, 2)};
+
+      test('an absent session is marked missed in the months paging '
+          'reaches', () async {
+        final calendar = (await progressWith(
+          attendedDates: attendedDates,
+          missedDates: missedDates,
+        )).calendar!;
+
+        expect(calendar.marksIn(DateTime(2026, 6)), {
+          for (final d in [16, 18, 20, 25, 27, 30]) d: JuniorDayStatus.attended,
+          23: JuniorDayStatus.missed,
+        });
+        expect(calendar.marksIn(DateTime(2026, 7))[2], JuniorDayStatus.missed);
+      });
+
+      test('the month it opens on carries its missed days too', () async {
+        final progress = await progressWith(
+          attendedDates: attendedDates,
+          missedDates: missedDates,
+          at: DateTime(2026, 6, 24, 10),
+        );
+
+        expect(progress.month, DateTime(2026, 6));
+        expect(progress.days[23], JuniorDayStatus.missed);
+      });
+
+      test('a past lesson day with no session stays a lesson day — '
+          'missed is never inferred', () async {
+        final july = (await progressWith(
+          attendedDates: attendedDates,
+          missedDates: missedDates,
+        )).calendar!.marksIn(DateTime(2026, 7));
+
+        expect(july[9], JuniorDayStatus.lesson);
+        expect(
+          july.entries
+              .where((e) => e.value == JuniorDayStatus.missed)
+              .map((e) => e.key),
+          [2],
+        );
+      });
+
+      test('an attended session wins over a missed one on its day', () async {
+        final june = (await progressWith(
+          attendedDates: {DateTime(2026, 6, 23)},
+          missedDates: {DateTime(2026, 6, 23)},
+        )).calendar!.marksIn(DateTime(2026, 6));
+
+        expect(june[23], JuniorDayStatus.attended);
+      });
+
+      test(
+        'an absent session on an unscheduled day is still marked missed',
+        () async {
+          // A Monday — not a Tue/Thu/Sat meeting day.
+          final june = (await progressWith(
+            attendedDates: const {},
+            missedDates: {DateTime(2026, 6, 22)},
+          )).calendar!.marksIn(DateTime(2026, 6));
+
+          expect(june[22], JuniorDayStatus.missed);
         },
       );
     });

@@ -324,6 +324,56 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('an absent session draws the Figma missed mark — '
+        '"Хичээлээ тасалсан", unringed — in the month paged to', (
+      tester,
+    ) async {
+      // What `ApiJuniorProgressRepository` produces when `/me/attendance`
+      // reports 23 June absent and 16/18 June attended, seen in October.
+      final calendar = JuniorCalendarSource(
+        attendedDates: {DateTime(2026, 6, 16), DateTime(2026, 6, 18)},
+        missedDates: {DateTime(2026, 6, 23)},
+      );
+      final october = DateTime(2026, 10);
+      await pumpScreen(
+        tester,
+        progress: JuniorProgress(
+          month: october,
+          selectedDay: 1,
+          days: calendar.marksIn(october),
+          calendar: calendar,
+        ),
+      );
+      expect(marks(JuniorDayStatus.missed), findsNothing);
+
+      for (var i = 0; i < 4; i++) {
+        await tapArrow(tester, JuniorProgressStrings.previousMonth);
+      }
+      expect(find.text('Зургаадугаар сар, 2026'), findsOneWidget);
+
+      final missed = marks(JuniorDayStatus.missed);
+      expect(missed, findsOneWidget);
+      expect(tester.widget<JuniorDayMark>(missed).missedRing, isNull);
+      expect(
+        tester
+            .widgetList<SvgPicture>(
+              find.descendant(of: missed, matching: find.byType(SvgPicture)),
+            )
+            .map((svg) => (svg.bytesLoader as SvgAssetLoader).assetName)
+            .toList(),
+        [JuniorProgressIcons.lessonMissed],
+      );
+      expect(
+        find.descendant(
+          of: find.byType(JuniorProgressCalendar),
+          matching: find.bySemanticsLabel(JuniorProgressStrings.lessonMissed),
+        ),
+        findsOneWidget,
+      );
+      expect(marks(JuniorDayStatus.attended), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('only today\'s own month selects a day', (tester) async {
       await pumpScreen(tester, progress: juniorTestStudentInOctober());
       JuniorProgressCalendar calendar() =>
