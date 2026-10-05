@@ -1,14 +1,14 @@
 # Development Rules
 
-> Non-negotiable process rules. These extend — and never contradict — the short rule list in the repository root `CLAUDE.md`, which remains authoritative for its own items.
+> Non-negotiable process rules. The modes, the authority order and the canonical safety list are in the repository root [AGENTS.md](../../AGENTS.md); this document holds the detail behind them and never contradicts it.
 
 ## 1. Git workflow (non-negotiable)
 
-Exactly this order, every time:
+Every change that reaches `main` goes through this order:
 
-1. **Create the GitHub Issue first.**
+1. **A GitHub Issue exists for the work.** In agentic mode **the agent creates it** from the user's request ([AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) §3.3); the human does not.
 2. **Update local `main` from `origin/main`.**
-3. **Create the feature branch from the updated `main`.**
+3. **Create the feature branch from the updated `main`** — `feature/<issue-number>-<slug>`.
 4. **Work only inside the feature branch.**
 5. **Inspect before modifying.**
 6. Implement the task.
@@ -19,16 +19,20 @@ Exactly this order, every time:
 11. Open the PR.
 12. **A human developer reviews and merges.**
 
-Hard prohibitions:
+How the modes use it ([AGENTS.md](../../AGENTS.md) §2):
 
-- **NEVER create a branch before the Issue exists.**
-- **NEVER work directly on `main`.**
-- **NEVER auto-merge a PR.** Merging is the human developer's decision.
-- **NEVER force push, and never push to `main`.**
-- **Manual task:** never commit or push unless the task explicitly asks for it (`CLAUDE.md`). When a task ends without that instruction, leave the work uncommitted and report the changed files.
-- **Agentic Issue task** (the request names a GitHub Issue as the task, e.g. "Implement Issue #129"): steps 9–11 are part of the task — the agent commits, pushes the feature branch and opens the PR, then stops. Step 12 stays human. The stage-by-stage lifecycle is in [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md).
+- **Agentic mode** (the default for a change request): the agent performs steps 1–11 itself — including creating the Issue and the branch — then stops. Step 12 stays human. The stage-by-stage lifecycle is in [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md).
+- **Manual mode** (only when the user explicitly asks for a manual or isolated operation): the agent performs only the steps the user asks for. Never commit or push unless explicitly asked; otherwise leave the work uncommitted and report the changed files.
 
-Branch naming follows the existing history: `feat/…`, `fix/…`, `chore/…`, `docs/…`, or `feature/<issue-number>-<slug>`. Commit subjects are lowercase, type-prefixed and imperative — e.g. `feat: implement exercise detail quiz flow`, `docs: re-audit course learning backend APIs`.
+Hard prohibitions, in every mode (canonical list: [AGENTS.md](../../AGENTS.md) §4):
+
+- **NEVER create a branch before its Issue exists.**
+- **NEVER work directly on `main`, push to `main`, or delete `main`.**
+- **NEVER merge, approve or auto-merge a PR.** Merging is the human developer's decision.
+- **NEVER force push** or rewrite pushed history.
+- **NEVER `git add -A`, `git add .` or `git commit -a`** — stage edited files by explicit path.
+
+Branch naming: `feature/<issue-number>-<slug>` for all new work (older history also has `feat/…`, `fix/…`, `chore/…`, `docs/…`). Commit subjects are lowercase, type-prefixed, imperative and end with the Issue number — e.g. `feat: recover expired sessions with token refresh and retry (#176)`. The PR title matches the commit subject.
 
 ## 2. Destructive-command policy
 
@@ -54,7 +58,7 @@ What they actually contain (inspected, for context on why reverting them breaks 
 
 ## 4. Scope discipline
 
-From `CLAUDE.md`, restated because it is violated easily:
+From [AGENTS.md](../../AGENTS.md) §5, restated because it is violated easily:
 
 - **Inspect only files relevant to the current task.**
 - **Reuse** existing components, theme tokens and utilities before creating new ones.
@@ -93,13 +97,18 @@ Widget tests are the primary evidence. When a change is visual, verify it rather
 - **Follow the existing architecture** (see [ARCHITECTURE.md](ARCHITECTURE.md)): `data`/`domain`/`presentation`, `ChangeNotifier` controllers, injected repositories.
 - **Doc comments carry the reasoning.** This codebase explains *why* — why a widget is not reused, why a field is nullable, why a value was chosen — in doc comments rather than inline noise. Match that. A non-obvious decision should be explained where it lives.
 - **No `TODO`/`FIXME` markers exist anywhere in `lib/` or `test/`.** Do not introduce them; either do the work or document the gap in the right doc.
-- User-facing copy goes in that feature's `*_strings.dart`, verbatim from the design.
+- User-facing copy goes in that feature's `*_strings.dart`, verbatim from the design (mixed Mongolian/English is intentional). There is no localization framework; do not add one.
 - Icon codepoints must be **confirmed against the bundled font**, never guessed; fall back to a Material icon with a comment when no confirmed glyph exists.
+- Dart 3 features are available and used: records, patterns, `switch` expressions, `if (x case final y?)`.
+- Prefer `const` constructors; use private widget classes (`_Foo`) for screen-internal pieces.
+- Use `withValues(alpha: …)`, not the deprecated `withOpacity`.
+- `avoid_print` is active via `flutter_lints` — no debug prints.
 
 ## 7. Reporting
 
-Keep final reports concise (`CLAUDE.md`): **changed files, validation results, remaining issues.** Also:
+Keep final reports concise ([AGENTS.md](../../AGENTS.md) §5): **changed files, validation results, remaining issues.** Also:
 
 - List the three protected iOS files separately as untouched.
 - Separate *pre-existing* failures/warnings from ones the task caused.
-- State unknowns as `UNKNOWN` / `BACKEND GAP` rather than guessing.
+- State unknowns as `UNKNOWN` / `BACKEND GAP` / `PRODUCT DECISION` rather than guessing.
+- In agentic mode, add the Issue number, branch, commit hash and PR number ([AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) §8).

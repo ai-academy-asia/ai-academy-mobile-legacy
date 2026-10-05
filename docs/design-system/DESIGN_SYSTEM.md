@@ -6,9 +6,9 @@
 >
 > The official design system is to be **reconstructed from Figma**, not reverse-engineered from these widgets. Treat every value below as "what is implemented", never as "what is correct".
 
-### Reconciling this with `CLAUDE.md`
+### Reconciling this with `AGENTS.md`
 
-The root `CLAUDE.md` says: *"App UI follows the established Login design system; keep new screens visually consistent."* That rule still holds and is not in conflict with Figma-first — they operate at different levels:
+The root [AGENTS.md](../../AGENTS.md) §1 says new screens stay visually consistent with the established (Login-derived) design system by default. That rule still holds and is not in conflict with Figma-first — they operate at different levels:
 
 - **Default:** a new screen stays visually consistent with the established Login-derived system (these tokens). Do not invent a parallel visual language.
 - **Override:** where a Figma frame disagrees with what is implemented, **Figma wins and the code changes.**
