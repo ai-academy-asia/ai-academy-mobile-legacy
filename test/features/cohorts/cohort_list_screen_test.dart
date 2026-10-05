@@ -209,27 +209,20 @@ void main() {
       );
     });
 
-    testWidgets('the selected Courses tab draws the design\'s own glyph', (
+    testWidgets('the selected Courses tab keeps its outline book glyph', (
       tester,
     ) async {
       await pumpCatalog(tester);
 
-      // The reference ships the active Courses icon as artwork, not as a
-      // weight of the icon font, so the tab swaps the font glyph for the
-      // exact asset while selected.
-      final asset = find.byWidgetPredicate(
-        (w) =>
-            w is SvgPicture &&
-            w.bytesLoader.toString().contains('nav_courses_selected'),
+      // One drawing per destination on every screen (Issue #188): selection
+      // tints the outline glyph rather than swapping in other artwork.
+      final nav = find.byType(AppBottomNav);
+      expect(
+        find.descendant(of: nav, matching: find.byType(SvgPicture)),
+        findsNothing,
       );
-      expect(asset, findsOneWidget);
-      // ...and therefore does not also draw the font glyph it replaces.
-      expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
-
-      // Drawn at the asset's own 21x18 rather than scaled to the icon box.
-      expect(tester.getSize(asset), const Size(21, 18));
-
-      // The unselected tabs keep their font glyphs.
+      final book = tester.widget<Icon>(find.byIcon(AppIcons.bookOpenText));
+      expect(book.color, const Color(0xFF2970FF));
       expect(find.byIcon(AppIcons.house), findsOneWidget);
       expect(find.byIcon(AppIcons.user), findsOneWidget);
     });
@@ -1356,6 +1349,7 @@ void main() {
       // The shared adult bar, unmodified — the geometry is the same on every
       // adult tab screen (Issue #188).
       const shared = AppBottomNav(items: [], currentIndex: 0);
+      expect(nav.iconSize, shared.iconSize);
       expect(nav.labelSize, shared.labelSize);
       expect(nav.horizontalPadding, shared.horizontalPadding);
       expect(nav.selectedColor, shared.selectedColor);

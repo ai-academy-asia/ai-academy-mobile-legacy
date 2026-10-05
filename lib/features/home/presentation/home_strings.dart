@@ -130,9 +130,6 @@ abstract final class HomeIcons {
   /// Profile's `e_contract.svg`, which is single-colour.
   static const String contract = '$_dir/contract_warning.svg';
 
-  /// The Home tab's selected glyph: Phosphor "House" filled, in the frames'
-  /// blue. The font only carries the outline weight.
-  static const String navHomeSelected = '$_dir/nav_home_selected.svg';
   static const String adult = '$_dir/adult.svg';
   static const String junior = '$_dir/junior.svg';
 

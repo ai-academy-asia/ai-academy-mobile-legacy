@@ -9,10 +9,12 @@ import '../../core/theme/app_typography.dart';
 /// sampled off the reference frame at 1:1.
 const Color _dividerColor = Color(0xFFEAEDF0);
 
-/// The icon's nominal size, set so a Phosphor glyph inks the 21 the reference
-/// draws. An [AppBottomNavItem.selectedAsset] is drawn at its own intrinsic
-/// size instead and ignores this.
-const double _iconSize = 24;
+/// The icon's nominal size. A Phosphor glyph inks about 0.88 of it: the
+/// reference's ~21 at 24, ~23 at the adult bar's 26 — one step up, close to
+/// the iOS tab-bar glyph's 25, so the shell reads at the page content's scale
+/// (a product decision, Issue #188). An [AppBottomNavItem.selectedAsset] is
+/// drawn at its own intrinsic size instead and ignores this.
+const double _iconSize = 26;
 
 /// The box between the icon and the label. The reference's 9 of clear space
 /// between their ink is partly the label's own leading, so this is the
@@ -20,11 +22,11 @@ const double _iconSize = 24;
 const double _iconToLabelGap = 3;
 
 /// The label size. The Adult Home reference inks its labels at 10pt; the
-/// adult bar keeps 12 — two up from [AppTypography.badgeLabel]'s 10 — so the
-/// shell reads at the same scale as the page content (a product decision,
-/// Issue #188). The style is shared with three other widgets, so the size is
+/// adult bar uses 13 — the type scale's existing `statLabel` step, three up
+/// from [AppTypography.badgeLabel]'s 10 — so the shell reads at the same
+/// scale as the page content (a product decision, Issue #188). The style is shared with three other widgets, so the size is
 /// overridden here rather than on the token.
-const double _labelSize = 12;
+const double _labelSize = 13;
 
 /// The selected tab's icon and label — the Adult Home and Profile frames'
 /// `#2970FF`, the same blue the selected-tab SVGs carry. Not [AppColors.blue]
@@ -57,17 +59,19 @@ class AppBottomNavItem {
 /// The app-wide bottom tab bar: an icon and label per tab, the selected one
 /// in the frames' `#2970FF`.
 ///
-/// Home, the cohort list and Profile all draw this one bar with its defaults
-/// and no overrides, so its geometry — [AppDimens.bottomNavHeight], the tabs
-/// inset [AppDimens.screenPadding] from both edges (tab centres at 76, 196.5
-/// and 317 on a 393pt screen, as the Adult Home reference places them) and
-/// the sizes above — is identical on all three (Issue #188). The junior
-/// frames draw the same bar with a smaller label, which [labelSize] carries.
+/// Home, the cohort list and Profile all draw this one bar through
+/// `AdultBottomNav`, with its defaults and no overrides, so its geometry —
+/// [AppDimens.bottomNavHeight], the tabs inset [AppDimens.screenPadding] from
+/// both edges (tab centres at 76, 196.5 and 317 on a 393pt screen, as the
+/// Adult Home reference places them) and the sizes above — is identical on
+/// all three (Issue #188). The junior frames draw the same bar with the
+/// reference's smaller icon and label, which [iconSize] and [labelSize] carry.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.items,
     required this.currentIndex,
     super.key,
+    this.iconSize = _iconSize,
     this.labelSize = _labelSize,
     this.horizontalPadding = AppDimens.screenPadding,
     this.selectedColor = _selectedColor,
@@ -75,6 +79,9 @@ class AppBottomNav extends StatelessWidget {
 
   final List<AppBottomNavItem> items;
   final int currentIndex;
+
+  /// The tab icons' nominal size.
+  final double iconSize;
 
   /// The tab labels' font size.
   final double labelSize;
@@ -107,6 +114,7 @@ class AppBottomNav extends StatelessWidget {
                   child: _NavButton(
                     item: items[i],
                     selected: i == currentIndex,
+                    iconSize: iconSize,
                     labelSize: labelSize,
                     selectedColor: selectedColor,
                   ),
@@ -123,12 +131,14 @@ class _NavButton extends StatelessWidget {
   const _NavButton({
     required this.item,
     required this.selected,
+    required this.iconSize,
     required this.labelSize,
     required this.selectedColor,
   });
 
   final AppBottomNavItem item;
   final bool selected;
+  final double iconSize;
   final double labelSize;
   final Color selectedColor;
 
@@ -150,9 +160,9 @@ class _NavButton extends StatelessWidget {
             // tall as a font glyph's, so a tab with one is exactly as tall as
             // its neighbours and every label in the row stays on one line.
             SizedBox(
-              height: _iconSize,
+              height: iconSize,
               child: selectedAsset == null
-                  ? Icon(item.icon, size: _iconSize, color: color)
+                  ? Icon(item.icon, size: iconSize, color: color)
                   : Center(child: SvgPicture.asset(selectedAsset)),
             ),
             const SizedBox(height: _iconToLabelGap),

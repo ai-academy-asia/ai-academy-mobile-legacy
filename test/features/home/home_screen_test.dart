@@ -618,6 +618,7 @@ void main() {
       // The shared adult bar, unmodified — the geometry is the same on every
       // adult tab screen (Issue #188).
       const shared = AppBottomNav(items: [], currentIndex: 0);
+      expect(nav.iconSize, shared.iconSize);
       expect(nav.labelSize, shared.labelSize);
       expect(nav.horizontalPadding, shared.horizontalPadding);
       expect(nav.selectedColor, shared.selectedColor);

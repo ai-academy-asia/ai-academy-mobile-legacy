@@ -32,10 +32,4 @@ abstract final class CohortListStrings {
 
   static String timeRange(String startTime, String endTime) =>
       '$startTime–$endTime';
-
-  // --- Bottom navigation -------------------------------------------------
-
-  static const String navHome = 'Нүүр';
-  static const String navCourses = 'Хичээл';
-  static const String navProfile = 'Профайл';
 }

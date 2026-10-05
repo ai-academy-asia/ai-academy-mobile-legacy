@@ -18,9 +18,10 @@ import 'home_palette.dart';
 /// "Asia" drawn as live text ([AppTypography.homeLogoWordmark]) — the same
 /// icon-plus-text split the splash screen uses, in place of the one flattened
 /// `ai_academy_logo.png` export this used to show. Both pieces are sized so
-/// the whole lockup sits at [AppDimens.headerLogoHeight] (36) — the frame's
-/// 32 scaled up a step (Issue #188). The lockup stays shorter than the bell,
-/// so the header's own height, padding and the bell's position are unchanged.
+/// the whole lockup sits at [AppDimens.headerLogoHeight] (40) — the frame's
+/// 32 scaled by 1.25 (Issue #188). The bell grows from the frame's 44 to
+/// [AppDimens.headerActionSize] (48) with it, so the header is 4pt taller
+/// than the reference; its padding is unchanged.
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key, this.onNotifications});
 
@@ -58,9 +59,9 @@ class HomeHeader extends StatelessWidget {
 }
 
 /// Icon mark + two-line wordmark, both held to
-/// [AppDimens.headerLogoHeight] (36) so the pair reads as one lockup. The
+/// [AppDimens.headerLogoHeight] (40) so the pair reads as one lockup. The
 /// gap and the wordmark's nudge are the frame's (3.5 and 4 beside a 32pt
-/// mark) scaled by the same 36 / 32 as the mark itself.
+/// mark) scaled by the same 40 / 32 as the mark itself.
 class _BrandLockup extends StatelessWidget {
   const _BrandLockup();
 
@@ -76,13 +77,13 @@ class _BrandLockup extends StatelessWidget {
             height: AppDimens.headerLogoHeight,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 4.4),
           // The reference sets the two lines below the mark's centre —
           // "Asia" sits on the mark's baseline — so the block is nudged down
           // rather than centred. A paint-time offset, so the lockup keeps
-          // its 36pt footprint.
+          // its 40pt footprint.
           Transform.translate(
-            offset: const Offset(0, 4.5),
+            offset: const Offset(0, 5),
             child: Text(
               '${HomeStrings.wordmarkLine1}\n${HomeStrings.wordmarkLine2}',
               style: AppTypography.homeLogoWordmark,
@@ -94,8 +95,10 @@ class _BrandLockup extends StatelessWidget {
   }
 }
 
-/// The circular bell. Same 44pt circle, white fill and hairline border the
-/// profile header's edit control uses — one control shape, drawn twice.
+/// The circular bell: a white circle with a hairline border, the same control
+/// shape as the profile header's edit button, at
+/// [AppDimens.headerActionSize]. The glyph is the frame's 20 inside 44,
+/// scaled with the circle to 22 inside 48.
 class _NotificationButton extends StatelessWidget {
   const _NotificationButton({required this.onTap});
 
@@ -124,8 +127,8 @@ class _NotificationButton extends StatelessWidget {
             child: Center(
               child: SvgPicture.asset(
                 HomeIcons.notification,
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
               ),
             ),
           ),

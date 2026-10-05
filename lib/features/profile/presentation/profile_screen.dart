@@ -4,9 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -15,6 +13,7 @@ import '../../auth/presentation/reset_password_screen.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
@@ -174,37 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        // The shared adult bar, unmodified — the same one Home and the cohort
-        // list draw — with the frame's solid user glyph for the current tab.
-        bottomNavigationBar: AppBottomNav(
-          currentIndex: 2,
-          items: [
-            AppBottomNavItem(
-              icon: AppIcons.house,
-              label: ProfileStrings.navHome,
-              // Back to Home, the root of the stack.
-              onTap: () =>
-                  openStudentTab(context, StudentTrack.adult, StudentTab.home),
-            ),
-            AppBottomNavItem(
-              icon: AppIcons.bookOpenText,
-              label: ProfileStrings.navCourses,
-              // Always the student's own cohorts, whichever screen opened
-              // Profile — a pop would land on Home when Home opened it.
-              onTap: () => openStudentTab(
-                context,
-                StudentTrack.adult,
-                StudentTab.progress,
-              ),
-            ),
-            const AppBottomNavItem(
-              icon: AppIcons.user,
-              label: ProfileStrings.navProfile,
-              selectedAsset: ProfileIcons.navProfileSelected,
-              // Already here.
-            ),
-          ],
-        ),
+        bottomNavigationBar: const AdultBottomNav(current: StudentTab.profile),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

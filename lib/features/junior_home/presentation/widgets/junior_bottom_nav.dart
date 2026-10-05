@@ -10,20 +10,26 @@ import 'junior_home_palette.dart';
 /// The tab labels' size — see the class doc on [JuniorBottomNav].
 const double _labelSize = 10;
 
+/// The tab icons' nominal size — the junior frames' 24, under the adult
+/// bar's 26 (Issue #188).
+const double _iconSize = 24;
+
 /// The current Профайл tab's glyph, exported from the Junior Profile frame.
 const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
 
 /// The junior tab bar, as Junior Home, Junior "Сурлагын явц" and Junior
 /// Profile all draw it: the app-wide [AppBottomNav] — the junior frames
-/// match its height, rule and icon size — with the junior labels and glyphs,
-/// and every tab switched through [openStudentTab] on the junior track.
+/// match its height and rule — with the junior labels and glyphs, and every
+/// tab switched through [openStudentTab] on the junior track.
 ///
-/// Three things differ from the adult bar, and both junior reference frames
-/// agree on them: the labels ink at 10pt where the adult bar's are 12 (a
-/// "Сурлагын явц" 68 wide, not 85); the tab centres sit at 76, 196.5 and
-/// 317 — three equal tabs inside the screen's 16pt gutter rather than across
-/// its full width; and the selected tab is the junior frames' own
-/// [JuniorPalette.accent] (`#2970FF`), not the adult bar's `#296CFF`.
+/// Two things differ from the adult bar, and both junior reference frames
+/// agree on them: the icons sit in the frames' 24 box where the adult bar's
+/// are 26, and the labels ink at 10pt where the adult bar's are 13 (a
+/// "Сурлагын явц" 68 wide, not 85). The tab centres (76, 196.5 and 317,
+/// inside the screen's 16pt gutter) and the selected tab's
+/// [JuniorPalette.accent] (`#2970FF`) are the junior frames' and also the
+/// shared bar's defaults since Issue #188; they are passed explicitly so the
+/// junior bar stays pinned to its own frames.
 ///
 /// Each tab has an outline glyph and a solid one for when it is the current
 /// tab, as the three frames draw them. The bundled `Phosphor.ttf` carries one
@@ -64,6 +70,7 @@ class JuniorBottomNav extends StatelessWidget {
 
     return AppBottomNav(
       currentIndex: current.index,
+      iconSize: _iconSize,
       labelSize: _labelSize,
       horizontalPadding: AppDimens.screenPadding,
       selectedColor: JuniorPalette.accent,
