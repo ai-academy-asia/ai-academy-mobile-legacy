@@ -32,21 +32,60 @@ import 'junior_map_scenery.dart';
 /// route, the nodes and the two cards. The route is under the nodes so each line runs
 /// behind a node's rounded square, and the cards sit over the scenery the way
 /// the frame draws them, covering the island and the coin behind each one.
+///
+/// **The student's own route** (Issue #202). One node per module, in path
+/// order, however many the course has; the route joins them and ends at the
+/// certificate card, which sits under the last node — nothing is drawn for
+/// a stop the student does not have. See `JuniorMapGeometry.route`.
+///
+/// **Check-in.** The current module's node is the attendance check-in node
+/// ([JuniorLearningMap.checkInNode]). While a lesson is under way at [now]
+/// it is drawn as the frame draws it and a tap calls [onCheckIn]; otherwise
+/// it is grey and a tap opens the module like any other node.
 class JuniorLearningMapView extends StatelessWidget {
-  const JuniorLearningMapView({required this.map, super.key, this.onNodeTap});
+  const JuniorLearningMapView({
+    required this.map,
+    required this.now,
+    super.key,
+    this.onNodeTap,
+    this.onCheckIn,
+  });
 
   final JuniorLearningMap map;
+
+  /// What the check-in node's state is read against.
+  final DateTime now;
 
   /// Called with a completed or current node when it is tapped; locked nodes
   /// never call it. Null leaves every node inert.
   final ValueChanged<JuniorMapNode>? onNodeTap;
+
+  /// Called when the check-in node is tapped while check-in is open. Null
+  /// leaves that tap to [onNodeTap].
+  final VoidCallback? onCheckIn;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scale = constraints.maxWidth / JuniorMapGeometry.mapWidth;
-        final height = JuniorMapGeometry.mapHeight * scale;
+        final nodes = map.nodes;
+        final height = JuniorMapGeometry.mapHeightFor(nodes.length) * scale;
+        final checkIn = map.checkInNode;
+        final open = map.checkInOpenAt(now);
+
+        // The open check-in node opens the scanner; otherwise a completed or
+        // current node opens the course, and a locked one nothing.
+        VoidCallback? tapFor(JuniorMapNode node) {
+          if (identical(node, checkIn) && open && onCheckIn != null) {
+            return onCheckIn;
+          }
+          final onNodeTap = this.onNodeTap;
+          if (onNodeTap == null || node.state == JuniorNodeState.locked) {
+            return null;
+          }
+          return () => onNodeTap(node);
+        }
 
         Widget at(Rect rect, Widget child) => Positioned(
           left: rect.left * scale,
@@ -70,29 +109,28 @@ class JuniorLearningMapView extends StatelessWidget {
                   // The route, behind the nodes it joins.
                   Positioned.fill(
                     child: CustomPaint(
-                      painter: JuniorMapPathPainter(scale: scale),
+                      painter: JuniorMapPathPainter(
+                        scale: scale,
+                        connectors: JuniorMapGeometry.route([
+                          for (final node in nodes)
+                            node.state == JuniorNodeState.completed,
+                        ]),
+                      ),
                     ),
                   ),
 
-                  for (
-                    var i = 0;
-                    i < map.nodes.length && i < JuniorMapGeometry.nodes.length;
-                    i++
-                  )
+                  for (final (i, node) in nodes.indexed)
                     at(
-                      JuniorMapGeometry.nodes[i] &
+                      JuniorMapGeometry.nodeAt(i) &
                           const Size(
                             JuniorMapGeometry.nodeSize,
                             JuniorMapGeometry.nodeSize,
                           ),
                       JuniorMapNodeTile(
-                        node: map.nodes[i],
+                        node: node,
                         scale: scale,
-                        onTap:
-                            onNodeTap == null ||
-                                map.nodes[i].state == JuniorNodeState.locked
-                            ? null
-                            : () => onNodeTap!(map.nodes[i]),
+                        checkInOpen: identical(node, checkIn) ? open : null,
+                        onTap: tapFor(node),
                       ),
                     ),
 
@@ -105,7 +143,7 @@ class JuniorLearningMapView extends StatelessWidget {
                   ),
 
                   at(
-                    JuniorMapGeometry.certificateCard,
+                    JuniorMapGeometry.certificateFor(nodes.length),
                     JuniorCertificateCard(
                       certificate: map.certificate,
                       scale: scale,

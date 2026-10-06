@@ -4,6 +4,7 @@ import '../../course_learning/domain/course_learning_path.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/domain/course_module.dart';
 import '../../home/data/enrolled_home_dashboard_repository.dart';
+import '../../home/domain/home_dashboard.dart';
 import '../../home/domain/home_dashboard_repository.dart';
 import '../../home/domain/home_failure.dart';
 import '../domain/junior_home_repository.dart';
@@ -47,6 +48,7 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
   @override
   Future<JuniorLearningMap?> getLearningMap() async {
     final String slug;
+    final NextLesson? nextLesson;
     try {
       final dashboard = await _dashboard.getDashboard();
       final program = dashboard.program;
@@ -54,6 +56,7 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       // reading `HomeController.isEmpty` gives the adult dashboard.
       if (program == null) return null;
       slug = program.courseSlug;
+      nextLesson = program.nextLesson;
     } on HomeFailure catch (failure) {
       throw CourseLearningFailure(
         _kindFor(failure.kind),
@@ -61,7 +64,10 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       );
     }
 
-    return juniorMapFrom(await _learning.getCourseLearning(slug));
+    return juniorMapFrom(
+      await _learning.getCourseLearning(slug),
+      nextLesson: nextLesson,
+    );
   }
 }
 
@@ -83,7 +89,14 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 ///
 /// Public so the mapping can be tested directly against a [CourseLearningPath]
 /// built from a contract response, without standing up two repositories.
-JuniorLearningMap juniorMapFrom(CourseLearningPath path) => JuniorLearningMap(
+///
+/// [nextLesson] is the dashboard's, from the cohort's schedule — what the
+/// check-in node's live state reads (Issue #202).
+JuniorLearningMap juniorMapFrom(
+  CourseLearningPath path, {
+  NextLesson? nextLesson,
+}) => JuniorLearningMap(
+  nextLesson: nextLesson,
   courseSlug: path.courseSlug,
   progress: JuniorCourseProgress(
     title: path.courseTitle,

@@ -229,4 +229,17 @@ void main() {
       expect(map.progress.title, isNotEmpty);
     });
   });
+
+  test('carries the dashboard\'s next lesson for the check-in node '
+      '(Issue #202)', () async {
+    final lesson = NextLesson(
+      startsAt: DateTime(2026, 10, 6, 9),
+      endsAt: DateTime(2026, 10, 6, 11),
+    );
+    final map = await repositoryFor(
+      dashboard: HomeDashboard(program: sampleProgram(nextLesson: lesson)),
+    ).getLearningMap();
+
+    expect(map?.nextLesson, same(lesson));
+  });
 }

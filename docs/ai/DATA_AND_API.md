@@ -30,7 +30,7 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 |---|---|---|
 | `GET /me/cohorts` | entry `cohort_id`, `progress_pct` | which cohorts the student is in; progress fallback |
 | `GET /cohorts` | `id`, `name`, `status`, `course.slug`/`title_*`, `start_date`, `end_date`, `start_time`, `end_time`, `meeting_days` | the cohort in view; `LessonSchedule` → next lesson, the attendance calendars' lesson days, and (`start_date`) the earliest month they page back to (Issue #200) |
-| `GET /me/courses/{slug}/learning` | `progress.percent`, per-module `completed` | course progress (adult cohort card, Junior Home map) |
+| `GET /me/courses/{slug}/learning` | `progress.percent`, per-module `completed`/`locked`, `continue.module_id` | course progress (adult cohort card, Junior Home map); the Junior map's nodes, one per module, and its check-in node (the current module, preferring `continue.module_id`, Issue #202) |
 | `GET /me/attendance?course=` | `summary.attended`, `summary.total_past`, `summary.percent`; per `sessions[]` entry `date`, `status` | the attendance card / badge — the server's figures, never re-derived; the attended and missed calendar marks (Adult attendance detail, Junior "Сурлагын явц") |
 | `GET /me/ledger` | per enrollment `cohort.id`, `balance`, `next_due_date` | the payment card: due in N days, overdue, or absent when nothing is owed |
 
@@ -39,6 +39,8 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 - **Status values seen:** `"present"`, `"late"`, `"absent"`, and **`null`** — kept as a raw `String?`, the set is not known to be closed. `absent` and `null` were confirmed by the adult `corp.s01`–`corp.s10` responses (cohort 3, `ai-corporate-leaders`, Issue #170): each lists 9 past sessions with a status and **3 future sessions (not held yet) with `"status": null`**. Before #170 the parser required a string, so a single future session failed the whole response and the attendance card disappeared.
 - **`late` counts as attended:** that response lists 10 `present` + 1 `late`, and its `summary.attended` is 11 of `total_past` 11; the adult `corp.s01` response agrees (7 `present` + 1 `late` = `attended` 8 of `total_past` 9). `AttendanceSession.countsAsAttended` is true for exactly those two values; `absent`, `null` and anything unknown get no attended mark.
 - **`absent` is marked missed, and only `absent`:** `AttendanceSession.countsAsMissed` is true for exactly that value. Its day gets the frames' missed mark — on the Adult attendance detail calendar (Issue #172, red-ringed) and the Junior "Сурлагын явц" calendar (Issue #180, "Хичээлээ тасалсан", unringed). An attended session wins on the same day. **No missed day is ever inferred** — not from a past lesson date with no session, not from a `null` or unknown status.
+
+**Attendance check-in has no confirmed endpoint (`BACKEND GAP`).** The Junior Home check-in node's open window is the app's own rule from the `GET /cohorts` schedule (a lesson under way: `start_time` ≤ now < `end_time` on a meeting day inside `start_date`…`end_date`), the same rule as Adult Home's attendance action. No backend sends a check-in window, and the scanner submits nothing (Issue #202).
 
 **Not read, because not confirmed:** `/me/ledger` `installments` (the verified response had it empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no exam figure is worked out from assignment or quiz scores.
 
