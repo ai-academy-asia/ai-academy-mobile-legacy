@@ -7,6 +7,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_attachment_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_tab.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_upload_dropzone.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
@@ -1970,6 +1971,197 @@ void main() {
       // The lesson itself stays on screen — only the save failed.
       expect(find.text(CourseLearningStrings.retry), findsNothing);
       expect(find.text('Давталт'), findsOneWidget);
+    });
+
+    group('assignment attachment (§2.6)', () {
+      /// A backend lesson whose assignment carries [attachment], with the
+      /// sample's two lesson materials (ids 1 and 2) unless [materials] says.
+      FakeCourseLearningRepository withAttachment(
+        CourseExerciseMaterial? attachment, {
+        List<CourseExerciseMaterial>? materials,
+      }) => FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          title: 'Давталт',
+          assignmentFeedback: const [],
+          simulatesWrites: false,
+          materials: materials,
+          assignment: CourseAssignment(id: 17, attachment: attachment),
+        ),
+      );
+
+      final file = sampleMaterial(
+        id: 55,
+        name: 'Homework template',
+        sizeLabel: '2 MB',
+      );
+      final link = sampleLinkMaterial(
+        id: 56,
+        name: 'Starter repository',
+        url: 'https://github.com/ai-academy/starter?ref=lesson-204#readme',
+      );
+
+      /// Pumps [repository]'s lesson and opens the Course materials tab;
+      /// answers the URLs the OS was asked to open.
+      Future<List<Uri>> openMaterialsTab(
+        WidgetTester tester,
+        FakeCourseLearningRepository repository,
+      ) async {
+        final opened = <Uri>[];
+        await pumpScreen(
+          tester,
+          repository,
+          lessonId: 204,
+          openUrl: (url) async {
+            opened.add(url);
+            return true;
+          },
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(CourseLearningStrings.courseMaterialsTab));
+        await tester.pumpAndSettle();
+        return opened;
+      }
+
+      List<String> materialRows(WidgetTester tester) => [
+        for (final card in tester.widgetList<CourseMaterialCard>(
+          find.byType(CourseMaterialCard),
+        ))
+          card.material.name,
+      ];
+
+      testWidgets('without one, the materials tab lists the lesson\'s '
+          'materials exactly as before', (tester) async {
+        await openMaterialsTab(tester, withAttachment(null));
+
+        expect(
+          tester
+              .widgetList<CourseMaterialCard>(find.byType(CourseMaterialCard))
+              .map((card) => card.material.id),
+          [1, 2],
+        );
+      });
+
+      testWidgets('a file attachment is a materials row, after the lesson\'s '
+          'own', (tester) async {
+        await openMaterialsTab(tester, withAttachment(file));
+
+        expect(find.byType(CourseMaterialCard), findsNWidgets(3));
+        expect(materialRows(tester).last, 'Homework template');
+        expect(
+          find.descendant(
+            of: find.byType(CourseMaterialCard).last,
+            matching: find.text('2 MB'),
+          ),
+          findsOneWidget,
+        );
+        // The existing row, not the sample's Assignment-tab card.
+        expect(find.byType(AssignmentAttachmentCard), findsNothing);
+      });
+
+      testWidgets('a link attachment is a materials row too', (tester) async {
+        await openMaterialsTab(tester, withAttachment(link));
+
+        expect(find.byType(CourseMaterialCard), findsNWidgets(3));
+        expect(materialRows(tester).last, 'Starter repository');
+        expect(find.byType(AssignmentAttachmentCard), findsNothing);
+      });
+
+      testWidgets('a file attachment opens through its signed download', (
+        tester,
+      ) async {
+        final repository = withAttachment(file);
+        final opened = await openMaterialsTab(tester, repository);
+
+        await tester.tap(find.bySemanticsLabel('Download').last);
+        await tester.pumpAndSettle();
+
+        expect(repository.downloadCalls, [55]);
+        expect(opened, [sampleDownload(materialId: 55).url]);
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+      });
+
+      testWidgets('a link attachment opens its own URL — no download is '
+          'asked for', (tester) async {
+        final repository = withAttachment(link);
+        final opened = await openMaterialsTab(tester, repository);
+
+        await tester.tap(find.bySemanticsLabel('Download').last);
+        await tester.pumpAndSettle();
+
+        expect(repository.downloadCalls, isEmpty);
+        expect(opened, [link.url]);
+        expect(find.bySemanticsLabel('Downloaded'), findsOneWidget);
+      });
+
+      testWidgets('one that is also a lesson material is listed once', (
+        tester,
+      ) async {
+        await openMaterialsTab(
+          tester,
+          withAttachment(
+            sampleMaterial(id: 2, sizeLabel: '12 MB'),
+            materials: [
+              sampleMaterial(),
+              sampleMaterial(id: 2, sizeLabel: '12 MB'),
+            ],
+          ),
+        );
+
+        expect(find.byType(CourseMaterialCard), findsNWidgets(2));
+      });
+
+      testWidgets('the Assignment tab is unchanged: the link field stays, '
+          'nothing is attached there, and Submit needs only the link', (
+        tester,
+      ) async {
+        final repository = withAttachment(file);
+        await pumpScreen(tester, repository, lessonId: 204);
+        await tester.pumpAndSettle();
+
+        // The student's own form, exactly as without an attachment.
+        expect(find.byType(AssignmentAttachmentCard), findsNothing);
+        final fields = tester.widgetList<ExerciseTextField>(
+          find.byType(ExerciseTextField),
+        );
+        expect(fields, hasLength(2));
+        expect(
+          find.text(CourseLearningStrings.linkPlaceholder),
+          findsOneWidget,
+        );
+        expect(find.byType(CourseMaterialCard), findsNothing);
+        expect(
+          tester
+              .widget<ExerciseSubmitButton>(
+                submitButtonLabelled(CourseLearningStrings.submit),
+              )
+              .onPressed,
+          isNull,
+        );
+
+        // A link alone enables Submit — the attachment was never opened.
+        await tester.enterText(
+          find.byType(TextField).first,
+          'https://github.com/student/loops',
+        );
+        await tester.pump();
+        expect(
+          tester
+              .widget<ExerciseSubmitButton>(
+                submitButtonLabelled(CourseLearningStrings.submit),
+              )
+              .onPressed,
+          isNotNull,
+        );
+
+        await tester.tap(submitButtonLabelled(CourseLearningStrings.submit));
+        await tester.pumpAndSettle();
+
+        expect(repository.submitCalls, [
+          (17, 'https://github.com/student/loops', null),
+        ]);
+        expect(repository.downloadCalls, isEmpty);
+      });
     });
 
     group('material download', () {

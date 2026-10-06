@@ -716,6 +716,51 @@ void main() {
       },
     );
 
+    test('a link attachment opens its own URL — it is not among the lesson\'s '
+        'materials, and no download is asked for', () async {
+      final link = sampleLinkMaterial(
+        id: 56,
+        url: 'https://github.com/ai-academy/starter?ref=lesson-204#readme',
+      );
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          materials: [sampleMaterial(id: 88)],
+          assignment: CourseAssignment(id: 17, attachment: link),
+        ),
+      );
+      final (controller, opened) = await loaded(repository);
+
+      final result = await controller.downloadMaterial(56);
+
+      expect(result, isTrue);
+      expect(repository.downloadCalls, isEmpty);
+      expect(opened, [link.url]);
+      expect(controller.isMaterialOpened(56), isTrue);
+    });
+
+    test('a file attachment opens its signed download URL', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(
+          lessonId: 204,
+          materials: [sampleMaterial(id: 88)],
+          assignment: CourseAssignment(
+            id: 17,
+            attachment: sampleMaterial(id: 55, name: 'Homework template'),
+          ),
+        ),
+      );
+      final (controller, opened) = await loaded(repository);
+
+      final result = await controller.downloadMaterial(55);
+
+      expect(result, isTrue);
+      expect(repository.downloadCalls, [55]);
+      expect(opened, [sampleDownload(materialId: 55).url]);
+      expect(controller.isMaterialOpened(55), isTrue);
+      expect(controller.isMaterialOpened(88), isFalse);
+    });
+
     test('beside a link, a file still opens its signed download URL', () async {
       final repository = FakeCourseLearningRepository(
         exercise: sampleExercise(

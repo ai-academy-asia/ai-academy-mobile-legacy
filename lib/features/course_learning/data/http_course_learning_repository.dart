@@ -667,8 +667,8 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
         ?_materialFrom(entry),
     ],
     completed: _requireBool(decoded, 'lesson.completed'),
-    // The assignment submission is not integrated. (The note is — see
-    // `saveNote`.)
+    // A backend lesson's writes are real — see
+    // `CourseExercise.simulatesWrites`.
     simulatesWrites: false,
     note: _noteFrom(decoded['note'], now: now),
     assignment: _assignmentFrom(decoded['assignment'], now: now),
@@ -903,7 +903,8 @@ String _bulletText(Object? bullet) {
 }
 
 /// A §2.4 material — the two kinds the contract names, each drawn as a
-/// materials-tab row.
+/// materials-tab row. Read for a lesson's `materials` and for its
+/// assignment's `attachment` alike (§2.4: "the same material object").
 ///
 /// Read for a `file`: `id`, `title` and `size_bytes`. Read for a `link`:
 /// `id`, `title` and `url` — §2.4: "external URL — then `url` is included and
@@ -974,9 +975,12 @@ CourseExerciseNote _savedNoteFrom(String body, {required DateTime now}) {
 
 /// §2.6's `assignment`, or null — the lesson has none.
 ///
-/// Read: `id` and `submission`. Not read, because the Assignment tab has no
-/// place for them yet: `title`, `instructions`, `due_date`, `max_score` and
-/// `attachment`.
+/// Read: `id`, `submission` and `attachment`. `attachment` is "§2.4 material
+/// object or null", so it is read by the same [_materialFrom] as the
+/// lesson's `materials`, with the same rules: `null` is none, an
+/// unrecognised `type` is left out, and anything malformed is a server
+/// fault. Not read, because the screen has no place for them yet: `title`,
+/// `instructions`, `due_date` and `max_score`.
 CourseAssignment? _assignmentFrom(Object? assignment, {required DateTime now}) {
   if (assignment == null) return null;
   if (assignment is! Map<String, dynamic>) {
@@ -987,9 +991,11 @@ CourseAssignment? _assignmentFrom(Object? assignment, {required DateTime now}) {
           '${assignment.runtimeType}',
     );
   }
+  final attachment = assignment['attachment'];
   return CourseAssignment(
     id: _requireInt(assignment, 'assignment.id'),
     submission: _submissionFrom(assignment['submission'], now: now),
+    attachment: attachment == null ? null : _materialFrom(attachment),
   );
 }
 

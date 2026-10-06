@@ -6,16 +6,15 @@ import 'lesson.dart';
 /// Filled by `HttpCourseLearningRepository` from `GET /me/lessons/{lesson_id}`
 /// (`course_learning_api_contract_v1.md` §2.3), or by the sample repository.
 ///
-/// From the backend, the read-only content is real: [lessonId], [moduleId],
+/// From the backend, the content is real: [lessonId], [moduleId],
 /// [moduleCaption], [title], [type], [durationLabel], [hasVideo], [summary],
-/// [extraSections], [completed], the file [materials] and the [note] — which
-/// is also saved back, through `CourseLearningRepository.saveNote`. Each
-/// file material can be downloaded, through `getMaterialDownload`. The
-/// assignment cannot be submitted — see [simulatesWrites] — but its state is
-/// read, into [assignment]. The quiz (§2.7 sends a summary, not questions)
-/// and the rest of the assignment workflow (§2.6) are not integrated, so a
-/// backend lesson carries no [quiz], no [assignmentFeedback] and no
-/// [assignmentAttachment].
+/// [extraSections], [completed], the [materials], the [note] — which is also
+/// saved back, through `CourseLearningRepository.saveNote` — the
+/// [assignment], with its latest submission and its teacher-provided
+/// attachment, and the [quiz] summary. [allMaterials] is what the Course
+/// materials tab lists: the lesson's materials and the assignment's
+/// attachment together. A backend lesson carries no [assignmentFeedback]
+/// and no [assignmentAttachment]: those are the sample's.
 class CourseExercise {
   const CourseExercise({
     required this.lessonId,
@@ -76,7 +75,26 @@ class CourseExercise {
   /// expands past [summary]. Empty when there is nothing more to show.
   final List<CourseExerciseSection> extraSections;
 
+  /// The lesson's own materials — §2.3's `materials`, in the server's order.
   final List<CourseExerciseMaterial> materials;
+
+  /// What the Course materials tab lists: [materials], then the
+  /// [assignment]'s teacher-provided [CourseAssignment.attachment], if any.
+  ///
+  /// The attachment is a reference for the student, not part of their
+  /// submission, so it sits with the other materials and opens the same
+  /// way. §2.4: it "is the same material object, so both widgets share one
+  /// model and one download path". The contract does not say whether an
+  /// attachment can also be one of [materials]; one that is keeps its place
+  /// there and is not listed a second time.
+  List<CourseExerciseMaterial> get allMaterials {
+    final attachment = assignment?.attachment;
+    if (attachment == null ||
+        materials.any((material) => material.id == attachment.id)) {
+      return materials;
+    }
+    return [...materials, attachment];
+  }
 
   /// Whether the student has completed the lesson — server-sent. No control
   /// draws it yet.
@@ -86,10 +104,10 @@ class CourseExercise {
   /// download are local simulations that never leave the device — the
   /// download button just flips to "downloaded".
   ///
-  /// False for a lesson loaded from the backend: the assignment submission
-  /// API is not integrated, so the screen shows the Assignment tab disabled
-  /// rather than let a submission look sent; and a material's download
-  /// button fetches a real link (`CourseLearningRepository.
+  /// False for a lesson loaded from the backend: the Assignment tab submits
+  /// through `CourseLearningRepository.submitAssignment` when the lesson has
+  /// an [assignment] (and is disabled when it has none), and a material's
+  /// download button fetches a real link (`CourseLearningRepository.
   /// getMaterialDownload`) and opens it. The note is not governed by this —
   /// every repository saves it through `saveNote`.
   final bool simulatesWrites;
@@ -145,7 +163,11 @@ class CourseExercise {
     if (assignment == null) return this;
     return _copyWith(
       note: note,
-      assignment: CourseAssignment(id: assignment.id, submission: submission),
+      assignment: CourseAssignment(
+        id: assignment.id,
+        submission: submission,
+        attachment: assignment.attachment,
+      ),
       quiz: quiz,
     );
   }
@@ -277,18 +299,26 @@ class AssignmentMentorFeedback {
 
 /// A lesson's assignment, as §2.6 sends it inside `GET /me/lessons/{id}`.
 ///
-/// Only what the existing Assignment tab has a place for is modelled: which
-/// assignment it is and the student's latest [submission]. `title`,
-/// `instructions`, `due_date`, `max_score` and `attachment` are real fields
-/// the design does not draw yet, so they are not read.
+/// Only what the screen has a place for is modelled: which assignment it is,
+/// the student's latest [submission], and the teacher's [attachment].
+/// `title`, `instructions`, `due_date` and `max_score` are real fields the
+/// design does not draw yet, so they are not read.
 class CourseAssignment {
-  const CourseAssignment({required this.id, this.submission});
+  const CourseAssignment({required this.id, this.submission, this.attachment});
 
   final int id;
 
   /// The latest submission — §2.6 always shows the newest version. Null when
   /// the student has not submitted: the tab's unsubmitted state.
   final AssignmentSubmission? submission;
+
+  /// A reference file or link the teacher attached to the assignment — §2.6's
+  /// `attachment`, a §2.4 material. Null when there is none.
+  ///
+  /// Shown with the lesson's materials (see [CourseExercise.allMaterials]),
+  /// never in the Assignment tab: it is not the student's submission, and
+  /// opening it has no bearing on submitting.
+  final CourseExerciseMaterial? attachment;
 }
 
 /// The student's latest submission to a [CourseAssignment]. Server-sent in
