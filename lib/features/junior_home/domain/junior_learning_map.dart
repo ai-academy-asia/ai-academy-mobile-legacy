@@ -14,6 +14,9 @@ import '../../home/domain/home_dashboard.dart';
 ///   support. Which of several open modules the student should resume is a
 ///   separate server answer — `continue.module_id`, kept on
 ///   [JuniorLearningMap.continueModuleId] rather than folded in here.
+///
+/// These are the *server's* states. What the map draws for each node is
+/// [JuniorLearningMap.stateOf], which keeps one module current (Issue #204).
 enum JuniorNodeState { completed, current, locked }
 
 /// Where the student stands on earning the course certificate.
@@ -29,10 +32,15 @@ enum JuniorCertificateStatus { notEligible, eligible, issued }
 /// rather than on a grid this data could describe. See
 /// `junior_map_geometry.dart` for the route.
 class JuniorMapNode {
-  const JuniorMapNode({required this.id, required this.state});
+  const JuniorMapNode({required this.id, required this.state, this.title = ''});
 
+  /// The module's own id — what a tap opens (Issue #204).
   final int id;
   final JuniorNodeState state;
+
+  /// The module's title — the heading of the lessons a tap opens. Empty for
+  /// a sample node.
+  final String title;
 }
 
 /// The course strip at the top of the map: what the student is studying, and
@@ -135,16 +143,37 @@ class JuniorLearningMap {
       nodes.isNotEmpty &&
       nodes.every((node) => node.state == JuniorNodeState.completed);
 
-  /// The attendance check-in node (Issue #202): the current module's node,
-  /// the one the frame draws with the QR mark. The server's
-  /// [continueModuleId] when that module is current, otherwise the first
-  /// current module in path order. Null when no module is current — a
-  /// completed program has none, and neither does one whose modules are all
-  /// locked.
+  /// The student's one current module (Issue #204) — the attendance
+  /// check-in node (Issue #202), the one the frame draws with the QR mark.
+  ///
+  /// The server's own answer, `continue.module_id`: the contract (§2.1)
+  /// selects it as "the first unlocked, uncompleted lesson's module, or the
+  /// last one when everything is done" — so it is only current while that
+  /// module is unfinished. When `continue` names no open, unfinished module
+  /// listed here, the first open, unfinished module in path order: the same
+  /// rule at module level. Null when there is none — a completed program,
+  /// or one with nothing unlocked (`continue: null`).
+  ///
+  /// A module that is merely unlocked and unfinished is **not** current:
+  /// a course can unlock several at once, and the map draws one stop at a
+  /// time.
   JuniorMapNode? get checkInNode {
-    final current = nodes.where((n) => n.state == JuniorNodeState.current);
-    return current.where((n) => n.id == continueModuleId).firstOrNull ??
-        current.firstOrNull;
+    final open = nodes.where((n) => n.state == JuniorNodeState.current);
+    return open.where((n) => n.id == continueModuleId).firstOrNull ??
+        open.firstOrNull;
+  }
+
+  /// What the map draws for [node] (Issue #204): completed as completed, the
+  /// [checkInNode] as current, and every other unfinished module as locked —
+  /// the stops still ahead. Exactly one node is ever current, and a
+  /// completed program has none.
+  JuniorNodeState stateOf(JuniorMapNode node) {
+    if (node.state == JuniorNodeState.completed) {
+      return JuniorNodeState.completed;
+    }
+    return identical(node, checkInNode)
+        ? JuniorNodeState.current
+        : JuniorNodeState.locked;
   }
 
   /// Whether check-in is open at [now]: there is a [checkInNode] and a
