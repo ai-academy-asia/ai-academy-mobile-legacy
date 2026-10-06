@@ -192,10 +192,10 @@ That is the scaffold default, left in place. **Release builds are signed with de
 | Orientations (iPhone) | Portrait, LandscapeLeft, LandscapeRight — **no** upside-down |
 | Scene support | `UIApplicationSceneManifest` present; `UIApplicationSupportsMultipleScenes` declared |
 | Entitlements | **None** — no `.entitlements` file exists |
-| CocoaPods | **No `Podfile` committed yet.** Until `url_launcher` (lesson material download) the dependency set was plugin-free; it is the first plugin, so the next iOS build generates a `Podfile` and wires Pods into `Runner.xcodeproj` |
+| Plugin integration | **Swift Package Manager.** The committed `Runner.xcodeproj` has linked `FlutterGeneratedPluginSwiftPackage` since the initial project setup. That is the package Flutter generates, under the git-ignored `ios/Flutter/ephemeral/Packages/`, for the plugins in `pubspec.yaml` (`url_launcher`, `file_selector`). **No `Podfile` exists or is used.** A plugin without Swift Package Manager support would be brought in through CocoaPods instead, which generates a `Podfile` and edits `project.pbxproj`, a protected file ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3). Check a new plugin's support first |
 | Custom permission keys | **None** in `Info.plist` — no camera/photo/location usage descriptions |
 
-That last row matters: `home/widgets/program_card.dart` renders an `Icons.qr_code_scanner` affordance, and Junior Home's check-in node opens `AttendanceScannerScreen` (Issue #202), but **there is no camera permission declared and no scanning implemented** — both are UI only. Real scanning needs a camera plugin, the `NSCameraUsageDescription`/Android camera permission, and a confirmed check-in endpoint.
+That last row matters: `home/widgets/program_card.dart` renders an `Icons.qr_code_scanner` affordance, and Junior Home's check-in node opens `AttendanceScannerScreen` (Issue #202), but **there is no camera permission declared and no scanning implemented** — both are UI only. Real scanning needs a camera plugin and the `NSCameraUsageDescription`/Android camera permission. The check-in endpoint itself is confirmed as a request (`POST /me/attendance/check-in`, `{"token"}`), but its response shape is not yet verified ([DATA_AND_API.md](DATA_AND_API.md) §1.1).
 
 ### iOS deployment target — committed vs. local
 
