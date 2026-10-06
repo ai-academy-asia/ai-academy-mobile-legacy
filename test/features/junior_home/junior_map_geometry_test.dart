@@ -110,4 +110,46 @@ void main() {
       JuniorMapGeometry.nodes.first.dy,
     );
   });
+
+  group('the last line follows the zig-zag (Issue #204)', () {
+    test('after a centre node reached from the right, it turns left', () {
+      // Three nodes: centre, right, centre — the route would go on left.
+      final route = JuniorMapGeometry.route(List.filled(3, true));
+      final last = route.last;
+      final third = JuniorMapGeometry.nodeAt(2);
+      expect(last.from, near(Offset(third.dx, third.dy + 42)));
+      expect(last.corner.dx, closeTo(74, 1e-9));
+      expect(last.to.dx, closeTo(74, 1e-9));
+    });
+
+    test('after a centre node the route would leave rightwards, it turns '
+        'right, as the frame draws it', () {
+      for (final count in [1, 5, 9]) {
+        final last = JuniorMapGeometry.route(List.filled(count, true)).last;
+        expect(last.to.dx, closeTo(319, 1e-9), reason: '$count nodes');
+      }
+    });
+
+    test('it never runs back along the elbow it arrived on', () {
+      for (var count = 2; count <= 12; count++) {
+        final route = JuniorMapGeometry.route(List.filled(count, true));
+        final arrival = route[route.length - 2];
+        final last = route.last;
+        // The arrival elbow's vertical leg, if it has one, sits at its
+        // corner's x; the last line's must not share it unless it is the
+        // straight drop out of the node it ends on.
+        final arrivalVertical = arrival.corner.dx;
+        final lastVertical = last.corner.dx;
+        final straightDrop = last.from.dx == last.to.dx;
+        if (!straightDrop) {
+          expect(
+            lastVertical == arrivalVertical &&
+                (arrival.from.dx == arrival.corner.dx),
+            isFalse,
+            reason: '$count nodes',
+          );
+        }
+      }
+    });
+  });
 }

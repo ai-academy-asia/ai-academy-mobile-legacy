@@ -82,4 +82,67 @@ void main() {
       );
     });
   });
+
+  group('one current module (Issue #204)', () {
+    List<JuniorNodeState> drawn(JuniorLearningMap map) => [
+      for (final node in map.nodes) map.stateOf(node),
+    ];
+
+    test('Student B: three unlocked, unfinished modules — only the server\'s '
+        'continue module is current, the rest drawn locked', () {
+      expect(drawn(mapOf([open, open, open], continueModuleId: 1)), [
+        open,
+        locked,
+        locked,
+      ]);
+    });
+
+    test('the Figma shape: completed, one current, the rest locked', () {
+      expect(
+        drawn(mapOf([done, done, open, open, open], continueModuleId: 3)),
+        [done, done, open, locked, locked],
+      );
+    });
+
+    test(
+      'a later continue module: earlier unfinished ones are not current',
+      () {
+        expect(drawn(mapOf([done, open, open], continueModuleId: 3)), [
+          done,
+          locked,
+          open,
+        ]);
+      },
+    );
+
+    test('no continue: the first open, unfinished module', () {
+      expect(drawn(mapOf([done, open, open])), [done, open, locked]);
+    });
+
+    test('a completed program: no current and no locked nodes', () {
+      // The contract's continue names the last module once everything is
+      // done.
+      expect(drawn(mapOf([done, done, done], continueModuleId: 3)), [
+        done,
+        done,
+        done,
+      ]);
+    });
+
+    test('never more than one current node', () {
+      for (final continueId in [null, 1, 2, 3, 4, 99]) {
+        final map = mapOf([
+          done,
+          open,
+          open,
+          locked,
+        ], continueModuleId: continueId);
+        expect(drawn(map).where((s) => s == open), hasLength(1));
+      }
+    });
+
+    test('nothing unlocked: no current node', () {
+      expect(drawn(mapOf([done, locked, locked])), [done, locked, locked]);
+    });
+  });
 }
