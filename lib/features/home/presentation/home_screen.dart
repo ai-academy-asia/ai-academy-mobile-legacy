@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,6 +13,7 @@ import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import 'attendance_detail_screen.dart';
 import 'home_controller.dart';
+import 'payment_previews.dart';
 import 'home_strings.dart';
 import 'widgets/adult_bottom_nav.dart';
 import 'widgets/attendance_card.dart';
@@ -46,7 +48,12 @@ import 'widgets/program_card.dart';
 /// figures as if they were this student's. See
 /// `EnrolledHomeDashboardRepository`.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.repository, this.clock});
+  const HomeScreen({
+    super.key,
+    this.repository,
+    this.clock,
+    this.showPaymentPreview = !kReleaseMode,
+  });
 
   /// Defaults to the composition over the real API. Injected in tests.
   final HomeDashboardRepository? repository;
@@ -54,6 +61,13 @@ class HomeScreen extends StatefulWidget {
   /// Decides whether the next lesson is under way. Injected in tests so the
   /// live state does not depend on when the suite happens to run.
   final DateTime Function()? clock;
+
+  /// Whether the payment card's "Дэлгэрэнгүй" and its live pay action open
+  /// the Payment screen. Off in release builds: until `/me/ledger`'s
+  /// installments are confirmed the screen has only temporary UI fixtures to
+  /// show (Issue #196), and no real student may see those as theirs.
+  /// Debug and profile builds open it, for design review on a device.
+  final bool showPaymentPreview;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -148,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
       now: widget.clock?.call() ?? DateTime.now(),
       clock: widget.clock,
       onRefresh: _controller.load,
+      showPaymentPreview: widget.showPaymentPreview,
     );
   }
 }
@@ -159,6 +174,7 @@ class _DashboardView extends StatelessWidget {
     required this.now,
     required this.clock,
     required this.onRefresh,
+    required this.showPaymentPreview,
   });
 
   final HomeDashboard dashboard;
@@ -168,6 +184,7 @@ class _DashboardView extends StatelessWidget {
   /// opens on the same "today" the dashboard used.
   final DateTime Function()? clock;
   final Future<void> Function() onRefresh;
+  final bool showPaymentPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +228,15 @@ class _DashboardView extends StatelessWidget {
             ),
           ),
         ),
+        // The payment card: the Payment screen on its temporary fixtures,
+        // outside release builds only (Issue #196).
+        showPaymentPreview
+            ? (payment) => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => paymentPreviewFor(overdue: payment.isOverdue),
+                ),
+              )
+            : null,
       ),
     ];
 
@@ -241,13 +267,20 @@ class _DashboardView extends StatelessWidget {
     List<HomeStat> stats,
     VoidCallback noDestinationYet,
     void Function(AttendanceSummary attendance) openAttendance,
+    void Function(PaymentStatus payment)? openPayment,
   ) {
     Widget card(HomeStat stat) => switch (stat) {
       PaymentStat(:final payment, :final layout) => PaymentCard(
         payment: payment,
         layout: layout,
-        onPay: noDestinationYet,
-        onDetails: noDestinationYet,
+        // The card keeps its own rule for the pay action: live only while
+        // overdue, muted otherwise.
+        onPay: openPayment == null
+            ? noDestinationYet
+            : () => openPayment(payment),
+        onDetails: openPayment == null
+            ? noDestinationYet
+            : () => openPayment(payment),
       ),
       AttendanceStat(:final attendance, :final layout) => AttendanceCard(
         attendance: attendance,

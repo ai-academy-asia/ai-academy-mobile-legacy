@@ -6,6 +6,8 @@ import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:aia_mobile/features/home/presentation/attendance_detail_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
+import 'package:aia_mobile/features/home/presentation/payment_screen.dart';
+import 'package:aia_mobile/features/home/presentation/payment_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/attendance_card.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/contract_banner.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
@@ -13,6 +15,7 @@ import 'package:aia_mobile/features/home/presentation/widgets/payment_card.dart'
 import 'package:aia_mobile/features/home/presentation/widgets/program_card.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -56,6 +59,7 @@ void main() {
     DateTime? now,
     Size size = const Size(393, 852),
     Map<String, WidgetBuilder> routes = const {},
+    bool showPaymentPreview = true,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -67,6 +71,7 @@ void main() {
         home: HomeScreen(
           repository: repository,
           clock: () => now ?? beforeLesson,
+          showPaymentPreview: showPaymentPreview,
         ),
         routes: routes,
       ),
@@ -385,6 +390,88 @@ void main() {
         find.widgetWithText(HomePillButton, HomeStrings.details),
         findsOneWidget,
       );
+    });
+  });
+
+  group('payment card → Payment screen (Issue #196)', () {
+    FakeHomeDashboardRepository withPayment(PaymentStat stat) =>
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(program: sampleProgram(), stats: [stat]),
+        );
+
+    const dueRow = PaymentStat(
+      PaymentStatus.dueIn(3),
+      layout: HomeStatLayout.row,
+    );
+    const overdueTile = PaymentStat(
+      PaymentStatus.overdue(),
+      layout: HomeStatLayout.tile,
+    );
+    const dueTile = PaymentStat(
+      PaymentStatus.dueIn(3),
+      layout: HomeStatLayout.tile,
+    );
+
+    Finder detailsButton() =>
+        find.widgetWithText(HomePillButton, HomeStrings.details);
+    Finder payButton() =>
+        find.widgetWithText(HomePillButton, HomeStrings.payAction);
+
+    testWidgets('"Дэлгэрэнгүй" opens the partly-paid preview', (tester) async {
+      await pumpHome(tester, withPayment(dueRow));
+
+      await tester.tap(detailsButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PaymentScreen), findsOneWidget);
+      expect(find.text(PaymentStrings.dueIn(3)), findsOneWidget);
+      expect(find.text(PaymentStrings.overdue), findsNothing);
+    });
+
+    testWidgets('the overdue tile\'s live pay action opens the overdue '
+        'preview', (tester) async {
+      await pumpHome(tester, withPayment(overdueTile));
+
+      await tester.tap(payButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PaymentScreen), findsOneWidget);
+      expect(find.text(PaymentStrings.overdue), findsOneWidget);
+    });
+
+    testWidgets('a due tile keeps its pay action muted', (tester) async {
+      await pumpHome(tester, withPayment(dueTile));
+
+      expect(tester.widget<HomePillButton>(payButton()).onPressed, isNull);
+    });
+
+    testWidgets('with previews off (release builds) "Дэлгэрэнгүй" opens '
+        'nothing', (tester) async {
+      await pumpHome(tester, withPayment(dueRow), showPaymentPreview: false);
+
+      await tester.tap(detailsButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PaymentScreen), findsNothing);
+    });
+
+    testWidgets('with previews off (release builds) the overdue pay action '
+        'stays live but opens nothing', (tester) async {
+      await pumpHome(
+        tester,
+        withPayment(overdueTile),
+        showPaymentPreview: false,
+      );
+
+      expect(tester.widget<HomePillButton>(payButton()).onPressed, isNotNull);
+      await tester.tap(payButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PaymentScreen), findsNothing);
+    });
+
+    test('previews follow the build: on unless this is a release build', () {
+      expect(const HomeScreen().showPaymentPreview, !kReleaseMode);
     });
   });
 

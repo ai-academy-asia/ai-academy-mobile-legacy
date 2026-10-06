@@ -45,6 +45,8 @@ class HomePillButton extends StatelessWidget {
     this.height = 36,
     this.icon,
     this.raised = true,
+    this.labelSize = 14,
+    this.labelWeight = FontWeight.w700,
   });
 
   final String label;
@@ -65,6 +67,13 @@ class HomePillButton extends StatelessWidget {
   /// it only the faint band the secondary pill wears. The attendance action
   /// keeps its band: the frames draw one under it.
   final bool raised;
+
+  /// 14 on the Home frames; the Payment screen's full-width "Төлбөр төлөх"
+  /// draws its label at 16.
+  final double labelSize;
+
+  /// Bold on the Home frames; semi-bold on the Payment screen's button.
+  final FontWeight labelWeight;
 
   @override
   Widget build(BuildContext context) {
@@ -150,8 +159,8 @@ class HomePillButton extends StatelessWidget {
                     child: Text(
                       label,
                       style: AppTypography.buttonLabel.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontSize: labelSize,
+                        fontWeight: labelWeight,
                         color: ink,
                       ),
                       maxLines: 1,
