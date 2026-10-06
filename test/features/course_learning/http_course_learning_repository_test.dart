@@ -1592,13 +1592,16 @@ void main() {
 
       /// The contract's §2.6 assignment object — every documented field,
       /// including the ones this client does not read.
-      Map<String, Object?> assignmentBody({Object? submission}) => {
+      Map<String, Object?> assignmentBody({
+        Object? submission,
+        Object? attachment,
+      }) => {
         'id': 17,
         'title': {'mn': 'Даалгавар', 'en': 'Assignment'},
         'instructions': null,
         'due_date': null,
         'max_score': 100,
-        'attachment': null,
+        'attachment': attachment,
         'submission': submission,
       };
 
@@ -1721,6 +1724,181 @@ void main() {
         // lesson's feedback lives on its submission.
         expect(exercise.assignmentFeedback, isEmpty);
         expect(exercise.assignmentAttachment, isNull);
+      });
+
+      group('attachment (§2.6: a §2.4 material or null)', () {
+        /// The teacher's attachment as §2.4 sends a stored file.
+        const fileAttachment = <String, Object?>{
+          'id': 55,
+          'title': 'Homework template',
+          'type': 'file',
+          'file_name': 'homework-template.pdf',
+          'content_type': 'application/pdf',
+          'size_bytes': 2097152,
+        };
+
+        /// …and as an external link.
+        const linkAttachment = <String, Object?>{
+          'id': 56,
+          'title': 'Starter repository',
+          'type': 'link',
+          'url': 'https://github.com/ai-academy/starter?ref=lesson-204#readme',
+        };
+
+        test(
+          'attachment: null is no attachment, and adds no material',
+          () async {
+            final exercise = await withAssignment(assignmentBody());
+
+            expect(exercise.assignment!.attachment, isNull);
+            expect(
+              exercise.allMaterials.map((m) => m.id),
+              exercise.materials.map((m) => m.id),
+            );
+          },
+        );
+
+        test('a file attachment reads as a file material', () async {
+          final exercise = await withAssignment(
+            assignmentBody(attachment: fileAttachment),
+          );
+
+          final attachment = exercise.assignment!.attachment!;
+          expect(attachment.id, 55);
+          expect(attachment.name, 'Homework template');
+          expect(attachment.sizeLabel, '2 MB');
+          expect(attachment.url, isNull);
+          expect(attachment.isLink, isFalse);
+        });
+
+        test('a link attachment keeps the server\'s URL exactly, and has no '
+            'size', () async {
+          final exercise = await withAssignment(
+            assignmentBody(attachment: linkAttachment),
+          );
+
+          final attachment = exercise.assignment!.attachment!;
+          expect(attachment.id, 56);
+          expect(attachment.name, 'Starter repository');
+          expect(attachment.url.toString(), linkAttachment['url']);
+          expect(attachment.sizeLabel, isEmpty);
+          expect(attachment.isLink, isTrue);
+        });
+
+        test('it is listed after the lesson\'s own materials', () async {
+          final exercise = await withAssignment(
+            assignmentBody(attachment: fileAttachment),
+          );
+
+          // The lesson's own list is untouched…
+          expect(exercise.materials.map((m) => m.id), [88, 89, 90]);
+          // …and the Course materials tab lists the attachment after it.
+          expect(exercise.allMaterials.map((m) => m.id), [88, 89, 90, 55]);
+        });
+
+        test('one that is also among the lesson\'s materials is listed '
+            'once, in its own place', () async {
+          final exercise = await withAssignment(
+            assignmentBody(attachment: {...fileAttachment, 'id': 89}),
+          );
+
+          expect(exercise.allMaterials.map((m) => m.id), [88, 89, 90]);
+        });
+
+        test('an unrecognised type is left out, as for a lesson material — '
+            'not a failure', () async {
+          final exercise = await withAssignment(
+            assignmentBody(
+              attachment: const {
+                'id': 57,
+                'title': 'Mystery',
+                'type': 'hologram',
+              },
+            ),
+          );
+
+          expect(exercise.assignment, isNotNull);
+          expect(exercise.assignment!.attachment, isNull);
+          expect(exercise.allMaterials.map((m) => m.id), [88, 89, 90]);
+        });
+
+        test(
+          'it never reaches the Assignment tab\'s sample-only attachment',
+          () async {
+            final exercise = await withAssignment(
+              assignmentBody(attachment: fileAttachment),
+            );
+
+            expect(exercise.assignmentAttachment, isNull);
+          },
+        );
+
+        test('it survives a submission landing', () async {
+          final exercise = await withAssignment(
+            assignmentBody(attachment: linkAttachment),
+          );
+
+          final submitted = exercise.withAssignmentSubmission(
+            AssignmentSubmission(
+              id: 302,
+              version: 1,
+              status: AssignmentSubmissionStatus.submitted,
+              submittedAt: DateTime.utc(2026, 8, 6),
+              link: 'https://github.com/student/loops',
+            ),
+          );
+
+          expect(
+            submitted.assignment!.attachment,
+            same(exercise.assignment!.attachment),
+          );
+          expect(submitted.assignment!.submission!.id, 302);
+          expect(
+            submitted.allMaterials.map((m) => m.id),
+            exercise.allMaterials.map((m) => m.id),
+          );
+        });
+
+        group('a malformed attachment is a server fault', () {
+          Future<void> expectFault(Object? attachment, String field) async {
+            final failure = await failureWithAssignment(
+              assignmentBody(attachment: attachment),
+            );
+
+            expect(failure.kind, CourseLearningFailureKind.server);
+            expect(failure.detail, contains(field));
+          }
+
+          test('not an object', () async {
+            await expectFault('template.pdf', 'material');
+            await expectFault([fileAttachment], 'material');
+          });
+
+          test('no type', () async {
+            await expectFault(
+              {...fileAttachment}..remove('type'),
+              'material.type',
+            );
+          });
+
+          test('a file without its id, title or size_bytes', () async {
+            for (final key in ['id', 'title', 'size_bytes']) {
+              await expectFault(
+                {...fileAttachment}..remove(key),
+                'material.$key',
+              );
+            }
+          });
+
+          test('a link without a usable http(s) URL', () async {
+            for (final url in <Object?>[null, '', 'javascript:alert(1)']) {
+              await expectFault({
+                ...linkAttachment,
+                'url': url,
+              }, 'material.url');
+            }
+          });
+        });
       });
 
       group('a malformed assignment is a server fault', () {

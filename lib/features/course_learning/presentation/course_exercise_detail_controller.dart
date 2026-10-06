@@ -380,10 +380,12 @@ class CourseExerciseDetailController extends ChangeNotifier {
     }
   }
 
-  /// [materialId]'s own URL when the loaded lesson lists it as a `link`;
-  /// null for a file, or a material this lesson does not list.
+  /// [materialId]'s own URL when the loaded lesson lists it as a `link` —
+  /// among its materials or as its assignment's attachment (see
+  /// `CourseExercise.allMaterials`); null for a file, or a material this
+  /// lesson does not list.
   Uri? _linkUrlOf(int materialId) {
-    for (final material in _exercise?.materials ?? const []) {
+    for (final material in _exercise?.allMaterials ?? const []) {
       if (material.id == materialId) return material.url;
     }
     return null;

@@ -492,8 +492,9 @@ class _TabContent extends StatelessWidget {
         uploadedFile: assignmentFile,
         fileErrorMessage: assignmentFileErrorMessage,
       ),
+      // The lesson's materials and its assignment's attachment, together.
       ExerciseTab.materials => CourseMaterialsTab(
-        materials: exercise.materials,
+        materials: exercise.allMaterials,
         onDownload: onDownloadMaterial,
         isDownloading: isDownloadingMaterial,
         isDownloaded: isMaterialOpened,
