@@ -462,4 +462,69 @@ void main() {
       );
     });
   });
+
+  group('one current module and its check-in window (Issue #204)', () {
+    testWidgets('Student B: unlocked modules are not all QR — exactly one', (
+      tester,
+    ) async {
+      final sample = sampleJuniorLearningMap();
+      await pumpScreen(
+        tester,
+        map: JuniorLearningMap(
+          progress: sample.progress,
+          certificate: sample.certificate,
+          nextLesson: sample.nextLesson,
+          continueModuleId: 1,
+          nodes: const [
+            JuniorMapNode(id: 1, state: JuniorNodeState.current),
+            JuniorMapNode(id: 2, state: JuniorNodeState.current),
+            JuniorMapNode(id: 3, state: JuniorNodeState.current),
+          ],
+        ),
+      );
+
+      final tiles = tester
+          .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
+          .toList();
+      expect(
+        [for (final t in tiles) t.state],
+        [
+          JuniorNodeState.current,
+          JuniorNodeState.locked,
+          JuniorNodeState.locked,
+        ],
+      );
+      expect(tiles.where((t) => t.checkInOpen != null), hasLength(1));
+      expect(tiles[1].onTap, isNull);
+      expect(tiles[2].onTap, isNull);
+    });
+
+    for (final (label, time, open) in [
+      ('before the lesson', DateTime(2026, 10, 6, 8, 59), false),
+      ('exactly at its start', DateTime(2026, 10, 6, 9), true),
+      ('during it', DateTime(2026, 10, 6, 10, 30), true),
+      ('exactly at its end', DateTime(2026, 10, 6, 11), false),
+      ('after it', DateTime(2026, 10, 6, 11, 1), false),
+    ]) {
+      testWidgets('$label the check-in node is ${open ? 'open' : 'grey'}', (
+        tester,
+      ) async {
+        await pumpScreen(tester, now: time);
+
+        final tiles = tester
+            .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
+            .toList();
+        expect(tiles[2].checkInOpen, open);
+        // Only ever the one node.
+        expect(tiles.where((t) => t.checkInOpen != null), hasLength(1));
+
+        await tester.tap(find.byType(JuniorMapNodeTile).at(2));
+        await tester.pumpAndSettle();
+        expect(
+          find.byType(AttendanceScannerScreen),
+          open ? findsOneWidget : findsNothing,
+        );
+      });
+    }
+  });
 }

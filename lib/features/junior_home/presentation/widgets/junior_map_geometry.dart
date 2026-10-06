@@ -206,27 +206,39 @@ abstract final class JuniorMapGeometry {
     };
   }
 
-  /// Out of a centre node's right edge and down, as the frame draws it; from
-  /// a side node, straight down out of its bottom — the card spans both
-  /// side columns.
+  /// The last node's line into the certificate card, continuing the route's
+  /// own zig-zag (Issue #204) — the way the next elbow would have left.
+  ///
+  /// A centre node the route would leave rightwards (every fourth node from
+  /// the first, as the frame's fifth) goes out of its right edge and down,
+  /// as the frame draws it. A centre node the route would leave leftwards
+  /// goes out of its *left* edge and down — leaving rightwards there would
+  /// run back up the elbow it arrived on. A side node drops straight down
+  /// out of its bottom; the card spans both side columns.
   static JuniorConnector _toCertificate(int last, {required bool active}) {
     final from = nodeAt(last);
     const half = nodeSize / 2;
     final end = certificateFor(last + 1).top - _certificateGap;
-    final rightOfCentre = Offset(_columns[1] + half, from.dy + half);
-    return last.isEven
-        ? JuniorConnector(
-            from: Offset(from.dx + nodeSize, from.dy + half),
-            corner: rightOfCentre,
-            to: Offset(rightOfCentre.dx, end),
-            active: active,
-          )
-        : JuniorConnector(
-            from: Offset(from.dx + half, from.dy + nodeSize),
-            corner: Offset(from.dx + half, end),
-            to: Offset(from.dx + half, end),
-            active: active,
-          );
+    return switch (last % _columns.length) {
+      0 => JuniorConnector(
+        from: Offset(from.dx + nodeSize, from.dy + half),
+        corner: Offset(_columns[1] + half, from.dy + half),
+        to: Offset(_columns[1] + half, end),
+        active: active,
+      ),
+      2 => JuniorConnector(
+        from: Offset(from.dx, from.dy + half),
+        corner: Offset(_columns[3] + half, from.dy + half),
+        to: Offset(_columns[3] + half, end),
+        active: active,
+      ),
+      _ => JuniorConnector(
+        from: Offset(from.dx + half, from.dy + nodeSize),
+        corner: Offset(from.dx + half, end),
+        to: Offset(from.dx + half, end),
+        active: active,
+      ),
+    };
   }
 
   /// The frame stops its last line 3.7 above the card.

@@ -110,7 +110,11 @@ JuniorLearningMap juniorMapFrom(
   nodes: [
     for (final module
         in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
-      JuniorMapNode(id: module.id, state: _stateFor(module)),
+      JuniorMapNode(
+        id: module.id,
+        state: _stateFor(module),
+        title: module.title,
+      ),
   ],
   certificate: JuniorCertificate(
     track: JuniorHomeContent.track,

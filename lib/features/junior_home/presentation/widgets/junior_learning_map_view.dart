@@ -81,7 +81,8 @@ class JuniorLearningMapView extends StatelessWidget {
             return onCheckIn;
           }
           final onNodeTap = this.onNodeTap;
-          if (onNodeTap == null || node.state == JuniorNodeState.locked) {
+          if (onNodeTap == null ||
+              map.stateOf(node) == JuniorNodeState.locked) {
             return null;
           }
           return () => onNodeTap(node);
@@ -113,7 +114,7 @@ class JuniorLearningMapView extends StatelessWidget {
                         scale: scale,
                         connectors: JuniorMapGeometry.route([
                           for (final node in nodes)
-                            node.state == JuniorNodeState.completed,
+                            map.stateOf(node) == JuniorNodeState.completed,
                         ]),
                       ),
                     ),
@@ -129,6 +130,7 @@ class JuniorLearningMapView extends StatelessWidget {
                       JuniorMapNodeTile(
                         node: node,
                         scale: scale,
+                        state: map.stateOf(node),
                         checkInOpen: identical(node, checkIn) ? open : null,
                         onTap: tapFor(node),
                       ),
