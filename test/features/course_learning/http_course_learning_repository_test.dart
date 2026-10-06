@@ -2477,6 +2477,153 @@ void main() {
   });
 
   // §2.4: GET /me/materials/{material_id}/download — a pre-signed link.
+  group('completeLesson (§2.3 mark complete)', () {
+    /// The contract's own answer: `completed` and §2.1's progress object.
+    Map<String, Object?> completionBody({
+      Object? completed = true,
+      Object? progress = const {
+        'percent': 35,
+        'completed_lessons': 7,
+        'total_lessons': 20,
+      },
+    }) => {'completed': completed, 'progress': progress};
+
+    Future<CourseLearningFailure> failureOf(
+      Future<Object?> Function() call,
+    ) async {
+      try {
+        await call();
+      } on CourseLearningFailure catch (failure) {
+        return failure;
+      }
+      fail('expected a CourseLearningFailure');
+    }
+
+    test('POSTs to the lesson it was asked for, with the token and no '
+        'body', () async {
+      late http.Request sent;
+      final repository = repositoryReturning((request) async {
+        sent = request;
+        return jsonResponse(completionBody());
+      });
+
+      await repository.completeLesson(204);
+
+      expect(sent.method, 'POST');
+      expect(
+        sent.url.toString(),
+        'https://api.ai-academy.asia/me/lessons/204/complete',
+      );
+      expect(sent.headers[HttpHeaders.authorizationHeader], 'Bearer tok-123');
+      expect(sent.body, isEmpty);
+    });
+
+    test('reads completed and progress.percent', () async {
+      final completion = await repositoryReturning(
+        (_) async => jsonResponse(completionBody()),
+      ).completeLesson(204);
+
+      expect(completion.completed, isTrue);
+      expect(completion.percentComplete, 35);
+    });
+
+    test('reads a completed: false as sent, rather than assuming '
+        'true', () async {
+      final completion = await repositoryReturning(
+        (_) async => jsonResponse(completionBody(completed: false)),
+      ).completeLesson(204);
+
+      expect(completion.completed, isFalse);
+    });
+
+    test('clamps a percent outside 0-100, as the learning path does', () async {
+      final completion = await repositoryReturning(
+        (_) async => jsonResponse(completionBody(progress: {'percent': 140})),
+      ).completeLesson(204);
+
+      expect(completion.percentComplete, 100);
+    });
+
+    test('status mapping follows the lesson detail\'s', () async {
+      Future<CourseLearningFailureKind> kindFor(
+        int status,
+        String code,
+      ) async => (await failureOf(
+        () => repositoryReturning(
+          (_) async => jsonResponse({'error': code}, status),
+        ).completeLesson(204),
+      )).kind;
+
+      expect(
+        await kindFor(404, 'lesson_not_found'),
+        CourseLearningFailureKind.notFound,
+      );
+      expect(
+        await kindFor(403, 'not_enrolled'),
+        CourseLearningFailureKind.notEnrolled,
+      );
+      expect(
+        await kindFor(409, 'lesson_locked'),
+        CourseLearningFailureKind.locked,
+      );
+      expect(await kindFor(500, 'boom'), CourseLearningFailureKind.server);
+    });
+
+    test('401 is a dead session, and the token is forgotten', () async {
+      final store = signedIn();
+      final failure = await failureOf(
+        () => repositoryReturning(
+          (_) async => jsonResponse({'error': 'invalid_token'}, 401),
+          sessionStore: store,
+        ).completeLesson(204),
+      );
+
+      expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+      expect(store.isSignedIn, isFalse);
+    });
+
+    test('a request that never completes is a network failure', () async {
+      final failure = await failureOf(
+        () => repositoryReturning(
+          (_) async => throw const SocketException('offline'),
+        ).completeLesson(204),
+      );
+
+      expect(failure.kind, CourseLearningFailureKind.network);
+    });
+
+    test('a malformed answer is a server fault', () async {
+      for (final body in <Object?>[
+        'done',
+        completionBody(completed: null),
+        completionBody(completed: 'true'),
+        completionBody(progress: null),
+        completionBody(progress: {'percent': '35'}),
+      ]) {
+        final failure = await failureOf(
+          () => repositoryReturning(
+            (_) async => jsonResponse(body),
+          ).completeLesson(204),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server, reason: '$body');
+      }
+    });
+
+    test('without a session, nothing is sent', () async {
+      var sent = false;
+      final failure = await failureOf(
+        () => repositoryReturning((_) async {
+          sent = true;
+          return jsonResponse(completionBody());
+        }, sessionStore: AuthSessionStore()).completeLesson(204),
+      );
+
+      expect(sent, isFalse);
+      expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+    });
+  });
+
   group('getMaterialDownload', () {
     /// The contract's §2.4 download answer.
     Map<String, Object?> downloadBody({

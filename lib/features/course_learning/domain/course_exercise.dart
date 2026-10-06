@@ -96,8 +96,9 @@ class CourseExercise {
     return [...materials, attachment];
   }
 
-  /// Whether the student has completed the lesson — server-sent. No control
-  /// draws it yet.
+  /// Whether the student has completed the lesson — server-sent, by the
+  /// lesson detail or by `CourseLearningRepository.completeLesson`'s answer
+  /// (see [withCompleted]). No control draws it yet.
   final bool completed;
 
   /// True for the sample exercise, whose assignment submit and material
@@ -155,6 +156,15 @@ class CourseExercise {
   CourseExercise withQuiz(CourseQuiz? quiz) =>
       _copyWith(note: note, assignment: assignment, quiz: quiz);
 
+  /// This exercise with [completed] in place of its own — what a successful
+  /// `completeLesson` leaves the screen holding, set from the server's answer.
+  CourseExercise withCompleted(bool completed) => _copyWith(
+    note: note,
+    assignment: assignment,
+    quiz: quiz,
+    completed: completed,
+  );
+
   /// This exercise with [submission] as its assignment's latest — what a
   /// successful `submitAssignment` leaves the screen holding. Only
   /// meaningful when [assignment] is not null; unchanged otherwise.
@@ -176,6 +186,7 @@ class CourseExercise {
     required CourseExerciseNote? note,
     required CourseAssignment? assignment,
     required CourseQuiz? quiz,
+    bool? completed,
   }) => CourseExercise(
     lessonId: lessonId,
     moduleId: moduleId,
@@ -188,7 +199,7 @@ class CourseExercise {
     hasVideo: hasVideo,
     extraSections: extraSections,
     materials: materials,
-    completed: completed,
+    completed: completed ?? this.completed,
     simulatesWrites: simulatesWrites,
     note: note,
     assignmentFeedback: assignmentFeedback,

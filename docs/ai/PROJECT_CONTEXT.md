@@ -51,11 +51,12 @@ Eleven features under `lib/features/`. **Maturity differs sharply between them**
 - `GET /me/lessons/{lesson_id}` (§2.3) — Exercise Detail, including its `materials`, `note`, `assignment` (with its `attachment`, Issue #194) and `quiz`
 - `GET /me/materials/{material_id}/download` (§2.4) — file materials, the assignment's attachment included; `link` materials open their own URL (Issue #152)
 - `PUT /me/lessons/{lesson_id}/note` (§2.5)
+- `POST /me/lessons/{lesson_id}/complete` (§2.3 "Mark complete") — repository and `CourseExerciseDetailController.completeLesson` (Issue #209): loading flag, in-flight guard, failure copy; the lesson's `completed` and the course's `progress.percent` come from the server's answer. **No control calls it yet** — see §3
 - `POST /me/assignments/{assignment_id}/submissions` (§2.6) — link submission and resubmission
 - `POST /me/files` (§2.8) — built and tested, but no lesson draws the file form yet (see §3)
 - `POST /me/quizzes/{quiz_id}/attempts`, `POST /me/quiz-attempts/{attempt_id}/answers`, `POST /me/quiz-attempts/{attempt_id}/finish`, `GET /me/quiz-attempts/{attempt_id}` (§2.7) — server-graded; no answer key on the client (Issue #150)
 
-Not integrated, each for a recorded reason (§3): `POST /me/lessons/{lesson_id}/complete` (no player or "done" control), `GET /me/courses/{course_slug}/certificate` and `GET /me/certificates/{cert_number}/download` (no certificate UI design — Issue #155), and `GET /me/assignments/{assignment_id}` (the lesson detail already carries the assignment).
+Not integrated, each for a recorded reason (§3): `GET /me/courses/{course_slug}/certificate` and `GET /me/certificates/{cert_number}/download` (no certificate UI design — Issue #155), and `GET /me/assignments/{assignment_id}` (the lesson detail already carries the assignment).
 
 `SampleCourseLearningRepository` remains, hand-authored and ignoring its arguments, but **only tests construct it** — the quiz goldens among them. No production navigation reaches it.
 
@@ -71,6 +72,7 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 
 - **Home dashboard sections** — module count, attendance tally, payment state and e-contract warning are left null because no endpoint reports them (`enrolled_home_dashboard_repository.dart` states this explicitly).
 - **Lesson video playback** — `ExerciseVideoHeader` renders a flat placeholder. There is no video URL field on any model and no player dependency.
+- **Lesson completion trigger** (Issue #209) — `POST /me/lessons/{lesson_id}/complete` is wired through `CourseExerciseDetailController.completeLesson`, but nothing in the UI calls it: the lesson screen has no "done" control, no frame draws one, and the video header has no player. What completes a lesson is a `PRODUCT DECISION`; the contract says the endpoint is meant for when the video player lands, and that live-class attendance can also complete a lesson server-side. Module List and Lesson List read progress fresh each time they open and do not reload when a pushed lesson pops; once a trigger exists, refreshing them on return belongs to that work.
 - **Student file submission** — the picker, the upload (`POST /me/files`) and the `file_id` submission are built and tested, but **no backend lesson shows the file form**: nothing confirmed says whether an assignment takes a link or a file, so every one keeps the link form. `BACKEND GAP` — see `_formFor` in `course_exercise_detail_screen.dart`.
 - **Certificate** — the certification section renders two bundled PNGs. There is no per-student certificate status, availability or download.
 - **Lesson List step** — the design goes Module List → Exercise Detail directly, but a module card knows no lesson id, so an unlocked module card opens `LessonListScreen` (`GET /me/modules/{module_id}/lessons`) and the student picks the lesson there (Issue #148). "Continue learning" still opens the server's `continue.lesson_id` directly.
