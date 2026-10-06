@@ -34,6 +34,7 @@ void main() {
     Size size = const Size(393, 852),
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
+    useReducedMotion(tester);
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -213,6 +214,7 @@ void main() {
     testWidgets('shows a spinner while the map is loading', (tester) async {
       final repository = FakeJuniorHomeRepository(hold: true);
       useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+      useReducedMotion(tester);
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,

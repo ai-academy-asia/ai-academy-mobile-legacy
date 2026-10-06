@@ -21,6 +21,8 @@ void main() {
 
   testWidgets('Junior Home at the reference frame', (tester) async {
     useLogicalViewport(tester, const Size(393, 1428), padding: iPhonePadding);
+    // The still scenery: the reference is a still frame.
+    useReducedMotion(tester);
 
     await tester.pumpWidget(
       MaterialApp(

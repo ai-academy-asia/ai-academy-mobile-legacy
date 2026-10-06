@@ -91,6 +91,19 @@ void useLogicalViewport(
 /// An iPhone-class inset pair, as the Figma frames for this app are drawn.
 const FakeViewPadding iPhonePadding = FakeViewPadding(top: 44, bottom: 34);
 
+/// Turns on the platform's reduce-motion setting for the rest of the test,
+/// and restores it after.
+///
+/// Junior Home's scenery drifts on a ticker that never stops, so a test that
+/// waits for the screen to settle (`pumpAndSettle`) or compares it with a
+/// still capture has to ask for the still scenery — exactly as a student with
+/// Reduce Motion on sees it.
+void useReducedMotion(WidgetTester tester) {
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+}
+
 /// Decodes every [Image] currently in the tree, then settles.
 ///
 /// `Image.asset` resolves its bytes asynchronously, and a widget test's clock
