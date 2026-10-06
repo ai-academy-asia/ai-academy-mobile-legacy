@@ -156,7 +156,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text('6 ${CourseCatalogStrings.weeksUnit}'),
+          find.text(
+            '${CourseCatalogStrings.dateRange('2026-06-01', '2026-06-21')} (6 ${CourseCatalogStrings.weeksUnit})',
+          ),
           findsOneWidget,
         );
       },

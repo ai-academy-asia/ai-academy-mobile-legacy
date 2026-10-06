@@ -135,7 +135,7 @@ Widget-test conventions that recur and should be followed:
 - A test that triggers a `Future.delayed` or `Timer` must **advance time explicitly** (`await tester.pump(duration)`) before finishing, or teardown reports a pending timer.
 - `tester.ensureVisible(finder)` before tapping anything that may sit below the fold.
 
-Known pre-existing failure, unrelated to new work: `test/features/courses/course_catalog_screen_test.dart` → *"loaded falls back to a computed duration when duration_label is null"*.
+No known pre-existing failures: the full suite passes on `main` (see [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §5).
 
 ## 8. Assets
 
