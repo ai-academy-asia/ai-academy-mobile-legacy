@@ -163,6 +163,63 @@ abstract final class JuniorMapGeometry {
 
   /// A node's state glyph — `node_check`, `node_current`, `node_lock`.
   static String sprite(String name) => '$assetDir/$name.png';
+
+  // --- World ---------------------------------------------------------------
+
+  /// The horizontal extent of the world the camera looks at, in the same
+  /// coordinates as everything above: the frame is x 0..393 inside it.
+  ///
+  /// Not a chosen margin. The frame crops seven clouds and two islands at its
+  /// left and right edges; these are the tightest whole units that hold every
+  /// one of them in full ([sceneryBeyondFrame]). Vertically nothing crosses
+  /// the map's edges, so the world is exactly [mapHeight] tall.
+  static const double worldLeft = -145;
+  static const double worldRight = 523;
+  static double get worldWidth => worldRight - worldLeft;
+
+  static const String cloud = 'assets/icons/cloud.svg';
+  static const String island = 'assets/icons/grass.svg';
+
+  /// The scenery the frame crops, drawn whole so the world carries on past
+  /// the frame's edges. Bottom to top, in the backdrop's own stacking order.
+  ///
+  /// Each one was found in [backdrop] by matching the design's own SVG
+  /// against it at 3x — position, scale and mirroring — to a mean difference
+  /// under 1/255, so the part outside the frame continues exactly from the
+  /// part the export draws. Inside the frame the export covers them; only
+  /// what lies beyond x 0..393 is ever seen.
+  static const List<JuniorScenery> sceneryBeyondFrame = [
+    JuniorScenery(cloud, Rect.fromLTWH(265, 872.333, 207, 106)),
+    JuniorScenery(
+      cloud,
+      Rect.fromLTWH(-43.667, 856.333, 290.318, 148.665),
+      mirrored: true,
+    ),
+    JuniorScenery(cloud, Rect.fromLTWH(234.333, -55, 207, 106)),
+    JuniorScenery(cloud, Rect.fromLTWH(187.333, 952.333, 335.34, 171.72)),
+    JuniorScenery(
+      cloud,
+      Rect.fromLTWH(-144.667, 985.667, 319.815, 163.77),
+      mirrored: true,
+    ),
+    JuniorScenery(cloud, Rect.fromLTWH(-80, 139, 207, 106)),
+    JuniorScenery(cloud, Rect.fromLTWH(240, 443, 207, 106)),
+    JuniorScenery(island, Rect.fromLTWH(289, 69, 125, 86)),
+    JuniorScenery(island, Rect.fromLTWH(-7, 797, 125, 86)),
+  ];
+}
+
+/// One piece of scenery placed in the world.
+class JuniorScenery {
+  const JuniorScenery(this.asset, this.rect, {this.mirrored = false});
+
+  final String asset;
+
+  /// Where the asset's own box lands, in map coordinates.
+  final Rect rect;
+
+  /// Drawn flipped left-to-right, as the frame draws some of its clouds.
+  final bool mirrored;
 }
 
 /// One rounded right-angle elbow in the route.
