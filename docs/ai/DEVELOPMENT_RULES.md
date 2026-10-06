@@ -76,11 +76,7 @@ flutter test <the directory your work touched>
 flutter test                     # full suite, when the change is broad
 ```
 
-**Known pre-existing results — report these as pre-existing, do not fix them in an unrelated task:**
-
-| Kind | Where |
-|---|---|
-| Test failure | `test/features/courses/course_catalog_screen_test.dart` — *"loaded falls back to a computed duration when duration_label is null"* |
+**Known pre-existing results — report these as pre-existing, do not fix them in an unrelated task:** none. The full suite passes on `main` and `flutter analyze` reports no issues, so any failure is new. Decide whose it is ([AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) §3.10), and add it here only once it is confirmed pre-existing and left for a task of its own.
 
 A documentation-only task still runs `flutter analyze` to prove nothing in `lib/` moved.
 
