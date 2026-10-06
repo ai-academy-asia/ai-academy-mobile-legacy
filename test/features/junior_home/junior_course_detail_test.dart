@@ -61,6 +61,7 @@ void main() {
     JuniorLearningMap? learningMap,
   }) async {
     useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
+    useReducedMotion(tester);
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,

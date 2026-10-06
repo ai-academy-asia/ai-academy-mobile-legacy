@@ -163,6 +163,69 @@ abstract final class JuniorMapGeometry {
 
   /// A node's state glyph — `node_check`, `node_current`, `node_lock`.
   static String sprite(String name) => '$assetDir/$name.png';
+
+  // --- Scenery, piece by piece ---------------------------------------------
+  //
+  // The islands and coins of [backdrop], as separate pieces so each can move
+  // on its own. Each was found in the export by matching the design's own
+  // SVG against it at 3x — position and scale — to a mean difference around
+  // 1/255. The clouds in motion are the same SVG at many sizes and heights
+  // (`JuniorSceneryMotion.clouds`); the export's own seven appear only in the
+  // still scenery.
+
+  /// The design's pixel cloud, floating island (flowers included) and coin,
+  /// at their exported sizes.
+  static const String cloud = 'assets/icons/cloud.svg';
+  static const String island = 'assets/icons/grass.svg';
+  static const String coin = 'assets/icons/coin.svg';
+  static const Size cloudSize = Size(207, 106);
+
+  /// The largest cloud the frame draws (1.62x [cloudSize], bottom right of
+  /// the export): no cloud in motion is ever larger.
+  static const Size largestDesignCloud = Size(335.34, 171.72);
+  static const Size islandSize = Size(125, 86);
+  static const Size coinSize = Size(37, 37);
+
+  /// Top-left of three of the export's four islands, each at 1:1. They are
+  /// drawn over the clouds.
+  static const List<Offset> islands = [
+    Offset(289, 69),
+    Offset(17, 285),
+    Offset(-7, 797),
+  ];
+
+  /// Where each island's coin sits over it — the same for all three, at 1:1.
+  static const Offset coinOnIsland = Offset(47, -20);
+
+  /// The fourth island and its coin: the small, paler pair right of node 5.
+  ///
+  /// They match no uniform scale of the SVGs, so rather than guess at an
+  /// opacity or a stretch, they are drawn from the export's own pixels
+  /// ([farIsland]) and never animate.
+  static const Rect unmatchedScenery = Rect.fromLTWH(296, 561, 80, 70);
+
+  /// [unmatchedScenery]'s box of [backdrop] at 3x, with its sky cut away so
+  /// a cloud can pass behind it.
+  ///
+  /// Derived from the export, not drawn: every pixel within 2/255 of the
+  /// field colour is made transparent and every other pixel is kept exactly.
+  /// The cut is clean — the box's sky is all one shade (`#C0D8F8`), and the
+  /// pair's own pixels are all at least 6/255 away from it. Over the field it
+  /// reproduces the export to within 1/255.
+  static String get farIsland => '$assetDir/map_far_island.png';
+}
+
+/// One piece of scenery, placed in map coordinates.
+class JuniorScenery {
+  const JuniorScenery(this.asset, this.rect, {this.mirrored = false});
+
+  final String asset;
+
+  /// Where the asset's own box lands.
+  final Rect rect;
+
+  /// Drawn flipped left-to-right, as the frame draws some of its clouds.
+  final bool mirrored;
 }
 
 /// One rounded right-angle elbow in the route.

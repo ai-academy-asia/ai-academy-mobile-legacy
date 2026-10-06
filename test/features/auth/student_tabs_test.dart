@@ -96,6 +96,8 @@ void main() {
           const Size(393, 852),
           padding: iPhonePadding,
         );
+        // Junior Home's scenery drifts forever; settling needs it still.
+        if (track.homeType == JuniorHomeScreen) useReducedMotion(tester);
         navigatorKey = GlobalKey<NavigatorState>();
         await tester.pumpWidget(
           MaterialApp(

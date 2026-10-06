@@ -6,6 +6,7 @@ import 'junior_course_progress_card.dart';
 import 'junior_map_geometry.dart';
 import 'junior_map_node.dart';
 import 'junior_map_path_painter.dart';
+import 'junior_map_scenery.dart';
 
 /// The game world between the header and the tab bar.
 ///
@@ -22,9 +23,13 @@ import 'junior_map_path_painter.dart';
 /// wider gaps. The map never shrinks to fit the viewport's *height* — it
 /// scrolls, because squashing it is what would break the composition.
 ///
-/// **Paint order**, bottom to top: the scenery — one Figma export carrying
-/// the sky, clouds, islands, flowers and coins — then the route, then the
-/// nodes and the two cards. The route is under the nodes so each line runs
+/// **Layers.** The scenery — the sky and its clouds, then the islands,
+/// flowers and coins — is fixed to the map's viewport and never scrolls; a
+/// pinch zooms the sky, and only the sky. The route, nodes and cards scroll
+/// over it. Both scenery layers are [JuniorMapScenery]'s.
+///
+/// **Paint order**, bottom to top: the sky, the islands and coins, then the
+/// route, the nodes and the two cards. The route is under the nodes so each line runs
 /// behind a node's rounded square, and the cards sit over the scenery the way
 /// the frame draws them, covering the island and the coin behind each one.
 class JuniorLearningMapView extends StatelessWidget {
@@ -51,80 +56,63 @@ class JuniorLearningMapView extends StatelessWidget {
           child: child,
         );
 
-        return SingleChildScrollView(
-          child: SizedBox(
-            width: constraints.maxWidth,
-            height: height,
-            child: Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                // The scenery — sky, clouds, islands, flowers and coins, all
-                // in one Figma export.
-                //
-                // The export is the whole 393 x 1428 frame, so it is drawn at
-                // its full height and shifted up by the header's band to put
-                // its map rows on this map's origin; the Stack's clip drops
-                // what falls outside. The box carries the export's own
-                // aspect, so nothing is stretched, and it is never cropped to
-                // fit — the composition is the design's, unaltered.
-                Positioned(
-                  left: 0,
-                  top: -JuniorMapGeometry.mapTopInFrame * scale,
-                  width: JuniorMapGeometry.mapWidth * scale,
-                  height: JuniorMapGeometry.frameHeight * scale,
-                  child: Image.asset(
-                    JuniorMapGeometry.backdrop,
-                    fit: BoxFit.fill,
-                    filterQuality: FilterQuality.medium,
-                    excludeFromSemantics: true,
-                  ),
-                ),
-
-                // The route, behind the nodes it joins.
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: JuniorMapPathPainter(scale: scale),
-                  ),
-                ),
-
-                for (
-                  var i = 0;
-                  i < map.nodes.length && i < JuniorMapGeometry.nodes.length;
-                  i++
-                )
-                  at(
-                    JuniorMapGeometry.nodes[i] &
-                        const Size(
-                          JuniorMapGeometry.nodeSize,
-                          JuniorMapGeometry.nodeSize,
-                        ),
-                    JuniorMapNodeTile(
-                      node: map.nodes[i],
-                      scale: scale,
-                      onTap:
-                          onNodeTap == null ||
-                              map.nodes[i].state == JuniorNodeState.locked
-                          ? null
-                          : () => onNodeTap!(map.nodes[i]),
+        // The scenery is fixed to the viewport behind the content, with its
+        // own gentle motion and its own pinch. The content scrolls over it.
+        return JuniorMapScenery(
+          scale: scale,
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: constraints.maxWidth,
+              height: height,
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  // The route, behind the nodes it joins.
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: JuniorMapPathPainter(scale: scale),
                     ),
                   ),
 
-                at(
-                  JuniorMapGeometry.courseCard,
-                  JuniorCourseProgressCard(
-                    progress: map.progress,
-                    scale: scale,
-                  ),
-                ),
+                  for (
+                    var i = 0;
+                    i < map.nodes.length && i < JuniorMapGeometry.nodes.length;
+                    i++
+                  )
+                    at(
+                      JuniorMapGeometry.nodes[i] &
+                          const Size(
+                            JuniorMapGeometry.nodeSize,
+                            JuniorMapGeometry.nodeSize,
+                          ),
+                      JuniorMapNodeTile(
+                        node: map.nodes[i],
+                        scale: scale,
+                        onTap:
+                            onNodeTap == null ||
+                                map.nodes[i].state == JuniorNodeState.locked
+                            ? null
+                            : () => onNodeTap!(map.nodes[i]),
+                      ),
+                    ),
 
-                at(
-                  JuniorMapGeometry.certificateCard,
-                  JuniorCertificateCard(
-                    certificate: map.certificate,
-                    scale: scale,
+                  at(
+                    JuniorMapGeometry.courseCard,
+                    JuniorCourseProgressCard(
+                      progress: map.progress,
+                      scale: scale,
+                    ),
                   ),
-                ),
-              ],
+
+                  at(
+                    JuniorMapGeometry.certificateCard,
+                    JuniorCertificateCard(
+                      certificate: map.certificate,
+                      scale: scale,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
