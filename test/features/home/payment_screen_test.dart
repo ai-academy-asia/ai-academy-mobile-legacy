@@ -1,10 +1,12 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/features/home/presentation/payment_flow/payment_amount_screen.dart';
 import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
 import 'package:aia_mobile/features/home/presentation/payment_screen.dart';
 import 'package:aia_mobile/features/home/presentation/payment_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
+import 'package:aia_mobile/features/payments/data/payment_plan_ui_fixtures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -102,13 +104,9 @@ void main() {
     expect(payButton(tester).onPressed, isNotNull);
   });
 
-  testWidgets('the pay button and the chevrons lead nowhere', (tester) async {
+  testWidgets('the chevrons lead nowhere', (tester) async {
     await pumpPayment(tester, PaymentPreviews.partlyPaid.screen());
 
-    await tester.tap(
-      find.widgetWithText(HomePillButton, PaymentStrings.payAction),
-    );
-    await tester.pumpAndSettle();
     for (var i = 0; i < 4; i++) {
       await tester.tap(find.byIcon(AppIcons.caretRight).at(i));
       await tester.pumpAndSettle();
@@ -116,6 +114,38 @@ void main() {
 
     expect(find.byType(PaymentScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('"Төлбөр төлөх" opens the payment flow (Issue #198)', (
+    tester,
+  ) async {
+    await pumpPayment(tester, PaymentPreviews.overdue.screen());
+
+    await tester.tap(
+      find.widgetWithText(HomePillButton, PaymentStrings.payAction),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PaymentAmountScreen), findsOneWidget);
+  });
+
+  testWidgets('without a payFlow "Төлбөр төлөх" stays live but inert', (
+    tester,
+  ) async {
+    final fixture = PaymentPlanUiFixtures.partlyPaid;
+    await pumpPayment(
+      tester,
+      PaymentScreen(plan: fixture.plan, today: fixture.today),
+    );
+
+    expect(payButton(tester).onPressed, isNotNull);
+    await tester.tap(
+      find.widgetWithText(HomePillButton, PaymentStrings.payAction),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PaymentScreen), findsOneWidget);
+    expect(find.byType(PaymentAmountScreen), findsNothing);
   });
 
   testWidgets('back returns to the previous screen', (tester) async {

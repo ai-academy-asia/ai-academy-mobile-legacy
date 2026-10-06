@@ -98,6 +98,9 @@ flutter:
     - assets/images/
     - assets/images/course_learning/
     - assets/images/junior_home/
+    # TEMPORARY (Issue #198): payment logos, method icons and the eBarimt QR,
+    # cut from the payment flow's Figma exports until official assets arrive.
+    - assets/images/payments/
     - assets/icons/
 
   fonts:
