@@ -137,7 +137,7 @@ The contract is the source of truth for the API. `docs/course_learning_frontend_
 
 The Adult Payment screen ("Төлбөр", `home/presentation/payment_screen.dart`) is built from three Figma references — 1 partly paid, 2 paid off, 3 overdue — **before any `/me/ledger` response with installments has been seen**. The only verified response had `"installments": []`, so the screen is fed nothing from the API yet.
 
-**What feeds it now — temporary, debug-only.** `PaymentPlanUiFixtures` (`payments/data/payment_plan_ui_fixtures.dart`) holds the three references' own figures, typed in by hand; `PaymentPreviews` (`home/presentation/payment_previews.dart`) pairs each with that reference's row placement. They describe no real student. `HomeScreen.showPaymentPreview` defaults to `!kReleaseMode`: in debug/profile builds the Adult Home payment card's "Дэлгэрэнгүй" and its live (overdue) pay pill open the overdue or the partly-paid preview; **release builds leave the card exactly as before**. "Төлбөр төлөх" and the rows' chevrons are inert — no QPay, invoice, payment processing, polling, receipt or eBarimt is designed or integrated. Fixture values kept verbatim because Figma is the visual source of truth:
+**What feeds it now — temporary, debug-only.** `PaymentPlanUiFixtures` (`payments/data/payment_plan_ui_fixtures.dart`) holds the three references' own figures, typed in by hand; `PaymentPreviews` (`home/presentation/payment_previews.dart`) pairs each with that reference's row placement. They describe no real student. `HomeScreen.showPaymentPreview` defaults to `!kReleaseMode`: in debug/profile builds the Adult Home payment card's "Дэлгэрэнгүй" and its live (overdue) pay pill open the overdue or the partly-paid preview; **release builds leave the card exactly as before**. The rows' chevrons are inert. "Төлбөр төлөх" opens the payment flow UI (§10), which also runs on fixtures only — no QPay, invoice, payment processing, polling, receipt or eBarimt is integrated. Fixture values kept verbatim because Figma is the visual source of truth:
 
 - the rows' date labels ("Ня, 3 сарын 8", "Бя, 3 сарын 12", "Да, 3 сарын 17", "Ням, 3 сарын 22"; reference 2 repeats "Ня, 3 сарын 8"), though they follow no single format and match no real calendar;
 - the progress fill, 114 of the bar's 361 points (≈32%), not 500,000 ÷ 2,000,000;
@@ -157,3 +157,50 @@ The Adult Payment screen ("Төлбөр", `home/presentation/payment_screen.dart
 | `dueDateLabel` format | — | `PRODUCT DECISION`: the weekday abbreviation ("Ня" vs "Ням") |
 
 When the sample arrives: map it in the `payments` data layer into `PaymentPlan`, open the screen with it in every build, and delete `PaymentPlanUiFixtures`, `PaymentPreviews` and `HomeScreen.showPaymentPreview`. The fixtures stay only for tests until then; never convert them into a contract (§8 rule 3).
+
+## 10. Payment flow UI and its temporary fixtures (Issue #198)
+
+The screens after "Төлбөр төлөх" (`home/presentation/payment_flow/`) are built from eight Figma references. They are **UI only**: no endpoint is called, and every value comes from `PaymentCheckoutUiFixtures` (`payments/data/payment_checkout_ui_fixtures.dart`), mapped onto the domain model `PaymentCheckout` (`payments/domain/payment_checkout.dart`). That model isn't tied to any response shape. The flow is reachable only from the debug-only Payment screen previews (§9), so release builds never show it.
+
+**Flow:**
+1. Amount screen: a slider from the due installment to the whole balance, with local method selection.
+2. "Төлбөр шалгах" opens the method screen ("3-р төлөлт 500,000₮", with four methods).
+3. Шилжүүлэх opens the bank sheet.
+4. Choosing a bank opens the transfer details sheet.
+5. Closing that sheet leaves Шилжүүлэх selected, with the details inline.
+6. "Төлбөр шалгах" shows the success dialog.
+7. "Ойлголоо" opens the eBarimt receipt.
+
+The copy buttons write to the clipboard. "Татаж авах" is live but inert.
+
+**Temporary values and assets:**
+- **Amounts:** 500,000–1,500,000₮, with 2 later installments.
+- **"3-р төлөлт" header:** shown verbatim, not tied to the slider or the plan.
+- **Bank list and transfer account:** Голомт банк, "Хиймэл Оюун Ухааны Хаб", 3215155471 / 820015003215155471, reference "Test".
+- **Receipt:** #TRX-992104, Nov 25, 2024, UV37143572 and the ДДТД.
+- **Images:** the payment logos, bank logos, method icons and eBarimt QR in `assets/images/payments/` are cut from the 3x reference exports. Replace them with official assets of the same size.
+
+**Built as drawn (Figma is the visual source of truth):**
+- **Slider positions:** the thumb sits where references 1–3 place it (`PaymentReferenceSlider`), which isn't evenly spread.
+- **Two method-screen headers:** the state behind the sheets is 16pt higher, with a smaller amount than reference 7.
+- **Row placement:** each method row's logo and name sit where they are drawn.
+
+**Deviations from the references, with reasons:**
+- **Reference 3's amount:** the reference prints "Таны төлөх дүн 750,000₮" with the slider at 1,500,000₮. The brief says the amount follows the slider.
+- **Success dialog spelling:** the reference reads "амжиттай"; the brief's "амжилттай" is used.
+- **Selection behind the sheets:** the references draw Qpay selected behind both sheets, while the brief opens the bank sheet from Шилжүүлэх. So Шилжүүлэх becomes selected only once the details sheet closes.
+
+**Still needed (`BACKEND GAP`):**
+- an invoice/payment endpoint and its states, plus a "payment checking" frame (`UNKNOWN`: there is none, so the success dialog follows immediately);
+- the bank list and logos;
+- the receiving account(s);
+- eBarimt receipt data and its QR;
+- the receipt file for "Татаж авах".
+
+**Product decisions to confirm (`PRODUCT DECISION`):**
+- **Slider:** its step (50,000₮ here) and how the thumb maps to amounts.
+- **Later installments:** the rule "(balance − amount) ÷ later installments", which matches all three references.
+- **Transfer account:** whether it depends on the chosen bank (one fixed account here).
+- **Copy feedback:** whether copying shows any confirmation (none here).
+- **After eBarimt:** where back leads (it returns to the method screen here).
+- **Header:** whether the method header follows the chosen amount.

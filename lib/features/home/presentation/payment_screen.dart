@@ -57,10 +57,11 @@ const double _buttonHeight = 44;
 /// are unconfirmed — so for now only the temporary `PaymentPlanUiFixtures`
 /// do, and only outside release builds (see `HomeScreen`).
 ///
-/// **Inert controls.** "Төлбөр төлөх" is drawn as the references draw it —
-/// live while anything is owed, disabled once the plan is paid off — but
-/// leads nowhere yet, and neither do the rows' chevrons: there are no frames
-/// for paying or for an installment's detail.
+/// **Controls.** "Төлбөр төлөх" is drawn as the references draw it — live
+/// while anything is owed, disabled once the plan is paid off — and opens
+/// [payFlow] when one is given (the debug-only payment flow previews,
+/// Issue #198); without one it leads nowhere. The rows' chevrons stay inert:
+/// there is no frame for an installment's detail.
 ///
 /// **Figma is the source of truth.** The progress bar is filled to the
 /// plan's own [PaymentPlan.paidFraction], the rows print the plan's own date
@@ -73,6 +74,7 @@ class PaymentScreen extends StatelessWidget {
     required this.today,
     super.key,
     this.rowGeometry = const [],
+    this.payFlow,
   });
 
   final PaymentPlan plan;
@@ -85,6 +87,10 @@ class PaymentScreen extends StatelessWidget {
   /// alike, and the UI fixtures reproduce each one as drawn — see
   /// `PaymentReferenceRows`.
   final List<PaymentRowGeometry> rowGeometry;
+
+  /// The first screen of the payment flow "Төлбөр төлөх" opens. Null keeps
+  /// the button live but leading nowhere.
+  final WidgetBuilder? payFlow;
 
   @override
   Widget build(BuildContext context) {
@@ -151,9 +157,14 @@ class PaymentScreen extends StatelessWidget {
                       raised: false,
                       labelSize: 16,
                       labelWeight: FontWeight.w600,
-                      // Live but leading nowhere: no payment flow is
-                      // designed or integrated yet.
-                      onPressed: paidOff ? null : _noDestinationYet,
+                      onPressed: paidOff
+                          ? null
+                          : switch (payFlow) {
+                              final payFlow? => () => Navigator.of(
+                                context,
+                              ).push(MaterialPageRoute<void>(builder: payFlow)),
+                              null => _noDestinationYet,
+                            },
                     ),
                   ),
                 ),

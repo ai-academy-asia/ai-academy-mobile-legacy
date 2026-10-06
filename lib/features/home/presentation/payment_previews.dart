@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
+import '../../payments/data/payment_checkout_ui_fixtures.dart';
 import '../../payments/data/payment_plan_ui_fixtures.dart';
+import 'payment_flow/payment_amount_screen.dart';
 import 'payment_screen.dart';
 
 /// **TEMPORARY — for design review and tests only.** (Issue #196)
@@ -22,6 +24,7 @@ class PaymentPreview {
     plan: fixture.plan,
     today: fixture.today,
     rowGeometry: rows,
+    payFlow: (_) => paymentFlowPreview(),
   );
 }
 
@@ -81,3 +84,26 @@ abstract final class PaymentReferenceRows {
 /// card is overdue, the partly-paid one otherwise.
 Widget paymentPreviewFor({required bool overdue}) =>
     (overdue ? PaymentPreviews.overdue : PaymentPreviews.partlyPaid).screen();
+
+/// **TEMPORARY** (Issue #198): the payment flow on its UI fixtures, with the
+/// slider placed as references 1–3 draw it.
+PaymentAmountScreen paymentFlowPreview({
+  num? amount,
+  bool showTooltip = false,
+}) => PaymentAmountScreen(
+  checkout: PaymentCheckoutUiFixtures.checkout,
+  scale: PaymentReferenceSlider.scale,
+  initialAmount: amount,
+  showTooltip: showTooltip,
+);
+
+/// Where references 1–3 put the slider's thumb: centred 12pt into the 361pt
+/// track at 500,000₮, 119pt at 750,000₮, and on the track's end at
+/// 1,500,000₮ — not evenly spread, and kept as drawn.
+abstract final class PaymentReferenceSlider {
+  static const PaymentSliderScale scale = PaymentSliderScale([
+    (500000, 12 / 361),
+    (750000, 119 / 361),
+    (1500000, 1),
+  ]);
+}
