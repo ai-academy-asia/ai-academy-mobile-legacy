@@ -41,7 +41,11 @@ import 'junior_map_scenery.dart';
 /// **Check-in.** The current module's node is the attendance check-in node
 /// ([JuniorLearningMap.checkInNode]). While a lesson is under way at [now]
 /// it is drawn as the frame draws it and a tap calls [onCheckIn]; otherwise
-/// it is grey and a tap opens the module like any other node.
+/// it is grey and inert (Issue #207).
+///
+/// **Taps** (Issue #207): a completed node calls [onNodeTap] with its module;
+/// the open check-in node calls [onCheckIn]; the closed check-in node and
+/// every locked node do nothing. The course card calls [onCourseTap].
 class JuniorLearningMapView extends StatelessWidget {
   const JuniorLearningMapView({
     required this.map,
@@ -49,6 +53,7 @@ class JuniorLearningMapView extends StatelessWidget {
     super.key,
     this.onNodeTap,
     this.onCheckIn,
+    this.onCourseTap,
   });
 
   final JuniorLearningMap map;
@@ -56,13 +61,16 @@ class JuniorLearningMapView extends StatelessWidget {
   /// What the check-in node's state is read against.
   final DateTime now;
 
-  /// Called with a completed or current node when it is tapped; locked nodes
-  /// never call it. Null leaves every node inert.
+  /// Called with a completed node when it is tapped. Null leaves every
+  /// completed node inert.
   final ValueChanged<JuniorMapNode>? onNodeTap;
 
   /// Called when the check-in node is tapped while check-in is open. Null
-  /// leaves that tap to [onNodeTap].
+  /// leaves it inert.
   final VoidCallback? onCheckIn;
+
+  /// Called when the course card is tapped. Null leaves it inert.
+  final VoidCallback? onCourseTap;
 
   @override
   Widget build(BuildContext context) {
@@ -74,19 +82,18 @@ class JuniorLearningMapView extends StatelessWidget {
         final checkIn = map.checkInNode;
         final open = map.checkInOpenAt(now);
 
-        // The open check-in node opens the scanner; otherwise a completed or
-        // current node opens the course, and a locked one nothing.
-        VoidCallback? tapFor(JuniorMapNode node) {
-          if (identical(node, checkIn) && open && onCheckIn != null) {
-            return onCheckIn;
-          }
-          final onNodeTap = this.onNodeTap;
-          if (onNodeTap == null ||
-              map.stateOf(node) == JuniorNodeState.locked) {
-            return null;
-          }
-          return () => onNodeTap(node);
-        }
+        // A completed node opens its module; the check-in node opens the
+        // scanner while check-in is open and does nothing otherwise; a
+        // locked node does nothing (Issue #207).
+        VoidCallback? tapFor(JuniorMapNode node) => switch (map.stateOf(node)) {
+          JuniorNodeState.completed => switch (onNodeTap) {
+            final onNodeTap? => () => onNodeTap(node),
+            null => null,
+          },
+          JuniorNodeState.current =>
+            identical(node, checkIn) && open ? onCheckIn : null,
+          JuniorNodeState.locked => null,
+        };
 
         Widget at(Rect rect, Widget child) => Positioned(
           left: rect.left * scale,
@@ -138,9 +145,18 @@ class JuniorLearningMapView extends StatelessWidget {
 
                   at(
                     JuniorMapGeometry.courseCard,
-                    JuniorCourseProgressCard(
-                      progress: map.progress,
-                      scale: scale,
+                    // No pressed state: the frame draws none, so the card
+                    // looks exactly as it did (Issue #207).
+                    Semantics(
+                      button: onCourseTap != null,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onCourseTap,
+                        child: JuniorCourseProgressCard(
+                          progress: map.progress,
+                          scale: scale,
+                        ),
+                      ),
                     ),
                   ),
 
