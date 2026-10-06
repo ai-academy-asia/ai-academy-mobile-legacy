@@ -4,6 +4,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_path.
 import 'package:aia_mobile/features/course_learning/domain/course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson_completion.dart';
 import 'package:aia_mobile/features/course_learning/domain/material_download.dart';
 import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_controller.dart';
@@ -35,6 +36,10 @@ class _ThrowingRepository implements CourseLearningRepository {
   @override
   Future<CourseExerciseNote> saveNote(int lessonId, String content) =>
       _delegate.saveNote(lessonId, content);
+
+  @override
+  Future<LessonCompletion> completeLesson(int lessonId) =>
+      _delegate.completeLesson(lessonId);
 
   @override
   Future<MaterialDownload> getMaterialDownload(int materialId) =>

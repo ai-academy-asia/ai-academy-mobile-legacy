@@ -2,6 +2,7 @@ import 'course_exercise.dart';
 import 'course_learning_path.dart';
 import 'course_quiz.dart';
 import 'lesson.dart';
+import 'lesson_completion.dart';
 import 'material_download.dart';
 import 'uploaded_file.dart';
 
@@ -10,17 +11,19 @@ import 'uploaded_file.dart';
 ///
 /// `HttpCourseLearningRepository` serves all three from
 /// `course_learning_api_contract_v1.md` §2.1–2.3, saves a lesson's note
-/// through §2.5, fetches a material's download link through §2.4, submits
-/// an assignment through §2.6, uploads a student file through §2.8 and runs
-/// a quiz attempt through §2.7, throwing `CourseLearningFailure`;
+/// through §2.5, marks a lesson complete through §2.3, fetches a material's
+/// download link through §2.4, submits an assignment through §2.6, uploads a
+/// student file through §2.8 and runs a quiz attempt through §2.7, throwing
+/// `CourseLearningFailure`;
 /// `SampleCourseLearningRepository` serves hand-authored content for tests.
 ///
 /// Three content reads on one interface, same shape as `CourseRepository`'s
 /// `getCourses()`/`getCourseDetail(slug)` split: one for the overview list,
 /// one for a module's own lessons, one for a lesson's exercise detail — plus
-/// the Exercise Detail screen's actions: the note save, a material's download
-/// link and an assignment submission — the file upload a submission will
-/// attach, and the quiz attempt's start, answers, finish and result.
+/// the Exercise Detail screen's actions: the note save, the lesson's
+/// completion, a material's download link and an assignment submission —
+/// the file upload a submission will attach, and the quiz attempt's start,
+/// answers, finish and result.
 abstract interface class CourseLearningRepository {
   /// [courseSlug] is `Course.slug` — the one identifier this feature borrows
   /// from the confirmed course contract rather than inventing its own.
@@ -38,6 +41,12 @@ abstract interface class CourseLearningRepository {
   /// returns the note as saved — §2.5 `PUT /me/lessons/{lesson_id}/note`,
   /// one call for both, so there is no separate "create".
   Future<CourseExerciseNote> saveNote(int lessonId, String content);
+
+  /// Marks [lessonId] complete for the signed-in student and returns the
+  /// server's answer, the course's new progress included — §2.3
+  /// `POST /me/lessons/{lesson_id}/complete`. Idempotent: completing a
+  /// completed lesson is not an error.
+  Future<LessonCompletion> completeLesson(int lessonId);
 
   /// A fresh download link for one lesson material — §2.4
   /// `GET /me/materials/{material_id}/download`. [materialId] is

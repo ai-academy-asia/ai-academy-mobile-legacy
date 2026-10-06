@@ -5,12 +5,17 @@ import '../../../core/utils/pick_local_file.dart';
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_repository.dart';
+import '../domain/lesson_completion.dart';
 import '../domain/uploaded_file.dart';
 import 'course_learning_strings.dart';
 
-/// Loads one lesson's content, saves the student's note on it, opens its
-/// materials' downloads, uploads the file its assignment submission carries,
-/// and submits that assignment.
+/// Loads one lesson's content, saves the student's note on it, marks it
+/// complete, opens its materials' downloads, uploads the file its assignment
+/// submission carries, and submits that assignment.
+///
+/// [completeLesson] is wired to the backend but no control calls it yet: the
+/// lesson screen has no "done" control and no video player, and which
+/// interaction completes a lesson is a product decision (Issue #209).
 ///
 /// The file half is complete here but reached only from the Assignment
 /// tab's file form, which no backend lesson draws yet — see
@@ -50,6 +55,9 @@ class CourseExerciseDetailController extends ChangeNotifier {
   String? _errorMessage;
   bool _savingNote = false;
   String? _noteSaveErrorMessage;
+  bool _completingLesson = false;
+  String? _lessonCompleteErrorMessage;
+  LessonCompletion? _lessonCompletion;
   final Set<int> _downloadingMaterialIds = {};
   final Set<int> _openedMaterialIds = {};
   final Map<int, String> _materialDownloadErrors = {};
@@ -73,6 +81,18 @@ class CourseExerciseDetailController extends ChangeNotifier {
   /// User-facing copy for the last failed [saveNote], or null. Kept apart
   /// from [errorMessage]: a failed save leaves the loaded lesson on screen.
   String? get noteSaveErrorMessage => _noteSaveErrorMessage;
+
+  /// True while a [completeLesson] is in flight.
+  bool get completingLesson => _completingLesson;
+
+  /// User-facing copy for the last failed [completeLesson], or null. Kept
+  /// apart from [errorMessage], like [noteSaveErrorMessage].
+  String? get lessonCompleteErrorMessage => _lessonCompleteErrorMessage;
+
+  /// The server's answer to the last successful [completeLesson] — the
+  /// course's progress after it included — or null before one has
+  /// succeeded. Held as sent, never worked out locally.
+  LessonCompletion? get lessonCompletion => _lessonCompletion;
 
   /// True while a [submitAssignment] is in flight.
   bool get submittingAssignment => _submittingAssignment;
@@ -186,6 +206,46 @@ class CourseExerciseDetailController extends ChangeNotifier {
       return false;
     } finally {
       _savingNote = false;
+      _notify();
+    }
+  }
+
+  /// Marks the lesson complete through the backend (§2.3
+  /// `POST /me/lessons/{lesson_id}/complete`) and answers whether the server
+  /// now holds it completed.
+  ///
+  /// On success the loaded exercise's `completed` is the server's answer and
+  /// [lessonCompletion] holds that answer, the course's new progress
+  /// included. On failure the exercise is untouched — nothing shows the
+  /// lesson completed — [lessonCompleteErrorMessage] says why, and this
+  /// answers false. Ignored (false) with no lesson loaded or a completion
+  /// already in flight.
+  Future<bool> completeLesson() async {
+    if (_exercise == null || _completingLesson) return false;
+
+    _completingLesson = true;
+    _lessonCompleteErrorMessage = null;
+    _notify();
+
+    try {
+      final completion = await _repository.completeLesson(lessonId);
+      _lessonCompletion = completion;
+      // Re-read, as `saveNote` does: a reload may have replaced the exercise.
+      final current = _exercise;
+      if (current != null) {
+        _exercise = current.withCompleted(completion.completed);
+      }
+      return completion.completed;
+    } on CourseLearningFailure catch (failure) {
+      _lessonCompleteErrorMessage = CourseLearningStrings.messageFor(
+        failure.kind,
+      );
+      return false;
+    } catch (_) {
+      _lessonCompleteErrorMessage = CourseLearningStrings.unexpectedError;
+      return false;
+    } finally {
+      _completingLesson = false;
       _notify();
     }
   }

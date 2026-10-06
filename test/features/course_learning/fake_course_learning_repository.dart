@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_repos
 import 'package:aia_mobile/features/course_learning/domain/course_module.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_quiz.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson_completion.dart';
 import 'package:aia_mobile/features/course_learning/domain/material_download.dart';
 import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 
@@ -18,7 +19,7 @@ import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 /// this lets a controller test still observe the brief `loading` state
 /// `CourseLearningController.load()` reports before its `await` resolves.
 /// [getCourseLearning], [getLessons], [getExercise], [saveNote],
-/// [getMaterialDownload], [submitAssignment], [uploadFile] and the four quiz
+/// [completeLesson], [getMaterialDownload], [submitAssignment], [uploadFile] and the four quiz
 /// calls are tracked independently, same reasoning as `FakeCourseRepository`'s
 /// `getCourses`/`getCourseDetail` split.
 class FakeCourseLearningRepository implements CourseLearningRepository {
@@ -35,6 +36,9 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.savedNote,
     this.holdSave = false,
     this.saveFailure,
+    this.completion,
+    this.holdComplete = false,
+    this.completeFailure,
     this.download,
     this.holdDownload = false,
     this.downloadFailure,
@@ -204,6 +208,42 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
     return savedNote ??
         sampleNote(message: content, timestampLabel: 'Just now');
+  }
+
+  // --- completeLesson ------------------------------------------------------
+
+  /// Returned on success. Defaults to [sampleCompletion].
+  LessonCompletion? completion;
+
+  /// When true, [completeLesson] blocks until [releaseComplete] is called.
+  bool holdComplete;
+
+  /// Thrown by [completeLesson] instead of returning, after [holdComplete]
+  /// releases. Settable between calls, so a retry can succeed.
+  CourseLearningFailure? completeFailure;
+
+  /// Every lesson id [completeLesson] was called with, in order.
+  final List<int> completeCalls = [];
+
+  Completer<void>? _completeGate;
+
+  void releaseComplete() {
+    final gate = _completeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<LessonCompletion> completeLesson(int lessonId) async {
+    completeCalls.add(lessonId);
+
+    if (holdComplete) {
+      _completeGate = Completer<void>();
+      await _completeGate!.future;
+    }
+
+    if (completeFailure case final failure?) throw failure;
+
+    return completion ?? sampleCompletion();
   }
 
   // --- getMaterialDownload -----------------------------------------------
@@ -467,6 +507,12 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     return attemptResult ?? sampleAttemptResult(attemptId: attemptId);
   }
 }
+
+/// A §2.3 mark-complete answer.
+LessonCompletion sampleCompletion({
+  bool completed = true,
+  int percentComplete = 35,
+}) => LessonCompletion(completed: completed, percentComplete: percentComplete);
 
 /// A §2.8 upload answer.
 UploadedFile sampleUploadedFile({

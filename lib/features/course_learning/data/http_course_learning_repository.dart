@@ -14,6 +14,7 @@ import '../domain/course_module.dart';
 import '../domain/course_quiz.dart';
 import '../domain/file_size_label.dart';
 import '../domain/lesson.dart';
+import '../domain/lesson_completion.dart';
 import '../domain/material_download.dart';
 import '../domain/uploaded_file.dart';
 import 'course_module_visuals.dart';
@@ -155,6 +156,21 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
       'content': content,
     });
     return _savedNoteFrom(body, now: _clock());
+  }
+
+  /// §2.3 "Mark complete" — `POST /me/lessons/{lesson_id}/complete`, no
+  /// body. See [_completionFromBody].
+  ///
+  /// The contract names no errors of its own for this call; it is a §2.3
+  /// lesson path, so its 404 (`lesson_not_found`), 403 (`not_enrolled`) and
+  /// 409 (`lesson_locked`) read as the lesson detail's do, through the same
+  /// [_failureForStatus].
+  @override
+  Future<LessonCompletion> completeLesson(int lessonId) async {
+    final body = await _authorizedPostWithoutBody(
+      '/me/lessons/$lessonId/complete',
+    );
+    return _completionFromBody(body);
   }
 
   /// §2.4 `GET /me/materials/{material_id}/download` — a pre-signed link for
@@ -304,8 +320,9 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
         ),
       );
 
-  /// §2.7's start and finish carry no body, so none is sent — the same
-  /// transport `HttpEnrollmentRepository` uses for its body-less POST.
+  /// §2.7's start and finish and §2.3's mark-complete carry no body, so none
+  /// is sent — the same transport `HttpEnrollmentRepository` uses for its
+  /// body-less POST.
   Future<String> _authorizedPostWithoutBody(String path) => _authorizedRequest(
     path,
     (url, headers) => postWithoutBody(
@@ -831,6 +848,16 @@ QuizQuestionResult _questionResultFrom(Object? entry) {
     questionId: _requireInt(entry, 'result.question.question_id'),
     order: _requireInt(entry, 'result.question.order'),
     correct: _requireBool(entry, 'result.question.correct'),
+  );
+}
+
+/// §2.3's mark-complete answer: `completed` and `progress.percent`, read as
+/// strictly as the learning path reads the same progress object.
+LessonCompletion _completionFromBody(String body) {
+  final decoded = _decodeObject(body);
+  return LessonCompletion(
+    completed: _requireBool(decoded, 'completion.completed'),
+    percentComplete: _requirePercent(_requireObject(decoded, 'progress')),
   );
 }
 

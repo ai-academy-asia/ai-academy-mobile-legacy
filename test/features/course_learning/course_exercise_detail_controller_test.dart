@@ -1,6 +1,7 @@
 import 'package:aia_mobile/core/utils/pick_local_file.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson_completion.dart';
 import 'package:aia_mobile/features/course_learning/domain/uploaded_file.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_controller.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
@@ -392,6 +393,183 @@ void main() {
       controller.dispose();
       repository.releaseSave();
 
+      await pending;
+    });
+  });
+
+  group('completeLesson', () {
+    Future<CourseExerciseDetailController> loaded(
+      FakeCourseLearningRepository repository,
+    ) async {
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+      await controller.load();
+      return controller;
+    }
+
+    test('starts not completing, with no completion and no error', () async {
+      final controller = await loaded(FakeCourseLearningRepository());
+
+      expect(controller.completingLesson, isFalse);
+      expect(controller.lessonCompleteErrorMessage, isNull);
+      expect(controller.lessonCompletion, isNull);
+    });
+
+    test('sends the controller\'s own lesson id', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(lessonId: 205),
+      );
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 205,
+      );
+      await controller.load();
+
+      await controller.completeLesson();
+
+      expect(repository.completeCalls, [205]);
+    });
+
+    test('reports completing while the request is in flight', () async {
+      final repository = FakeCourseLearningRepository(holdComplete: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.completeLesson();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.completingLesson, isTrue);
+
+      repository.releaseComplete();
+      await pending;
+      expect(controller.completingLesson, isFalse);
+    });
+
+    test('a second completion while one is in flight is ignored', () async {
+      final repository = FakeCourseLearningRepository(holdComplete: true);
+      final controller = await loaded(repository);
+
+      final first = controller.completeLesson();
+      await Future<void>.delayed(Duration.zero);
+      expect(await controller.completeLesson(), isFalse);
+
+      repository.releaseComplete();
+      expect(await first, isTrue);
+      expect(repository.completeCalls, [204]);
+    });
+
+    test('success marks the lesson completed and holds the server\'s '
+        'progress', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(lessonId: 204, title: 'Давталт'),
+        completion: sampleCompletion(percentComplete: 40),
+      );
+      final controller = await loaded(repository);
+      expect(controller.exercise!.completed, isFalse);
+      final note = controller.exercise!.note;
+
+      final completed = await controller.completeLesson();
+
+      expect(completed, isTrue);
+      expect(controller.exercise!.completed, isTrue);
+      expect(controller.lessonCompletion?.percentComplete, 40);
+      // The rest of the lesson is untouched.
+      expect(controller.exercise!.title, 'Давталт');
+      expect(controller.exercise!.note, note);
+      expect(controller.errorMessage, isNull);
+      expect(controller.lessonCompleteErrorMessage, isNull);
+    });
+
+    test('the server\'s answer, not the request, decides completed', () async {
+      final repository = FakeCourseLearningRepository(
+        completion: sampleCompletion(completed: false, percentComplete: 30),
+      );
+      final controller = await loaded(repository);
+
+      expect(await controller.completeLesson(), isFalse);
+      expect(controller.exercise!.completed, isFalse);
+      expect(controller.lessonCompletion?.percentComplete, 30);
+    });
+
+    test(
+      'a failure becomes its own copy, and shows nothing completed',
+      () async {
+        for (final kind in CourseLearningFailureKind.values) {
+          final repository = FakeCourseLearningRepository(
+            completeFailure: CourseLearningFailure(kind),
+          );
+          final controller = await loaded(repository);
+
+          final completed = await controller.completeLesson();
+
+          expect(completed, isFalse, reason: kind.name);
+          expect(
+            controller.lessonCompleteErrorMessage,
+            CourseLearningStrings.messageFor(kind),
+            reason: kind.name,
+          );
+          expect(controller.exercise!.completed, isFalse, reason: kind.name);
+          expect(controller.lessonCompletion, isNull, reason: kind.name);
+          // A failed completion is not a failed load: the lesson stays.
+          expect(controller.errorMessage, isNull, reason: kind.name);
+          expect(controller.completingLesson, isFalse, reason: kind.name);
+        }
+      },
+    );
+
+    test('an unexpected error reads as the generic copy', () async {
+      final controller = await loaded(_ThrowingRepository.onComplete());
+
+      expect(await controller.completeLesson(), isFalse);
+      expect(
+        controller.lessonCompleteErrorMessage,
+        CourseLearningStrings.unexpectedError,
+      );
+      expect(controller.exercise!.completed, isFalse);
+    });
+
+    test('a retry clears the error as it starts, and can succeed', () async {
+      final repository = FakeCourseLearningRepository(
+        completeFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      final controller = await loaded(repository);
+      await controller.completeLesson();
+      expect(controller.lessonCompleteErrorMessage, isNotNull);
+
+      repository
+        ..completeFailure = null
+        ..holdComplete = true;
+      final pending = controller.completeLesson();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.lessonCompleteErrorMessage, isNull);
+
+      repository.releaseComplete();
+      expect(await pending, isTrue);
+      expect(controller.exercise!.completed, isTrue);
+    });
+
+    test('with no lesson loaded, nothing is sent', () async {
+      final repository = FakeCourseLearningRepository();
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+      );
+
+      expect(await controller.completeLesson(), isFalse);
+      expect(repository.completeCalls, isEmpty);
+    });
+
+    test('does not notify after being disposed', () async {
+      final repository = FakeCourseLearningRepository(holdComplete: true);
+      final controller = await loaded(repository);
+
+      final pending = controller.completeLesson();
+      controller.dispose();
+      repository.releaseComplete();
+
+      // Would throw "used after being disposed" if the guard were missing.
       await pending;
     });
   });
@@ -1363,12 +1541,14 @@ void main() {
 
 /// Throws something that is not a `CourseLearningFailure` — from
 /// [getExercise] by default, or, built with [_ThrowingRepository.onSave],
-/// [_ThrowingRepository.onSubmit] or [_ThrowingRepository.onUpload], from
-/// that call only.
+/// [_ThrowingRepository.onComplete], [_ThrowingRepository.onSubmit] or
+/// [_ThrowingRepository.onUpload], from that call only.
 class _ThrowingRepository extends FakeCourseLearningRepository {
   _ThrowingRepository() : _throwOn = _Throw.load;
 
   _ThrowingRepository.onSave() : _throwOn = _Throw.save;
+
+  _ThrowingRepository.onComplete() : _throwOn = _Throw.complete;
 
   _ThrowingRepository.onSubmit()
     : _throwOn = _Throw.submit,
@@ -1405,6 +1585,12 @@ class _ThrowingRepository extends FakeCourseLearningRepository {
   }
 
   @override
+  Future<LessonCompletion> completeLesson(int lessonId) async {
+    if (_throwOn != _Throw.complete) return super.completeLesson(lessonId);
+    throw StateError('boom');
+  }
+
+  @override
   Future<AssignmentSubmission> submitAssignment(
     int assignmentId, {
     String? link,
@@ -1434,4 +1620,4 @@ class _ThrowingRepository extends FakeCourseLearningRepository {
   }
 }
 
-enum _Throw { load, save, submit, upload }
+enum _Throw { load, save, complete, submit, upload }

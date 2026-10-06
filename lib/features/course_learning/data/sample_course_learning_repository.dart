@@ -5,6 +5,7 @@ import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
 import '../domain/course_quiz.dart';
 import '../domain/lesson.dart';
+import '../domain/lesson_completion.dart';
 import '../domain/material_download.dart';
 import '../domain/uploaded_file.dart';
 import 'course_module_visuals.dart';
@@ -257,6 +258,17 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
     throw CourseLearningFailure(
       CourseLearningFailureKind.notFound,
       detail: 'sample material $materialId has no stored file',
+    );
+  }
+
+  /// The sample has no server to record a completion on or compute progress
+  /// from, so this fails, as `unexpected`, rather than answer with a progress
+  /// figure nobody computed. No screen asks for it.
+  @override
+  Future<LessonCompletion> completeLesson(int lessonId) async {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.unexpected,
+      detail: 'the sample has nowhere to record lesson $lessonId as complete',
     );
   }
 
