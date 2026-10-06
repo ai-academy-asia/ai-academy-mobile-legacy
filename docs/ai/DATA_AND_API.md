@@ -132,3 +132,28 @@ The contract is the source of truth for the API. `docs/course_learning_frontend_
 3. **Do not convert sample data into an API contract.** Sample fields describe what the UI needs, not what the backend sends.
 4. **Keep failure families separate.** Do not merge the failure enums to "simplify"; the split is what keeps `switch` statements honest.
 5. **A new authenticated endpoint** reads its token from an injected `AuthSessionStore`, defaults its `http.Client` to `AuthenticatedClient.instance` (so an expired token is renewed and the request retried), uses `getRaw`/`postWithoutBody` (which return all statuses), and maps a 401 that survives renewal to that feature's "session expired" case.
+
+## 9. Payment screen and its temporary fixtures (Issue #196)
+
+The Adult Payment screen ("Төлбөр", `home/presentation/payment_screen.dart`) is built from three Figma references — 1 partly paid, 2 paid off, 3 overdue — **before any `/me/ledger` response with installments has been seen**. The only verified response had `"installments": []`, so the screen is fed nothing from the API yet.
+
+**What feeds it now — temporary, debug-only.** `PaymentPlanUiFixtures` (`payments/data/payment_plan_ui_fixtures.dart`) holds the three references' own figures, typed in by hand; `PaymentPreviews` (`home/presentation/payment_previews.dart`) pairs each with that reference's row placement. They describe no real student. `HomeScreen.showPaymentPreview` defaults to `!kReleaseMode`: in debug/profile builds the Adult Home payment card's "Дэлгэрэнгүй" and its live (overdue) pay pill open the overdue or the partly-paid preview; **release builds leave the card exactly as before**. "Төлбөр төлөх" and the rows' chevrons are inert — no QPay, invoice, payment processing, polling, receipt or eBarimt is designed or integrated. Fixture values kept verbatim because Figma is the visual source of truth:
+
+- the rows' date labels ("Ня, 3 сарын 8", "Бя, 3 сарын 12", "Да, 3 сарын 17", "Ням, 3 сарын 22"; reference 2 repeats "Ня, 3 сарын 8"), though they follow no single format and match no real calendar;
+- the progress fill, 114 of the bar's 361 points (≈32%), not 500,000 ÷ 2,000,000;
+- each reference's own row placement, where the three disagree by about 2pt.
+
+**What the backend still has to provide (`BACKEND GAP`)** — the shape of one `installments` element: its due date, its amount, and whether it is paid (a flag, a status, or a paid amount); its number/order; possibly a pre-formatted date label.
+
+**Mapping to confirm against the first real sample** onto the domain model `PaymentPlan` (`payments/domain/payment_plan.dart`, not tied to any response shape):
+
+| `PaymentPlan` | Source | State |
+|---|---|---|
+| `totalDue`, `totalPaid`, `balance` | `total_due`, `total_paid`, `balance` | Field names verified; that they are the plan's totals is to confirm |
+| `courseTitle` | `course.title` | Verified field; whether the summary always names the course is a `PRODUCT DECISION` (only reference 3 does) |
+| `paidFraction` | — | `PRODUCT DECISION`: paid ÷ due, installments paid ÷ all, or a backend value |
+| `installments[]` → `PaymentInstallment` (`number`, `dueDate`, `dueDateLabel`, `amount`, `paid`) | `installments` | `UNKNOWN` shape |
+| paid / next (N days) / overdue / upcoming | worked out by `PaymentPlan.statusesOn` from due dates and paid flags | `UNKNOWN` whether the backend sends these states itself |
+| `dueDateLabel` format | — | `PRODUCT DECISION`: the weekday abbreviation ("Ня" vs "Ням") |
+
+When the sample arrives: map it in the `payments` data layer into `PaymentPlan`, open the screen with it in every build, and delete `PaymentPlanUiFixtures`, `PaymentPreviews` and `HomeScreen.showPaymentPreview`. The fixtures stay only for tests until then; never convert them into a contract (§8 rule 3).
