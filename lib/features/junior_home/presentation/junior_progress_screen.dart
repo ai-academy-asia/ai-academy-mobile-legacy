@@ -66,7 +66,8 @@ const double _calendarInset = 6;
 ///    GAP). Each card keeps its title either way;
 ///  * the next-lesson lines — only when the schedule names one;
 ///  * the calendar — opens on today's month; the previous/next arrows page
-///    to any other month, locally, without asking the API again. Each month
+///    locally, without asking the API again, back no further than the
+///    cohort's start month (Issue #200). Each month
 ///    shows the cohort's lesson days, the days of `absent` sessions marked
 ///    missed ("Хичээлээ тасалсан", unringed as the Junior frame draws it),
 ///    and the days of attended (present or late) sessions marked attended.
@@ -188,7 +189,9 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
               month: _controller.displayedMonth ?? progress.month,
               days: _controller.displayedDays,
               selectedDay: _controller.displayedSelectedDay,
-              onPreviousMonth: _controller.showPreviousMonth,
+              onPreviousMonth: _controller.canShowPreviousMonth
+                  ? _controller.showPreviousMonth
+                  : null,
               onNextMonth: _controller.showNextMonth,
             ),
           ],
@@ -348,7 +351,9 @@ class _ProgressPanel extends StatelessWidget {
   final DateTime month;
   final Map<int, JuniorDayStatus> days;
   final int? selectedDay;
-  final VoidCallback onPreviousMonth;
+
+  /// Null at the student's cohort start month: "<" is drawn disabled.
+  final VoidCallback? onPreviousMonth;
   final VoidCallback onNextMonth;
 
   @override

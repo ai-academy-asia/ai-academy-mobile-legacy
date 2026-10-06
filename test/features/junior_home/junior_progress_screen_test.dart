@@ -16,6 +16,8 @@ import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_prog
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:aia_mobile/core/theme/app_icons.dart';
+import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -710,5 +712,50 @@ void main() {
         .width;
     expect(panelWidth, lessThanOrEqualTo(480));
     expect(tester.takeException(), isNull);
+  });
+
+  group('first month (Issue #200)', () {
+    testWidgets('"<" stops at the cohort start month and is drawn '
+        'disabled there', (tester) async {
+      // Started 14 August 2023, seen on 5 October 2023.
+      final calendar = JuniorCalendarSource(
+        schedule: LessonSchedule(
+          weekdays: const {DateTime.monday},
+          start: (9, 0),
+          end: (11, 0),
+          firstDay: DateTime(2023, 8, 14),
+        ),
+      );
+      final october = DateTime(2023, 10);
+      await pumpScreen(
+        tester,
+        progress: JuniorProgress(
+          month: october,
+          selectedDay: 5,
+          days: calendar.marksIn(october),
+          calendar: calendar,
+        ),
+      );
+      final previous = find.bySemanticsLabel(
+        JuniorProgressStrings.previousMonth,
+      );
+      Color? caret() =>
+          tester.widget<Icon>(find.byIcon(AppIcons.caretLeft)).color;
+
+      for (var i = 0; i < 4; i++) {
+        await tester.ensureVisible(previous);
+        await tester.tap(previous);
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('Наймдугаар сар, 2023'), findsOneWidget);
+      expect(find.text('Долоодугаар сар, 2023'), findsNothing);
+      expect(caret(), HomePalette.mutedInk);
+
+      await tester.tap(find.bySemanticsLabel(JuniorProgressStrings.nextMonth));
+      await tester.pumpAndSettle();
+      expect(find.text('Есдүгээр сар, 2023'), findsOneWidget);
+      expect(caret(), AppColors.textPrimary);
+    });
   });
 }

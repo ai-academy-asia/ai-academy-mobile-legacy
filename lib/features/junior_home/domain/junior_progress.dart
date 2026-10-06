@@ -91,6 +91,24 @@ class JuniorCalendarSource {
   /// (Issue #180) pass them.
   final Set<DateTime> missedDates;
 
+  /// The earliest month the calendar pages back to: the month of the
+  /// student's cohort's first day ([LessonSchedule.firstDay], from
+  /// `GET /cohorts` `start_date`), so no one browses months before their
+  /// course began (Issue #200). Per student, never a fixed date. Null — no
+  /// bound — when the cohort has no parseable schedule or start date.
+  DateTime? get firstMonth {
+    final first = schedule?.firstDay;
+    return first == null ? null : DateTime(first.year, first.month);
+  }
+
+  /// Whether the calendar may page back from [month]: false at [firstMonth]
+  /// and before it. Only [month]'s year and month are read. Both the Adult
+  /// attendance screen and the Junior "Сурлагын явц" calendar ask this.
+  bool hasMonthBefore(DateTime month) {
+    final first = firstMonth;
+    return first == null || DateTime(month.year, month.month).isAfter(first);
+  }
+
   /// [month]'s marks: its scheduled lesson days, then the day of each missed
   /// session, then the day of each attended one — each later rule winning on
   /// its day, and on an unscheduled day too, since the server recorded the

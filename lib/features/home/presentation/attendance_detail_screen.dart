@@ -65,7 +65,8 @@ const double _pageBottom = 12;
 /// [CourseLearningBackButton] with the frame's arrow.
 ///
 /// The calendar opens on today's month with today selected, and its arrows
-/// page to any other month locally — the same behaviour as the Junior one.
+/// page locally — back no further than the cohort's start month, forward
+/// without limit — the same behaviour as the Junior one.
 class AttendanceDetailScreen extends StatefulWidget {
   const AttendanceDetailScreen({
     required this.attendance,
@@ -153,7 +154,11 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
                             month: _month,
                             days: _calendar.marksIn(_month),
                             selectedDay: showingToday ? _today.day : null,
-                            onPreviousMonth: () => _page(-1),
+                            // Not before the cohort's start month
+                            // (Issue #200).
+                            onPreviousMonth: _calendar.hasMonthBefore(_month)
+                                ? () => _page(-1)
+                                : null,
                             onNextMonth: () => _page(1),
                           ),
                         ],
@@ -222,7 +227,9 @@ class _Panel extends StatelessWidget {
   final DateTime month;
   final Map<int, JuniorDayStatus> days;
   final int? selectedDay;
-  final VoidCallback onPreviousMonth;
+
+  /// Null at the student's cohort start month: "<" is drawn disabled.
+  final VoidCallback? onPreviousMonth;
   final VoidCallback onNextMonth;
 
   @override

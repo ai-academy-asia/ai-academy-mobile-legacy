@@ -56,4 +56,54 @@ void main() {
       isNot(contains(JuniorDayStatus.missed)),
     );
   });
+
+  group('first month (Issue #200)', () {
+    JuniorCalendarSource startingOn(DateTime firstDay) => JuniorCalendarSource(
+      schedule: LessonSchedule(
+        weekdays: schedule.weekdays,
+        start: schedule.start,
+        end: schedule.end,
+        firstDay: firstDay,
+      ),
+    );
+
+    test('is each student\'s own cohort start month', () {
+      expect(startingOn(DateTime(2023, 8, 14)).firstMonth, DateTime(2023, 8));
+      expect(startingOn(DateTime(2024, 2, 1)).firstMonth, DateTime(2024, 2));
+      expect(startingOn(DateTime(2025, 9, 30)).firstMonth, DateTime(2025, 9));
+    });
+
+    test('allows paging back only after the start month', () {
+      final source = startingOn(DateTime(2023, 8, 14));
+
+      expect(source.hasMonthBefore(DateTime(2023, 9)), isTrue);
+      expect(source.hasMonthBefore(DateTime(2024, 1)), isTrue);
+      expect(source.hasMonthBefore(DateTime(2023, 8)), isFalse);
+      // Any day of the month reads as the month.
+      expect(source.hasMonthBefore(DateTime(2023, 8, 31)), isFalse);
+      expect(source.hasMonthBefore(DateTime(2023, 7)), isFalse);
+      expect(source.hasMonthBefore(DateTime(2022, 12)), isFalse);
+    });
+
+    test('across a year boundary', () {
+      final source = startingOn(DateTime(2024, 12, 3));
+
+      expect(source.hasMonthBefore(DateTime(2025, 1)), isTrue);
+      expect(source.hasMonthBefore(DateTime(2024, 12)), isFalse);
+    });
+
+    test('no start date or no schedule leaves paging unbounded', () {
+      expect(const JuniorCalendarSource().firstMonth, isNull);
+      expect(
+        const JuniorCalendarSource().hasMonthBefore(DateTime(1990, 1)),
+        isTrue,
+      );
+      expect(
+        const JuniorCalendarSource(
+          schedule: schedule,
+        ).hasMonthBefore(DateTime(1990, 1)),
+        isTrue,
+      );
+    });
+  });
 }

@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../home/domain/home_dashboard.dart';
+import '../../../home/presentation/widgets/home_palette.dart';
 import '../../domain/junior_progress.dart';
 import '../junior_progress_strings.dart';
 import 'junior_home_palette.dart';
@@ -65,7 +66,8 @@ class AttendanceNextLesson extends StatelessWidget {
 }
 
 /// "Наймдугаар сар, 2026" with the previous/next arrows at the trailing
-/// edge, centred on the label's line.
+/// edge, centred on the label's line. A null [onPrevious] — the student's
+/// cohort start month (Issue #200) — draws "<" muted and inert.
 class AttendanceMonthHeader extends StatelessWidget {
   const AttendanceMonthHeader({
     required this.month,
@@ -75,15 +77,16 @@ class AttendanceMonthHeader extends StatelessWidget {
   });
 
   final DateTime month;
-  final VoidCallback onPrevious;
+  final VoidCallback? onPrevious;
   final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
     // A bare GestureDetector rather than an InkWell: the frame draws no
     // pressed state, and the arrows must look exactly as they did inert.
-    Widget arrow(IconData icon, String label, VoidCallback onTap) => Semantics(
+    Widget arrow(IconData icon, String label, VoidCallback? onTap) => Semantics(
       button: true,
+      enabled: onTap != null,
       label: label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -94,7 +97,13 @@ class AttendanceMonthHeader extends StatelessWidget {
           // The frame centres the carets 2 above the label's own centre.
           padding: const EdgeInsets.only(bottom: 4),
           // 19 inks the frame's 7 x 14 caret.
-          child: Icon(icon, size: 19, color: AppColors.textPrimary),
+          // No frame draws a disabled arrow: the muted ink the app's
+          // disabled pills use.
+          child: Icon(
+            icon,
+            size: 19,
+            color: onTap == null ? HomePalette.mutedInk : AppColors.textPrimary,
+          ),
         ),
       ),
     );

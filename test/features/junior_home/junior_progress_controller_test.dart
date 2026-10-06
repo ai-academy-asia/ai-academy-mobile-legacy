@@ -2,6 +2,7 @@ import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_progress_controller.dart';
+import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_junior_progress_repository.dart';
@@ -195,6 +196,99 @@ void main() {
 
       expect(controller.displayedMonth, isNull);
       expect(controller.displayedDays, isEmpty);
+    });
+  });
+
+  group('first month (Issue #200)', () {
+    Future<JuniorProgressController> startingOn(
+      DateTime firstDay,
+      DateTime today,
+    ) async {
+      final controller = JuniorProgressController(
+        repository: FakeJuniorProgressRepository(
+          progress: JuniorProgress(
+            month: DateTime(today.year, today.month),
+            selectedDay: today.day,
+            calendar: JuniorCalendarSource(
+              schedule: LessonSchedule(
+                weekdays: const {DateTime.tuesday},
+                start: (9, 0),
+                end: (11, 0),
+                firstDay: firstDay,
+              ),
+            ),
+          ),
+        ),
+      );
+      await controller.load();
+      return controller;
+    }
+
+    test('stops at the cohort start month, across a year', () async {
+      // Student A: started August 2023, seen in February 2024.
+      final controller = await startingOn(
+        DateTime(2023, 8, 14),
+        DateTime(2024, 2, 5),
+      );
+
+      for (var i = 0; i < 6; i++) {
+        expect(controller.canShowPreviousMonth, isTrue);
+        controller.showPreviousMonth();
+      }
+      expect(controller.displayedMonth, DateTime(2023, 8));
+      expect(controller.canShowPreviousMonth, isFalse);
+
+      controller.showPreviousMonth();
+      controller.showPreviousMonth();
+      expect(controller.displayedMonth, DateTime(2023, 8));
+
+      // Forward is unchanged.
+      controller.showNextMonth();
+      expect(controller.displayedMonth, DateTime(2023, 9));
+      expect(controller.canShowPreviousMonth, isTrue);
+    });
+
+    test('each student has their own first month', () async {
+      // Student B: February 2024. Student C: September 2025.
+      final b = await startingOn(DateTime(2024, 2, 1), DateTime(2024, 3, 9));
+      b.showPreviousMonth();
+      b.showPreviousMonth();
+      expect(b.displayedMonth, DateTime(2024, 2));
+
+      final c = await startingOn(DateTime(2025, 9, 20), DateTime(2025, 9, 25));
+      expect(c.canShowPreviousMonth, isFalse);
+      c.showPreviousMonth();
+      expect(c.displayedMonth, DateTime(2025, 9));
+    });
+
+    test('a blocked "<" does not notify', () async {
+      final controller = await startingOn(
+        DateTime(2025, 9, 20),
+        DateTime(2025, 9, 25),
+      );
+      var notified = 0;
+      controller.addListener(() => notified++);
+
+      controller.showPreviousMonth();
+
+      expect(notified, 0);
+    });
+
+    test('a cohort that has not started yet: "<" is already blocked', () async {
+      final controller = await startingOn(
+        DateTime(2026, 12, 1),
+        DateTime(2026, 10, 6),
+      );
+
+      expect(controller.displayedMonth, DateTime(2026, 10));
+      expect(controller.canShowPreviousMonth, isFalse);
+    });
+
+    test('nothing to page before a load', () {
+      final controller = JuniorProgressController(
+        repository: FakeJuniorProgressRepository(),
+      );
+      expect(controller.canShowPreviousMonth, isFalse);
     });
   });
 }
