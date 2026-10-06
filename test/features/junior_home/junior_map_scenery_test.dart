@@ -372,11 +372,12 @@ void main() {
       final tapped = await pumpMap(tester);
       await runTo(tester, 10);
 
-      await tester.tap(nodes.at(2));
+      // A completed node: the closed check-in node is inert (Issue #207).
+      await tester.tap(nodes.at(1));
       await tester.pump();
 
       expect(tapped, hasLength(1));
-      expect(tapped.single.state, JuniorNodeState.current);
+      expect(tapped.single.state, JuniorNodeState.completed);
     });
 
     testWidgets('vertical scrolling reaches the certificate: the content '

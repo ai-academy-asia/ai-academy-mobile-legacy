@@ -8,6 +8,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../attendance/presentation/attendance_scanner_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
+import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../course_learning/presentation/lesson_list_screen.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../data/api_junior_home_repository.dart';
@@ -52,7 +53,7 @@ class JuniorHomeScreen extends StatefulWidget {
   final JuniorHomeRepository? repository;
 
   /// What the course screens a node opens load through — the real API by
-  /// default (`LessonListScreen`'s own). Injected in tests.
+  /// default (those screens' own). Injected in tests.
   final CourseLearningRepository? courseLearningRepository;
 
   /// Now — what the check-in node's state is read against (Issue #202).
@@ -139,6 +140,10 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         // Inert for content that is not a real course (the sample map).
         onNodeTap: map.courseSlug == null ? null : _openModule,
         onCheckIn: _openScanner,
+        onCourseTap: switch (map.courseSlug) {
+          final slug? => () => _openCourse(slug),
+          null => null,
+        },
       ),
     );
   }
@@ -148,6 +153,22 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   void _openScanner() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const AttendanceScannerScreen()),
+    );
+  }
+
+  /// The existing Course Detail (Issues #174, #207): the Adult course screen
+  /// on the same `GET /me/courses/{slug}/learning` data, without the Note
+  /// tab — reached from the course card, while each completed node opens
+  /// its own module.
+  void _openCourse(String slug) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CourseModuleListScreen(
+          courseSlug: slug,
+          repository: widget.courseLearningRepository,
+          showNotes: false,
+        ),
+      ),
     );
   }
 
