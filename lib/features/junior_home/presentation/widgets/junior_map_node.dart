@@ -21,15 +21,25 @@ import 'junior_map_geometry.dart';
 /// *green disc* tick and an *outline* padlock, neither of which is what this
 /// frame draws. Guessing a codepoint is what `DEVELOPMENT_RULES.md` §6
 /// forbids, so the design's own glyphs are used.
+///
+/// **The check-in node** (Issue #202) is the current module's — the one the
+/// frame draws with the QR mark. [checkInOpen] true draws it as the frame
+/// does; false, outside a lesson, draws it grey — the locked node's fill and
+/// outline, its QR mark in greys — so it reads as not available yet. Null
+/// for every other node.
 class JuniorMapNodeTile extends StatelessWidget {
   const JuniorMapNodeTile({
     required this.node,
     required this.scale,
     super.key,
     this.onTap,
+    this.checkInOpen,
   });
 
   final JuniorMapNode node;
+
+  /// Whether this is the check-in node, and if so whether check-in is open.
+  final bool? checkInOpen;
 
   /// Opens the course, or null for an inert node. The map passes one for
   /// completed and current nodes only — a locked module stays inert, as a
@@ -43,11 +53,21 @@ class JuniorMapNodeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = _NodeStyle.of(node.state);
+    final closed = checkInOpen == false;
+    final style = closed ? _NodeStyle.closedCheckIn : _NodeStyle.of(node.state);
+    final glyph = Image.asset(
+      JuniorMapGeometry.sprite(style.glyph),
+      width: JuniorMapGeometry.nodeGlyph * scale,
+      height: JuniorMapGeometry.nodeGlyph * scale,
+      filterQuality: FilterQuality.high,
+    );
 
     final onTap = this.onTap;
     return Semantics(
-      label: JuniorHomeStrings.nodeLabel(node.id, node.state),
+      label: switch (checkInOpen) {
+        null => JuniorHomeStrings.nodeLabel(node.id, node.state),
+        final open => JuniorHomeStrings.checkInNodeLabel(node.id, open: open),
+      },
       button: onTap != null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -68,18 +88,23 @@ class JuniorMapNodeTile extends StatelessWidget {
             ),
           ),
           child: Center(
-            child: Image.asset(
-              JuniorMapGeometry.sprite(style.glyph),
-              width: JuniorMapGeometry.nodeGlyph * scale,
-              height: JuniorMapGeometry.nodeGlyph * scale,
-              filterQuality: FilterQuality.high,
-            ),
+            child: closed
+                ? ColorFiltered(colorFilter: _greys, child: glyph)
+                : glyph,
           ),
         ),
       ),
     );
   }
 }
+
+/// Luminance only — the QR mark's own light and dark, in greys.
+const ColorFilter _greys = ColorFilter.matrix(<double>[
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0, 0, 0, 1, 0, //
+]);
 
 class _NodeStyle {
   const _NodeStyle({
@@ -91,6 +116,14 @@ class _NodeStyle {
   final Color fill;
   final Color border;
   final String glyph;
+
+  /// The check-in node outside a lesson: the locked node's fill and outline
+  /// round the QR mark.
+  static const _NodeStyle closedCheckIn = _NodeStyle(
+    fill: JuniorPalette.mutedFill,
+    border: JuniorPalette.muted,
+    glyph: 'node_current',
+  );
 
   static _NodeStyle of(JuniorNodeState state) => switch (state) {
     JuniorNodeState.completed => const _NodeStyle(

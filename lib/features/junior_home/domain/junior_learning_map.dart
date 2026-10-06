@@ -1,3 +1,5 @@
+import '../../home/domain/home_dashboard.dart';
+
 /// How far along the path one learning node is.
 ///
 /// Three states, because the Figma frame draws three and no more, and each
@@ -92,6 +94,7 @@ class JuniorLearningMap {
     this.continueModuleId,
     this.continueLessonId,
     this.courseSlug,
+    this.nextLesson,
   });
 
   /// The learning path's own `Course.slug` — which course a node opens
@@ -119,4 +122,34 @@ class JuniorLearningMap {
   /// not have.
   final int? continueModuleId;
   final int? continueLessonId;
+
+  /// The cohort's lesson under way or next to start — the dashboard's
+  /// `EnrolledProgram.nextLesson`, from the `GET /cohorts` schedule. Null
+  /// when the schedule names none. What decides whether the check-in node is
+  /// live (Issue #202).
+  final NextLesson? nextLesson;
+
+  /// Every module completed, by the server's own `completed` flags — the
+  /// program is done. Never true for a map with no nodes.
+  bool get isComplete =>
+      nodes.isNotEmpty &&
+      nodes.every((node) => node.state == JuniorNodeState.completed);
+
+  /// The attendance check-in node (Issue #202): the current module's node,
+  /// the one the frame draws with the QR mark. The server's
+  /// [continueModuleId] when that module is current, otherwise the first
+  /// current module in path order. Null when no module is current — a
+  /// completed program has none, and neither does one whose modules are all
+  /// locked.
+  JuniorMapNode? get checkInNode {
+    final current = nodes.where((n) => n.state == JuniorNodeState.current);
+    return current.where((n) => n.id == continueModuleId).firstOrNull ??
+        current.firstOrNull;
+  }
+
+  /// Whether check-in is open at [now]: there is a [checkInNode] and a
+  /// lesson is under way — Adult Home's own rule for its attendance action
+  /// ([NextLesson.isLiveAt]), not a backend-defined window.
+  bool checkInOpenAt(DateTime now) =>
+      checkInNode != null && (nextLesson?.isLiveAt(now) ?? false);
 }

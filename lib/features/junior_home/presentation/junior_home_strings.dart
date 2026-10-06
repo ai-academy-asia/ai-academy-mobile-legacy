@@ -92,6 +92,14 @@ abstract final class JuniorHomeStrings {
   static const String nodeCurrent = 'current lesson';
   static const String nodeLocked = 'locked';
 
+  static const String checkInOpen = 'attendance check-in open';
+  static const String checkInClosed = 'attendance check-in not open';
+
+  /// The check-in node (Issue #202): its lesson, and whether check-in is
+  /// open now.
+  static String checkInNodeLabel(int number, {required bool open}) =>
+      'Lesson $number, $nodeCurrent, ${open ? checkInOpen : checkInClosed}';
+
   static String nodeLabel(int number, JuniorNodeState state) =>
       'Lesson $number, ${switch (state) {
         JuniorNodeState.completed => nodeCompleted,

@@ -19,7 +19,9 @@ import 'dart:ui';
 /// holds its proportions on any iPhone rather than reflowing. See
 /// `JuniorLearningMapView`.
 abstract final class JuniorMapGeometry {
-  /// The design frame's own width, and the map's full scroll height.
+  /// The design frame's own width, and its map's scroll height — the height
+  /// the frame's five nodes need. A student's own map is as tall as their
+  /// node count makes it: see [mapHeightFor].
   static const double mapWidth = 393;
   static const double mapHeight = 1214;
 
@@ -70,9 +72,9 @@ abstract final class JuniorMapGeometry {
   /// at 48 within the 84.
   static const double nodeGlyph = 48;
 
-  /// Top-left of each node, in path order. Not a column and not a grid: the
-  /// route swings right, back left, further left, then right again, which is
-  /// the whole point of the frame.
+  /// Top-left of the frame's five nodes, in path order. Not a column and not
+  /// a grid: the route swings right, back left, further left, then right
+  /// again, which is the whole point of the frame. [nodeAt] places any node.
   static const List<Offset> nodes = [
     Offset(154.7, 160), // 1 — completed
     Offset(277, 268.7), // 2 — completed
@@ -81,6 +83,26 @@ abstract final class JuniorMapGeometry {
     Offset(154.7, 594), // 5 — locked
   ];
 
+  /// The route's four columns, in the order the frame visits them: centre,
+  /// right, centre, left — then round again.
+  static const List<double> _columns = [154.7, 277, 154.7, 32];
+
+  /// Two rows down the frame are 217 apart, split 108.7 then 108.3.
+  static const double _rowPair = 217;
+  static const double _halfRow = 108.7;
+
+  /// Top-left of the node at [index] in path order (Issue #202).
+  ///
+  /// The frame draws five; a student's course can have fewer or more
+  /// modules, and every one of them is a node. So the route continues the
+  /// frame's own pattern — the same four columns in the same order, the same
+  /// spacing — rather than stopping at five. The first five are exactly
+  /// [nodes].
+  static Offset nodeAt(int index) => Offset(
+    _columns[index % _columns.length],
+    nodes.first.dy + (index ~/ 2) * _rowPair + (index.isOdd ? _halfRow : 0),
+  );
+
   // --- Connectors ----------------------------------------------------------
 
   /// The radius of every elbow in the route. One value for all five, which is
@@ -88,7 +110,8 @@ abstract final class JuniorMapGeometry {
   static const double connectorRadius = 32;
   static const double connectorStroke = 3;
 
-  /// The five connectors, each a right-angle elbow rounded at [connectorRadius].
+  /// The frame's five connectors, each a right-angle elbow rounded at
+  /// [connectorRadius]. [route] builds the same elbows for any node count.
   ///
   /// `from` and `to` sit on a node's edge (or, for the last one, on the
   /// certificate card's top) and `corner` is the right-angle vertex the elbow
@@ -128,9 +151,110 @@ abstract final class JuniorMapGeometry {
     ),
   ];
 
+  /// The route for a map whose nodes are in [states], in path order
+  /// (Issue #202): one elbow between each pair of neighbours, then one from
+  /// the last node to the certificate card — and nothing past them, so no
+  /// line ever runs on to a stop the student does not have.
+  ///
+  /// Every elbow is one of the frame's own four shapes, chosen by the
+  /// column its node sits in. A stretch is drawn blue when the student has
+  /// walked it — both of its nodes completed — and the last one when every
+  /// node is. The frame's five states give back [connectors].
+  static List<JuniorConnector> route(List<bool> completed) {
+    if (completed.isEmpty) return const [];
+    final all = completed.every((done) => done);
+    return [
+      for (var i = 0; i + 1 < completed.length; i++)
+        _between(i, active: completed[i] && completed[i + 1]),
+      _toCertificate(completed.length - 1, active: all),
+    ];
+  }
+
+  static JuniorConnector _between(int i, {required bool active}) {
+    final from = nodeAt(i);
+    final to = nodeAt(i + 1);
+    const half = nodeSize / 2;
+    return switch (i % _columns.length) {
+      // Centre → right: out of the right edge, down into the top.
+      0 => JuniorConnector(
+        from: Offset(from.dx + nodeSize, from.dy + half),
+        corner: Offset(to.dx + half, from.dy + half),
+        to: Offset(to.dx + half, to.dy),
+        active: active,
+      ),
+      // Right → centre: out of the bottom, left into the right edge.
+      1 => JuniorConnector(
+        from: Offset(from.dx + half, from.dy + nodeSize),
+        corner: Offset(from.dx + half, to.dy + half),
+        to: Offset(to.dx + nodeSize, to.dy + half),
+        active: active,
+      ),
+      // Centre → left: out of the left edge, down into the top.
+      2 => JuniorConnector(
+        from: Offset(from.dx, from.dy + half),
+        corner: Offset(to.dx + half, from.dy + half),
+        to: Offset(to.dx + half, to.dy),
+        active: active,
+      ),
+      // Left → centre: out of the bottom, right into the left edge.
+      _ => JuniorConnector(
+        from: Offset(from.dx + half, from.dy + nodeSize),
+        corner: Offset(from.dx + half, to.dy + half),
+        to: Offset(to.dx, to.dy + half),
+        active: active,
+      ),
+    };
+  }
+
+  /// Out of a centre node's right edge and down, as the frame draws it; from
+  /// a side node, straight down out of its bottom — the card spans both
+  /// side columns.
+  static JuniorConnector _toCertificate(int last, {required bool active}) {
+    final from = nodeAt(last);
+    const half = nodeSize / 2;
+    final end = certificateFor(last + 1).top - _certificateGap;
+    final rightOfCentre = Offset(_columns[1] + half, from.dy + half);
+    return last.isEven
+        ? JuniorConnector(
+            from: Offset(from.dx + nodeSize, from.dy + half),
+            corner: rightOfCentre,
+            to: Offset(rightOfCentre.dx, end),
+            active: active,
+          )
+        : JuniorConnector(
+            from: Offset(from.dx + half, from.dy + nodeSize),
+            corner: Offset(from.dx + half, end),
+            to: Offset(from.dx + half, end),
+            active: active,
+          );
+  }
+
+  /// The frame stops its last line 3.7 above the card.
+  static const double _certificateGap = 3.7;
+
   // --- Certificate ---------------------------------------------------------
 
+  /// Where the frame puts the card: 111.7 below its fifth node's top.
   static const Rect certificateCard = Rect.fromLTWH(32, 705.7, 329, 361);
+
+  /// The card under a map of [nodeCount] nodes — the frame's 111.7 below the
+  /// last node's top, or the first node's place when there are none.
+  static Rect certificateFor(int nodeCount) {
+    final top = nodeCount == 0
+        ? nodes.first.dy
+        : nodeAt(nodeCount - 1).dy + (certificateCard.top - nodes.last.dy);
+    return Rect.fromLTWH(
+      certificateCard.left,
+      top,
+      certificateCard.width,
+      certificateCard.height,
+    );
+  }
+
+  /// The map's scroll height for [nodeCount] nodes: the frame's own margin
+  /// under the certificate card. Five nodes give [mapHeight].
+  static double mapHeightFor(int nodeCount) =>
+      certificateFor(nodeCount).bottom + (mapHeight - certificateCard.bottom);
   static const double certificateRadius = 20;
 
   /// The pill, the certificate image and both lines of copy all sit on the
@@ -248,4 +372,15 @@ class JuniorConnector {
   /// True for the stretch the student has already walked — drawn in the brand
   /// blue. False draws the pale grey the locked half of the route uses.
   final bool active;
+
+  @override
+  bool operator ==(Object other) =>
+      other is JuniorConnector &&
+      other.from == from &&
+      other.corner == corner &&
+      other.to == to &&
+      other.active == active;
+
+  @override
+  int get hashCode => Object.hash(from, corner, to, active);
 }

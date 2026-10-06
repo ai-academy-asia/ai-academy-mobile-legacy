@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../attendance/presentation/attendance_scanner_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
@@ -43,6 +44,7 @@ class JuniorHomeScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.courseLearningRepository,
+    this.clock,
   });
 
   /// Defaults to the real API. Injected in tests.
@@ -51,6 +53,11 @@ class JuniorHomeScreen extends StatefulWidget {
   /// What the course screens a node opens load through — the real API by
   /// default (`CourseModuleListScreen`'s own). Injected in tests.
   final CourseLearningRepository? courseLearningRepository;
+
+  /// Now — what the check-in node's state is read against (Issue #202).
+  /// Read when the map builds, as Adult Home reads its attendance action.
+  /// Injected in tests.
+  final DateTime Function()? clock;
 
   @override
   State<JuniorHomeScreen> createState() => _JuniorHomeScreenState();
@@ -127,11 +134,21 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
       container: true,
       child: JuniorLearningMapView(
         map: map,
+        now: widget.clock?.call() ?? DateTime.now(),
         onNodeTap: switch (map.courseSlug) {
           final slug? => (_) => _openCourse(slug),
           null => null,
         },
+        onCheckIn: _openScanner,
       ),
+    );
+  }
+
+  /// The attendance check-in scanner (Issue #202) — from the check-in node,
+  /// only while a lesson is under way.
+  void _openScanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AttendanceScannerScreen()),
     );
   }
 

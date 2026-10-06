@@ -195,7 +195,7 @@ That is the scaffold default, left in place. **Release builds are signed with de
 | CocoaPods | **No `Podfile` committed yet.** Until `url_launcher` (lesson material download) the dependency set was plugin-free; it is the first plugin, so the next iOS build generates a `Podfile` and wires Pods into `Runner.xcodeproj` |
 | Custom permission keys | **None** in `Info.plist` — no camera/photo/location usage descriptions |
 
-That last row matters: `home/widgets/program_card.dart` renders an `Icons.qr_code_scanner` affordance, but **there is no camera permission declared and no scanning implemented** — the icon is UI only.
+That last row matters: `home/widgets/program_card.dart` renders an `Icons.qr_code_scanner` affordance, and Junior Home's check-in node opens `AttendanceScannerScreen` (Issue #202), but **there is no camera permission declared and no scanning implemented** — both are UI only. Real scanning needs a camera plugin, the `NSCameraUsageDescription`/Android camera permission, and a confirmed check-in endpoint.
 
 ### iOS deployment target — committed vs. local
 

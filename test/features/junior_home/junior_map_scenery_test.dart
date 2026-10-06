@@ -71,6 +71,7 @@ void main() {
         home: Scaffold(
           body: JuniorLearningMapView(
             map: sampleJuniorLearningMap(),
+            now: DateTime(2026, 10, 6),
             onNodeTap: tapped.add,
           ),
         ),

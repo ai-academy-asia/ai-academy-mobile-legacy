@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'junior_home_palette.dart';
@@ -15,16 +16,21 @@ import 'junior_map_geometry.dart';
 ///
 /// Painted *under* the nodes, so every line runs behind a node's rounded
 /// square instead of stopping short of it.
+///
+/// Draws exactly [connectors] — the student's own route
+/// (`JuniorMapGeometry.route`), so no line runs past their last node
+/// (Issue #202).
 class JuniorMapPathPainter extends CustomPainter {
-  const JuniorMapPathPainter({required this.scale});
+  const JuniorMapPathPainter({required this.scale, required this.connectors});
 
   final double scale;
+  final List<JuniorConnector> connectors;
 
   static const double _circularWeight = math.sqrt2 / 2;
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final connector in JuniorMapGeometry.connectors) {
+    for (final connector in connectors) {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = JuniorMapGeometry.connectorStroke * scale
@@ -63,5 +69,6 @@ class JuniorMapPathPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(JuniorMapPathPainter old) => old.scale != scale;
+  bool shouldRepaint(JuniorMapPathPainter old) =>
+      old.scale != scale || !listEquals(old.connectors, connectors);
 }
