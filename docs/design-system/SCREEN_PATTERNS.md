@@ -31,7 +31,7 @@ AnnotatedRegion<SystemUiOverlayStyle>(          // status-bar style per screen
 
 Five conventions in that skeleton, all worth keeping:
 
-1. **`AnnotatedRegion`** sets the status-bar style per screen (`dark` on light pages, `light` over the dark video header).
+1. **`AnnotatedRegion`** sets the status-bar style per screen (`dark` on light pages, Exercise Detail included: its video header starts below the status bar, see §3).
 2. **`Scaffold.backgroundColor = AppColors.background`** — the page is grey; white is for surfaces.
 3. **`SafeArea`** wraps the body — **except** where a deliberate full-bleed is wanted (see §3).
 4. **`ConstrainedBox(maxWidth: 480)` + `Align(topCenter)`** — the column stops and centres instead of stretching on wide screens.
@@ -60,7 +60,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 
 Each of these breaks the default skeleton on purpose. The reasoning is recorded in the code; do not "normalise" them without a Figma frame saying otherwise.
 
-**Exercise Detail — no `SafeArea` around the body.** The video header runs genuinely full-bleed under the status bar. The back button and badge are instead offset by `MediaQuery.paddingOf(context).top` individually. This is not an oversight — see [COMPONENT_PATTERNS.md](COMPONENT_PATTERNS.md) §5 for the iOS touch-interception bug that makes the offset mandatory.
+**Exercise Detail — `SafeArea(bottom: false)` and a full-width video header.** The body is inset at the top only, so the video header starts below the status bar, which stays on the page's light background with `dark` glyphs. `bottom: false` lets the scroll run to the screen's bottom edge. Within the content column the header is full-width, with no `screenPadding` gutter. `ExerciseVideoHeader` still adds `MediaQuery.paddingOf(context).top` to its back button and badge ([COMPONENT_PATTERNS.md](COMPONENT_PATTERNS.md) §5); under this `SafeArea` that inset has already been removed, so it adds 0 here.
 
 **Course Module List — page-level tint, not a card.** The soft blue wash at the top is a `LinearGradient` painted behind the whole `SafeArea` (`#0D296CFF` → `background`, stops `0.0`/`0.22`), *not* a decoration on the hero. An earlier pass put it on a rounded box behind the hero and it read as a floating card.
 

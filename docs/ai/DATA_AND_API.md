@@ -9,6 +9,8 @@ Base URL `https://api.ai-academy.asia`, declared as `defaultBaseUrl` in each HTT
 | Method | Path | Auth | Caller | Transport |
 |---|---|---|---|---|
 | POST | `/auth/login` | none | `HttpAuthRepository` | `postJson` (`auth_http.dart`) |
+| POST | `/auth/refresh` | none | `HttpAuthRepository`, through `SessionRefresher` (§5) | `postJson` |
+| POST | `/auth/logout` | none | `HttpAuthRepository`, from sign-out (§5) | `postJson` |
 | POST | `/auth/change-password` | Bearer | `HttpPasswordRepository` | `postJson` |
 | GET | `/auth/me` | Bearer | `HttpCurrentUserRepository` | `getRaw` |
 | GET | `/courses` | none | `HttpCourseRepository.getCourses` | `getJson` |
@@ -40,15 +42,43 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 - **`late` counts as attended:** that response lists 10 `present` + 1 `late`, and its `summary.attended` is 11 of `total_past` 11; the adult `corp.s01` response agrees (7 `present` + 1 `late` = `attended` 8 of `total_past` 9). `AttendanceSession.countsAsAttended` is true for exactly those two values; `absent`, `null` and anything unknown get no attended mark.
 - **`absent` is marked missed, and only `absent`:** `AttendanceSession.countsAsMissed` is true for exactly that value. Its day gets the frames' missed mark — on the Adult attendance detail calendar (Issue #172, red-ringed) and the Junior "Сурлагын явц" calendar (Issue #180, "Хичээлээ тасалсан", unringed). An attended session wins on the same day. **No missed day is ever inferred** — not from a past lesson date with no session, not from a `null` or unknown status.
 
-**Attendance check-in has no confirmed endpoint (`BACKEND GAP`).** The Junior Home check-in node's open window is the app's own rule from the `GET /cohorts` schedule (a lesson under way: `start_time` ≤ now < `end_time` on a meeting day inside `start_date`…`end_date`), the same rule as Adult Home's attendance action. No backend sends a check-in window, and the scanner submits nothing (Issue #202).
+**Attendance check-in: endpoint/request confirmed, not called.** Postman (`Student/Attendance/Check in with teacher's QR`) and `mobile_api_v1_1.md` §8 confirm `POST /me/attendance/check-in` with the body `{"token": "<QR token>"}`, the token from the teacher's QR. Their notes say it records `present`, or `late` more than 15 minutes after the start, and is idempotent. Endpoint/request confirmed; response shape not yet verified (Postman holds no response). The app does not call it: the scanner submits nothing, and scanning needs a camera plugin (Issue #202). No backend sends a check-in window: the Junior Home check-in node's open window is the app's own rule from the `GET /cohorts` schedule (a lesson under way: `start_time` ≤ now < `end_time` on a meeting day inside `start_date`…`end_date`), the same rule as Adult Home's attendance action.
 
 **Not read, because not confirmed:** `/me/ledger` `installments` (the verified response had it empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no exam figure is worked out from assignment or quiz scores.
 
 ## 2. Verified to exist, but NOT consumed by the app
 
-Present in the Postman collection (see `docs/course_learning_backend_api_audit_v2.md` §3), deliberately unused here. Wiring any of them is a task of its own, not a refactor.
+Student-facing endpoints confirmed by a request in the Postman collection (`postman/collections/AIAA Backend (prod)/`) and listed in the backend's endpoint index, `mobile_api_v1_1.md`, that the app does not call. Teacher, staff and admin endpoints are left out: this is the student app. Wiring any of them is a task of its own, not a refactor.
 
-`POST /auth/logout-all` · `GET /cohorts/{cohort_id}` · `DELETE /cohorts/{cohort_id}/enroll`
+**Response shape:** Postman holds requests only, no responses. Where this column says **not yet verified**, read: *Endpoint/request confirmed; response shape not yet verified.* A field the backend's own documents name is quoted as **documented**, which is still not a captured response. Model no field of either kind until a captured response confirms it (§8, rule 2).
+
+| Method | Path | Request (as Postman sends it) | Response shape | Flutter status |
+|---|---|---|---|---|
+| POST | `/auth/logout-all` | Bearer, no body | not yet verified | not integrated |
+| POST | `/auth/forgot-password` | no auth; `{"email"}` | documented: always `200 {"status": "ok"}`, and a 6-digit code is emailed (`mobile_api_v1_1.md` §1) | not integrated: Login sends a forgotten password to the manager contact (Issues #184, #186) |
+| POST | `/auth/reset-password` | no auth; `{"email", "code", "new_password"}` | documented: any failure is `400 invalid_code`, and success revokes every session; the success body is not yet verified | not integrated |
+| PATCH | `/me/profile` | Bearer; `{"first_name", "last_name", "phone"}` (student) | documented: carries `user_type`; the rest is not yet verified | not integrated |
+| GET | `/cohorts/{cohort_id}` | no auth | not yet verified | not integrated |
+| DELETE | `/cohorts/{cohort_id}/enroll` | Bearer, no body | not yet verified | not integrated |
+| GET | `/me/assignments/{assignment_id}` | Bearer | documented: the §2.6 `assignment` object (`course_learning_api_contract_v1.md`) | not called: the lesson detail already carries the assignment |
+| GET | `/me/files/{file_id}/download` | Bearer | not yet verified (§2.8 says only that a student file is read back through a pre-signed URL, like materials) | not integrated |
+| GET | `/me/courses/{course_slug}/certificate` | Bearer | documented: contract §2.9 (`status`, `requirements`, `certificate`) | not integrated: no certificate UI design (Issue #155) |
+| GET | `/me/certificates/{cert_number}/download` | Bearer | documented: contract §2.9, `{"url", "expires_at"}`, pre-signed | not integrated (Issue #155) |
+| GET | `/certificates/verify/{cert_number}` | no auth | not yet verified | not integrated |
+| POST | `/me/attendance/check-in` | Bearer; `{"token"}` | not yet verified (see §1.1) | not integrated: the scanner is UI only (Issue #202) |
+| GET | `/me/notifications` | Bearer; `?limit=` | documented: carries `unread_count`; the rest is not yet verified | not integrated |
+| POST | `/me/notifications/{notification_id}/read` | Bearer, no body | not yet verified | not integrated |
+| POST | `/me/notifications/read-all` | Bearer, no body | not yet verified | not integrated |
+| POST | `/me/push-tokens` | Bearer; `{"token", "platform"}` (`ios`/`android`/`web`) | not yet verified | not integrated. `mobile_api_v1_1.md` §9: push delivery is not active yet |
+| DELETE | `/me/push-tokens` | Bearer; `{"token"}` | not yet verified | not integrated |
+| POST | `/payments/invoices` | Bearer; `{"provider", "enrollment_id", "amount", "description"}`, `provider` one of `qpay`/`storepay`/`golomt` | not yet verified | not integrated: the payment flow UI runs on fixtures (§10) |
+| GET | `/payments/invoices/{invoice_id}` | Bearer | not yet verified (documented as carrying the QR and bank deeplinks) | not integrated |
+| GET | `/payments/invoices/{invoice_id}/status` | Bearer | not yet verified (Postman: re-checks the gateway rather than a cache; `mobile_api_v1_1.md`: poll until `paid`) | not integrated |
+| GET | `/me/invoices` | Bearer; `?limit=` | not yet verified | not integrated |
+| GET | `/me/receipts` | Bearer | not yet verified (documented: eBarimt receipts, `is_temp_mode` = not yet filed) | not integrated |
+| GET | `/me/receipts/{receipt_id}` | Bearer | not yet verified | not integrated |
+
+`GET /me/ledger`, in the same Postman folder (`Student/Payments & receipts`), is consumed (§1). Its `installments` element is still an unverified shape (§9).
 
 
 ## 3. Transport layer
@@ -193,10 +223,10 @@ The copy buttons write to the clipboard. "Татаж авах" is live but inert
 - **Selection behind the sheets:** the references draw Qpay selected behind both sheets, while the brief opens the bank sheet from Шилжүүлэх. So Шилжүүлэх becomes selected only once the details sheet closes.
 
 **Still needed (`BACKEND GAP`):**
-- an invoice/payment endpoint and its states, plus a "payment checking" frame (`UNKNOWN`: there is none, so the success dialog follows immediately);
+- the invoice responses and their states. The requests are confirmed (`POST /payments/invoices`, `GET /payments/invoices/{id}`, `GET /payments/invoices/{id}/status`, §2), but no response has been verified. A "payment checking" frame is also needed (`UNKNOWN`: there is none, so the success dialog follows immediately);
 - the bank list and logos;
 - the receiving account(s);
-- eBarimt receipt data and its QR;
+- eBarimt receipt data and its QR (`GET /me/receipts` and `GET /me/receipts/{id}` are confirmed requests, §2; their response shape is not yet verified);
 - the receipt file for "Татаж авах".
 
 **Product decisions to confirm (`PRODUCT DECISION`):**
