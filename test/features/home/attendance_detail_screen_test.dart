@@ -9,6 +9,8 @@ import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_progress_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_progress_calendar.dart';
 import 'package:flutter/material.dart';
+import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -218,5 +220,74 @@ void main() {
 
     expect(find.byType(AttendanceDetailScreen), findsNothing);
     expect(find.text('open'), findsOneWidget);
+  });
+
+  group('first month (Issue #200)', () {
+    Finder previous() =>
+        find.bySemanticsLabel(JuniorProgressStrings.previousMonth);
+
+    // The cohort started 6 August 2026; today is 10 September 2026.
+    final startingInAugust = LessonSchedule(
+      weekdays: schedule.weekdays,
+      start: schedule.start,
+      end: schedule.end,
+      firstDay: DateTime(2026, 8, 6),
+    );
+
+    testWidgets('"<" stops at the cohort start month and is drawn '
+        'disabled there', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pump(tester, lessonSchedule: startingInAugust);
+
+      expect(
+        tester.widget<Icon>(find.byIcon(AppIcons.caretLeft)).color,
+        AppColors.textPrimary,
+      );
+
+      await tester.tap(previous());
+      await tester.pumpAndSettle();
+      expect(calendar(tester).month, DateTime(2026, 8));
+
+      // At August: muted, announced as disabled, and inert.
+      expect(
+        tester.widget<Icon>(find.byIcon(AppIcons.caretLeft)).color,
+        HomePalette.mutedInk,
+      );
+      expect(
+        tester.getSemantics(previous()),
+        matchesSemantics(
+          label: JuniorProgressStrings.previousMonth,
+          isButton: true,
+          hasEnabledState: true,
+        ),
+      );
+      await tester.tap(previous());
+      await tester.pumpAndSettle();
+      expect(calendar(tester).month, DateTime(2026, 8));
+      expect(find.text('Наймдугаар сар, 2026'), findsOneWidget);
+
+      // Forward still works, and "<" comes back.
+      await tester.tap(find.bySemanticsLabel(JuniorProgressStrings.nextMonth));
+      await tester.pumpAndSettle();
+      expect(calendar(tester).month, DateTime(2026, 9));
+      expect(
+        tester.widget<Icon>(find.byIcon(AppIcons.caretLeft)).color,
+        AppColors.textPrimary,
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('with no start date paging back is unbounded, as before', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      for (var i = 0; i < 14; i++) {
+        await tester.tap(previous());
+        await tester.pumpAndSettle();
+      }
+
+      expect(calendar(tester).month, DateTime(2025, 7));
+    });
   });
 }
