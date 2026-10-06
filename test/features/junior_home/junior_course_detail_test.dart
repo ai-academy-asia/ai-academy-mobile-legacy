@@ -17,8 +17,11 @@ import '../../support/screenshot.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import 'fake_junior_home_repository.dart';
 
-/// Junior Course Detail (Issue #174): an unlocked Junior Home map node opens
-/// the course-learning screens on the same data, without the Note tab.
+/// The Junior course-learning screens, without the Note tab (Issue #174).
+///
+/// From Junior Home, a node opens **its own module's** lessons (Issue #204)
+/// — not the course as a whole. The course screen keeps its Junior
+/// no-notes behaviour, tested here directly.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -31,10 +34,23 @@ void main() {
       percentComplete: 30,
     ),
     nodes: const [
-      JuniorMapNode(id: 1, state: JuniorNodeState.completed),
-      JuniorMapNode(id: 2, state: JuniorNodeState.current),
-      JuniorMapNode(id: 3, state: JuniorNodeState.locked),
+      JuniorMapNode(
+        id: 1,
+        state: JuniorNodeState.completed,
+        title: 'Prediction and Probabilities',
+      ),
+      JuniorMapNode(
+        id: 2,
+        state: JuniorNodeState.current,
+        title: 'Language Model Training',
+      ),
+      JuniorMapNode(
+        id: 3,
+        state: JuniorNodeState.locked,
+        title: 'Deep network models',
+      ),
     ],
+    continueModuleId: 2,
     certificate: const JuniorCertificate(
       track: 'Junior',
       courseName: 'AI BootCamp',
@@ -68,6 +84,8 @@ void main() {
         home: JuniorHomeScreen(
           repository: FakeJuniorHomeRepository(map: learningMap ?? map()),
           courseLearningRepository: learning,
+          // No lesson under way: the current node opens its lessons.
+          clock: () => DateTime(2026, 10, 6, 12),
         ),
       ),
     );
@@ -84,24 +102,44 @@ void main() {
   }
 
   group('the Junior Home entry point', () {
-    for (final state in [JuniorNodeState.completed, JuniorNodeState.current]) {
-      testWidgets('a ${state.name} node opens the course, without notes', (
-        tester,
-      ) async {
+    for (final (state, id, title) in [
+      (JuniorNodeState.completed, 1, 'Prediction and Probabilities'),
+      (JuniorNodeState.current, 2, 'Language Model Training'),
+    ]) {
+      testWidgets('a ${state.name} node opens its own module\'s lessons, '
+          'without notes (Issue #204)', (tester) async {
         final learning = course();
         await pumpHome(tester, learning: learning);
 
         await tapTile(tester, state);
 
-        final screen = tester.widget<CourseModuleListScreen>(
-          find.byType(CourseModuleListScreen),
+        final lessons = tester.widget<LessonListScreen>(
+          find.byType(LessonListScreen),
         );
-        expect(screen.courseSlug, slug);
-        expect(screen.showNotes, isFalse);
-        // The same `GET /me/courses/{slug}/learning` contract.
-        expect(learning.calls, [slug]);
+        expect(lessons.moduleId, id);
+        expect(lessons.moduleTitle, title);
+        expect(lessons.showNotes, isFalse);
+        // `GET /me/modules/{module_id}/lessons` for that module — not the
+        // course overview.
+        expect(learning.lessonCalls, [id]);
+        expect(learning.calls, isEmpty);
+        expect(find.byType(CourseModuleListScreen), findsNothing);
       });
     }
+
+    testWidgets('different nodes open different modules (Issue #204)', (
+      tester,
+    ) async {
+      final learning = course();
+      await pumpHome(tester, learning: learning);
+
+      await tapTile(tester, JuniorNodeState.completed);
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+      await tester.pumpAndSettle();
+      await tapTile(tester, JuniorNodeState.current);
+
+      expect(learning.lessonCalls, [1, 2]);
+    });
 
     testWidgets('a locked node stays inert', (tester) async {
       final learning = course();
@@ -113,8 +151,8 @@ void main() {
       );
       await tapTile(tester, JuniorNodeState.locked);
 
-      expect(find.byType(CourseModuleListScreen), findsNothing);
-      expect(learning.calls, isEmpty);
+      expect(find.byType(LessonListScreen), findsNothing);
+      expect(learning.lessonCalls, isEmpty);
     });
 
     testWidgets('a map with no course behind it leaves every node inert', (
@@ -134,7 +172,32 @@ void main() {
         everyElement(isNull),
       );
       await tapTile(tester, JuniorNodeState.completed);
-      expect(find.byType(CourseModuleListScreen), findsNothing);
+      expect(find.byType(LessonListScreen), findsNothing);
+    });
+
+    testWidgets('a lesson opened from a node has no Note tab', (tester) async {
+      final learning = course();
+      await pumpHome(tester, learning: learning);
+      await tapTile(tester, JuniorNodeState.current);
+      await tester.tap(find.text('Nesting loops'));
+      await tester.pumpAndSettle();
+
+      final exercise = tester.widget<CourseExerciseDetailScreen>(
+        find.byType(CourseExerciseDetailScreen),
+      );
+      expect(exercise.showNotes, isFalse);
+      expect(find.text(CourseLearningStrings.noteTab), findsNothing);
+    });
+
+    testWidgets('back from a module returns to Junior Home', (tester) async {
+      await pumpHome(tester, learning: course());
+      await tapTile(tester, JuniorNodeState.completed);
+
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LessonListScreen), findsNothing);
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
     });
 
     testWidgets('unlocked nodes are announced as buttons', (tester) async {
@@ -148,9 +211,26 @@ void main() {
   });
 
   group('Junior Course Detail', () {
+    Future<void> pumpDetail(
+      WidgetTester tester,
+      FakeCourseLearningRepository learning,
+    ) async {
+      useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: CourseModuleListScreen(
+            courseSlug: slug,
+            repository: learning,
+            showNotes: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('draws the course from the learning path', (tester) async {
-      await pumpHome(tester, learning: course());
-      await tapTile(tester, JuniorNodeState.completed);
+      await pumpDetail(tester, course());
 
       expect(find.text('AI BootCamp'), findsWidgets);
       expect(
@@ -168,8 +248,7 @@ void main() {
     testWidgets('a module opens its lessons, still without notes, and a '
         'locked module does nothing', (tester) async {
       final learning = course();
-      await pumpHome(tester, learning: learning);
-      await tapTile(tester, JuniorNodeState.completed);
+      await pumpDetail(tester, learning);
 
       await tester.tap(find.text('Deep network models'));
       await tester.pumpAndSettle();
@@ -188,8 +267,7 @@ void main() {
     testWidgets('a lesson\'s tab card has Assignment and Course materials, and '
         'no Note', (tester) async {
       final learning = course();
-      await pumpHome(tester, learning: learning);
-      await tapTile(tester, JuniorNodeState.completed);
+      await pumpDetail(tester, learning);
       await tester.tap(find.text('Language Model Training'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Nesting loops'));
@@ -229,8 +307,7 @@ void main() {
       '"Continue learning" opens the server\'s lesson without notes',
       (tester) async {
         final learning = course();
-        await pumpHome(tester, learning: learning);
-        await tapTile(tester, JuniorNodeState.completed);
+        await pumpDetail(tester, learning);
 
         await tester.tap(
           find.text(CourseLearningStrings.continueLearning).first,
@@ -245,17 +322,6 @@ void main() {
         expect(find.text(CourseLearningStrings.noteTab), findsNothing);
       },
     );
-
-    testWidgets('back returns to Junior Home', (tester) async {
-      await pumpHome(tester, learning: course());
-      await tapTile(tester, JuniorNodeState.completed);
-
-      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CourseModuleListScreen), findsNothing);
-      expect(find.byType(JuniorLearningMapView), findsOneWidget);
-    });
   });
 
   group('Adult Course Detail is unchanged', () {

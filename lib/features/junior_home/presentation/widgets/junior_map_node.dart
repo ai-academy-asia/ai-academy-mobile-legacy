@@ -34,9 +34,14 @@ class JuniorMapNodeTile extends StatelessWidget {
     super.key,
     this.onTap,
     this.checkInOpen,
+    this.state,
   });
 
   final JuniorMapNode node;
+
+  /// What the node is drawn as — the map's `JuniorLearningMap.stateOf`, so
+  /// only one node is ever current (Issue #204). Null draws [node]'s own.
+  final JuniorNodeState? state;
 
   /// Whether this is the check-in node, and if so whether check-in is open.
   final bool? checkInOpen;
@@ -54,7 +59,8 @@ class JuniorMapNodeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final closed = checkInOpen == false;
-    final style = closed ? _NodeStyle.closedCheckIn : _NodeStyle.of(node.state);
+    final drawn = state ?? node.state;
+    final style = closed ? _NodeStyle.closedCheckIn : _NodeStyle.of(drawn);
     final glyph = Image.asset(
       JuniorMapGeometry.sprite(style.glyph),
       width: JuniorMapGeometry.nodeGlyph * scale,
@@ -65,7 +71,7 @@ class JuniorMapNodeTile extends StatelessWidget {
     final onTap = this.onTap;
     return Semantics(
       label: switch (checkInOpen) {
-        null => JuniorHomeStrings.nodeLabel(node.id, node.state),
+        null => JuniorHomeStrings.nodeLabel(node.id, drawn),
         final open => JuniorHomeStrings.checkInNodeLabel(node.id, open: open),
       },
       button: onTap != null,

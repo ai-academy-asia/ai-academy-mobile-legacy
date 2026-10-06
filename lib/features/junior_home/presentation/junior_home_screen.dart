@@ -8,10 +8,11 @@ import '../../../shared/widgets/app_button.dart';
 import '../../attendance/presentation/attendance_scanner_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
-import '../../course_learning/presentation/course_module_list_screen.dart';
+import '../../course_learning/presentation/lesson_list_screen.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../data/api_junior_home_repository.dart';
 import '../domain/junior_home_repository.dart';
+import '../domain/junior_learning_map.dart';
 import 'junior_home_controller.dart';
 import 'junior_home_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
@@ -51,7 +52,7 @@ class JuniorHomeScreen extends StatefulWidget {
   final JuniorHomeRepository? repository;
 
   /// What the course screens a node opens load through — the real API by
-  /// default (`CourseModuleListScreen`'s own). Injected in tests.
+  /// default (`LessonListScreen`'s own). Injected in tests.
   final CourseLearningRepository? courseLearningRepository;
 
   /// Now — what the check-in node's state is read against (Issue #202).
@@ -135,10 +136,8 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
       child: JuniorLearningMapView(
         map: map,
         now: widget.clock?.call() ?? DateTime.now(),
-        onNodeTap: switch (map.courseSlug) {
-          final slug? => (_) => _openCourse(slug),
-          null => null,
-        },
+        // Inert for content that is not a real course (the sample map).
+        onNodeTap: map.courseSlug == null ? null : _openModule,
         onCheckIn: _openScanner,
       ),
     );
@@ -152,15 +151,17 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
     );
   }
 
-  /// Junior Course Detail (Issue #174): the Adult course screens on the same
-  /// `GET /me/courses/{slug}/learning` data, without the Note tab. Every
-  /// unlocked node opens the course — a node is a module, and the course
-  /// screen is where its modules, lessons, materials and assignment live.
-  void _openCourse(String slug) {
+  /// The tapped node's own module (Issue #204): its lessons, from
+  /// `GET /me/modules/{module_id}/lessons` — the screen an unlocked module
+  /// card opens on the course screen (Issue #148), without the Note tab as
+  /// every Junior lesson is (Issue #174). Each node opens the module it
+  /// stands for, not the course as a whole.
+  void _openModule(JuniorMapNode node) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => CourseModuleListScreen(
-          courseSlug: slug,
+        builder: (_) => LessonListScreen(
+          moduleId: node.id,
+          moduleTitle: node.title,
           repository: widget.courseLearningRepository,
           showNotes: false,
         ),

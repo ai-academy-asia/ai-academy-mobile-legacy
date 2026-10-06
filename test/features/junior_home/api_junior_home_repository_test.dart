@@ -242,4 +242,19 @@ void main() {
 
     expect(map?.nextLesson, same(lesson));
   });
+
+  test('each node carries its module\'s id and title — what a tap opens '
+      '(Issue #204)', () {
+    final path = samplePath(courseSlug: 'junior');
+    final modules = path.modules.toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    final map = juniorMapFrom(path);
+
+    expect([for (final n in map.nodes) n.id], [for (final m in modules) m.id]);
+    expect(
+      [for (final n in map.nodes) n.title],
+      [for (final m in modules) m.title],
+    );
+  });
 }

@@ -107,4 +107,25 @@ void main() {
       'junior_home_check_in_closed',
     );
   });
+
+  testWidgets('three unlocked, unfinished modules: one current, the rest '
+      'locked (Issue #204)', (tester) async {
+    final sample = sampleJuniorLearningMap();
+    await capture(
+      tester,
+      JuniorLearningMap(
+        progress: sample.progress,
+        certificate: sample.certificate,
+        nextLesson: sample.nextLesson,
+        continueModuleId: 1,
+        nodes: const [
+          JuniorMapNode(id: 1, state: JuniorNodeState.current),
+          JuniorMapNode(id: 2, state: JuniorNodeState.current),
+          JuniorMapNode(id: 3, state: JuniorNodeState.current),
+        ],
+      ),
+      DateTime(2026, 10, 6, 12),
+      'junior_home_one_current',
+    );
+  });
 }
