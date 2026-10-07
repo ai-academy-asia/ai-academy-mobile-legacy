@@ -22,10 +22,26 @@ import '../teacher_home_strings.dart';
 /// The reference's "Зар тараах" and "Ирц бүртгэх" actions are not drawn:
 /// the first has no teacher endpoint, the second belongs to the attendance
 /// task.
+///
+/// Teacher Schedule's session sheets draw the same card (Issue #231), with
+/// the session's own times in [timeLabel] and, for a held session, its
+/// attendance summary as [footer].
 class TeacherClassCard extends StatelessWidget {
-  const TeacherClassCard({required this.teacherClass, super.key});
+  const TeacherClassCard({
+    required this.teacherClass,
+    super.key,
+    this.timeLabel,
+    this.footer,
+  });
 
   final TeacherClass teacherClass;
+
+  /// The time beside the clock. Null shows the cohort's
+  /// `start_time`-`end_time`.
+  final String? timeLabel;
+
+  /// Drawn under the room and time, inside the card.
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +93,14 @@ class TeacherClassCard extends StatelessWidget {
                 ),
               _Detail(
                 icon: AppIcons.clock,
-                label: '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
+                label:
+                    timeLabel ??
+                    '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
                 semanticsLabel: TeacherHomeStrings.time,
               ),
             ],
           ),
+          ?footer,
         ],
       ),
     );

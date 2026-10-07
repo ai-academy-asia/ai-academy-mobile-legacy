@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
-import '../../../core/api/api_client.dart';
 import '../../../core/api/api_failure.dart';
 import '../../auth/data/authenticated_client.dart';
 import '../../auth/data/http_current_user_repository.dart';
@@ -16,6 +13,7 @@ import '../../courses/domain/course_repository.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_failure.dart';
 import '../domain/teacher_home_repository.dart';
+import 'teacher_http.dart';
 
 /// Reads the signed-in teacher's classes against the AI Academy API
 /// (Issue #229):
@@ -70,44 +68,18 @@ class HttpTeacherHomeRepository implements TeacherHomeRepository {
 
   @override
   Future<List<TeacherClass>> getClasses() async {
-    if (!_sessionStore.isSignedIn) {
-      throw const TeacherFailure(
-        TeacherFailureKind.sessionExpired,
-        detail: 'no session held',
-      );
-    }
-    if (_sessionStore.isExpired()) {
-      throw const TeacherFailure(
-        TeacherFailureKind.sessionExpired,
-        detail: 'session lifetime ran out',
-      );
-    }
+    ensureTeacherSession(_sessionStore);
 
     final teacherId = await _teacherId();
     // The catalog is decoration; ask for it alongside, not after.
     final tracks = _tracksByCourseId();
 
-    final http.Response response;
-    try {
-      response = await getRaw(
-        client: _client,
-        url: _baseUrl.resolve('/teachers/$teacherId/schedule'),
-        headers: _sessionStore.authorizationHeader,
-        timeout: timeout,
-      );
-    } on ApiFailure catch (failure) {
-      // The transport throws only for a request that never completed.
-      throw TeacherFailure(TeacherFailureKind.network, detail: failure.detail);
-    }
-
-    final failure = _failureForStatus(response.statusCode);
-    if (failure != null) {
-      // What the store asks of a token the backend has rejected: forget it.
-      if (failure.kind == TeacherFailureKind.sessionExpired) {
-        _sessionStore.clear();
-      }
-      throw failure;
-    }
+    final response = await teacherGet(
+      client: _client,
+      url: _baseUrl.resolve('/teachers/$teacherId/schedule'),
+      sessionStore: _sessionStore,
+      timeout: timeout,
+    );
 
     final cohorts = _cohortsFromBody(response.body);
     final trackOf = await tracks;
@@ -153,53 +125,10 @@ class HttpTeacherHomeRepository implements TeacherHomeRepository {
   }
 }
 
-/// Same mapping every other authenticated GET keeps its own copy of.
-TeacherFailure? _failureForStatus(int statusCode) {
-  if (statusCode == 401) {
-    return const TeacherFailure(
-      TeacherFailureKind.sessionExpired,
-      detail: 'HTTP 401',
-    );
-  }
-  if (statusCode >= 500) {
-    return TeacherFailure(
-      TeacherFailureKind.server,
-      detail: 'HTTP $statusCode',
-    );
-  }
-  if (statusCode >= 400) {
-    return TeacherFailure(
-      TeacherFailureKind.rejected,
-      detail: 'HTTP $statusCode',
-    );
-  }
-  if (statusCode < 200 || statusCode >= 300) {
-    return TeacherFailure(
-      TeacherFailureKind.unexpected,
-      detail: 'HTTP $statusCode',
-    );
-  }
-  return null;
-}
-
 /// The schedule's `cohorts`, each read by [cohortFromJson]. A body that is
 /// not that shape is the API misbehaving: a `server` failure.
 List<Cohort> _cohortsFromBody(String body) {
-  final Object? decoded;
-  try {
-    decoded = jsonDecode(body);
-  } on FormatException catch (e) {
-    throw TeacherFailure(
-      TeacherFailureKind.server,
-      detail: 'malformed JSON: ${e.message}',
-    );
-  }
-  if (decoded is! Map<String, dynamic>) {
-    throw const TeacherFailure(
-      TeacherFailureKind.server,
-      detail: 'response was not a JSON object',
-    );
-  }
+  final decoded = teacherJsonObject(body);
   final cohorts = decoded['cohorts'];
   if (cohorts is! List) {
     throw TeacherFailure(

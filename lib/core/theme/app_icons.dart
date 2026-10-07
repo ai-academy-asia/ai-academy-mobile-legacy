@@ -100,6 +100,11 @@ abstract final class AppIcons {
   /// A class's time — Phosphor "Clock".
   static const IconData clock = IconData(0xe19a, fontFamily: _family);
 
+  /// Teacher Schedule's header date control (Issue #231) — Phosphor
+  /// "CaretDown", the sibling of [caretLeft] / [caretRight] in the same
+  /// stylesheet, rendered from this font beside the reference's caret.
+  static const IconData caretDown = IconData(0xe136, fontFamily: _family);
+
   // --- Manager contact sheet (Issue #186) --------------------------------
   //
   // Phosphor's own "Regular" codepoints (`phosphor_flutter` 2.1.0's
