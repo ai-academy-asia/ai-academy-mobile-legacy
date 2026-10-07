@@ -218,6 +218,134 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('3:00:00'), findsOneWidget);
     });
+
+    testWidgets('the lesson title is 14 ExtraBold, smaller than the module '
+        'title', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      final lessonTitle = tester
+          .widget<Text>(find.text('Nesting loops'))
+          .style!;
+      final moduleTitle = tester
+          .widget<Text>(find.text('Language Model Training'))
+          .style!;
+
+      expect(lessonTitle.fontSize, 14);
+      expect(lessonTitle.fontSize! * lessonTitle.height!, closeTo(20, 0.01));
+      expect(lessonTitle.fontWeight, FontWeight.w800);
+      // The module title is unchanged, and stays the larger heading.
+      expect(moduleTitle.fontSize, 18);
+      expect(moduleTitle.fontSize!, greaterThan(lessonTitle.fontSize!));
+    });
+
+    /// Where every title must stop: the card's outline and inset, then the
+    /// reserved status column and the gap before it.
+    double titleBound(WidgetTester tester, String title) =>
+        tester.getRect(find.widgetWithText(LessonListItem, title)).right -
+        1 -
+        16 -
+        LessonListItem.statusColumnWidth -
+        LessonListItem.titleToStatusGap;
+
+    testWidgets('every title stops before the status column — completed, '
+        'open and locked alike', (tester) async {
+      const long =
+          'AI танилцуулга: GenAI, Agentic AI, Machine Learning and prompt '
+          'engineering';
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          lessons: [
+            sampleLesson(
+              id: 1,
+              moduleId: 2,
+              order: 1,
+              title: long,
+              completed: true,
+            ),
+            sampleLesson(
+              id: 2,
+              moduleId: 2,
+              order: 2,
+              title: '$long ',
+              locked: false,
+            ),
+            sampleLesson(
+              id: 3,
+              moduleId: 2,
+              order: 3,
+              title: '$long  ',
+              locked: true,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final title in [long, '$long ', '$long  ']) {
+        final rect = tester.getRect(find.text(title));
+        expect(
+          rect.right,
+          lessThanOrEqualTo(titleBound(tester, title) + 0.01),
+          reason: title,
+        );
+        // Long enough to wrap: it wraps inside its own area.
+        expect(rect.height, greaterThan(20), reason: title);
+      }
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the check keeps a clear gap from the title, and sits 16 in '
+        'from the card edge', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      const check =
+          'assets/images/course_learning/course_detail_completed_check.svg';
+      final card = tester.getRect(
+        find.widgetWithText(LessonListItem, 'Introduction to loops'),
+      );
+      final title = tester.getRect(find.text('Introduction to loops'));
+      final badge = tester.getRect(
+        find.descendant(
+          of: find.widgetWithText(LessonListItem, 'Introduction to loops'),
+          matching: svgAsset(check),
+        ),
+      );
+
+      expect(
+        badge.left - title.right,
+        greaterThanOrEqualTo(LessonListItem.titleToStatusGap),
+      );
+      expect(card.right - badge.right, 1 + 16);
+    });
+
+    testWidgets('a long title keeps clear of the status column on a small '
+        'phone', (tester) async {
+      const long =
+          'GenAI ба LLM, Prompt engineering, Vibe coding and automation';
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          lessons: [
+            sampleLesson(
+              id: 1,
+              moduleId: 2,
+              order: 1,
+              title: long,
+              completed: true,
+            ),
+          ],
+        ),
+        size: const Size(320, 568),
+      );
+      await tester.pumpAndSettle();
+
+      final rect = tester.getRect(find.text(long));
+      expect(rect.right, lessThanOrEqualTo(titleBound(tester, long) + 0.01));
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('lessons', () {

@@ -14,6 +14,15 @@ const double _inset = 16;
 const double _numberSlot = 28;
 const double _checkSize = 20;
 
+/// The lesson title's type, calibrated against the reference (Issue #217):
+/// its four lesson titles' ink widths match Manrope 14 ExtraBold to within
+/// 0.7pt, where 16 Bold runs 11–20pt wide. The line box is
+/// `CourseModuleCard`'s 14pt title's 20. The module title above (18) stays
+/// the larger heading.
+const double _titleSize = 14;
+const double _titleLineHeight = 20;
+const FontWeight _titleWeight = FontWeight.w800;
+
 /// The reference's card outline and the flat band under it, the same
 /// `#EAEDF0` and 4pt `CourseModuleCard` measures off the Course Detail
 /// reference. Kept as this file's own copy rather than extracted: those
@@ -52,6 +61,17 @@ const double _lockHeight = 27;
 /// drawn — §2.2 sends no current-lesson marker (Issue #215).
 class LessonListItem extends StatelessWidget {
   const LessonListItem({required this.lesson, super.key, this.onTap});
+
+  /// The trailing status column — the padlock's width, the wider of the two
+  /// badges — reserved on every card, with or without a badge, so a title
+  /// wraps inside its own area and never reaches the check or padlock. The
+  /// badge sits at its right edge, which puts the check where the reference
+  /// draws it: 16 in from the card's outline.
+  static const double statusColumnWidth = _lockWidth;
+
+  /// The space between the title area and [statusColumnWidth]'s column —
+  /// the card's own 16 inset.
+  static const double titleToStatusGap = _inset;
 
   final Lesson lesson;
 
@@ -93,10 +113,11 @@ class LessonListItem extends StatelessWidget {
             children: [
               Expanded(
                 child: Row(
-                  // The number and the title share one line box, so their
-                  // baselines meet as the reference draws them; the
+                  // The number and the title sit on one baseline, as the
+                  // reference draws them, though their sizes differ; the
                   // duration sits under the title only.
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
                   children: [
                     ConstrainedBox(
                       constraints: const BoxConstraints(minWidth: _numberSlot),
@@ -116,7 +137,9 @@ class LessonListItem extends StatelessWidget {
                           Text(
                             lesson.title,
                             style: lineStyle.copyWith(
-                              fontWeight: FontWeight.w700,
+                              fontSize: _titleSize,
+                              height: _titleLineHeight / _titleSize,
+                              fontWeight: _titleWeight,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -136,21 +159,26 @@ class LessonListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              if (lesson.completed) ...[
-                const SizedBox(width: 12),
-                SvgPicture.asset(
-                  _checkAsset,
-                  width: _checkSize,
-                  height: _checkSize,
+              const SizedBox(width: titleToStatusGap),
+              SizedBox(
+                width: statusColumnWidth,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: lesson.completed
+                      ? SvgPicture.asset(
+                          _checkAsset,
+                          width: _checkSize,
+                          height: _checkSize,
+                        )
+                      : locked
+                      ? SvgPicture.asset(
+                          _lockAsset,
+                          width: _lockWidth,
+                          height: _lockHeight,
+                        )
+                      : null,
                 ),
-              ] else if (locked) ...[
-                const SizedBox(width: 12),
-                SvgPicture.asset(
-                  _lockAsset,
-                  width: _lockWidth,
-                  height: _lockHeight,
-                ),
-              ],
+              ),
             ],
           ),
         ),

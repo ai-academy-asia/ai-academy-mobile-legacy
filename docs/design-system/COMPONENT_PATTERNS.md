@@ -45,7 +45,7 @@ All share: `AppColors.surface` fill, 1pt border, rounded corners, and (on this a
 | `CourseCard`, `CohortCard` | content width | Catalog/cohort rows |
 | `ProgramCard` | content width | Home cohort card |
 | `CourseModuleCard` | 361 × 86 min | 56 icon tile (accent-tinted) / 32 lock tile; 24 completed check |
-| `LessonListItem` | 361 × 72 min | Figma level-detail reference (Issue #215): two-digit number, bold title, duration line; radius 12, `#EAEDF0` outline with a 4pt flat band; Course Detail's 20 completed check / padlock |
+| `LessonListItem` | 361 × 72 min | Figma level-detail reference (Issue #215): two-digit number, title in Manrope 14/20 ExtraBold (calibrated against the reference, Issue #217) on the number's baseline, duration line; a reserved 24 trailing status column after a 16 gap, holding Course Detail's 20 completed check or padlock flush right; radius 12, `#EAEDF0` outline with a 4pt flat band |
 | `CourseMaterialCard` | 329 × 72 | 32 file icon, 40 circular download → check |
 | `AssignmentAttachmentCard` | 329 × 72 / ~132 | Three states: idle row, taller downloading card (progress bar + Cancel), complete row (Remove) |
 | `MentorFeedbackCard` | content width | Avatar-initials + name + role + message + timestamp |
