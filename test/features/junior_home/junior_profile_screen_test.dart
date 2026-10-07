@@ -4,6 +4,8 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_strings.dart';
@@ -198,6 +200,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ResetPasswordScreen), findsOneWidget);
+      // A voluntary change can go back (Issue #227).
+      expect(find.byType(CourseLearningBackButton), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+      await tester.pumpAndSettle();
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+      expect(find.text(JuniorProfileStrings.changePassword), findsOneWidget);
     });
   });
 

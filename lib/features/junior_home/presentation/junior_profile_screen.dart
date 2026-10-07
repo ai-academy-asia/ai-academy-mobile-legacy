@@ -252,7 +252,8 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                 label: JuniorProfileStrings.changePassword,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const ResetPasswordScreen(),
+                    builder: (_) =>
+                        const ResetPasswordScreen(showBackButton: true),
                   ),
                 ),
               ),

@@ -42,7 +42,11 @@ class AiAcademyApp extends StatelessWidget {
       routes: {
         '/': (_) => const SplashScreen(),
         '/login': (_) => const LoginScreen(),
-        '/reset-password': (_) => const ResetPasswordScreen(),
+        // Pushed over Login while a session is held — a voluntary change, so
+        // it can go back (Issue #227). The required change never uses this
+        // route: `openSignedIn` builds its own screen, without a back control.
+        '/reset-password': (_) =>
+            const ResetPasswordScreen(showBackButton: true),
         // Sign-in lands on one of these two, by `user_type` — see
         // `homeRouteFor`. `/home` is the adult Нүүр tab, the dashboard.
         HomeRoutes.adult: (_) => const HomeScreen(),

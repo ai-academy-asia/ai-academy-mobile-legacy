@@ -7,6 +7,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../data/http_password_repository.dart';
 import '../domain/password_repository.dart';
 import 'reset_password_controller.dart';
@@ -25,14 +26,32 @@ import 'widgets/password_requirements_panel.dart';
 /// It differs from login in two ways the design dictates: the title sits 32pt
 /// below the status bar rather than login's empty 88pt band, and it carries a
 /// supporting line and the requirements panel.
+///
+/// **Two flows, one screen** (Issue #227). The required change for a
+/// `must_change_password` account (`openSignedIn`, Issue #182) replaces the
+/// route and draws no back control — the frames draw none, and there is
+/// nothing it may return to. A voluntary change — Profile's "Change
+/// password", or Login's "Нууц үг сэргээх" with a session held — is pushed
+/// over another screen and opts in with [showBackButton].
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key, this.repository, this.onCompleted});
+  const ResetPasswordScreen({
+    super.key,
+    this.repository,
+    this.onCompleted,
+    this.showBackButton = false,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final PasswordRepository? repository;
 
   /// Called once the password has been changed. Defaults to popping back.
   final VoidCallback? onCompleted;
+
+  /// Whether to draw the app's back control above the form, popping back to
+  /// the screen this was opened from. Off by default, so the required change
+  /// stays locked unless a caller explicitly opts in; only the voluntary
+  /// change does. The form below it is the same either way.
+  final bool showBackButton;
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -91,6 +110,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         // Same as login: the keyboard overlays rather than resizing, and the
         // scroll padding below keeps every field reachable regardless.
         resizeToAvoidBottomInset: false,
+        // The voluntary change's back control, as a row above the unchanged
+        // form; the required change has none (see [showBackButton]). 52 is
+        // the control's own height: 12 over its 40 circle.
+        appBar: widget.showBackButton
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(52),
+                child: SafeArea(
+                  bottom: false,
+                  child: CourseLearningBackButton(),
+                ),
+              )
+            : null,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           behavior: HitTestBehavior.opaque,
