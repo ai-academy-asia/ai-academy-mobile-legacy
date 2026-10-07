@@ -76,6 +76,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final HomeController _controller;
 
+  /// The dashboard's pull-to-refresh, which the header logo also drives.
+  final _refreshIndicator = GlobalKey<RefreshIndicatorState>();
+
+  /// A tap on the header logo (Issue #221): the dashboard's own
+  /// pull-to-refresh, its indicator included, when the dashboard is on
+  /// screen; otherwise — loading, failed or empty — the same [load] the
+  /// retry uses. Either way one request at a time ([HomeController.load]).
+  void _refreshFromLogo() {
+    final indicator = _refreshIndicator.currentState;
+    if (indicator != null) {
+      indicator.show();
+    } else {
+      _controller.load();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -126,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const HomeHeader(),
+                            HomeHeader(onLogoTap: _refreshFromLogo),
                             Container(
                               height: AppDimens.borderWidth,
                               color: HomePalette.headerRule,
@@ -162,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
       now: widget.clock?.call() ?? DateTime.now(),
       clock: widget.clock,
       onRefresh: _controller.load,
+      refreshIndicatorKey: _refreshIndicator,
       showPaymentPreview: widget.showPaymentPreview,
     );
   }
@@ -174,6 +191,7 @@ class _DashboardView extends StatelessWidget {
     required this.now,
     required this.clock,
     required this.onRefresh,
+    required this.refreshIndicatorKey,
     required this.showPaymentPreview,
   });
 
@@ -184,6 +202,9 @@ class _DashboardView extends StatelessWidget {
   /// opens on the same "today" the dashboard used.
   final DateTime Function()? clock;
   final Future<void> Function() onRefresh;
+
+  /// Lets the header logo start this view's pull-to-refresh.
+  final GlobalKey<RefreshIndicatorState> refreshIndicatorKey;
   final bool showPaymentPreview;
 
   @override
@@ -241,6 +262,7 @@ class _DashboardView extends StatelessWidget {
     ];
 
     return RefreshIndicator(
+      key: refreshIndicatorKey,
       onRefresh: onRefresh,
       color: AppColors.blue,
       child: ListView.separated(

@@ -779,4 +779,111 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('header logo refresh (Issue #221)', () {
+    Finder logo() => find.bySemanticsLabel(HomeStrings.logo);
+
+    testWidgets('a tap runs the dashboard\'s pull-to-refresh: the same '
+        'repository, its indicator, and Home stays', (tester) async {
+      final repository = FakeHomeDashboardRepository(
+        dashboard: scheduledDashboard(),
+      );
+      await pumpHome(tester, repository);
+      expect(repository.callCount, 1);
+
+      repository.hold = true;
+      await tester.tap(logo());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(repository.callCount, 2);
+      // RefreshIndicator's own spinner — the one a pull shows.
+      expect(find.byType(RefreshProgressIndicator), findsOneWidget);
+      // The dashboard stays on screen while it refreshes.
+      expect(find.byType(ProgramCard), findsOneWidget);
+
+      repository.release();
+      await tester.pumpAndSettle();
+      expect(find.byType(RefreshProgressIndicator), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+    });
+
+    testWidgets('taps during a refresh do not send more requests', (
+      tester,
+    ) async {
+      final repository = FakeHomeDashboardRepository(
+        dashboard: scheduledDashboard(),
+      );
+      await pumpHome(tester, repository);
+
+      repository.hold = true;
+      await tester.tap(logo());
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(logo());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(logo());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(repository.callCount, 2);
+
+      repository.release();
+      await tester.pumpAndSettle();
+      expect(repository.callCount, 2);
+    });
+
+    testWidgets('a successful refresh shows the latest data', (tester) async {
+      final repository = FakeHomeDashboardRepository(
+        dashboard: scheduledDashboard(),
+      );
+      await pumpHome(tester, repository);
+      expect(find.text('AI Engineer'), findsOneWidget);
+
+      repository.dashboard = HomeDashboard(
+        program: sampleProgram(courseTitle: 'Data Analyst'),
+      );
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Data Analyst'), findsOneWidget);
+      expect(find.text('AI Engineer'), findsNothing);
+    });
+
+    testWidgets('a failed refresh shows the existing error view and retry', (
+      tester,
+    ) async {
+      final repository = FakeHomeDashboardRepository(
+        dashboard: scheduledDashboard(),
+      );
+      await pumpHome(tester, repository);
+
+      repository.failure = const HomeFailure(HomeFailureKind.network);
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(HomeStrings.messageFor(HomeFailureKind.network)),
+        findsOneWidget,
+      );
+      expect(find.text(HomeStrings.retry), findsOneWidget);
+    });
+
+    testWidgets('with no dashboard on screen — after a failure — a tap '
+        'reloads through the same load', (tester) async {
+      final repository = FakeHomeDashboardRepository(
+        failure: const HomeFailure(HomeFailureKind.server),
+      );
+      await pumpHome(tester, repository);
+      expect(find.text(HomeStrings.retry), findsOneWidget);
+
+      repository
+        ..failure = null
+        ..dashboard = scheduledDashboard();
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(repository.callCount, 2);
+      expect(find.byType(ProgramCard), findsOneWidget);
+      expect(find.text(HomeStrings.retry), findsNothing);
+    });
+  });
 }

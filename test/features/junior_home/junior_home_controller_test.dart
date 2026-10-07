@@ -118,4 +118,32 @@ void main() {
     // Would throw "used after being disposed" if the guard were missing.
     await pending;
   });
+
+  group('one fetch at a time (Issue #221)', () {
+    test('a load made while one is running joins it — one request', () async {
+      final repository = FakeJuniorHomeRepository(hold: true);
+      final controller = JuniorHomeController(repository: repository);
+
+      final first = controller.load();
+      final second = controller.load();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.calls, 1);
+      expect(identical(first, second), isTrue);
+
+      repository.release();
+      await first;
+      expect(controller.loading, isFalse);
+    });
+
+    test('once it finishes, the next load asks again', () async {
+      final repository = FakeJuniorHomeRepository();
+      final controller = JuniorHomeController(repository: repository);
+
+      await controller.load();
+      await controller.load();
+
+      expect(repository.calls, 2);
+    });
+  });
 }

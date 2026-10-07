@@ -22,11 +22,17 @@ import 'home_palette.dart';
 /// [AppDimens.headerActionSize] (44), so the header keeps the reference's
 /// height.
 class HomeHeader extends StatelessWidget {
-  const HomeHeader({super.key, this.onNotifications});
+  const HomeHeader({super.key, this.onNotifications, this.onLogoTap});
 
   /// What the bell does. Null draws it as the reference does but inert —
   /// there is no notifications screen in the app yet.
   final VoidCallback? onNotifications;
+
+  /// What a tap on the brand lockup does — Adult and Junior Home refresh
+  /// their data with it (Issue #221). Null leaves the lockup inert, as it
+  /// was. Either way it is drawn exactly the same: no ripple or pressed
+  /// state, which the frame does not draw.
+  final VoidCallback? onLogoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +51,13 @@ class HomeHeader extends StatelessWidget {
           children: [
             Semantics(
               label: HomeStrings.logo,
-              image: true,
-              child: const _BrandLockup(),
+              image: onLogoTap == null,
+              button: onLogoTap != null,
+              child: GestureDetector(
+                onTap: onLogoTap,
+                behavior: HitTestBehavior.opaque,
+                child: const _BrandLockup(),
+              ),
             ),
             const Spacer(),
             _NotificationButton(onTap: onNotifications),

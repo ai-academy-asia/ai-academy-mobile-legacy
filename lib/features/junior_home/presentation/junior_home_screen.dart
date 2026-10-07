@@ -98,7 +98,11 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
           bottom: false,
           child: Column(
             children: [
-              const HomeHeader(),
+              // The logo reloads the map through the screen's own load and
+              // retry path (Issue #221). Junior Home has no refresh
+              // indicator, so the map stays on screen until the new one
+              // arrives.
+              HomeHeader(onLogoTap: _controller.load),
               Container(height: AppDimens.borderWidth, color: AppColors.border),
               Expanded(
                 child: ColoredBox(
