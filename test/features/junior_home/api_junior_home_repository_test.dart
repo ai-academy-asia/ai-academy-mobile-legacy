@@ -257,4 +257,18 @@ void main() {
       [for (final m in modules) m.title],
     );
   });
+
+  test('each node carries its module\'s order — the lessons it opens pick '
+      'their artwork with it, as Course Detail does (Issue #215)', () {
+    final path = samplePath(courseSlug: 'junior');
+    final modules = path.modules.toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    final map = juniorMapFrom(path);
+
+    expect(
+      [for (final n in map.nodes) n.order],
+      [for (final m in modules) m.order],
+    );
+  });
 }

@@ -1,27 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_dimens.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/lesson.dart';
-import '../course_learning_strings.dart';
 
-/// Figma has no dedicated Lesson List screenshot yet — this row deliberately
-/// reuses `CourseModuleCard`'s own measurements and treatment (56pt icon
-/// slot, [AppDimens.homeCardRadius], the same border/shadow pair) rather than
-/// inventing a new visual language for a screen that has none confirmed, so
-/// the two lists read as the same product.
-const double _iconSlot = 56;
-const double _lockedIconSize = 32;
-const double _checkSize = 24;
+/// Measured off the Figma level-detail reference at 1:1 (Issue #215): a
+/// 361-wide card, 72 tall with its 1pt outline, radius 12, the number 16 in
+/// from the outline and the title at 61 — the number's own slot is 28 wide.
+const double _minHeight = 72;
+const double _radius = 12;
+const double _inset = 16;
+const double _numberSlot = 28;
+const double _checkSize = 20;
 
-/// One lesson row on the Lesson List screen.
+/// The reference's card outline and the flat band under it, the same
+/// `#EAEDF0` and 4pt `CourseModuleCard` measures off the Course Detail
+/// reference. Kept as this file's own copy rather than extracted: those
+/// constants are private to Course Detail's card, and this change leaves
+/// that screen untouched.
+const Color _border = Color(0xFFEAEDF0);
+const double _liftOffset = 4;
+
+/// Sampled off the reference: the number's grey and the title's ink. The
+/// duration and the locked ink are `CourseModuleCard`'s own, since the
+/// reference draws neither on a lesson card.
+const Color _numberInk = Color(0xFF808080);
+const Color _titleInk = Color(0xFF1A1A1A);
+const Color _secondaryInk = Color(0xFF7D7D7E);
+const Color _lockedInk = Color(0xFFB5B5B5);
+
+/// Course Detail's own completed badge and padlock — the same assets
+/// `CourseModuleCard` draws, at their native sizes.
+const String _checkAsset =
+    'assets/images/course_learning/course_detail_completed_check.svg';
+const String _lockAsset =
+    'assets/images/course_learning/course_detail_lock.svg';
+const double _lockWidth = 24;
+const double _lockHeight = 27;
+
+/// One lesson card on the Lesson List screen, drawn to the Figma
+/// level-detail reference: the two-digit lesson number, the bold title and
+/// the green completed check on a white, outlined card with a flat band
+/// under it.
 ///
-/// Same two states as `CourseModuleCard`: open (a play glyph, tinted with
-/// [AppColors.blue] since a lesson has no [Lesson.moduleId]-specific accent
-/// colour of its own the way `CourseModule.accentColor` does) or locked (the
-/// identical plain lock tile `CourseModuleCard` draws).
+/// The reference's card carries no duration and no locked state; this one
+/// keeps both, because they are real lesson data: the duration as a
+/// secondary line under the title, and a locked lesson in
+/// `CourseModuleCard`'s dimmed ink with Course Detail's padlock where the
+/// check would be. The reference's blue "current lesson" treatment is not
+/// drawn — §2.2 sends no current-lesson marker (Issue #215).
 class LessonListItem extends StatelessWidget {
   const LessonListItem({required this.lesson, super.key, this.onTap});
 
@@ -33,138 +61,100 @@ class LessonListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locked = lesson.locked;
-    final titleColor = locked ? AppColors.textSecondary : AppColors.textPrimary;
+    final lineStyle = TextStyle(
+      fontFamily: AppTypography.fontFamily,
+      fontSize: 16,
+      height: 22 / 16,
+      leadingDistribution: TextLeadingDistribution.even,
+      color: locked ? _lockedInk : _titleInk,
+    );
 
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+      borderRadius: BorderRadius.circular(_radius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+        borderRadius: BorderRadius.circular(_radius),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 86),
-          padding: const EdgeInsets.all(AppDimens.cardPadding),
+          constraints: const BoxConstraints(minHeight: _minHeight),
+          padding: const EdgeInsets.symmetric(horizontal: _inset, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-            border: Border.all(
-              color: AppColors.border,
-              width: AppDimens.borderWidth,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
+            // Repeated here, as on `CourseModuleCard`: the band is a
+            // zero-blur shadow of the whole card, so the card needs its own
+            // opaque fill on top of it.
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(_radius),
+            border: Border.all(color: _border),
+            boxShadow: const [
+              BoxShadow(color: _border, offset: Offset(0, _liftOffset)),
             ],
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _LessonIcon(lesson: lesson),
-              const SizedBox(width: 12),
               Expanded(
-                child: Column(
+                child: Row(
+                  // The number and the title share one line box, so their
+                  // baselines meet as the reference draws them; the
+                  // duration sits under the title only.
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '${CourseLearningStrings.lessonCaption} ${lesson.order}',
-                      style: AppTypography.catalogSectionLabel,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      lesson.title,
-                      style: AppTypography.cardHeading.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: _numberSlot),
+                      child: Text(
+                        lesson.order.toString().padLeft(2, '0'),
+                        style: lineStyle.copyWith(
+                          fontWeight: FontWeight.w400,
+                          color: locked ? _lockedInk : _numberInk,
+                        ),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      lesson.durationLabel,
-                      style: AppTypography.cardSupporting,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            lesson.title,
+                            style: lineStyle.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            lesson.durationLabel,
+                            style: AppTypography.cardSupporting.copyWith(
+                              fontSize: 12,
+                              height: 16 / 12,
+                              color: _secondaryInk,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
               if (lesson.completed) ...[
-                const SizedBox(width: 8),
-                const _CompletedCheck(),
+                const SizedBox(width: 12),
+                SvgPicture.asset(
+                  _checkAsset,
+                  width: _checkSize,
+                  height: _checkSize,
+                ),
+              ] else if (locked) ...[
+                const SizedBox(width: 12),
+                SvgPicture.asset(
+                  _lockAsset,
+                  width: _lockWidth,
+                  height: _lockHeight,
+                ),
               ],
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LessonIcon extends StatelessWidget {
-  const _LessonIcon({required this.lesson});
-
-  final Lesson lesson;
-
-  @override
-  Widget build(BuildContext context) {
-    if (lesson.locked) {
-      return SizedBox(
-        width: _iconSlot,
-        height: _iconSlot,
-        child: Center(
-          child: Container(
-            width: _lockedIconSize,
-            height: _lockedIconSize,
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.lock_outline,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-      );
-    }
-
-    // `Icons.play_arrow_rounded`, not a bundled Phosphor glyph: same
-    // reasoning `ExerciseInfoSection`'s own read-more chevrons document —
-    // there is no confirmed Phosphor "play" codepoint to reuse, and this
-    // tile only needs to read as "opens a video", not match one exactly.
-    return Container(
-      width: _iconSlot,
-      height: _iconSlot,
-      decoration: BoxDecoration(
-        color: AppColors.blue.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
-      ),
-      child: const Icon(
-        Icons.play_arrow_rounded,
-        color: AppColors.blue,
-        size: 28,
-      ),
-    );
-  }
-}
-
-class _CompletedCheck extends StatelessWidget {
-  const _CompletedCheck();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: _checkSize,
-      height: _checkSize,
-      decoration: const BoxDecoration(
-        color: AppColors.success,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(AppIcons.check, size: 14, color: AppColors.onPrimary),
     );
   }
 }

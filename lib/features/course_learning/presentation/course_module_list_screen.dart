@@ -346,6 +346,7 @@ void _openLessonList(
     MaterialPageRoute(
       builder: (_) => LessonListScreen(
         moduleId: module.id,
+        moduleOrder: module.order,
         moduleTitle: module.title,
         repository: repository,
         showNotes: showNotes,

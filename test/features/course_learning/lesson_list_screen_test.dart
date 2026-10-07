@@ -1,5 +1,6 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/data/course_module_visuals.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
@@ -7,6 +8,7 @@ import 'package:aia_mobile/features/course_learning/presentation/lesson_list_scr
 import 'package:aia_mobile/features/course_learning/presentation/widgets/lesson_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_course_learning_repository.dart';
@@ -39,6 +41,7 @@ void main() {
     WidgetTester tester,
     FakeCourseLearningRepository? repository, {
     int moduleId = 2,
+    int moduleOrder = 2,
     String moduleTitle = 'Language Model Training',
     Size size = const Size(393, 852),
   }) async {
@@ -59,6 +62,7 @@ void main() {
                   MaterialPageRoute(
                     builder: (_) => LessonListScreen(
                       moduleId: moduleId,
+                      moduleOrder: moduleOrder,
                       moduleTitle: moduleTitle,
                       repository: repository,
                     ),
@@ -75,15 +79,144 @@ void main() {
     await tester.pump();
   }
 
-  Finder backButton() => find.byIcon(AppIcons.caretLeft);
+  // The reference draws the arrow on this screen's back control.
+  Finder backButton() => find.byIcon(AppIcons.arrowLeft);
+
+  /// An `SvgPicture.asset` drawing [asset].
+  Finder svgAsset(String asset) => find.byWidgetPredicate(
+    (widget) =>
+        widget is SvgPicture &&
+        widget.bytesLoader is SvgAssetLoader &&
+        (widget.bytesLoader as SvgAssetLoader).assetName == asset,
+  );
 
   group('header', () {
-    testWidgets('renders the module title', (tester) async {
+    testWidgets('renders the module caption and title', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
 
+      expect(find.text('Modules 2'), findsOneWidget);
       expect(find.text('Language Model Training'), findsOneWidget);
-      expect(find.text('LESSONS'), findsOneWidget);
+    });
+
+    testWidgets('the hero draws the artwork Course Detail picks for the '
+        'module order', (tester) async {
+      for (final order in [1, 2, 3, 6]) {
+        // A fresh tree each time, so the harness's "open" is on screen again.
+        await tester.pumpWidget(const SizedBox());
+        await pumpScreen(
+          tester,
+          FakeCourseLearningRepository(),
+          moduleOrder: order,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          svgAsset(moduleVisualsFor(order).iconAsset),
+          findsOneWidget,
+          reason: 'order $order',
+        );
+        expect(find.text('Modules $order'), findsOneWidget);
+      }
+    });
+
+    testWidgets('the hero starts at the top and the back control sits at the '
+        'safe-area inset', (tester) async {
+      tester.view.padding = const FakeViewPadding(top: 44 * 3);
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      // CourseLearningBackButton: 16 in, 12 below the inset, 40 square.
+      final back = tester.getRect(
+        find.ancestor(of: backButton(), matching: find.byType(InkWell)).first,
+      );
+      expect(back.left, 16);
+      expect(back.top, 44 + 12);
+      expect(back.size, const Size(40, 40));
+      // The caption sits below the hero (inset + 200), never under it.
+      expect(tester.getRect(find.text('Modules 2')).top, greaterThan(244));
+    });
+
+    testWidgets('shows no course progress or "Continue learning"', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.continueLearning), findsNothing);
+      expect(find.textContaining('% complete'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+  });
+
+  group('lesson card', () {
+    testWidgets('draws the two-digit number, title and duration', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      for (final (number, title, duration) in [
+        ('01', 'Introduction to loops', '12:30'),
+        ('02', 'Nesting loops', '24:15'),
+        ('03', 'Practice: matrix traversal', '18:40'),
+      ]) {
+        final card = find.widgetWithText(LessonListItem, title);
+        expect(
+          find.descendant(of: card, matching: find.text(number)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.text(duration)),
+          findsOneWidget,
+        );
+      }
+    });
+
+    testWidgets('a completed lesson shows the check, a locked one the '
+        'padlock, an open one neither', (tester) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      Finder inCard(String title, Finder finder) => find.descendant(
+        of: find.widgetWithText(LessonListItem, title),
+        matching: finder,
+      );
+      const check =
+          'assets/images/course_learning/course_detail_completed_check.svg';
+      const lock = 'assets/images/course_learning/course_detail_lock.svg';
+
+      expect(inCard('Introduction to loops', svgAsset(check)), findsOneWidget);
+      expect(inCard('Introduction to loops', svgAsset(lock)), findsNothing);
+      expect(inCard('Nesting loops', svgAsset(check)), findsNothing);
+      expect(inCard('Nesting loops', svgAsset(lock)), findsNothing);
+      expect(
+        inCard('Practice: matrix traversal', svgAsset(lock)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('fits a long two-line title on a narrow phone', (tester) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          lessons: [
+            sampleLesson(
+              id: 1,
+              moduleId: 2,
+              order: 1,
+              title: 'AI танилцуулга: GenAI, Agentic AI, Machine Learning',
+              durationLabel: '3:00:00',
+              completed: true,
+            ),
+          ],
+        ),
+        size: const Size(320, 568),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('3:00:00'), findsOneWidget);
     });
   });
 
@@ -173,26 +306,26 @@ void main() {
 
   group('empty', () {
     testWidgets('a module with no lessons shows the empty message under the '
-        'title and LESSONS label', (tester) async {
+        'header', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository(lessons: const []));
       await tester.pumpAndSettle();
 
       expect(find.text(CourseLearningStrings.lessonsEmpty), findsOneWidget);
       expect(find.text('Одоогоор хичээл алга байна'), findsOneWidget);
-      // The heading is drawn as it is for a module with lessons.
+      // The header is drawn as it is for a module with lessons.
+      expect(find.text('Modules 2'), findsOneWidget);
       expect(find.text('Language Model Training'), findsOneWidget);
-      expect(find.text('LESSONS'), findsOneWidget);
       expect(find.byType(LessonListItem), findsNothing);
       // Empty is its own state — not the spinner, not the error view.
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text(CourseLearningStrings.retry), findsNothing);
     });
 
-    testWidgets('the message sits below the LESSONS label', (tester) async {
+    testWidgets('the message sits below the module title', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository(lessons: const []));
       await tester.pumpAndSettle();
 
-      final label = tester.getRect(find.text('LESSONS'));
+      final label = tester.getRect(find.text('Language Model Training'));
       final message = tester.getRect(
         find.text(CourseLearningStrings.lessonsEmpty),
       );

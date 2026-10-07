@@ -134,8 +134,6 @@ Two sources, in priority order:
    | Icon | Where | Role |
    |---|---|---|
    | `keyboard_arrow_down` / `keyboard_arrow_up` | `exercise_info_section.dart` | Read more / Read less chevron |
-   | `lock_outline` | `course_module_card.dart`, `lesson_list_item.dart` | Locked module/lesson tile |
-   | `play_arrow_rounded` | `lesson_list_item.dart` | Lesson "opens a video" tile |
    | `close` | `assignment_attachment_card.dart`, `quiz_progress_header.dart` | Remove attachment; close quiz |
    | `refresh` | `assignment_tab.dart` | Resubmit button leading icon |
    | `check` | `assignment_attachment_card.dart` | Completed-download tile |

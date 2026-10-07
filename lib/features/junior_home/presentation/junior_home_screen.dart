@@ -182,6 +182,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
       MaterialPageRoute<void>(
         builder: (_) => LessonListScreen(
           moduleId: node.id,
+          moduleOrder: node.order,
           moduleTitle: node.title,
           repository: widget.courseLearningRepository,
           showNotes: false,
