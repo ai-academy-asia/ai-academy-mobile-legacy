@@ -13,6 +13,7 @@ import 'features/junior_home/presentation/junior_profile_screen.dart';
 import 'features/junior_home/presentation/junior_progress_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/splash/presentation/splash_screen.dart';
+import 'features/teacher/presentation/teacher_gradebook_screen.dart';
 import 'features/teacher/presentation/teacher_home_screen.dart';
 import 'features/teacher/presentation/teacher_schedule_screen.dart';
 import 'features/teacher/presentation/widgets/teacher_tabs.dart';
@@ -57,6 +58,8 @@ class AiAcademyApp extends StatelessWidget {
         HomeRoutes.teacher: (_) => const TeacherHomeScreen(),
         // The teacher bar's Хуваарь — see `openTeacherTab` (Issue #231).
         TeacherTabRoutes.schedule: (_) => const TeacherScheduleScreen(),
+        // Дүнгийн хуудас (Issue #233).
+        TeacherTabRoutes.gradebook: (_) => const TeacherGradebookScreen(),
         // Each Home's other two tabs — the adult pair and the junior pair;
         // see `openStudentTab`.
         StudentTabRoutes.adultProgress: (_) =>

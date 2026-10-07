@@ -11,16 +11,19 @@ enum TeacherTab {
   /// Хуваарь — Teacher Schedule (Issue #231).
   schedule,
 
-  /// Дүнгийн хуудас — no screen yet.
+  /// Дүнгийн хуудас — Teacher Gradebook (Issue #233).
   grades,
 
   /// Профайл — no screen yet.
   profile,
 }
 
-/// The route `AiAcademyApp` registers for Teacher Schedule.
+/// The routes `AiAcademyApp` registers for the teacher tabs after Home.
 abstract final class TeacherTabRoutes {
   static const String schedule = '/teacher-schedule';
+
+  /// Teacher Gradebook (Issue #233).
+  static const String gradebook = '/teacher-gradebook';
 }
 
 /// Switches the teacher tab bar to [tab], the way `openStudentTab` switches
@@ -37,7 +40,12 @@ void openTeacherTab(BuildContext context, TeacherTab tab) {
         TeacherTabRoutes.schedule,
         _isTeacherHome,
       );
-    case TeacherTab.grades || TeacherTab.profile:
+    case TeacherTab.grades:
+      navigator.pushNamedAndRemoveUntil(
+        TeacherTabRoutes.gradebook,
+        _isTeacherHome,
+      );
+    case TeacherTab.profile:
       break;
   }
 }

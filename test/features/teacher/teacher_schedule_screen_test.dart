@@ -345,13 +345,14 @@ void main() {
       expect(find.byType(TeacherHomeScreen), findsOneWidget);
     });
 
-    testWidgets('Дүнгийн хуудас and Профайл stay inert', (tester) async {
+    testWidgets('Профайл stays inert', (tester) async {
       await pumpApp(tester);
       await tester.tap(find.text(TeacherHomeStrings.navSchedule));
       await tester.pumpAndSettle();
 
+      // Дүнгийн хуудас's route is covered in
+      // teacher_gradebook_screen_test.dart.
       for (final label in [
-        TeacherHomeStrings.navGrades,
         TeacherHomeStrings.navProfile,
         // The current tab does nothing either.
         TeacherHomeStrings.navSchedule,

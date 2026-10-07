@@ -194,7 +194,7 @@ void main() {
   });
 
   testWidgets('the tab bar draws the four teacher tabs, Нүүр selected and '
-      'the unbuilt ones inert', (tester) async {
+      'the unbuilt one inert', (tester) async {
     await pumpScreen(
       tester,
       FakeTeacherHomeRepository(classes: [sampleClass()]),
@@ -209,12 +209,10 @@ void main() {
       expect(find.text(label), findsOneWidget, reason: label);
     }
 
-    // Tapping an unbuilt tab goes nowhere. Хуваарь's route is covered in
-    // teacher_schedule_screen_test.dart.
-    for (final label in [
-      TeacherHomeStrings.navGrades,
-      TeacherHomeStrings.navProfile,
-    ]) {
+    // Tapping the unbuilt tab goes nowhere. Хуваарь's and Дүнгийн хуудас's
+    // routes are covered in teacher_schedule_screen_test.dart and
+    // teacher_gradebook_screen_test.dart.
+    for (final label in [TeacherHomeStrings.navProfile]) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(find.byType(TeacherHomeScreen), findsOneWidget);

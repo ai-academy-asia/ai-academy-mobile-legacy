@@ -18,11 +18,15 @@ const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 /// of the 12pt one, width and height alike — which is what keeps
 /// "Дүнгийн хуудас" on one line in its 90pt tab.
 ///
-/// Нүүр and Хуваарь switch through [openTeacherTab] (Issue #231). The grade
-/// sheet and the teacher Profile have no screens, so their tabs stay inert
-/// ([AppBottomNavItem.onTap] null). The selected Хуваарь draws the outline
-/// calendar in the bar's blue: the reference's filled glyph has not been
-/// exported.
+/// Нүүр, Хуваарь (Issue #231) and Дүнгийн хуудас (Issue #233) switch
+/// through [openTeacherTab]. The teacher Profile has no screen, so its tab
+/// stays inert ([AppBottomNavItem.onTap] null). The `dungiin-huudas`
+/// reference draws a different bar (Хуваарь, Дүнгийн хуудас, Хөтөлбөр,
+/// Профайл); the app keeps this one by instruction.
+///
+/// The selected Хуваарь draws the outline calendar in the bar's blue, and the
+/// selected Дүнгийн хуудас the outline "A+" sheet: the references' filled
+/// glyphs have not been exported.
 class TeacherBottomNav extends StatelessWidget {
   const TeacherBottomNav({this.current = TeacherTab.home, super.key});
 
@@ -49,9 +53,10 @@ class TeacherBottomNav extends StatelessWidget {
           label: TeacherHomeStrings.navSchedule,
           onTap: open(TeacherTab.schedule),
         ),
-        const AppBottomNavItem(
+        AppBottomNavItem(
           icon: AppIcons.exam,
           label: TeacherHomeStrings.navGrades,
+          onTap: open(TeacherTab.grades),
         ),
         const AppBottomNavItem(
           icon: AppIcons.user,
