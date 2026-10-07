@@ -46,12 +46,7 @@ class LessonListScreen extends StatefulWidget {
     required this.moduleTitle,
     super.key,
     this.repository,
-    this.showNotes = true,
   });
-
-  /// Passed on to every lesson's [CourseExerciseDetailScreen] — false in the
-  /// Junior course flow, which has no notes (Issue #174).
-  final bool showNotes;
 
   /// `CourseModule.id` — which module's lessons to load.
   final int moduleId;
@@ -141,7 +136,6 @@ class _LessonListScreenState extends State<LessonListScreen> {
     }
     return _LessonListBody(
       header: header,
-      showNotes: widget.showNotes,
       lessons: _controller.lessons,
       repository: _repository,
     );
@@ -356,7 +350,6 @@ class _ErrorView extends StatelessWidget {
 class _LessonListBody extends StatelessWidget {
   const _LessonListBody({
     required this.header,
-    required this.showNotes,
     required this.lessons,
     required this.repository,
   });
@@ -364,7 +357,6 @@ class _LessonListBody extends StatelessWidget {
   final Widget header;
   final List<Lesson> lessons;
   final CourseLearningRepository repository;
-  final bool showNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -398,7 +390,6 @@ class _LessonListBody extends StatelessWidget {
                               builder: (_) => CourseExerciseDetailScreen(
                                 lessonId: lessons[i].id,
                                 repository: repository,
-                                showNotes: showNotes,
                               ),
                             ),
                           ),

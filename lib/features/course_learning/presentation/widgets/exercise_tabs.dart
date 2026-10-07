@@ -4,8 +4,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
-/// Which of the tab card's tabs is showing.
-enum ExerciseTab { assignment, materials, note }
+/// Which of the tab card's tabs is showing — declared in the order the card
+/// draws them, the learning workflow's order (Issue #219): take notes,
+/// review the materials, then do the assignment. The same for Adult and
+/// Junior.
+enum ExerciseTab { note, materials, assignment }
 
 /// The reference's own primary blue for this screen — close to, but not
 /// identical to, [AppColors.blue] (`#296CFF` vs. this screen's `#2970FF`).
@@ -14,7 +17,7 @@ enum ExerciseTab { assignment, materials, note }
 /// and only this screen's own reference confirms this exact value.
 const Color exercisePrimaryColor = Color(0xFF2970FF);
 
-/// The Assignment / Course materials / Note tab header — 49 tall, a thin
+/// The Note / Course materials / Assignment tab header — 49 tall, a thin
 /// divider underneath, and the active tab's own blue underline.
 ///
 /// Plain tappable labels in a `Row`, not a segmented control: the reference
@@ -31,15 +34,13 @@ class ExerciseTabs extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     super.key,
-    this.tabs = ExerciseTab.values,
   });
 
   final ExerciseTab selected;
   final ValueChanged<ExerciseTab> onSelected;
 
-  /// The tabs drawn, in order. Every tab by default; the Junior course
-  /// flow leaves out [ExerciseTab.note] (Issue #174).
-  final List<ExerciseTab> tabs;
+  /// Every tab, in [ExerciseTab]'s order.
+  static const List<ExerciseTab> tabs = ExerciseTab.values;
 
   static String _label(ExerciseTab tab) => switch (tab) {
     ExerciseTab.assignment => CourseLearningStrings.assignmentTab,

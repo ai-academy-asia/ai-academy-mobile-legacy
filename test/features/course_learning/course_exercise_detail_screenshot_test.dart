@@ -16,10 +16,14 @@ import 'fake_course_learning_repository.dart';
 void main() {
   setUpAll(loadAppFonts);
 
+  /// States 01–07 are the Assignment tab's. Lessons open on Note
+  /// (Issue #219), so those states open the Assignment tab first; the
+  /// reference frames draw the old tab order, which the product changed.
   Future<void> pump(
     WidgetTester tester,
     double height, {
     CourseExercise? exercise,
+    bool assignmentTab = false,
   }) async {
     useLogicalViewport(tester, Size(393, height), padding: iPhonePadding);
     await tester.pumpWidget(
@@ -33,6 +37,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    if (assignmentTab) {
+      await tester.tap(find.text('Assignment'));
+      await tester.pumpAndSettle();
+    }
     await precacheImages(tester);
   }
 
@@ -42,7 +50,7 @@ void main() {
   );
 
   testWidgets('01 initial assignment state', (tester) async {
-    await pump(tester, 1088);
+    await pump(tester, 1088, assignmentTab: true);
     await shot(tester, '01_initial');
   });
 
@@ -50,6 +58,7 @@ void main() {
     await pump(
       tester,
       1463,
+      assignmentTab: true,
       exercise: sampleExercise(assignmentAttachment: sampleAttachment()),
     );
     await tester.tap(find.text('Read more'));
@@ -61,6 +70,7 @@ void main() {
     await pump(
       tester,
       1224,
+      assignmentTab: true,
       exercise: sampleExercise(
         assignmentAttachment: sampleAttachment(),
         quiz: sampleQuiz(),
@@ -76,6 +86,7 @@ void main() {
     await pump(
       tester,
       1088,
+      assignmentTab: true,
       exercise: sampleExercise(
         hasVideo: false,
         assignmentAttachment: sampleAttachment(),
@@ -103,6 +114,7 @@ void main() {
     await pump(
       tester,
       1224,
+      assignmentTab: true,
       exercise: sampleExercise(
         assignmentAttachment: sampleAttachment(),
         quiz: sampleQuiz(),
@@ -116,6 +128,7 @@ void main() {
     await pump(
       tester,
       1088,
+      assignmentTab: true,
       exercise: sampleExercise(
         assignmentAttachment: sampleAttachment(),
         assignmentFeedback: const [],
@@ -133,6 +146,7 @@ void main() {
     await pump(
       tester,
       1273,
+      assignmentTab: true,
       exercise: sampleExercise(
         assignmentAttachment: sampleAttachment(),
         quiz: sampleQuiz(),

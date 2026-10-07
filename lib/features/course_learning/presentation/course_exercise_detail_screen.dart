@@ -96,18 +96,11 @@ class CourseExerciseDetailScreen extends StatefulWidget {
     this.repository,
     this.openUrl,
     this.pickFile,
-    this.showNotes = true,
     @visibleForTesting this.assignmentForm,
   });
 
   /// `Lesson.id` — which lesson to load.
   final int lessonId;
-
-  /// Whether the tab card offers the Note tab. False in the Junior course
-  /// flow, which has no notes (Issue #174): the tab, [NoteTab] and its save
-  /// are then never built. The lesson's note still arrives with
-  /// `GET /me/lessons/{lesson_id}` and is simply not shown.
-  final bool showNotes;
 
   /// Defaults to `HttpCourseLearningRepository` —
   /// `GET /me/lessons/{lesson_id}` against the signed-in student's token.
@@ -137,7 +130,9 @@ class _CourseExerciseDetailScreenState
   late final CourseExerciseDetailController _controller;
 
   bool _descriptionExpanded = false;
-  ExerciseTab _selectedTab = ExerciseTab.assignment;
+
+  /// The first tab, Note: where the learning workflow starts (Issue #219).
+  ExerciseTab _selectedTab = ExerciseTab.note;
 
   /// The one repository this screen's controller and its quiz share.
   late final CourseLearningRepository _repository =
@@ -224,9 +219,6 @@ class _CourseExerciseDetailScreenState
       descriptionExpanded: _descriptionExpanded,
       onToggleDescription: () =>
           setState(() => _descriptionExpanded = !_descriptionExpanded),
-      tabs: widget.showNotes
-          ? ExerciseTab.values
-          : const [ExerciseTab.assignment, ExerciseTab.materials],
       selectedTab: _selectedTab,
       onSelectTab: (tab) => setState(() => _selectedTab = tab),
       // Held on the controller's exercise, not in `NoteTab`, so a saved
@@ -263,7 +255,6 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.exercise,
     required this.descriptionExpanded,
     required this.onToggleDescription,
-    required this.tabs,
     required this.selectedTab,
     required this.onSelectTab,
     required this.note,
@@ -291,8 +282,6 @@ class _ExerciseDetailBody extends StatelessWidget {
   final bool descriptionExpanded;
   final VoidCallback onToggleDescription;
 
-  /// Which tabs the card offers — see [CourseExerciseDetailScreen.showNotes].
-  final List<ExerciseTab> tabs;
   final ExerciseTab selectedTab;
   final ValueChanged<ExerciseTab> onSelectTab;
   final CourseExerciseNote? note;
@@ -365,7 +354,6 @@ class _ExerciseDetailBody extends StatelessWidget {
                       child: Column(
                         children: [
                           ExerciseTabs(
-                            tabs: tabs,
                             selected: selectedTab,
                             onSelected: onSelectTab,
                           ),

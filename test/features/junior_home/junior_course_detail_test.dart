@@ -1,10 +1,12 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_tab.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_materials_tab.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/note_tab.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
@@ -20,11 +22,13 @@ import '../../support/screenshot.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import 'fake_junior_home_repository.dart';
 
-/// The Junior course-learning screens, without the Note tab (Issue #174).
+/// The Junior course-learning screens: the Adult screens, with the same
+/// lesson tabs — Note, Course materials, Assignment (Issue #219, superseding
+/// #174's Junior-only "no notes").
 ///
 /// From Junior Home, a node opens **its own module's** lessons (Issue #204)
-/// — not the course as a whole. The course screen keeps its Junior
-/// no-notes behaviour, tested here directly.
+/// — not the course as a whole. The course screen and a Junior lesson's
+/// whole learning flow are tested here directly.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -109,13 +113,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// The lesson's tab card reads Note | Course materials | Assignment, left
+  /// to right — the order Adult has too (Issue #219).
+  void expectTabOrder(WidgetTester tester) {
+    final note = tester.getCenter(find.text(CourseLearningStrings.noteTab));
+    final materials = tester.getCenter(
+      find.text(CourseLearningStrings.courseMaterialsTab),
+    );
+    final assignment = tester.getCenter(
+      find.text(CourseLearningStrings.assignmentTab),
+    );
+    expect(note.dx, lessThan(materials.dx));
+    expect(materials.dx, lessThan(assignment.dx));
+  }
+
   group('the Junior Home entry point', () {
     for (final (id, title) in [
       (1, 'Prediction and Probabilities'),
       (2, 'Language Model Training'),
     ]) {
-      testWidgets('completed node $id opens module $id\'s lessons, without '
-          'notes (Issues #204, #207)', (tester) async {
+      testWidgets('completed node $id opens module $id\'s lessons '
+          '(Issues #204, #207)', (tester) async {
         final learning = course();
         await pumpHome(tester, learning: learning);
 
@@ -126,7 +144,6 @@ void main() {
         );
         expect(lessons.moduleId, id);
         expect(lessons.moduleTitle, title);
-        expect(lessons.showNotes, isFalse);
         // `GET /me/modules/{module_id}/lessons` for that module — not the
         // course overview.
         expect(learning.lessonCalls, [id]);
@@ -190,8 +207,8 @@ void main() {
       expect(learning.lessonCalls, isEmpty);
     });
 
-    testWidgets('the course card opens the existing Course Detail, without '
-        'notes (Issue #207)', (tester) async {
+    testWidgets('the course card opens the existing Course Detail '
+        '(Issue #207)', (tester) async {
       final learning = course();
       await pumpHome(tester, learning: learning);
 
@@ -202,7 +219,6 @@ void main() {
         find.byType(CourseModuleListScreen),
       );
       expect(detail.courseSlug, slug);
-      expect(detail.showNotes, isFalse);
       // The same `GET /me/courses/{slug}/learning` contract.
       expect(learning.calls, [slug]);
       expect(learning.lessonCalls, isEmpty);
@@ -247,18 +263,16 @@ void main() {
       expect(find.byType(CourseModuleListScreen), findsNothing);
     });
 
-    testWidgets('a lesson opened from a node has no Note tab', (tester) async {
+    testWidgets('a lesson opened from a node offers Note, Course materials '
+        'and Assignment, Note first (Issue #219)', (tester) async {
       final learning = course();
       await pumpHome(tester, learning: learning);
       await tapTile(tester, 2);
       await tester.tap(find.text('Nesting loops'));
       await tester.pumpAndSettle();
 
-      final exercise = tester.widget<CourseExerciseDetailScreen>(
-        find.byType(CourseExerciseDetailScreen),
-      );
-      expect(exercise.showNotes, isFalse);
-      expect(find.text(CourseLearningStrings.noteTab), findsNothing);
+      expectTabOrder(tester);
+      expect(find.byType(NoteTab), findsOneWidget);
     });
 
     testWidgets('back from a module returns to Junior Home', (tester) async {
@@ -293,11 +307,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
-          home: CourseModuleListScreen(
-            courseSlug: slug,
-            repository: learning,
-            showNotes: false,
-          ),
+          home: CourseModuleListScreen(courseSlug: slug, repository: learning),
         ),
       );
       await tester.pumpAndSettle();
@@ -319,8 +329,8 @@ void main() {
       );
     });
 
-    testWidgets('a module opens its lessons, still without notes, and a '
-        'locked module does nothing', (tester) async {
+    testWidgets('a module opens its lessons, and a locked module does '
+        'nothing', (tester) async {
       final learning = course();
       await pumpDetail(tester, learning);
 
@@ -334,72 +344,171 @@ void main() {
         find.byType(LessonListScreen),
       );
       expect(lessons.moduleId, 2);
-      expect(lessons.showNotes, isFalse);
       expect(learning.lessonCalls, [2]);
     });
 
-    testWidgets('a lesson\'s tab card has Assignment and Course materials, and '
-        'no Note', (tester) async {
-      final learning = course();
-      await pumpDetail(tester, learning);
+    /// A backend lesson (real writes) with a note, an assignment and a quiz.
+    FakeCourseLearningRepository backendCourse() =>
+        FakeCourseLearningRepository(
+          path: samplePath(
+            courseSlug: slug,
+            courseTitle: 'AI BootCamp',
+            continueModuleId: 2,
+            continueLessonId: 2,
+          ),
+          lessons: sampleLessons(),
+          exercise: sampleExercise(
+            simulatesWrites: false,
+            assignment: const CourseAssignment(id: 17),
+            quiz: sampleQuiz(id: 9),
+          ),
+        )..savedNote = sampleNote(message: 'Saved on the server.');
+
+    Future<void> openLesson(WidgetTester tester) async {
       await tester.tap(find.text('Language Model Training'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Nesting loops'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openTab(WidgetTester tester, String label) async {
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a lesson\'s tab card is Note | Course materials | '
+        'Assignment, and opens on Note with the lesson\'s note', (
+      tester,
+    ) async {
+      final learning = course();
+      await pumpDetail(tester, learning);
+      await openLesson(tester);
+
+      expect(
+        tester
+            .widget<CourseExerciseDetailScreen>(
+              find.byType(CourseExerciseDetailScreen),
+            )
+            .lessonId,
+        2,
+      );
+      expect(learning.exerciseCalls, [2]);
+      expectTabOrder(tester);
+      // The note that arrived with the lesson, drawn as Adult draws it.
+      expect(find.byType(NoteTab), findsOneWidget);
+      expect(find.text(sampleNote().message), findsOneWidget);
+    });
+
+    testWidgets('a Junior note is saved through the same saveNote', (
+      tester,
+    ) async {
+      final learning = backendCourse();
+      await pumpDetail(tester, learning);
+      await openLesson(tester);
+
+      await tester.tap(find.text(CourseLearningStrings.editNote));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Миний тэмдэглэл');
+      await tester.pump();
+      await tester.tap(
+        find.widgetWithText(ExerciseSubmitButton, CourseLearningStrings.submit),
+      );
+      await tester.pumpAndSettle();
+
+      // `PUT /me/lessons/{lesson_id}/note`, keyed by the lesson.
+      expect(learning.saveCalls, [(2, 'Миний тэмдэглэл')]);
+      expect(find.text('Saved on the server.'), findsOneWidget);
+    });
+
+    testWidgets('switching tabs shows each tab\'s own content, and a saved '
+        'note survives the round trip', (tester) async {
+      final learning = backendCourse();
+      await pumpDetail(tester, learning);
+      await openLesson(tester);
+
+      await tester.tap(find.text(CourseLearningStrings.editNote));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Миний тэмдэглэл');
+      await tester.pump();
+      await tester.tap(
+        find.widgetWithText(ExerciseSubmitButton, CourseLearningStrings.submit),
+      );
+      await tester.pumpAndSettle();
+
+      await openTab(tester, CourseLearningStrings.courseMaterialsTab);
+      expect(find.byType(CourseMaterialsTab), findsOneWidget);
+      expect(find.byType(NoteTab), findsNothing);
+
+      await openTab(tester, CourseLearningStrings.assignmentTab);
+      expect(find.byType(AssignmentTab), findsOneWidget);
+      expect(find.byType(CourseMaterialsTab), findsNothing);
+
+      await openTab(tester, CourseLearningStrings.noteTab);
+      expect(find.byType(NoteTab), findsOneWidget);
+      expect(find.text('Saved on the server.'), findsOneWidget);
+    });
+
+    testWidgets('a Junior assignment is submitted through the same '
+        'submitAssignment', (tester) async {
+      final learning = backendCourse();
+      await pumpDetail(tester, learning);
+      await openLesson(tester);
+      await openTab(tester, CourseLearningStrings.assignmentTab);
+
+      await tester.enterText(
+        find.byType(TextField).first,
+        'https://github.com/junior/loops',
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.widgetWithText(ExerciseSubmitButton, CourseLearningStrings.submit),
+      );
+      await tester.tap(
+        find.widgetWithText(ExerciseSubmitButton, CourseLearningStrings.submit),
+      );
+      await tester.pumpAndSettle();
+
+      expect(learning.submitCalls, [
+        (17, 'https://github.com/junior/loops', null),
+      ]);
+    });
+
+    testWidgets('a Junior lesson\'s quiz starts as Adult\'s does', (
+      tester,
+    ) async {
+      final learning = backendCourse();
+      await pumpDetail(tester, learning);
+      await openLesson(tester);
+
+      await tester.ensureVisible(find.text(CourseLearningStrings.startQuiz));
+      await tester.tap(find.text(CourseLearningStrings.startQuiz));
+      await tester.pumpAndSettle();
+
+      expect(learning.startQuizCalls, [9]);
+    });
+
+    testWidgets('"Continue learning" opens the server\'s lesson, Note first', (
+      tester,
+    ) async {
+      final learning = course();
+      await pumpDetail(tester, learning);
+
+      await tester.tap(find.text(CourseLearningStrings.continueLearning).first);
       await tester.pumpAndSettle();
 
       final exercise = tester.widget<CourseExerciseDetailScreen>(
         find.byType(CourseExerciseDetailScreen),
       );
       expect(exercise.lessonId, 2);
-      expect(exercise.showNotes, isFalse);
-      expect(learning.exerciseCalls, [2]);
-
-      expect(find.text(CourseLearningStrings.assignmentTab), findsOneWidget);
-      expect(
-        find.text(CourseLearningStrings.courseMaterialsTab),
-        findsOneWidget,
-      );
-      expect(find.text(CourseLearningStrings.noteTab), findsNothing);
-      expect(find.byType(NoteTab), findsNothing);
-
-      // The assignment, as Adult draws it.
-      expect(find.byType(AssignmentTab), findsOneWidget);
-
-      // The materials, as Adult draws them.
-      await tester.ensureVisible(
-        find.text(CourseLearningStrings.courseMaterialsTab),
-      );
-      await tester.tap(find.text(CourseLearningStrings.courseMaterialsTab));
-      await tester.pumpAndSettle();
-      expect(find.byType(CourseMaterialsTab), findsOneWidget);
-      expect(find.byType(NoteTab), findsNothing);
-      // No note can be saved from the Junior flow.
-      expect(learning.saveCalls, isEmpty);
+      expectTabOrder(tester);
+      expect(find.byType(NoteTab), findsOneWidget);
     });
-
-    testWidgets(
-      '"Continue learning" opens the server\'s lesson without notes',
-      (tester) async {
-        final learning = course();
-        await pumpDetail(tester, learning);
-
-        await tester.tap(
-          find.text(CourseLearningStrings.continueLearning).first,
-        );
-        await tester.pumpAndSettle();
-
-        final exercise = tester.widget<CourseExerciseDetailScreen>(
-          find.byType(CourseExerciseDetailScreen),
-        );
-        expect(exercise.lessonId, 2);
-        expect(exercise.showNotes, isFalse);
-        expect(find.text(CourseLearningStrings.noteTab), findsNothing);
-      },
-    );
   });
 
-  group('Adult Course Detail is unchanged', () {
-    testWidgets('a lesson still offers the Note tab', (tester) async {
+  group('Adult Course Detail', () {
+    testWidgets('a lesson offers the same tabs in the same order, and every '
+        'tab opens its own content', (tester) async {
       final learning = course();
       useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
       await tester.pumpWidget(
@@ -409,12 +518,6 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<CourseModuleListScreen>(find.byType(CourseModuleListScreen))
-            .showNotes,
-        isTrue,
-      );
 
       await tester.tap(find.text('Language Model Training'));
       await tester.pumpAndSettle();
@@ -427,11 +530,20 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(CourseLearningStrings.noteTab), findsOneWidget);
-
-      await tester.ensureVisible(find.text(CourseLearningStrings.noteTab));
-      await tester.tap(find.text(CourseLearningStrings.noteTab));
-      await tester.pumpAndSettle();
+      expectTabOrder(tester);
+      // Note first, as Junior.
       expect(find.byType(NoteTab), findsOneWidget);
+
+      for (final (label, content) in [
+        (CourseLearningStrings.courseMaterialsTab, CourseMaterialsTab),
+        (CourseLearningStrings.assignmentTab, AssignmentTab),
+        (CourseLearningStrings.noteTab, NoteTab),
+      ]) {
+        await tester.ensureVisible(find.text(label));
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+        expect(find.byType(content), findsOneWidget, reason: label);
+      }
     });
   });
 }
