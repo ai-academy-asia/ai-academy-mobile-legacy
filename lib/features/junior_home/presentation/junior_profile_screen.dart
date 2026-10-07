@@ -67,8 +67,11 @@ const double _iconToLabel = 9;
 /// pill.
 ///
 /// **Reuse.** The name loads from `GET /auth/me` through the adult Profile's
-/// own [ProfileController] and `CurrentUserRepository`, falling back to
-/// [JuniorProfileStrings.name] while loading or on failure. The row icons are
+/// own [ProfileController] and `CurrentUserRepository`; while it loads or
+/// after a failure the name line stays empty, never another person's name.
+/// As on the adult Profile, **no invented account data is drawn** (Issue
+/// #223): the frame's join date, E-Contract status pill and version line
+/// have no source, so they are left off. The row icons are
 /// the adult Profile's exported SVGs ([ProfileIcons]) — the same artwork the
 /// junior frame draws — plus the junior frame's own "Payment receipt" SVG
 /// ([JuniorProfileIcons]). Change password pushes the same [ResetPasswordScreen]
@@ -204,7 +207,8 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           ListenableBuilder(
             listenable: _profile,
             builder: (context, _) => _Hero(
-              name: _profile.user?.displayName ?? JuniorProfileStrings.name,
+              // Empty, never a placeholder person, until `/auth/me` answers.
+              name: _profile.user?.displayName ?? '',
             ),
           ),
           const _Rule(),
@@ -212,10 +216,10 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           const _Caption(JuniorProfileStrings.accountSection),
           const _Group(
             rows: [
+              // No contract status: no endpoint reports one.
               _Row(
                 icon: _RowIcon(ProfileIcons.eContract),
                 label: JuniorProfileStrings.eContract,
-                trailing: _StatusBadge(JuniorProfileStrings.eContractStatus),
               ),
               _Row(
                 icon: _RowIcon(ProfileIcons.certificate),
@@ -285,19 +289,14 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
             ),
             child: _LogOutButton(onPressed: _signOut),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            JuniorProfileStrings.version,
-            style: _versionStyle,
-            textAlign: TextAlign.center,
-          ),
         ],
       ),
     );
   }
 }
 
-/// The avatar beside the name and join date, on the page grey.
+/// The avatar beside the name, on the page grey. The frame's join date is not
+/// drawn — see [JuniorProfileScreen].
 class _Hero extends StatelessWidget {
   const _Hero({required this.name});
 
@@ -337,13 +336,6 @@ class _Hero extends StatelessWidget {
                 Text(
                   name,
                   style: _nameStyle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  JuniorProfileStrings.joinedDate,
-                  style: _joinedStyle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -462,29 +454,6 @@ class _Row extends StatelessWidget {
       button: true,
       label: label,
       child: InkWell(onTap: onTap, child: row),
-    );
-  }
-}
-
-/// The amber pill on the E-Contract row — the contract banner's own pale
-/// amber, with a softer outline.
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 20,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: HomePalette.contractFill,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _badgeOutline),
-      ),
-      child: Text(label, style: _badgeStyle, maxLines: 1),
     );
   }
 }
@@ -672,21 +641,9 @@ class _Rule extends StatelessWidget {
 // Sampled and measured off the frame at 1:1; sizes from cap heights (Manrope's
 // cap height is 0.72 em).
 
-/// The E-Contract pill's outline.
-const Color _badgeOutline = Color(0xFFFFE8A3);
-
-/// The E-Contract pill's label.
-const Color _badgeInk = Color(0xFFDD940E);
-
 /// "MN" on the white half of the language control — a deep indigo, not the
 /// capsule's blue.
 const Color _segmentInk = Color(0xFF1501A6);
-
-/// The join date's cool grey.
-const Color _joinedInk = Color(0xFF9CA3AF);
-
-/// The version line's slate.
-const Color _versionInk = Color(0xFF4B5563);
 
 const TextStyle _headingStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
@@ -703,15 +660,6 @@ const TextStyle _nameStyle = TextStyle(
   height: 24 / 18,
   fontWeight: FontWeight.w700,
   color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-const TextStyle _joinedStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  color: _joinedInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -733,15 +681,6 @@ const TextStyle _rowLabelStyle = TextStyle(
   leadingDistribution: TextLeadingDistribution.even,
 );
 
-const TextStyle _badgeStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 11,
-  height: 16 / 11,
-  fontWeight: FontWeight.w500,
-  color: _badgeInk,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
 const TextStyle _segmentStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 12,
@@ -756,14 +695,5 @@ const TextStyle _logOutStyle = TextStyle(
   height: 24 / 16,
   fontWeight: FontWeight.w700,
   color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-const TextStyle _versionStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  color: _versionInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
