@@ -157,16 +157,15 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   }
 
   /// The existing Course Detail (Issues #174, #207): the Adult course screen
-  /// on the same `GET /me/courses/{slug}/learning` data, without the Note
-  /// tab — reached from the course card, while each completed node opens
-  /// its own module.
+  /// on the same `GET /me/courses/{slug}/learning` data, with the same lesson
+  /// tabs as Adult, Note included (Issue #219) — reached from the course
+  /// card, while each completed node opens its own module.
   void _openCourse(String slug) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CourseModuleListScreen(
           courseSlug: slug,
           repository: widget.courseLearningRepository,
-          showNotes: false,
         ),
       ),
     );
@@ -174,9 +173,9 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
 
   /// The tapped node's own module (Issue #204): its lessons, from
   /// `GET /me/modules/{module_id}/lessons` — the screen an unlocked module
-  /// card opens on the course screen (Issue #148), without the Note tab as
-  /// every Junior lesson is (Issue #174). Each node opens the module it
-  /// stands for, not the course as a whole.
+  /// card opens on the course screen (Issue #148), with the same lesson tabs
+  /// as Adult (Issue #219). Each node opens the module it stands for, not the
+  /// course as a whole.
   void _openModule(JuniorMapNode node) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -185,7 +184,6 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
           moduleOrder: node.order,
           moduleTitle: node.title,
           repository: widget.courseLearningRepository,
-          showNotes: false,
         ),
       ),
     );

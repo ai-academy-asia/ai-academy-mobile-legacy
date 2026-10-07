@@ -9,6 +9,8 @@ import 'package:aia_mobile/features/course_learning/presentation/course_exercise
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_attachment_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_tab.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/course_materials_tab.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/note_tab.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_upload_dropzone.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
@@ -89,6 +91,14 @@ void main() {
   }
 
   Finder backButton() => find.byIcon(Icons.arrow_back);
+
+  /// Lessons open on the Note tab (Issue #219); the Assignment tab is the
+  /// third. Opened explicitly by every test that is about it.
+  Future<void> openAssignmentTab(WidgetTester tester) async {
+    await tester.ensureVisible(find.text(CourseLearningStrings.assignmentTab));
+    await tester.tap(find.text(CourseLearningStrings.assignmentTab));
+    await tester.pumpAndSettle();
+  }
 
   group('renders', () {
     testWidgets('the screen renders', (tester) async {
@@ -185,10 +195,61 @@ void main() {
     });
   });
 
-  group('assignment tab', () {
-    testWidgets('is the tab shown by default', (tester) async {
+  group('tabs', () {
+    testWidgets('read Note | Course materials | Assignment, and a lesson opens '
+        'on Note (Issue #219)', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
+
+      final note = tester.getCenter(find.text(CourseLearningStrings.noteTab));
+      final materials = tester.getCenter(
+        find.text(CourseLearningStrings.courseMaterialsTab),
+      );
+      final assignment = tester.getCenter(
+        find.text(CourseLearningStrings.assignmentTab),
+      );
+      expect(note.dx, lessThan(materials.dx));
+      expect(materials.dx, lessThan(assignment.dx));
+
+      // The note that arrived with the lesson, not the assignment's fields.
+      expect(find.text(sampleNote().message), findsOneWidget);
+      expect(find.text('Link оруулна уу'), findsNothing);
+    });
+
+    testWidgets('each tab opens its own content, in either direction', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+
+      Future<void> open(String label) async {
+        await tester.ensureVisible(find.text(label));
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+      }
+
+      await open(CourseLearningStrings.assignmentTab);
+      expect(find.text('Link оруулна уу'), findsOneWidget);
+      expect(find.text(sampleNote().message), findsNothing);
+
+      await open(CourseLearningStrings.courseMaterialsTab);
+      expect(find.byType(CourseMaterialsTab), findsOneWidget);
+      expect(find.byType(AssignmentTab), findsNothing);
+
+      await open(CourseLearningStrings.noteTab);
+      expect(find.byType(NoteTab), findsOneWidget);
+      expect(find.text(sampleNote().message), findsOneWidget);
+      expect(find.byType(CourseMaterialsTab), findsNothing);
+    });
+  });
+
+  group('assignment tab', () {
+    testWidgets('is the third tab; opened, it shows its fields', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       expect(find.text('Link оруулна уу'), findsOneWidget);
       expect(find.text('Тайлбар'), findsOneWidget);
@@ -198,6 +259,7 @@ void main() {
     testWidgets('shows the empty Mentor Feedback state', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       expect(find.text('Mentor Feedback'), findsOneWidget);
       expect(find.text('No feedback yet'), findsOneWidget);
@@ -208,6 +270,7 @@ void main() {
     ) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
       await tester.enterText(find.byType(TextField).at(1), 'My submission.');
@@ -237,6 +300,7 @@ void main() {
     ) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
       await tester.enterText(find.byType(TextField).at(1), 'My submission.');
@@ -264,6 +328,7 @@ void main() {
       (tester) async {
         await pumpScreen(tester, FakeCourseLearningRepository());
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
         await tester.enterText(find.byType(TextField).at(1), 'My submission.');
@@ -298,6 +363,7 @@ void main() {
         FakeCourseLearningRepository(exercise: exercise),
       );
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       await tester.enterText(find.byType(TextField).at(0), 'https://a.b/c');
       await tester.enterText(find.byType(TextField).at(1), 'My submission.');
@@ -325,6 +391,7 @@ void main() {
           FakeCourseLearningRepository(exercise: exercise),
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         expect(find.text('Upload File'), findsOneWidget);
 
@@ -353,6 +420,7 @@ void main() {
         FakeCourseLearningRepository(exercise: exercise),
       );
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       await tester.tap(find.text('Upload File'));
       await tester.pump(const Duration(milliseconds: 150));
@@ -379,6 +447,7 @@ void main() {
           FakeCourseLearningRepository(exercise: exercise),
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         // One field only: with an attachment the reference draws the file
         // area in the link row's place, so the description is field 0.
@@ -415,6 +484,7 @@ void main() {
         FakeCourseLearningRepository(exercise: exercise),
       );
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       await tester.enterText(find.byType(TextField).at(0), 'My submission.');
       await tester.pump();
@@ -1131,6 +1201,7 @@ void main() {
           lessonId: 204,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         expect(
           find.text(CourseLearningStrings.assignmentSubmittedSuccess),
@@ -1158,6 +1229,7 @@ void main() {
           lessonId: 204,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await tester.enterText(linkField(), 'https://github.com/x');
         await tester.pump();
@@ -1174,6 +1246,7 @@ void main() {
         final repository = withAssignment(const CourseAssignment(id: 17));
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(
           tester,
@@ -1191,6 +1264,7 @@ void main() {
         final repository = withAssignment(const CourseAssignment(id: 17));
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester, description: '   ');
         await tester.pumpAndSettle();
@@ -1207,6 +1281,7 @@ void main() {
           ..holdSubmit = true;
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester);
 
@@ -1245,6 +1320,7 @@ void main() {
           lessonId: 204,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester);
         await tester.pumpAndSettle();
@@ -1263,6 +1339,7 @@ void main() {
           ..submission = sampleSubmission(feedback: review);
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester);
         await tester.pumpAndSettle();
@@ -1281,6 +1358,7 @@ void main() {
           );
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester, link: 'not-a-link', description: 'Тайлбар');
         await tester.pumpAndSettle();
@@ -1322,6 +1400,7 @@ void main() {
           );
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester);
         await tester.pumpAndSettle();
@@ -1339,6 +1418,7 @@ void main() {
           lessonId: 204,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         expect(
           find.text(CourseLearningStrings.assignmentSubmittedSuccess),
@@ -1355,6 +1435,7 @@ void main() {
         )..submission = sampleSubmission(id: 302, version: 2);
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await tester.tap(find.text(CourseLearningStrings.resubmit));
         await tester.pumpAndSettle();
@@ -1384,6 +1465,7 @@ void main() {
           ..holdSubmit = true;
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await fillAndSubmit(tester);
         await tester.tap(find.text(CourseLearningStrings.noteTab));
@@ -1415,6 +1497,7 @@ void main() {
           lessonId: 204,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         expect(find.text(CourseLearningStrings.noFeedbackYet), findsOneWidget);
       });
@@ -1430,6 +1513,7 @@ void main() {
           lessonId: 204,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         expect(find.text('Дорж Бат'), findsOneWidget);
         expect(find.text('ДБ'), findsOneWidget);
@@ -1476,6 +1560,7 @@ void main() {
           assignmentForm: form,
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
       }
 
       Future<void> pickAFile(WidgetTester tester) async {
@@ -1548,6 +1633,7 @@ void main() {
           },
         );
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         await tester.ensureVisible(dropzone());
         await tester.tap(dropzone());
@@ -1797,6 +1883,7 @@ void main() {
     ) async {
       await pumpScreen(tester, backendLesson());
       await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
 
       final fields = tester.widgetList<ExerciseTextField>(
         find.byType(ExerciseTextField),
@@ -2118,6 +2205,7 @@ void main() {
         final repository = withAttachment(file);
         await pumpScreen(tester, repository, lessonId: 204);
         await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
 
         // The student's own form, exactly as without an attachment.
         expect(find.byType(AssignmentAttachmentCard), findsNothing);
