@@ -527,4 +527,97 @@ void main() {
       });
     }
   });
+
+  group('header logo refresh (Issue #221)', () {
+    Finder logo() => find.bySemanticsLabel('AI academy Asia');
+
+    /// The sample map under a different course title — what the backend
+    /// answers after a change.
+    JuniorLearningMap updatedMap() {
+      final base = sampleJuniorLearningMap();
+      return JuniorLearningMap(
+        courseSlug: base.courseSlug,
+        progress: const JuniorCourseProgress(
+          title: 'Updated course',
+          percentComplete: 60,
+        ),
+        nodes: base.nodes,
+        certificate: base.certificate,
+        continueModuleId: base.continueModuleId,
+        continueLessonId: base.continueLessonId,
+      );
+    }
+
+    testWidgets('a tap reloads the map through the same repository, and '
+        'Home stays', (tester) async {
+      final repository = FakeJuniorHomeRepository();
+      await pumpScreen(tester, repository: repository);
+      expect(repository.calls, 1);
+
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, 2);
+      expect(find.byType(JuniorHomeScreen), findsOneWidget);
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+
+    testWidgets('taps during a reload do not send more requests, and the map '
+        'stays on screen meanwhile', (tester) async {
+      final repository = FakeJuniorHomeRepository();
+      await pumpScreen(tester, repository: repository);
+
+      repository.hold = true;
+      await tester.tap(logo());
+      await tester.pump();
+      await tester.tap(logo());
+      await tester.pump();
+      await tester.tap(logo());
+      await tester.pump();
+
+      expect(repository.calls, 2);
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+
+      repository.release();
+      await tester.pumpAndSettle();
+      expect(repository.calls, 2);
+    });
+
+    testWidgets('a successful reload shows the latest data', (tester) async {
+      final repository = FakeJuniorHomeRepository();
+      await pumpScreen(tester, repository: repository);
+      expect(find.text('Updated course'), findsNothing);
+
+      repository.map = updatedMap();
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Updated course'), findsOneWidget);
+    });
+
+    testWidgets('a failed reload shows the existing error and retry, and a '
+        'later tap recovers', (tester) async {
+      final repository = FakeJuniorHomeRepository();
+      await pumpScreen(tester, repository: repository);
+
+      repository.failure = const CourseLearningFailure(
+        CourseLearningFailureKind.network,
+      );
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          JuniorHomeStrings.messageFor(CourseLearningFailureKind.network),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(JuniorLearningMapView), findsNothing);
+
+      repository.failure = null;
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+  });
 }

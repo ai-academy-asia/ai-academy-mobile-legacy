@@ -145,6 +145,34 @@ void main() {
 
     await pending;
   });
+
+  group('one fetch at a time (Issue #221)', () {
+    test('a load made while one is running joins it — one request', () async {
+      final repository = FakeHomeDashboardRepository(hold: true);
+      final controller = HomeController(repository: repository);
+
+      final first = controller.load();
+      final second = controller.load();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.callCount, 1);
+      expect(identical(first, second), isTrue);
+
+      repository.release();
+      await first;
+      expect(controller.loading, isFalse);
+    });
+
+    test('once it finishes, the next load asks again', () async {
+      final repository = FakeHomeDashboardRepository();
+      final controller = HomeController(repository: repository);
+
+      await controller.load();
+      await controller.load();
+
+      expect(repository.callCount, 2);
+    });
+  });
 }
 
 /// A repository whose failure is not `HomeFailure` at all, so the

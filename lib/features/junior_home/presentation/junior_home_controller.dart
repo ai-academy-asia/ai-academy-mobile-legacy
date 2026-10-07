@@ -41,8 +41,17 @@ class JuniorHomeController extends ChangeNotifier {
   bool get isEmpty =>
       _hasLoadedOnce && !_loading && _errorMessage == null && _map == null;
 
-  /// Fetches the map. Safe to call again — retry.
-  Future<void> load() async {
+  /// The fetch in flight, so a second [load] joins it rather than starting
+  /// an overlapping request.
+  Future<void>? _inFlight;
+
+  /// Fetches the map. Safe to call again — retry, or a tap on the header
+  /// logo (Issue #221). A call made while a fetch is already running joins
+  /// that fetch instead of sending another request.
+  Future<void> load() =>
+      _inFlight ??= _fetch().whenComplete(() => _inFlight = null);
+
+  Future<void> _fetch() async {
     _loading = true;
     _errorMessage = null;
     _notify();
