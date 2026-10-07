@@ -38,16 +38,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('draws every line of the frame\'s copy', (tester) async {
+  testWidgets('draws every line of the frame\'s copy except its placeholder '
+      'account data (Issue #223)', (tester) async {
     await pumpScreen(tester);
 
     for (final text in [
       'Profile',
-      'Хулан',
-      'Joined Oct 2026',
       'Account',
       'E-Contract',
-      'Гэрээ хийгдээгүй байна',
       'Certificate',
       'Transaction history',
       'Payment receipt',
@@ -61,7 +59,6 @@ void main() {
       'Term of Service',
       'Privacy Policy',
       'Log out',
-      'Version 1.2.4 (2025)',
     ]) {
       expect(find.text(text), findsOneWidget, reason: text);
     }
@@ -75,11 +72,9 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    // The adult frame's E-Contract counter, light-mode row and its own badge
-    // wording are not in the junior frame.
-    expect(find.text(ProfileStrings.eContractCount), findsNothing);
+    // The adult frame's light-mode row and edit control are not in the junior
+    // frame.
     expect(find.text(ProfileStrings.lightMode), findsNothing);
-    expect(find.text(ProfileStrings.eContractStatus), findsNothing);
     expect(find.text(ProfileStrings.editProfile), findsNothing);
 
     // Account runs E-Contract, Certificate, Transaction history, Payment
@@ -99,10 +94,13 @@ void main() {
   });
 
   group('name', () {
-    testWidgets('shows the frame\'s name while /auth/me loads', (tester) async {
+    testWidgets('shows no placeholder person while /auth/me loads, or any '
+        'invented account data (Issue #223)', (tester) async {
       await pumpScreen(tester);
 
-      expect(find.text(JuniorProfileStrings.name), findsOneWidget);
+      for (final invented in _inventedValues) {
+        expect(find.text(invented), findsNothing, reason: invented);
+      }
     });
 
     testWidgets('shows the signed-in student\'s own name once loaded', (
@@ -131,10 +129,12 @@ void main() {
       );
 
       expect(find.textContaining('Тэмүүлэн'), findsOneWidget);
-      expect(find.text(JuniorProfileStrings.name), findsNothing);
+      expect(find.text('Хулан'), findsNothing);
     });
 
-    testWidgets('keeps the frame\'s name when /auth/me fails', (tester) async {
+    testWidgets('shows no placeholder person when /auth/me fails', (
+      tester,
+    ) async {
       await pumpScreen(
         tester,
         repository: FakeCurrentUserRepository(
@@ -142,7 +142,7 @@ void main() {
         ),
       );
 
-      expect(find.text(JuniorProfileStrings.name), findsOneWidget);
+      expect(find.text('Хулан'), findsNothing);
     });
   });
 
@@ -277,11 +277,23 @@ void main() {
     await pumpScreen(tester, size: const Size(393, 852));
 
     await tester.scrollUntilVisible(
-      find.text(JuniorProfileStrings.version),
+      find.text(JuniorProfileStrings.logOut),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text(JuniorProfileStrings.version), findsOneWidget);
+    expect(find.text(JuniorProfileStrings.logOut), findsOneWidget);
+    // No invented version line under it (Issue #223).
+    expect(find.textContaining('Version'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
+
+/// The frame's placeholder account data that must never reach a student
+/// (Issue #223): another person's name, a join date, a contract status and a
+/// version, none of which any confirmed response carries.
+const List<String> _inventedValues = [
+  'Хулан',
+  'Joined Oct 2026',
+  'Гэрээ хийгдээгүй байна',
+  'Version 1.2.4 (2025)',
+];

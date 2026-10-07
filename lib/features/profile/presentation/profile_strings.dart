@@ -7,19 +7,14 @@ import '../../auth/domain/current_user_failure.dart';
 /// Mongolian — the design mixes the two, and this screen matches the design
 /// rather than translating it.
 ///
-/// [name] is shown only while [ProfileController]'s `GET /auth/me` fetch is
-/// loading or has failed — see [ProfileScreen]. Once it succeeds, the header
-/// shows the fetched `CurrentUser.displayName` instead. [joinedDate] and
-/// [version] remain the design's own placeholder copy: the confirmed
-/// `/auth/me` response carries no join date.
+/// No placeholder account data lives here (Issue #223): the header shows the
+/// fetched `CurrentUser.displayName` and nothing while it loads or fails, and
+/// the frame's join date, contract status and version have no source to show
+/// — see [ProfileScreen].
 abstract final class ProfileStrings {
   static const String heading = 'Profile';
 
   // --- Header ---------------------------------------------------------------
-
-  /// Fallback shown while the real name is loading or unavailable.
-  static const String name = 'Болд Батаа';
-  static const String joinedDate = 'Joined Oct 2026';
 
   /// Accessibility label for the header's edit control.
   static const String editProfile = 'Edit profile';
@@ -28,15 +23,6 @@ abstract final class ProfileStrings {
 
   static const String accountSection = 'Account';
   static const String eContract = 'E-Contract';
-
-  /// The amber pill on the E-Contract row: "no contract signed yet".
-  static const String eContractStatus = 'Гэрээ байгуулаагүй байна';
-
-  /// "1/2", inked in two parts as the frame draws it — the first figure dark,
-  /// "/2" in the caption grey. [eContractCount] is the whole string.
-  static const String eContractSigned = '1';
-  static const String eContractTotal = '/2';
-  static const String eContractCount = '$eContractSigned$eContractTotal';
 
   static const String certificate = 'Certificate';
   static const String transactionHistory = 'Transaction history';
@@ -66,13 +52,9 @@ abstract final class ProfileStrings {
 
   static const String logOut = 'Log out';
 
-  /// The design's own string. Not read from the build — doing that would mean
-  /// a new dependency (`package_info_plus`), which this screen does not need.
-  static const String version = 'Version 1.2.4 (2025)';
-
   // --- /auth/me failures ----------------------------------------------------
   //
-  // Not shown on screen yet — the header falls back to [name] instead, the
+  // Not shown on screen yet — the header stays empty instead, the
   // same way `CohortListScreen` lets a card fall back to "not yet enrolled"
   // rather than blocking on secondary data. Kept here, one fixed string per
   // [CurrentUserFailureKind], the same convention `EnrollmentStrings` follows,

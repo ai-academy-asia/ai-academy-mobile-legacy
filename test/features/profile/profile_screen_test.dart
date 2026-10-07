@@ -87,15 +87,14 @@ void main() {
       expect(sectionCaption(ProfileStrings.contactSection), findsOneWidget);
     });
 
-    testWidgets(
-      'shows the placeholder name and join date when /auth/me fails',
-      (tester) async {
-        await pumpProfile(tester);
+    testWidgets('shows no placeholder person and no invented account data when '
+        '/auth/me fails (Issue #223)', (tester) async {
+      await pumpProfile(tester);
 
-        expect(find.text(ProfileStrings.name), findsOneWidget);
-        expect(find.text(ProfileStrings.joinedDate), findsOneWidget);
-      },
-    );
+      for (final invented in _inventedValues) {
+        expect(find.text(invented), findsNothing, reason: invented);
+      }
+    });
 
     testWidgets('shows every settings row', (tester) async {
       await pumpProfile(tester);
@@ -125,27 +124,28 @@ void main() {
       expect(rowLabel(ProfileStrings.privacyPolicy), findsOneWidget);
     });
 
-    testWidgets('shows the E-Contract status badge and count', (tester) async {
+    testWidgets('the E-Contract row shows no invented status or count — no '
+        'endpoint reports either (Issue #223)', (tester) async {
       await pumpProfile(tester);
 
-      expect(find.text(ProfileStrings.eContractStatus), findsOneWidget);
-      expect(find.text(ProfileStrings.eContractCount), findsOneWidget);
+      expect(rowLabel(ProfileStrings.eContract), findsOneWidget);
+      expect(find.text('Гэрээ байгуулаагүй байна'), findsNothing);
+      expect(find.text('1/2'), findsNothing);
     });
 
-    testWidgets('shows the log out button and version, below the rows', (
-      tester,
-    ) async {
+    testWidgets('shows the log out button below the rows, and no invented '
+        'version line (Issue #223)', (tester) async {
       await pumpProfile(tester);
 
       await tester.dragUntilVisible(
-        find.text(ProfileStrings.version),
+        find.text(ProfileStrings.logOut),
         find.byType(SingleChildScrollView),
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
 
       expect(find.text(ProfileStrings.logOut), findsOneWidget);
-      expect(find.text(ProfileStrings.version), findsOneWidget);
+      expect(find.textContaining('Version'), findsNothing);
     });
 
     testWidgets('stays within a phone-width column on a desktop window', (
@@ -174,9 +174,8 @@ void main() {
   });
 
   group('/auth/me header', () {
-    testWidgets('shows the placeholder name while the fetch is in flight', (
-      tester,
-    ) async {
+    testWidgets('shows no placeholder name while the fetch is in flight — the '
+        'name line stays empty (Issue #223)', (tester) async {
       final repository = FakeCurrentUserRepository(hold: true);
       await tester.pumpWidget(
         MaterialApp(
@@ -186,9 +185,12 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text(ProfileStrings.name), findsOneWidget);
+      expect(find.text('Болд Батаа'), findsNothing);
+      expect(find.text('CRUD TestStudent'), findsNothing);
 
       repository.release();
+      await tester.pumpAndSettle();
+      expect(find.text('CRUD TestStudent'), findsOneWidget);
       await tester.pumpAndSettle();
     });
 
@@ -198,9 +200,10 @@ void main() {
       await pumpProfile(tester, repository: FakeCurrentUserRepository());
 
       expect(find.text('CRUD TestStudent'), findsOneWidget);
-      expect(find.text(ProfileStrings.name), findsNothing);
-      // The join date has no confirmed source in the contract yet.
-      expect(find.text(ProfileStrings.joinedDate), findsOneWidget);
+      // The join date has no confirmed source, so none is drawn.
+      for (final invented in _inventedValues) {
+        expect(find.text(invented), findsNothing, reason: invented);
+      }
     });
 
     testWidgets('shows the real name when /auth/me has a null ui_mode', (
@@ -250,7 +253,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Ганбат Должин'), findsOneWidget);
-      expect(find.text(ProfileStrings.name), findsNothing);
+      expect(find.text('Болд Батаа'), findsNothing);
     });
   });
 
@@ -275,7 +278,6 @@ void main() {
       expect(position.pixels, position.maxScrollExtent);
       expect(rowLabel(ProfileStrings.helpCenter), findsOneWidget);
       expect(find.text(ProfileStrings.logOut), findsOneWidget);
-      expect(find.text(ProfileStrings.version), findsOneWidget);
     });
 
     testWidgets('the bottom navigation stays fixed while the content scrolls', (
@@ -574,3 +576,14 @@ void main() {
     });
   });
 }
+
+/// The design's placeholder account data that must never reach a student
+/// (Issue #223): another person's name, a join date, a contract status and
+/// count, and a version, none of which any confirmed response carries.
+const List<String> _inventedValues = [
+  'Болд Батаа',
+  'Joined Oct 2026',
+  'Гэрээ байгуулаагүй байна',
+  '1/2',
+  'Version 1.2.4 (2025)',
+];
