@@ -73,6 +73,7 @@ void main() {
           // Stand-ins: the real homes would reach for the API.
           HomeRoutes.adult: (_) => const Text('adult home'),
           HomeRoutes.junior: (_) => const Text('junior home'),
+          HomeRoutes.teacher: (_) => const Text('teacher home'),
         },
       ),
     );
@@ -400,7 +401,22 @@ void main() {
       expect(find.byType(LoginScreen), findsNothing);
     });
 
-    for (final type in [UserType.teacher, UserType.staff]) {
+    testWidgets('a held teacher session lands on Teacher Home', (tester) async {
+      await pumpSplash(
+        tester,
+        sessionStore: signedIn(),
+        currentUser: FakeCurrentUserRepository(
+          user: accountOf(UserType.teacher),
+        ),
+      );
+
+      await runToHandOff(tester);
+
+      expect(find.text('teacher home'), findsOneWidget);
+      expect(find.text('adult home'), findsNothing);
+    });
+
+    for (final type in [UserType.staff]) {
       testWidgets('a held ${type.name} session keeps the /home landing', (
         tester,
       ) async {

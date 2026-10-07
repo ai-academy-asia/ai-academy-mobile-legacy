@@ -60,11 +60,15 @@ class HttpCohortRepository implements CohortRepository {
       );
     }
 
-    return [for (final entry in cohorts) _cohortFromJson(entry)];
+    return [for (final entry in cohorts) cohortFromJson(entry)];
   }
 }
 
-Cohort _cohortFromJson(Object? entry) {
+/// One cohort object, in the shape `GET /cohorts` returns. Public because
+/// the teacher's `GET /teachers/{teacher_id}/schedule` lists its cohorts in
+/// exactly this shape (verified live, Issue #229), so both endpoints parse
+/// the same way. Throws [ApiFailure] (`server`) on anything malformed.
+Cohort cohortFromJson(Object? entry) {
   if (entry is! Map<String, dynamic>) {
     throw ApiFailure(
       ApiFailureKind.server,

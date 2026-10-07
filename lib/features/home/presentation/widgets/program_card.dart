@@ -7,6 +7,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
+import 'home_badges.dart';
 import 'home_palette.dart';
 import 'home_pill_button.dart';
 
@@ -25,9 +26,8 @@ const double _paddingH = 16;
 /// The badge row, the caption, the progress row: 24 between each group.
 const double _groupGap = 24;
 
-/// The track badge and the status pill.
-const double _badgeHeight = 32;
-const double _pillHeight = 24;
+/// The track badge row — see [TrackBadge] and [HomeCapsule].
+const double _badgeHeight = homeBadgeHeight;
 
 /// The progress row (the taller of its two lines), the gap under it, the bar.
 const double _progressRowHeight = 20;
@@ -163,7 +163,7 @@ class _Summary extends StatelessWidget {
                   // reference draws it, not centred on it.
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (program.uiMode case final uiMode?) _TrackBadge(uiMode),
+                    if (program.uiMode case final uiMode?) TrackBadge(uiMode),
                     const Spacer(),
                     _StatusPill(program.status),
                   ],
@@ -308,44 +308,8 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-/// The student's UI mode, as the outlined badge in the card's top-left. Same
-/// shape `CohortCard` draws, but labelled from the account's `ui_mode` rather
-/// than assuming one. Only the glyph branches on the value: the younger modes
-/// get the junior mark, anything else the adult one.
-class _TrackBadge extends StatelessWidget {
-  const _TrackBadge(this.uiMode);
-
-  final String uiMode;
-
-  @override
-  Widget build(BuildContext context) {
-    final mode = uiMode.toLowerCase();
-    final isJunior = mode == 'junior' || mode == 'kids';
-
-    return Container(
-      // 5 | 20 icon | 8 | label | 9.5, inside the 1pt outline.
-      height: _badgeHeight,
-      padding: const EdgeInsets.only(left: 5, right: 9.5),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: HomePalette.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SvgPicture.asset(
-            isJunior ? HomeIcons.junior : HomeIcons.adult,
-            width: 20,
-            height: 20,
-          ),
-          const SizedBox(width: 8),
-          Text(_capitalize(uiMode), style: _badgeLabelStyle),
-        ],
-      ),
-    );
-  }
-}
+// The track badge itself is the shared [TrackBadge] (Issue #229): labelled
+// from the account's `ui_mode` here.
 
 /// The cohort's status as an outlined capsule, with the same colour reading
 /// `CohortCard._StatusPill` uses — kept identical so the same cohort does not
@@ -376,7 +340,7 @@ class _StatusPill extends StatelessWidget {
       ),
     };
 
-    return _Capsule(
+    return HomeCapsule(
       label: _capitalize(status),
       outline: outline,
       fill: fill,
@@ -392,44 +356,12 @@ class _LiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _Capsule(
+    return const HomeCapsule(
       label: HomeStrings.live,
       outline: HomePalette.liveOutline,
       fill: HomePalette.liveFill,
       ink: HomePalette.accent,
       horizontalPadding: 11,
-    );
-  }
-}
-
-/// A 24-tall outlined capsule with a 12pt bold label.
-class _Capsule extends StatelessWidget {
-  const _Capsule({
-    required this.label,
-    required this.outline,
-    required this.fill,
-    required this.ink,
-    required this.horizontalPadding,
-  });
-
-  final String label;
-  final Color outline;
-  final Color fill;
-  final Color ink;
-  final double horizontalPadding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: _pillHeight,
-      alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(_pillHeight / 2),
-        border: Border.all(color: outline),
-      ),
-      child: Text(label, style: _capsuleStyle.copyWith(color: ink)),
     );
   }
 }
@@ -447,16 +379,6 @@ final TextStyle _titleStyle = AppTypography.cardHeading.copyWith(
   fontSize: 18,
   height: 26 / 18,
   fontWeight: FontWeight.w700,
-);
-
-final TextStyle _badgeLabelStyle = AppTypography.catalogTrackLabel.copyWith(
-  fontSize: 16,
-  height: 1,
-);
-
-final TextStyle _capsuleStyle = AppTypography.catalogStatusLabel.copyWith(
-  fontSize: 12,
-  height: 16 / 12,
 );
 
 /// "Modules 2 of 5 complete".

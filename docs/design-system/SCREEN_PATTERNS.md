@@ -47,6 +47,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Login | `/login` | none | `auth` (real) |
 | Reset Password | `/reset-password` | none | `auth` (real) |
 | Home | `/home` | bottom nav | composed (real) |
+| Teacher Home | `/teacher-home` | teacher bottom nav (four tabs, three inert; 10pt labels per its reference) | `teacher` — `GET /teachers/{actor_id}/schedule` (real) |
 | Cohort List | `/my-cohorts`, `/cohorts` | bottom nav | `cohorts` + `enrollments` (real) |
 | Profile | `/profile` | bottom nav | `auth` current user (real) |
 | Course Catalog | `/courses` | — | `courses` (real) |

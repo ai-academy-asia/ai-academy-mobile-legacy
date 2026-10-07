@@ -21,8 +21,11 @@ Base URL `https://api.ai-academy.asia`, declared as `defaultBaseUrl` in each HTT
 | GET | `/me/courses/{course_slug}/learning` | Bearer | `HttpCourseLearningRepository.getCourseLearning` | `getRaw` |
 | GET | `/me/attendance?course={course_slug}` | Bearer | `HttpAttendanceRepository` | `getRaw` |
 | GET | `/me/ledger` | Bearer | `HttpLedgerRepository` | `getRaw` |
+| GET | `/teachers/{teacher_id}/schedule` | Bearer (teacher) | `HttpTeacherHomeRepository` | `getRaw` |
 
 `HttpCourseLearningRepository` also calls `GET /me/modules/{id}/lessons`, `GET /me/lessons/{id}`, the lesson note, `POST /me/lessons/{id}/complete` (Issue #209, not yet called from the UI), the material download, `POST /me/assignments/{id}/submissions`, `POST /me/files` and the four §2.7 quiz endpoints (`POST /me/quizzes/{id}/attempts`, `POST /me/quiz-attempts/{id}/answers`, `POST /me/quiz-attempts/{id}/finish`, `GET /me/quiz-attempts/{id}`); each is documented, with its shape, on that repository's own method.
+
+**Teacher Home** (Issue #229). `teacher_id` is the teacher's `GET /auth/me` `actor_id` (verified live with the teacher test account: the schedule answers for it, assignments' `teacher_id` and the public `cohort.teacher.id` carry it). The schedule answers `{teacher_id, cohorts: [...]}`, each cohort in exactly `GET /cohorts`'s shape, parsed by the same `cohortFromJson`. Fields read: `name`, `course.id`/`title_*`, `classroom.name` (nullable — omitted when null), `enrolled_count`, `start_time`, `end_time`, `start_date`, `end_date`, `meeting_days`. Each class's track badge is the public `GET /courses` `level` (`adult`/`junior`) matched on `course.id`, best-effort: no badge when the catalog cannot be read. A teacher token gets `403` from `GET /me/cohorts`, so no student endpoint is called for a teacher. The repository refuses an `actor_type` other than `teacher` before sending.
 
 ### 1.1 Fields read by the Home dashboards
 
@@ -48,7 +51,7 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 
 ## 2. Verified to exist, but NOT consumed by the app
 
-Student-facing endpoints confirmed by a request in the Postman collection (`postman/collections/AIAA Backend (prod)/`) and listed in the backend's endpoint index, `mobile_api_v1_1.md`, that the app does not call. Teacher, staff and admin endpoints are left out: this is the student app. Wiring any of them is a task of its own, not a refactor.
+Student-facing endpoints confirmed by a request in the Postman collection (`postman/collections/AIAA Backend (prod)/`) and listed in the backend's endpoint index, `mobile_api_v1_1.md`, that the app does not call. Teacher, staff and admin endpoints are left out: apart from the teacher schedule (§1, Issue #229), the app is a student app. Wiring any of them is a task of its own, not a refactor.
 
 **Response shape:** Postman holds requests only, no responses. Where this column says **not yet verified**, read: *Endpoint/request confirmed; response shape not yet verified.* A field the backend's own documents name is quoted as **documented**, which is still not a captured response. Model no field of either kind until a captured response confirms it (§8, rule 2).
 

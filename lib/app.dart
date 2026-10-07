@@ -13,6 +13,7 @@ import 'features/junior_home/presentation/junior_profile_screen.dart';
 import 'features/junior_home/presentation/junior_progress_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/splash/presentation/splash_screen.dart';
+import 'features/teacher/presentation/teacher_home_screen.dart';
 
 /// The application root.
 ///
@@ -51,6 +52,7 @@ class AiAcademyApp extends StatelessWidget {
         // `homeRouteFor`. `/home` is the adult Нүүр tab, the dashboard.
         HomeRoutes.adult: (_) => const HomeScreen(),
         HomeRoutes.junior: (_) => const JuniorHomeScreen(),
+        HomeRoutes.teacher: (_) => const TeacherHomeScreen(),
         // Each Home's other two tabs — the adult pair and the junior pair;
         // see `openStudentTab`.
         StudentTabRoutes.adultProgress: (_) =>
