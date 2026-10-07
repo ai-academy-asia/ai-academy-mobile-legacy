@@ -42,6 +42,13 @@ Map<String, Object?> submissionEntry({
   'version_count': 2,
 };
 
+/// The confirmed `GET /teacher/cohorts/{id}/assignments` envelope.
+String assignmentsBody(List<Object?> assignments) => jsonEncode({
+  'assignments': assignments,
+  'cohort_id': 2,
+  'count': assignments.length,
+});
+
 String submissionsBody(List<Object?> submissions) => jsonEncode({
   'assignment_id': 2,
   'count': submissions.length,
@@ -100,12 +107,10 @@ void main() {
       final repo = repositoryReturning((request) async {
         sent = request;
         return jsonResponse(
-          jsonEncode({
-            'assignments': [
-              assignmentEntry(),
-              assignmentEntry(id: 3, titleMn: null, title: 'Homework 3'),
-            ],
-          }),
+          assignmentsBody([
+            assignmentEntry(),
+            assignmentEntry(id: 3, titleMn: null, title: 'Homework 3'),
+          ]),
           200,
         );
       });
@@ -120,19 +125,20 @@ void main() {
       expect(assignments[1].displayTitle, 'Homework 3');
     });
 
-    test('reads a bare list too — the wrapper is not confirmed', () async {
+    test('an empty class has no assignments', () async {
       final repo = repositoryReturning(
-        (_) async => jsonResponse(jsonEncode([assignmentEntry()]), 200),
+        (_) async => jsonResponse(assignmentsBody([]), 200),
       );
-      final assignments = await repo.getAssignments(2);
-      expect(assignments.single.id, 2);
+      expect(await repo.getAssignments(2), isEmpty);
     });
 
     test('anything else is a server failure', () async {
       for (final body in [
-        jsonEncode({'items': []}),
-        jsonEncode([assignmentEntry(id: '2')]),
-        jsonEncode([assignmentEntry(titleMn: 5)]),
+        // Off the confirmed envelope: no `assignments`, or a bare list.
+        jsonEncode({'items': [], 'cohort_id': 2, 'count': 0}),
+        jsonEncode([assignmentEntry()]),
+        assignmentsBody([assignmentEntry(id: '2')]),
+        assignmentsBody([assignmentEntry(titleMn: 5)]),
         'not json',
       ]) {
         final repo = repositoryReturning((_) async => jsonResponse(body, 200));

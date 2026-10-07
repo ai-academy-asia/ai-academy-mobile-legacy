@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
 import '../../../core/models/localized_text.dart';
@@ -62,7 +60,7 @@ class HttpTeacherGradebookRepository implements TeacherGradebookRepository {
   @override
   Future<List<TeacherAssignment>> getAssignments(int cohortId) async {
     final body = await _get('/teacher/cohorts/$cohortId/assignments');
-    return assignmentsFromJson(_decode(body));
+    return assignmentsFromJson(teacherJsonObject(body));
   }
 
   @override
@@ -100,24 +98,12 @@ class HttpTeacherGradebookRepository implements TeacherGradebookRepository {
   }
 }
 
-/// Any JSON body — the assignments response is read as a list or an object.
-Object? _decode(String body) {
-  try {
-    return jsonDecode(body);
-  } on FormatException catch (e) {
-    throw _shape('malformed JSON: ${e.message}');
-  }
-}
-
-/// The class's assignments. The fields of an assignment are confirmed; the
-/// response's top-level wrapper is not, so both a bare list and an
-/// `assignments` list are read, and anything else is a `server` failure.
-List<TeacherAssignment> assignmentsFromJson(Object? json) {
-  final list = switch (json) {
-    final List<dynamic> list => list,
-    {'assignments': final List<dynamic> list} => list,
-    _ => throw _shape('assignments: expected a list'),
-  };
+/// The class's assignments — the confirmed `{assignments, cohort_id,
+/// count}` envelope's `assignments` list. Anything else is a `server`
+/// failure.
+List<TeacherAssignment> assignmentsFromJson(Map<String, dynamic> json) {
+  final list = json['assignments'];
+  if (list is! List) throw _shape('assignments: expected a list');
   return [for (final entry in list) _assignment(entry)];
 }
 
