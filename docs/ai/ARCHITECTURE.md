@@ -64,7 +64,8 @@ Conventions that hold across the codebase:
 | `/home` | `HomeScreen` (adult Нүүр tab) |
 | `/junior-home` | `JuniorHomeScreen` (junior Нүүр tab) — `homeRouteFor` picks between the Homes by `user_type` |
 | `/teacher-home` | `TeacherHomeScreen` (teacher Нүүр tab, Issue #229) — where `user_type: "teacher"` lands |
-| `/teacher-schedule` | `TeacherScheduleScreen` (teacher Хуваарь tab, Issue #231), switched to with `openTeacherTab`; Дүнгийн хуудас and Профайл are inert |
+| `/teacher-schedule` | `TeacherScheduleScreen` (teacher Хуваарь tab, Issue #231), switched to with `openTeacherTab` |
+| `/teacher-gradebook` | `TeacherGradebookScreen` (teacher Дүнгийн хуудас tab, Issue #233), switched to with `openTeacherTab`; the teacher Профайл tab is inert |
 | `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (adult Хичээл tab) |
 | `/junior-progress` | `JuniorProgressScreen` (junior Сурлагын явц tab) |
 | `/junior-profile` | `JuniorProfileScreen` (junior Профайл tab) |

@@ -32,6 +32,7 @@ class TeacherClassCard extends StatelessWidget {
     super.key,
     this.timeLabel,
     this.footer,
+    this.showDetails = true,
   });
 
   final TeacherClass teacherClass;
@@ -42,6 +43,10 @@ class TeacherClassCard extends StatelessWidget {
 
   /// Drawn under the room and time, inside the card.
   final Widget? footer;
+
+  /// Whether to draw the room and time. The Gradebook's class card
+  /// (`dungiin-huudas`, Issue #233) ends at the course title.
+  final bool showDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -80,26 +85,28 @@ class TeacherClassCard extends StatelessWidget {
           const SizedBox(height: _badgeToCaption),
           Text(cohort.name, style: _captionStyle),
           Text(title, style: _titleStyle),
-          const SizedBox(height: _titleToDetails),
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
-            children: [
-              if (room != null && room.isNotEmpty)
+          if (showDetails) ...[
+            const SizedBox(height: _titleToDetails),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                if (room != null && room.isNotEmpty)
+                  _Detail(
+                    icon: AppIcons.mapPin,
+                    label: room,
+                    semanticsLabel: TeacherHomeStrings.room,
+                  ),
                 _Detail(
-                  icon: AppIcons.mapPin,
-                  label: room,
-                  semanticsLabel: TeacherHomeStrings.room,
+                  icon: AppIcons.clock,
+                  label:
+                      timeLabel ??
+                      '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
+                  semanticsLabel: TeacherHomeStrings.time,
                 ),
-              _Detail(
-                icon: AppIcons.clock,
-                label:
-                    timeLabel ??
-                    '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
-                semanticsLabel: TeacherHomeStrings.time,
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           ?footer,
         ],
       ),
