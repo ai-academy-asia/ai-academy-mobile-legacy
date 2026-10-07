@@ -42,8 +42,8 @@ class LessonSchedule {
     final weekdays = _weekdays(cohort.meetingDays);
     if (weekdays.isEmpty) return null;
 
-    final start = _timeOfDay(cohort.startTime);
-    final end = _timeOfDay(cohort.endTime);
+    final start = parseClockTime(cohort.startTime);
+    final end = parseClockTime(cohort.endTime);
     if (start == null || end == null) return null;
 
     return LessonSchedule(
@@ -151,8 +151,10 @@ const Map<String, int> _weekdayNumbers = {
   'sun': DateTime.sunday,
 };
 
-/// `"18:00"` -> `(18, 0)`. Null for anything that is not `H:mm`.
-(int, int)? _timeOfDay(String value) {
+/// `"18:00"` -> `(18, 0)`. Null for anything that is not `H:mm` (a trailing
+/// `:ss` is ignored). Public so Teacher Schedule reads a session's times by
+/// the same rule as a cohort's (Issue #231).
+(int, int)? parseClockTime(String value) {
   final parts = value.split(':');
   if (parts.length < 2) return null;
 
