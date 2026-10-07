@@ -45,7 +45,7 @@ All share: `AppColors.surface` fill, 1pt border, rounded corners, and (on this a
 | `CourseCard`, `CohortCard` | content width | Catalog/cohort rows |
 | `ProgramCard` | content width | Home cohort card |
 | `CourseModuleCard` | 361 × 86 min | 56 icon tile (accent-tinted) / 32 lock tile; 24 completed check |
-| `LessonListItem` | 361 × 86 min | Deliberately mirrors `CourseModuleCard` — no Figma frame exists for Lesson List |
+| `LessonListItem` | 361 × 72 min | Figma level-detail reference (Issue #215): two-digit number, bold title, duration line; radius 12, `#EAEDF0` outline with a 4pt flat band; Course Detail's 20 completed check / padlock |
 | `CourseMaterialCard` | 329 × 72 | 32 file icon, 40 circular download → check |
 | `AssignmentAttachmentCard` | 329 × 72 / ~132 | Three states: idle row, taller downloading card (progress bar + Cancel), complete row (Remove) |
 | `MentorFeedbackCard` | content width | Avatar-initials + name + role + message + timestamp |

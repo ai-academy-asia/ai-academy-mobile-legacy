@@ -117,9 +117,6 @@ abstract final class CourseLearningStrings {
 
   // --- Lesson List -------------------------------------------------------
 
-  static const String lessonsLabel = 'LESSONS';
-  static const String lessonCaption = 'Lesson';
-
   /// A module whose lessons loaded but number none. No Figma frame or copy
   /// exists for it; Mongolian, like the failure lines above, and worded after
   /// the app's existing empty states (`CohortListStrings.empty`,

@@ -114,6 +114,7 @@ JuniorLearningMap juniorMapFrom(
         id: module.id,
         state: _stateFor(module),
         title: module.title,
+        order: module.order,
       ),
   ],
   certificate: JuniorCertificate(

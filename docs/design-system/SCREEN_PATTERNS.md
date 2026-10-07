@@ -52,7 +52,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Course Catalog | `/courses` | — | `courses` (real) |
 | Course Detail | pushed | — | `courses` (real) |
 | Course Module List | pushed | back button | `course_learning` — `GET /me/courses/{slug}/learning` (real) |
-| Lesson List | pushed from an unlocked module card | back button | `course_learning` — `GET /me/modules/{id}/lessons` (real) |
+| Lesson List | pushed from an unlocked module card or a completed Junior node | back button in the hero | `course_learning` — `GET /me/modules/{id}/lessons` (real) |
 | Exercise Detail | pushed | in-video back | `course_learning` — `GET /me/lessons/{id}` (real) |
 | Quiz / Quiz Result | pushed | close button / none | `course_learning` — §2.7 quiz attempt endpoints (real) |
 
@@ -61,6 +61,8 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 Each of these breaks the default skeleton on purpose. The reasoning is recorded in the code; do not "normalise" them without a Figma frame saying otherwise.
 
 **Exercise Detail — `SafeArea(bottom: false)` and a full-width video header.** The body is inset at the top only, so the video header starts below the status bar, which stays on the page's light background with `dark` glyphs. `bottom: false` lets the scroll run to the screen's bottom edge. Within the content column the header is full-width, with no `screenPadding` gutter. `ExerciseVideoHeader` still adds `MediaQuery.paddingOf(context).top` to its back button and badge ([COMPONENT_PATTERNS.md](COMPONENT_PATTERNS.md) §5); under this `SafeArea` that inset has already been removed, so it adds 0 here.
+
+**Lesson List — the module hero runs under the status bar, so no `SafeArea`.** Drawn to the Figma level-detail reference (Issue #215). A hero of `topInset + 200` in the module's accent (the same tile tint and `moduleVisualsFor(order)` artwork as that module's Course Detail card) starts at the top of the screen. `CourseLearningBackButton` sits at the inset, and the artwork is centred in the 200 below it. The caption, title and cards follow in one scroll, with the bottom inset as padding. The loading, empty and error states sit under the same header. The reference's progress row and "Continue learning" are left off: Course Detail already shows them.
 
 **Course Module List — page-level tint, not a card.** The soft blue wash at the top is a `LinearGradient` painted behind the whole `SafeArea` (`#0D296CFF` → `background`, stops `0.0`/`0.22`), *not* a decoration on the hero. An earlier pass put it on a rounded box behind the hero and it read as a floating card.
 

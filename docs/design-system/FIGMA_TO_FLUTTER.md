@@ -39,7 +39,7 @@ So: map the frame's role to the nearest existing style, then `.copyWith()` for a
 
 Real situations this project has hit:
 
-- **A state with no frame** — e.g. no Figma frame exists for Lesson List, so `LessonListItem` deliberately mirrors `CourseModuleCard` rather than inventing a visual language. **Mirror the nearest sibling and say so.**
+- **A state with no frame** — e.g. Lesson List had no Figma frame until Issue #215, so `LessonListItem` mirrored `CourseModuleCard` rather than inventing a visual language; once the level-detail reference arrived, it was restyled to that. Within it, the reference draws no locked or duration treatment on a lesson card, so those reuse Course Detail's padlock and secondary ink. **Mirror the nearest sibling and say so.**
 - **A state the sample data never produces** — `CourseModule` has no "available, not started" visual because the Figma sample only shows completed and locked. It is **not modelled**, rather than guessed.
 - **Contradictory examples** — two Figma examples disagreed on the module schedule line's shape, so it is one pre-formatted string, not split into date/weekday/time fields.
 - **An obvious typo in the frame** — the reference spells a status "Compelete"; the code ships "Complete". Match the design's *intent*; do not reproduce a spelling mistake. Note the deviation.

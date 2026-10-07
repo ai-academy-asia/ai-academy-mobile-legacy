@@ -480,14 +480,15 @@ void main() {
       expect(find.byType(LessonListScreen), findsNothing);
 
       // Exercise Detail's own back control is the video header's arrow, not
-      // the caret the Module List and Lesson List use.
+      // the caret the Module List uses.
       await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.byType(CourseExerciseDetailScreen), findsNothing);
       expect(find.byType(LessonListScreen), findsOneWidget);
 
-      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      // The Lesson List's hero draws the reference's arrow (Issue #215).
+      await tester.tap(find.byIcon(AppIcons.arrowLeft));
       await tester.pumpAndSettle();
 
       expect(find.byType(LessonListScreen), findsNothing);

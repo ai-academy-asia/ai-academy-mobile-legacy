@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../data/course_module_visuals.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/lesson.dart';
@@ -17,24 +20,29 @@ import 'widgets/lesson_list_item.dart';
 /// The Lesson List — one module's lessons, from
 /// `GET /me/modules/{module_id}/lessons`.
 ///
-/// Opened by an unlocked module card on `CourseModuleListScreen`. The Figma
-/// flow goes straight from Module List to Exercise Detail, but a module card
-/// knows only its module and the contract names no lesson for one, so this
-/// screen is where the student picks the lesson instead of the client
-/// inventing a rule for it. "Continue learning" still skips it, opening the
-/// server's `continue.lesson_id` directly.
+/// Opened by an unlocked module card on `CourseModuleListScreen` and by a
+/// completed Junior Home node. A module card knows only its module and the
+/// contract names no lesson for one, so this screen is where the student
+/// picks the lesson instead of the client inventing a rule for it.
+/// "Continue learning" still skips it, opening the server's
+/// `continue.lesson_id` directly.
 ///
-/// No Figma screenshot exists for this screen (unlike Module List and
-/// Exercise Detail, both built strictly against provided references) — it
-/// reuses `CourseModuleListScreen`'s own structure (the same back button, the
-/// same heading style, the same card treatment via `LessonListItem`) rather
-/// than inventing a new visual language for a screen nothing has designed.
+/// Drawn to the Figma level-detail reference (Issue #215): a hero in the
+/// module's own accent with its own artwork — exactly what that module's
+/// Course Detail card draws, picked by [moduleOrder] through
+/// [moduleVisualsFor] — then the module caption and title, then the lesson
+/// cards ([LessonListItem]) joined by a centred rule. The reference's
+/// progress row and "Continue learning" are left off on purpose: Course
+/// Detail already shows both (a product decision in the request), and
+/// §2.2's `module` carries no description, so none is drawn under the title.
+/// The loading, empty and error states sit under the same header.
 ///
 /// An unlocked lesson opens `CourseExerciseDetailScreen` for that lesson's
 /// own `Lesson.id`.
 class LessonListScreen extends StatefulWidget {
   const LessonListScreen({
     required this.moduleId,
+    required this.moduleOrder,
     required this.moduleTitle,
     super.key,
     this.repository,
@@ -47,6 +55,11 @@ class LessonListScreen extends StatefulWidget {
 
   /// `CourseModule.id` — which module's lessons to load.
   final int moduleId;
+
+  /// `CourseModule.order` — §2.1's `module.order`, the same value Course
+  /// Detail picks this module's artwork and accent with. Drives the hero
+  /// and the "Modules N" caption.
+  final int moduleOrder;
 
   /// `CourseModule.title` — shown as this screen's own heading. Passed in
   /// rather than re-fetched: `CourseModuleListScreen` already has it, and
@@ -89,25 +102,19 @@ class _LessonListScreenState extends State<LessonListScreen> {
         statusBarColor: Colors.transparent,
         systemNavigationBarColor: AppColors.background,
       ),
+      // No `SafeArea`: the hero runs up under the status bar, as the
+      // reference draws it, and places its own back control at the inset.
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) => Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppDimens.maxContentWidth,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const CourseLearningBackButton(),
-                    Expanded(child: _buildBody()),
-                  ],
-                ),
+        body: ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) => Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppDimens.maxContentWidth,
               ),
+              child: _buildBody(),
             ),
           ),
         ),
@@ -116,20 +123,173 @@ class _LessonListScreenState extends State<LessonListScreen> {
   }
 
   Widget _buildBody() {
+    final header = _ModuleHeader(
+      moduleOrder: widget.moduleOrder,
+      moduleTitle: widget.moduleTitle,
+    );
     if (_controller.errorMessage case final message?) {
-      return _ErrorView(message: message, onRetry: () => _controller.load());
+      return _HeaderOver(
+        header: header,
+        child: _ErrorView(message: message, onRetry: () => _controller.load()),
+      );
     }
     if (_controller.loading && _controller.lessons.isEmpty) {
-      return const _LoadingView();
+      return _HeaderOver(header: header, child: const _LoadingView());
     }
     if (_controller.isEmpty) {
-      return _EmptyLessonListBody(moduleTitle: widget.moduleTitle);
+      return _HeaderOver(header: header, child: const _EmptyView());
     }
     return _LessonListBody(
+      header: header,
       showNotes: widget.showNotes,
-      moduleTitle: widget.moduleTitle,
       lessons: _controller.lessons,
       repository: _repository,
+    );
+  }
+}
+
+/// The hero tile's height below the safe-area inset, and its artwork's box.
+///
+/// Measured off the reference at 1:1 with the project's 44pt inset: the hero
+/// ends at 244, so 200 below the inset, and the artwork's ink is 102 square,
+/// centred in that 200. Every `module_*.svg` carries its own margin inside
+/// its 361 viewBox (see `CourseModuleCard`), so the box is larger than the
+/// ink it draws.
+const double _heroHeight = 200;
+const double _artworkBox = 144;
+
+/// `CourseModuleCard`'s own tile tint, so the hero and that module's card on
+/// Course Detail read as the same colour. The reference's hero for module 2
+/// is #FAEED2; this gives #FFF1D1, a few steps lighter, but it follows every
+/// module's accent rather than one sampled value.
+const double _heroTintOpacity = 0.24;
+
+/// The reference's space from the header block to the first card.
+const double _headerToCards = 28;
+
+/// The card outline's grey, and the rule between cards: `CourseModuleCard`'s
+/// and Course Detail's `#EAEDF0`, 2 wide, filling the 16 gap below the
+/// card's own 4pt band. Kept as this file's own copy rather than extracted
+/// from Course Detail, whose constants are private to that screen.
+const Color _connectorColor = Color(0xFFEAEDF0);
+const double _cardGap = 16;
+const double _connectorWidth = 2;
+const double _connectorHeight = 12;
+
+/// The hero and the caption/title block, drawn the same in every state.
+class _ModuleHeader extends StatelessWidget {
+  const _ModuleHeader({required this.moduleOrder, required this.moduleTitle});
+
+  final int moduleOrder;
+  final String moduleTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ModuleHero(moduleOrder: moduleOrder),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPadding,
+            AppDimens.screenPadding,
+            AppDimens.screenPadding,
+            0,
+          ),
+          // Exercise Detail's caption and title styles, which the
+          // reference's "Level 2" / title block measures to; the gap between
+          // them is this reference's own 2, not Exercise Detail's 4.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${CourseLearningStrings.moduleCaption} $moduleOrder',
+                style: AppTypography.catalogSectionLabel.copyWith(
+                  fontSize: 12,
+                  height: 16 / 12,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                moduleTitle,
+                style: AppTypography.heading.copyWith(
+                  fontSize: 18,
+                  height: 26 / 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The module's accent and artwork, full width and running up under the
+/// status bar, with the back control at the safe-area inset.
+class _ModuleHero extends StatelessWidget {
+  const _ModuleHero({required this.moduleOrder});
+
+  final int moduleOrder;
+
+  @override
+  Widget build(BuildContext context) {
+    final visuals = moduleVisualsFor(moduleOrder);
+    final topInset = MediaQuery.paddingOf(context).top;
+
+    return SizedBox(
+      height: topInset + _heroHeight,
+      child: ColoredBox(
+        // Opaque, over white as `CourseModuleCard` lays its tile over the
+        // white card — not over the grey page.
+        color: Color.alphaBlend(
+          visuals.accentColor.withValues(alpha: _heroTintOpacity),
+          AppColors.surface,
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: topInset,
+              bottom: 0,
+              child: Center(
+                child: SvgPicture.asset(
+                  visuals.iconAsset,
+                  width: _artworkBox,
+                  height: _artworkBox,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              top: topInset,
+              // The reference draws the arrow here, as Exercise Detail and
+              // the attendance screens do.
+              child: const CourseLearningBackButton(icon: AppIcons.arrowLeft),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [header] with a state's own content filling the space under it.
+class _HeaderOver extends StatelessWidget {
+  const _HeaderOver({required this.header, required this.child});
+
+  final Widget header;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        header,
+        Expanded(child: child),
+      ],
     );
   }
 }
@@ -195,102 +355,84 @@ class _ErrorView extends StatelessWidget {
 
 class _LessonListBody extends StatelessWidget {
   const _LessonListBody({
+    required this.header,
     required this.showNotes,
-    required this.moduleTitle,
     required this.lessons,
     required this.repository,
   });
 
-  final String moduleTitle;
+  final Widget header;
   final List<Lesson> lessons;
   final CourseLearningRepository repository;
   final bool showNotes;
 
   @override
   Widget build(BuildContext context) {
+    // One scroll for the whole page, header included, as the reference is
+    // one tall frame.
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimens.screenPadding,
-        8,
-        AppDimens.screenPadding,
-        AppDimens.screenPadding,
+      padding: EdgeInsets.only(
+        bottom: AppDimens.screenPadding + MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _LessonListHeading(moduleTitle: moduleTitle),
-          const SizedBox(height: 12),
-          for (final lesson in lessons) ...[
-            LessonListItem(
-              lesson: lesson,
-              onTap: lesson.locked
-                  ? null
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => CourseExerciseDetailScreen(
-                          lessonId: lesson.id,
-                          repository: repository,
-                          showNotes: showNotes,
-                        ),
-                      ),
-                    ),
+          header,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimens.screenPadding,
+              _headerToCards,
+              AppDimens.screenPadding,
+              0,
             ),
-            if (lesson != lessons.last) const SizedBox(height: 12),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < lessons.length; i++) ...[
+                  LessonListItem(
+                    lesson: lessons[i],
+                    onTap: lessons[i].locked
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CourseExerciseDetailScreen(
+                                lessonId: lessons[i].id,
+                                repository: repository,
+                                showNotes: showNotes,
+                              ),
+                            ),
+                          ),
+                  ),
+                  if (i != lessons.length - 1) const _LessonConnector(),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// The module title and the "LESSONS" label — drawn the same way whether the
-/// module has lessons ([_LessonListBody]) or none ([_EmptyLessonListBody]).
-class _LessonListHeading extends StatelessWidget {
-  const _LessonListHeading({required this.moduleTitle});
-
-  final String moduleTitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(moduleTitle, style: AppTypography.heading),
-        const SizedBox(height: AppDimens.titleToSupporting),
-        Text(
-          CourseLearningStrings.lessonsLabel,
-          style: AppTypography.catalogSectionLabel,
-        ),
-      ],
-    );
-  }
-}
-
-/// A module whose lessons loaded but number none.
-///
-/// The heading stays exactly where [_LessonListBody] draws it, and the space
-/// the rows would fill holds [_EmptyView] instead.
-class _EmptyLessonListBody extends StatelessWidget {
-  const _EmptyLessonListBody({required this.moduleTitle});
-
-  final String moduleTitle;
+/// The rule between two lesson cards, down the centre of the page as the
+/// reference draws it — Course Detail's `_ModuleConnector`, measured the
+/// same: bottom-aligned in the gap, so it meets the band above and the next
+/// card below.
+class _LessonConnector extends StatelessWidget {
+  const _LessonConnector();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppDimens.screenPadding,
-            8,
-            AppDimens.screenPadding,
-            0,
-          ),
-          child: _LessonListHeading(moduleTitle: moduleTitle),
+    return const SizedBox(
+      height: _cardGap,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SizedBox(
+          width: _connectorWidth,
+          height: _connectorHeight,
+          child: ColoredBox(color: _connectorColor),
         ),
-        const Expanded(child: _EmptyView()),
-      ],
+      ),
     );
   }
 }

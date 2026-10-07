@@ -32,7 +32,12 @@ enum JuniorCertificateStatus { notEligible, eligible, issued }
 /// rather than on a grid this data could describe. See
 /// `junior_map_geometry.dart` for the route.
 class JuniorMapNode {
-  const JuniorMapNode({required this.id, required this.state, this.title = ''});
+  const JuniorMapNode({
+    required this.id,
+    required this.state,
+    this.title = '',
+    this.order = 0,
+  });
 
   /// The module's own id — what a tap opens (Issue #204).
   final int id;
@@ -41,6 +46,11 @@ class JuniorMapNode {
   /// The module's title — the heading of the lessons a tap opens. Empty for
   /// a sample node.
   final String title;
+
+  /// The module's `order` (§2.1) — what the lessons a tap opens pick their
+  /// artwork and caption with, the same as that module's Course Detail card
+  /// (Issue #215). 0 for a sample node, which opens nothing.
+  final int order;
 }
 
 /// The course strip at the top of the map: what the student is studying, and
