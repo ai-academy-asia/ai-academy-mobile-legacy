@@ -8,6 +8,8 @@ import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -353,6 +355,99 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(ResetPasswordStrings.networkError), findsOneWidget);
+    });
+  });
+
+  group('back control (Issue #227)', () {
+    Finder backControl() => find.byType(CourseLearningBackButton);
+
+    /// The screen pushed over a page, as Profile pushes it.
+    Future<void> pushVoluntary(
+      WidgetTester tester,
+      FakePasswordRepository repository,
+    ) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      addTearDown(tester.view.reset);
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigatorKey,
+          theme: AppTheme.light,
+          home: const Scaffold(body: Text('previous screen')),
+        ),
+      );
+      navigatorKey.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              ResetPasswordScreen(repository: repository, showBackButton: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('off by default: the required change draws none', (
+      tester,
+    ) async {
+      await pumpReset(tester, FakePasswordRepository());
+
+      expect(backControl(), findsNothing);
+      expect(find.text(ResetPasswordStrings.title), findsOneWidget);
+    });
+
+    testWidgets('a voluntary change draws it above the unchanged form', (
+      tester,
+    ) async {
+      await pushVoluntary(tester, FakePasswordRepository());
+
+      expect(backControl(), findsOneWidget);
+      expect(
+        tester.getRect(find.text(ResetPasswordStrings.title)).top,
+        greaterThan(tester.getRect(backControl()).bottom),
+      );
+      expect(find.byType(TextField), findsNWidgets(3));
+    });
+
+    testWidgets('tapping it pops back without sending anything', (
+      tester,
+    ) async {
+      final repository = FakePasswordRepository();
+      await pushVoluntary(tester, repository);
+      await tester.enterText(fieldAt(0), 'Huuchin1!');
+
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ResetPasswordScreen), findsNothing);
+      expect(find.text('previous screen'), findsOneWidget);
+      expect(repository.calls, isEmpty);
+    });
+
+    testWidgets('with it shown, the form still validates and submits, then '
+        'pops back as before', (tester) async {
+      final repository = FakePasswordRepository();
+      await pushVoluntary(tester, repository);
+
+      await tester.enterText(fieldAt(0), 'Huuchin1!');
+      await tester.enterText(fieldAt(1), good);
+      await tester.enterText(fieldAt(2), 'Nuutsug2!');
+      await tester.pump();
+      await tester.tap(submitButton());
+      await tester.pump();
+      // The same validation as without the back control: nothing is sent.
+      expect(
+        find.text(ResetPasswordStrings.confirmPasswordMismatch),
+        findsOneWidget,
+      );
+      expect(repository.calls, isEmpty);
+
+      await tester.enterText(fieldAt(2), good);
+      await tester.pump();
+      await tester.tap(submitButton());
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, hasLength(1));
+      expect(find.text('previous screen'), findsOneWidget);
     });
   });
 

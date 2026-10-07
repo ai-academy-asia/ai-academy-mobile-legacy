@@ -281,7 +281,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 label: ProfileStrings.changePassword,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const ResetPasswordScreen(),
+                    builder: (_) =>
+                        const ResetPasswordScreen(showBackButton: true),
                   ),
                 ),
               ),
