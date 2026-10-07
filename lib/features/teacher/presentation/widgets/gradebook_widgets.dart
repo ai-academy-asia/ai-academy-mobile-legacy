@@ -11,28 +11,22 @@ import '../../domain/teacher_submission.dart';
 import '../teacher_gradebook_strings.dart';
 import 'teacher_pill_button.dart';
 
-/// One student's submission as the Gradebook lists it (Issue #233).
-///
-/// **A view model, not a contract.** The student's name and the
-/// assignment's title have no confirmed field: `GET /teacher/cohorts/{id}/
-/// students` and `GET /teacher/assignments/{id}/submissions` (beyond
-/// `submissions[].id`) are not verified. So nothing in the app builds one
-/// yet; the screens draw these when a source exists. [status] is the
-/// confirmed submission `status`.
+/// One student's submission as the Gradebook lists it (Issue #233): a
+/// confirmed submission — which carries its student — and the title of the
+/// assignment it answers.
 class GradebookRow {
-  const GradebookRow({
-    required this.submissionId,
-    required this.studentId,
-    required this.studentName,
-    required this.assignmentTitle,
-    required this.status,
-  });
+  const GradebookRow({required this.submission, required this.assignmentTitle});
 
-  final int submissionId;
-  final int studentId;
-  final String studentName;
+  final TeacherSubmission submission;
   final String assignmentTitle;
-  final String status;
+
+  int get submissionId => submission.id;
+
+  /// A list entry always carries its student; the detail need not.
+  int get studentId => submission.student?.id ?? -1;
+  String get studentName => submission.student?.name ?? '';
+  String? get initials => submission.student?.initials;
+  String get status => submission.status;
 }
 
 /// The white band the drill-down references open with: the back control and
@@ -154,7 +148,7 @@ class GradebookRowCard extends StatelessWidget {
             child: Row(
               children: [
                 if (showAvatar) ...[
-                  const GradebookAvatar(),
+                  GradebookAvatar(initials: row.initials),
                   const SizedBox(width: 16),
                 ],
                 Expanded(
@@ -202,21 +196,29 @@ class GradebookIdentity extends StatelessWidget {
   }
 }
 
-/// The 48pt student avatar — a placeholder, as no photo field is known.
-/// Filled a step darker than the page grey so it reads on either surface.
+/// The 48pt student avatar. No photo URL is in any confirmed response, so it
+/// shows the student's confirmed `initials` — or a person glyph without
+/// them — on a fill a step darker than the page grey, so it reads on either
+/// surface.
 class GradebookAvatar extends StatelessWidget {
-  const GradebookAvatar({super.key});
+  const GradebookAvatar({super.key, this.initials});
+
+  final String? initials;
 
   @override
   Widget build(BuildContext context) {
+    final letters = initials;
     return Container(
       width: 48,
       height: 48,
+      alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: HomePalette.mutedOutline,
         shape: BoxShape.circle,
       ),
-      child: const Icon(AppIcons.user, size: 22, color: HomePalette.mutedInk),
+      child: letters == null || letters.isEmpty
+          ? const Icon(AppIcons.user, size: 22, color: HomePalette.mutedInk)
+          : ExcludeSemantics(child: Text(letters, style: _initialsStyle)),
     );
   }
 }
@@ -314,6 +316,13 @@ final TextStyle _rowTitleStyle = AppTypography.programTitle.copyWith(
   color: TeacherPillColors.ink,
 );
 
+final TextStyle _initialsStyle = AppTypography.programTitle.copyWith(
+  fontSize: 16,
+  height: 1.2,
+  fontWeight: FontWeight.w700,
+  color: GradebookColors.name,
+);
+
 final TextStyle _statTitleStyle = AppTypography.programTitle.copyWith(
   fontSize: 16,
   height: 24 / 16,
@@ -325,4 +334,7 @@ final TextStyle _statTitleStyle = AppTypography.programTitle.copyWith(
 abstract final class GradebookColors {
   /// The grey name line over a row's title, sampled at `#808080`.
   static const Color name = Color(0xFF808080);
+
+  /// The submitted link's navy, sampled at `#1501A6`.
+  static const Color link = Color(0xFF1501A6);
 }

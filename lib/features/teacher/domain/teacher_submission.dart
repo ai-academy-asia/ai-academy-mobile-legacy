@@ -1,17 +1,59 @@
-/// A student's submission as the teacher reviews it —
-/// `GET /teacher/submissions/{submission_id}` (Issue #233).
+import '../../../core/models/localized_text.dart';
+
+/// An assignment of a teacher's class —
+/// `GET /teacher/cohorts/{cohort_id}/assignments` (Issue #233).
 ///
-/// Only the confirmed fields are modelled: `status` (`"submitted"` while it
-/// waits for review, `"reviewed"` once reviewed) with the review's `score`
-/// and `feedback`. The response's `history` (the previous versions) is
-/// confirmed but not drawn, so it is not modelled. The submission's content
-/// — its file, link or description — has no confirmed field: `BACKEND GAP`.
+/// Only what the Gradebook reads is modelled: `id` and the title
+/// (`title_mn` / `title_en`, falling back to `title`). The other confirmed
+/// fields — `cohort_id`, `lesson_id`, `instructions`, `due_date`,
+/// `max_score`, `submitted_students`, `teacher_id`, `is_active`,
+/// `attachment` / `attachment_material_id` — are unread.
+class TeacherAssignment {
+  const TeacherAssignment({required this.id, required this.title});
+
+  final int id;
+  final LocalizedText title;
+
+  /// Mongolian first, as every course title is shown.
+  String get displayTitle => title.preferred ?? '#$id';
+}
+
+/// The student a submission belongs to — its `student` object.
+class SubmissionStudent {
+  const SubmissionStudent({
+    required this.id,
+    required this.name,
+    this.initials,
+  });
+
+  final int id;
+  final String name;
+
+  /// What the avatar shows: no photo URL is in any confirmed response.
+  final String? initials;
+}
+
+/// A student's submission as the teacher reviews it (Issue #233) — an entry
+/// of `GET /teacher/assignments/{assignment_id}/submissions` (the latest
+/// per student) or `GET /teacher/submissions/{submission_id}`.
+///
+/// Modelled: `id`, `assignment_id`, `student`, `status` (`"submitted"`
+/// while it waits for review, `"reviewed"` once reviewed), `score`,
+/// `feedback.message`, `description`, `link`, `submitted_at`. Confirmed but
+/// unread: `feedback.created_at` / `mentor`, `graded_at`, `version`,
+/// `version_count`, and the detail's `history`. `file` is not read: only
+/// `null` has been seen, and its download (`/file`) is not verified.
 class TeacherSubmission {
   const TeacherSubmission({
     required this.id,
     required this.status,
+    this.assignmentId,
+    this.student,
     this.score,
     this.feedback,
+    this.description,
+    this.link,
+    this.submittedAt,
   });
 
   final int id;
@@ -20,12 +62,23 @@ class TeacherSubmission {
   /// confirmed, so the set is not known to be closed.
   final String status;
 
-  /// The review's score — present once reviewed. A number on the wire (the
-  /// review request sends an integer; the response's type is not pinned).
+  final int? assignmentId;
+  final SubmissionStudent? student;
+
+  /// The review's score — present once reviewed.
   final num? score;
 
-  /// The review's feedback — present once reviewed.
+  /// The review's feedback text (`feedback.message`) — present once
+  /// reviewed.
   final String? feedback;
+
+  /// What the student wrote with the submission.
+  final String? description;
+
+  /// The link the student submitted.
+  final String? link;
+
+  final DateTime? submittedAt;
 
   bool get isReviewed => status == SubmissionStatus.reviewed;
   bool get isPending => status == SubmissionStatus.submitted;

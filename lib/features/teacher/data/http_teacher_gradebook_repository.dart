@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
+import '../../../core/models/localized_text.dart';
 import '../../auth/data/authenticated_client.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../domain/teacher_class.dart';
@@ -13,18 +16,20 @@ import 'teacher_http.dart';
 /// Reads Teacher Gradebook against the AI Academy API (Issue #233):
 ///
 ///     GET https://api.ai-academy.asia/teachers/{actor_id}/schedule
+///     GET https://api.ai-academy.asia/teacher/cohorts/{cohort_id}/assignments
+///     GET https://api.ai-academy.asia/teacher/assignments/{assignment_id}/submissions
 ///     GET https://api.ai-academy.asia/teacher/submissions/{submission_id}
 ///     Authorization: Bearer <access_token>
 ///
-/// The classes are Teacher Home's own read ([HttpTeacherHomeRepository]).
-/// The submission's confirmed fields are `status` (`submitted` /
-/// `reviewed`), `score`, `feedback` and `history`; the first three are
-/// read.
+/// All confirmed by captured responses. The classes are Teacher Home's own
+/// read ([HttpTeacherHomeRepository]). The submissions list answers
+/// `{assignment_id, count, max_score, submissions: [...]}`, the latest
+/// submission per student; a list entry and the detail are read by the one
+/// [submissionFromJson].
 ///
-/// Not called, because their responses are not verified:
-/// `GET /teacher/cohorts/{id}/students`, `GET /teacher/cohorts/{id}/assignments`,
-/// `GET /teacher/assignments/{id}/submissions` (beyond `submissions[].id`),
-/// `GET /teacher/submissions/{id}/file`, and
+/// Not called: `GET /teacher/cohorts/{id}/students` (confirmed, but the
+/// Gradebook's rows are submissions, which carry their student),
+/// `GET /teacher/submissions/{id}/file` (response not verified), and
 /// `POST /teacher/submissions/{id}/review` (request `{score, feedback}`
 /// confirmed; success and error responses not).
 class HttpTeacherGradebookRepository implements TeacherGradebookRepository {
@@ -55,43 +60,143 @@ class HttpTeacherGradebookRepository implements TeacherGradebookRepository {
   Future<List<TeacherClass>> getClasses() => _classes.getClasses();
 
   @override
+  Future<List<TeacherAssignment>> getAssignments(int cohortId) async {
+    final body = await _get('/teacher/cohorts/$cohortId/assignments');
+    return assignmentsFromJson(_decode(body));
+  }
+
+  @override
+  Future<List<TeacherSubmission>> getSubmissions(int assignmentId) async {
+    final body = await _get('/teacher/assignments/$assignmentId/submissions');
+    final json = teacherJsonObject(body);
+    final submissions = json['submissions'];
+    if (submissions is! List) {
+      throw _shape('submissions: expected a list');
+    }
+    return [
+      for (final entry in submissions)
+        if (entry is Map<String, dynamic>)
+          submissionFromJson(entry, requireStudent: true)
+        else
+          throw _shape('submission: not an object'),
+    ];
+  }
+
+  @override
   Future<TeacherSubmission> getSubmission(int submissionId) async {
+    final body = await _get('/teacher/submissions/$submissionId');
+    return submissionFromJson(teacherJsonObject(body), id: submissionId);
+  }
+
+  Future<String> _get(String path) async {
     ensureTeacherSession(_sessionStore);
     final response = await teacherGet(
       client: _client,
-      url: _baseUrl.resolve('/teacher/submissions/$submissionId'),
+      url: _baseUrl.resolve(path),
       sessionStore: _sessionStore,
       timeout: timeout,
     );
-    return submissionFromJson(
-      teacherJsonObject(response.body),
-      id: submissionId,
-    );
+    return response.body;
   }
 }
 
-/// A submission detail's confirmed fields. [id] is the one asked for: the
-/// body's own id field is not among the confirmed ones. A missing or
-/// mistyped `status`, or a non-numeric `score` / non-string `feedback`, is
-/// a `server` failure.
+/// Any JSON body — the assignments response is read as a list or an object.
+Object? _decode(String body) {
+  try {
+    return jsonDecode(body);
+  } on FormatException catch (e) {
+    throw _shape('malformed JSON: ${e.message}');
+  }
+}
+
+/// The class's assignments. The fields of an assignment are confirmed; the
+/// response's top-level wrapper is not, so both a bare list and an
+/// `assignments` list are read, and anything else is a `server` failure.
+List<TeacherAssignment> assignmentsFromJson(Object? json) {
+  final list = switch (json) {
+    final List<dynamic> list => list,
+    {'assignments': final List<dynamic> list} => list,
+    _ => throw _shape('assignments: expected a list'),
+  };
+  return [for (final entry in list) _assignment(entry)];
+}
+
+TeacherAssignment _assignment(Object? entry) {
+  if (entry is! Map<String, dynamic>) throw _shape('assignment: not an object');
+  final id = entry['id'];
+  if (id is! int) throw _shape('assignment: id');
+  return TeacherAssignment(
+    id: id,
+    title: LocalizedText(
+      mn: _string(entry, 'title_mn') ?? _string(entry, 'title'),
+      en: _string(entry, 'title_en') ?? _string(entry, 'title'),
+    ),
+  );
+}
+
+/// A submission — a list entry ([requireStudent]) or the detail. [id] is
+/// the one asked for, used when the body carries no `id` of its own.
 TeacherSubmission submissionFromJson(
   Map<String, dynamic> json, {
-  required int id,
+  int? id,
+  bool requireStudent = false,
 }) {
+  final ownId = json['id'];
   final status = json['status'];
   final score = json['score'];
-  final feedback = json['feedback'];
+  final assignmentId = json['assignment_id'];
+  final submittedAt = _string(json, 'submitted_at');
   if (status is! String) throw _shape('status: expected a string');
   if (score != null && score is! num) throw _shape('score: expected a number');
-  if (feedback != null && feedback is! String) {
-    throw _shape('feedback: expected a string');
+  if (assignmentId != null && assignmentId is! int) {
+    throw _shape('assignment_id: expected an int');
   }
+  final resolvedId = ownId is int ? ownId : id;
+  if (resolvedId == null) throw _shape('id: expected an int');
+
+  final student = _student(json['student']);
+  if (requireStudent && student == null) throw _shape('student: missing');
+
   return TeacherSubmission(
-    id: id,
+    id: resolvedId,
     status: status,
+    assignmentId: assignmentId as int?,
+    student: student,
     score: score as num?,
-    feedback: feedback as String?,
+    feedback: _feedback(json['feedback']),
+    description: _string(json, 'description'),
+    link: _string(json, 'link'),
+    submittedAt: submittedAt == null
+        ? null
+        : DateTime.tryParse(submittedAt)?.toLocal(),
   );
+}
+
+SubmissionStudent? _student(Object? json) => switch (json) {
+  null => null,
+  {'id': final int id, 'name': final String name} => SubmissionStudent(
+    id: id,
+    name: name,
+    initials: json['initials'] is String ? json['initials'] as String : null,
+  ),
+  _ => throw _shape('student: expected {id, name}'),
+};
+
+/// `feedback` is `{created_at, mentor, message}` (confirmed on the list),
+/// or `null` before review. Only `message` is read.
+String? _feedback(Object? json) => switch (json) {
+  null => null,
+  {'message': final String? message} => message,
+  Map<String, dynamic>() => null,
+  _ => throw _shape('feedback: expected an object'),
+};
+
+/// A nullable string field; a value of another type is a `server` failure.
+String? _string(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! String) throw _shape('$key: expected a string');
+  return value;
 }
 
 TeacherFailure _shape(String detail) =>

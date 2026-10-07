@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
@@ -25,27 +26,62 @@ import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
 
 /// Rows as a future verified source would supply them. Test values only:
 /// nothing in the app builds a [GradebookRow] yet (BACKEND GAP).
-const rows = [
+/// Class 2's assignments and their latest-per-student submissions, in the
+/// confirmed shapes. Test values only.
+const assignments = [
+  TeacherAssignment(id: 2, title: LocalizedText(mn: 'Даалгавар 2')),
+  TeacherAssignment(id: 3, title: LocalizedText(en: 'Assignment 3')),
+];
+
+final submissionsOf = {
+  2: [
+    sampleSubmission(id: 18, studentId: 13, studentName: 'Student A'),
+    sampleSubmission(
+      id: 19,
+      studentId: 9,
+      studentName: 'Student B',
+      initials: 'SB',
+      status: 'submitted',
+      score: null,
+      feedback: null,
+      submittedAt: DateTime(2026, 5, 1),
+    ),
+  ],
+  3: [
+    sampleSubmission(
+      id: 30,
+      assignmentId: 3,
+      studentId: 13,
+      studentName: 'Student A',
+      status: 'submitted',
+      score: null,
+      feedback: null,
+      submittedAt: DateTime(2026, 5, 5),
+    ),
+  ],
+};
+
+FakeTeacherGradebookRepository classRepository() =>
+    FakeTeacherGradebookRepository(
+      classes: [sampleClass()],
+      assignments: {2: assignments},
+      submissionsOf: submissionsOf,
+      submissions: {
+        18: submissionsOf[2]![0],
+        19: submissionsOf[2]![1],
+        30: submissionsOf[3]![0],
+      },
+    );
+
+/// Student A's rows, as the student list hands them on.
+final studentRows = [
   GradebookRow(
-    submissionId: 1,
-    studentId: 10,
-    studentName: 'Student A',
-    assignmentTitle: 'Assignment 01',
-    status: 'submitted',
+    submission: submissionsOf[3]![0],
+    assignmentTitle: 'Assignment 3',
   ),
   GradebookRow(
-    submissionId: 2,
-    studentId: 11,
-    studentName: 'Student B',
-    assignmentTitle: 'Assignment 01',
-    status: 'reviewed',
-  ),
-  GradebookRow(
-    submissionId: 3,
-    studentId: 10,
-    studentName: 'Student A',
-    assignmentTitle: 'Assignment 02',
-    status: 'reviewed',
+    submission: submissionsOf[2]![0],
+    assignmentTitle: 'Даалгавар 2',
   ),
 ];
 
@@ -178,87 +214,113 @@ void main() {
   });
 
   group('student list', () {
-    testWidgets('with no confirmed source, says so and invents no student', (
-      tester,
-    ) async {
+    Future<FakeTeacherGradebookRepository> pumpList(
+      WidgetTester tester, [
+      FakeTeacherGradebookRepository? repository,
+    ]) async {
+      final repo = repository ?? classRepository();
       await pump(
         tester,
-        GradebookClassScreen(
-          teacherClass: sampleClass(),
-          repository: FakeTeacherGradebookRepository(),
-        ),
+        GradebookClassScreen(teacherClass: sampleClass(), repository: repo),
       );
+      return repo;
+    }
 
-      for (final label in [
-        TeacherGradebookStrings.filterAll,
-        TeacherGradebookStrings.filterPending,
-        TeacherGradebookStrings.filterGraded,
-      ]) {
-        expect(find.text(label), findsOneWidget);
-      }
-      expect(
-        find.text(TeacherGradebookStrings.studentsUnavailable),
-        findsOneWidget,
-      );
+    testWidgets('lists every submission of every assignment, newest first, '
+        'from the class\'s own data', (tester) async {
+      final repository = await pumpList(tester);
+
+      expect(repository.assignmentCalls, [2]);
+      expect(repository.submissionListCalls, unorderedEquals([2, 3]));
+      final labels = [
+        for (final card in tester.widgetList<GradebookRowCard>(
+          find.byType(GradebookRowCard),
+        ))
+          '${card.row.studentName}, ${card.row.assignmentTitle}',
+      ];
+      expect(labels, [
+        'Student A, Assignment 3',
+        'Student B, Даалгавар 2',
+        'Student A, Даалгавар 2',
+      ]);
+      // The confirmed initials stand in for a photo.
+      expect(find.text('ХЦ'), findsNWidgets(2));
+      expect(find.text('SB'), findsOneWidget);
+    });
+
+    testWidgets('only students who submitted appear', (tester) async {
+      final repository = classRepository()..submissionsOf = {2: [], 3: []};
+      await pumpList(tester, repository);
+
       expect(find.byType(GradebookRowCard), findsNothing);
+      expect(find.text(TeacherGradebookStrings.noRows), findsOneWidget);
     });
 
     testWidgets('the filters keep submitted under Хүлээгдэж буй and reviewed '
         'under Дүгнэгдсэн', (tester) async {
-      await pump(
-        tester,
-        GradebookClassScreen(
-          teacherClass: sampleClass(),
-          repository: FakeTeacherGradebookRepository(),
-          rows: rows,
-        ),
-      );
+      await pumpList(tester);
       expect(find.byType(GradebookRowCard), findsNWidgets(3));
 
       await tapChip(tester, TeacherGradebookStrings.filterPending);
-      expect(find.byType(GradebookRowCard), findsOneWidget);
-      expect(find.bySemanticsLabel('Student A, Assignment 01'), findsOneWidget);
+      expect(find.byType(GradebookRowCard), findsNWidgets(2));
+      expect(find.bySemanticsLabel('Student A, Даалгавар 2'), findsNothing);
 
       await tapChip(tester, TeacherGradebookStrings.filterGraded);
-      expect(find.byType(GradebookRowCard), findsNWidgets(2));
-      expect(find.bySemanticsLabel('Student A, Assignment 01'), findsNothing);
+      expect(find.byType(GradebookRowCard), findsOneWidget);
+      expect(find.bySemanticsLabel('Student A, Даалгавар 2'), findsOneWidget);
 
       await tapChip(tester, TeacherGradebookStrings.filterAll);
       expect(find.byType(GradebookRowCard), findsNWidgets(3));
     });
 
     testWidgets('a filter with nothing under it says so', (tester) async {
-      await pump(
-        tester,
-        GradebookClassScreen(
-          teacherClass: sampleClass(),
-          repository: FakeTeacherGradebookRepository(),
-          rows: [rows[1]],
-        ),
-      );
+      final repository = classRepository()
+        ..submissionsOf = {
+          2: [submissionsOf[2]![0]],
+        };
+      await pumpList(tester, repository);
       await tapChip(tester, TeacherGradebookStrings.filterPending);
       expect(find.text(TeacherGradebookStrings.noRows), findsOneWidget);
+    });
+
+    testWidgets('a failure shows its message, and retry loads again', (
+      tester,
+    ) async {
+      final repository = classRepository()
+        ..failure = const TeacherFailure(TeacherFailureKind.server);
+      await pumpList(tester, repository);
+      expect(find.text(HomeStrings.serverError), findsOneWidget);
+
+      repository.failure = null;
+      await tester.tap(find.text(TeacherHomeStrings.retry));
+      await tester.pumpAndSettle();
+      expect(find.byType(GradebookRowCard), findsNWidgets(3));
+    });
+
+    testWidgets('pull to refresh asks again', (tester) async {
+      final repository = await pumpList(tester);
+      await tester.fling(
+        find.byType(GradebookRowCard).first,
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pumpAndSettle();
+      expect(repository.assignmentCalls, [2, 2]);
     });
 
     testWidgets('a tap on a student opens them, with their own submissions', (
       tester,
     ) async {
-      await pump(
-        tester,
-        GradebookClassScreen(
-          teacherClass: sampleClass(),
-          repository: FakeTeacherGradebookRepository(),
-          rows: rows,
-        ),
-      );
-      await tester.tap(find.bySemanticsLabel('Student A, Assignment 01'));
+      await pumpList(tester);
+      await tester.tap(find.bySemanticsLabel('Student A, Даалгавар 2'));
       await tester.pumpAndSettle();
 
       final screen = tester.widget<GradebookStudentScreen>(
         find.byType(GradebookStudentScreen),
       );
-      expect(screen.student.studentId, 10);
-      expect([for (final s in screen.submissions) s.submissionId], [1, 3]);
+      expect(screen.student.studentId, 13);
+      expect(screen.student.assignmentTitle, 'Даалгавар 2');
+      expect([for (final s in screen.submissions) s.submissionId], [30, 18]);
     });
   });
 
@@ -266,15 +328,16 @@ void main() {
     Widget detail(FakeTeacherGradebookRepository repository) =>
         GradebookStudentScreen(
           courseTitle: 'AI Engineer',
-          student: rows[0],
-          submissions: [rows[0], rows[2]],
+          student: studentRows[1],
+          submissions: studentRows,
           repository: repository,
         );
 
     testWidgets('draws the student and no invented figure', (tester) async {
-      await pump(tester, detail(FakeTeacherGradebookRepository()));
+      await pump(tester, detail(classRepository()));
 
       expect(find.text('AI Engineer'), findsOneWidget);
+      expect(find.text('ХЦ'), findsOneWidget);
       expect(find.text(TeacherGradebookStrings.attendance), findsOneWidget);
       expect(find.text(TeacherGradebookStrings.examScore), findsOneWidget);
       expect(find.text(TeacherGradebookStrings.noFigure), findsNWidgets(2));
@@ -283,17 +346,13 @@ void main() {
     });
 
     testWidgets('a tap on a submission opens it', (tester) async {
-      final repository = FakeTeacherGradebookRepository(
-        submissions: {
-          3: const TeacherSubmission(id: 3, status: 'reviewed', score: 90),
-        },
-      );
+      final repository = classRepository();
       await pump(tester, detail(repository));
-      await tester.tap(find.bySemanticsLabel('Student A, Assignment 02'));
+      await tester.tap(find.bySemanticsLabel('Student A, Assignment 3'));
       await tester.pumpAndSettle();
 
       expect(find.byType(GradebookSubmissionScreen), findsOneWidget);
-      expect(repository.submissionCalls, [3]);
+      expect(repository.submissionCalls, [30]);
     });
   });
 
@@ -333,6 +392,54 @@ void main() {
         find.text(TeacherGradebookStrings.contentUnavailable),
         findsOneWidget,
       );
+    });
+
+    testWidgets('draws the submitted link and description from its data, '
+        'and opens the link', (tester) async {
+      final opened = <Uri>[];
+      final repository = classRepository();
+      await pump(
+        tester,
+        GradebookSubmissionScreen(
+          courseTitle: 'AI Engineer',
+          submissionId: 18,
+          repository: repository,
+          openUrl: (url) async {
+            opened.add(url);
+            return true;
+          },
+        ),
+      );
+
+      expect(find.text('https://github.com/example/hw-2'), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.description), findsOneWidget);
+      expect(find.text('Засварласан хувилбар.'), findsOneWidget);
+      expect(find.text('Оноо: 80'), findsOneWidget);
+      expect(find.text('Validation хэсэг дутуу байна.'), findsOneWidget);
+      expect(
+        find.text(TeacherGradebookStrings.contentUnavailable),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('https://github.com/example/hw-2'));
+      await tester.pumpAndSettle();
+      expect(opened, [Uri.parse('https://github.com/example/hw-2')]);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('a link the OS will not open says so', (tester) async {
+      await pump(
+        tester,
+        GradebookSubmissionScreen(
+          courseTitle: 'AI Engineer',
+          submissionId: 18,
+          repository: classRepository(),
+          openUrl: (_) async => false,
+        ),
+      );
+      await tester.tap(find.text('https://github.com/example/hw-2'));
+      await tester.pumpAndSettle();
+      expect(find.text(HomeStrings.unexpectedError), findsOneWidget);
     });
 
     testWidgets('a pending submission shows no score or feedback', (

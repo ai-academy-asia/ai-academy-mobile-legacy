@@ -17,8 +17,8 @@ import 'widgets/gradebook_widgets.dart';
 /// exam or assessment result (BACKEND GAP), and a per-student attendance
 /// figure has no defined rule — the reference's "1/20 · 10%" does not say
 /// what 20 counts (PRODUCT DECISION; the per-session attendance read would
-/// also need one request per session). Reached only from a
-/// [GradebookClassScreen] row, which no confirmed source fills yet.
+/// also need one request per session). Reached from a [GradebookClassScreen]
+/// row: the student, the assignment and the submissions are real.
 class GradebookStudentScreen extends StatelessWidget {
   const GradebookStudentScreen({
     required this.courseTitle,
@@ -59,7 +59,7 @@ class GradebookStudentScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const GradebookAvatar(),
+                      GradebookAvatar(initials: student.initials),
                       const SizedBox(width: 16),
                       Expanded(
                         child: GradebookIdentity(

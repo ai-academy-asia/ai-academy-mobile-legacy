@@ -12,6 +12,13 @@ import 'teacher_submission.dart';
 /// confirmed shape.
 abstract interface class TeacherGradebookRepository
     implements TeacherHomeRepository {
+  /// The class's assignments — `GET /teacher/cohorts/{cohort_id}/assignments`.
+  Future<List<TeacherAssignment>> getAssignments(int cohortId);
+
+  /// The latest submission of each student who submitted —
+  /// `GET /teacher/assignments/{assignment_id}/submissions`.
+  Future<List<TeacherSubmission>> getSubmissions(int assignmentId);
+
   /// One submission — `GET /teacher/submissions/{submission_id}`.
   Future<TeacherSubmission> getSubmission(int submissionId);
 }

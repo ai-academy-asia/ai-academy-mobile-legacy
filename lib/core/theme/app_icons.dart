@@ -105,6 +105,10 @@ abstract final class AppIcons {
   /// stylesheet, rendered from this font beside the reference's caret.
   static const IconData caretDown = IconData(0xe136, fontFamily: _family);
 
+  /// A submitted link on Teacher Gradebook (Issue #233) — Phosphor "Link",
+  /// rendered from this font beside the `feedback` reference's glyph.
+  static const IconData link = IconData(0xe2e2, fontFamily: _family);
+
   // --- Manager contact sheet (Issue #186) --------------------------------
   //
   // Phosphor's own "Regular" codepoints (`phosphor_flutter` 2.1.0's

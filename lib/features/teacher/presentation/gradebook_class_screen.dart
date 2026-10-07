@@ -2,44 +2,58 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/app_button.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_gradebook_repository.dart';
 import '../domain/teacher_submission.dart';
+import 'gradebook_class_controller.dart';
 import 'gradebook_student_screen.dart';
 import 'teacher_gradebook_strings.dart';
+import 'teacher_home_strings.dart';
 import 'widgets/gradebook_widgets.dart';
 
 /// A class's student list (Issue #233), built against the
 /// `angiin-students-list` reference: the course title over the Бүгд /
-/// Хүлээгдэж буй / Дүгнэгдсэн filters and one card per student's
-/// submission; a tap opens the student.
+/// Хүлээгдэж буй / Дүгнэгдсэн filters and one card per submitted
+/// assignment — the student's initials, name and the assignment's title; a
+/// tap opens the student.
 ///
-/// The filters read the confirmed submission `status` ([matchesFilter]).
-///
-/// **Blocked by a BACKEND GAP.** No verified response lists a class's
-/// students (`GET /teacher/cohorts/{id}/students`), its assignments
-/// (`GET /teacher/cohorts/{id}/assignments`) or a submission row's student
-/// name, assignment title and status (`GET /teacher/assignments/{id}/
-/// submissions`). With no [rows] — the only case the app has — the list
-/// says so instead of drawing invented students.
+/// The rows are real submissions ([GradebookClassController]); the filters
+/// read their confirmed `status` ([matchesFilter]). Spinner, empty line,
+/// error + retry and pull-to-refresh follow the Gradebook tab.
 class GradebookClassScreen extends StatefulWidget {
   const GradebookClassScreen({
     required this.teacherClass,
     required this.repository,
     super.key,
-    this.rows = const [],
   });
 
   final TeacherClass teacherClass;
   final TeacherGradebookRepository repository;
-  final List<GradebookRow> rows;
 
   @override
   State<GradebookClassScreen> createState() => _GradebookClassScreenState();
 }
 
 class _GradebookClassScreenState extends State<GradebookClassScreen> {
+  late final GradebookClassController _controller;
   GradebookFilter _filter = GradebookFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = GradebookClassController(
+      repository: widget.repository,
+      cohortId: widget.teacherClass.cohort.id,
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   String get _courseTitle {
     final course = widget.teacherClass.cohort.course;
@@ -53,7 +67,7 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
           courseTitle: _courseTitle,
           student: row,
           submissions: [
-            for (final r in widget.rows)
+            for (final r in _controller.rows ?? const <GradebookRow>[])
               if (r.studentId == row.studentId) r,
           ],
           repository: widget.repository,
@@ -64,11 +78,6 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final visible = [
-      for (final row in widget.rows)
-        if (matchesFilter(row.status, _filter)) row,
-    ];
-
     return Scaffold(
       backgroundColor: AppColors.surfaceSubtle,
       body: Column(
@@ -81,34 +90,78 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
             onChanged: (filter) => setState(() => _filter = filter),
           ),
           Expanded(
-            child: widget.rows.isEmpty
-                ? const Align(
-                    alignment: Alignment.topCenter,
-                    child: GradebookNotice(
-                      TeacherGradebookStrings.studentsUnavailable,
-                    ),
-                  )
-                : visible.isEmpty
-                ? const Align(
-                    alignment: Alignment.topCenter,
-                    child: GradebookNotice(TeacherGradebookStrings.noRows),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.screenPadding,
-                      16,
-                      AppDimens.screenPadding,
-                      24,
-                    ),
-                    itemCount: visible.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 16),
-                    itemBuilder: (_, index) => GradebookRowCard(
-                      row: visible[index],
-                      onTap: () => _open(visible[index]),
-                    ),
-                  ),
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) => _buildBody(),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    final rows = _controller.rows;
+
+    if (_controller.errorMessage case final message?) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.screenPadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message,
+                style: AppTypography.cardSupporting,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              AppButton(
+                label: TeacherHomeStrings.retry,
+                variant: AppButtonVariant.outlined,
+                onPressed: _controller.load,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (rows == null) {
+      return const Center(
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: AppColors.blue,
+          ),
+        ),
+      );
+    }
+
+    final visible = filterRows(rows, _filter);
+    return RefreshIndicator(
+      onRefresh: _controller.load,
+      color: AppColors.blue,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.screenPadding,
+          16,
+          AppDimens.screenPadding,
+          24,
+        ),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: visible.isEmpty ? 1 : visible.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 16),
+        itemBuilder: (_, index) => visible.isEmpty
+            ? const GradebookNotice(TeacherGradebookStrings.noRows)
+            : GradebookRowCard(
+                row: visible[index],
+                onTap: () => _open(visible[index]),
+              ),
       ),
     );
   }

@@ -49,7 +49,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Home | `/home` | bottom nav | composed (real) |
 | Teacher Home | `/teacher-home` | teacher bottom nav (four tabs, Профайл inert; 10pt labels per its reference) | `teacher` — `GET /teachers/{actor_id}/schedule` (real) |
 | Teacher Schedule | `/teacher-schedule` | blue date header + week strip; teacher bottom nav, Хуваарь selected | `teacher` — schedule + `GET /teacher/cohorts/{id}/sessions`, sheets read `GET /teacher/sessions/{id}/attendance` (real) |
-| Teacher Gradebook | `/teacher-gradebook` (student list, student detail, submission detail pushed on top, no bottom nav) | white title band + rule; teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule (real), `GET /teacher/submissions/{id}` (real); student list `BACKEND GAP` |
+| Teacher Gradebook | `/teacher-gradebook` (student list, student detail, submission detail pushed on top, no bottom nav) | white title band + rule; teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
 | Cohort List | `/my-cohorts`, `/cohorts` | bottom nav | `cohorts` + `enrollments` (real) |
 | Profile | `/profile` | bottom nav | `auth` current user (real) |
 | Course Catalog | `/courses` | — | `courses` (real) |

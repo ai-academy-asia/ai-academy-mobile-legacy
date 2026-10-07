@@ -15,13 +15,8 @@ abstract final class TeacherGradebookStrings {
   static const String filterPending = 'Хүлээгдэж буй';
   static const String filterGraded = 'Дүгнэгдсэн';
 
-  /// What the student list shows in place of rows: no verified response
-  /// lists a class's students or their submissions (BACKEND GAP). Not drawn
-  /// by the reference — PRODUCT DECISION on the final wording.
-  static const String studentsUnavailable =
-      'Сурагчдын даалгаврын мэдээлэл удахгүй нэмэгдэнэ';
-
-  /// A filter with no row under it.
+  /// No submission under the selected filter — or none in the class. Not
+  /// drawn by the reference.
   static const String noRows = 'Одоогоор даалгавар алга байна';
 
   // --- Student detail -----------------------------------------------------
@@ -42,11 +37,15 @@ abstract final class TeacherGradebookStrings {
   static String score(num score) =>
       'Оноо: ${score == score.roundToDouble() ? score.toInt() : score}';
 
-  /// In place of the submitted file / link and its description: no
-  /// confirmed field carries them (BACKEND GAP). PRODUCT DECISION on the
-  /// wording.
+  /// The outlined box around the student's description, as the reference
+  /// labels it.
+  static const String description = 'Тайлбар';
+
+  /// A submission with neither a link nor a description. Its `file` is not
+  /// read: its download is not verified (BACKEND GAP). PRODUCT DECISION on
+  /// the wording.
   static const String contentUnavailable =
-      'Илгээсэн файл болон тайлбар одоогоор харагдахгүй байна';
+      'Илгээсэн файл одоогоор харагдахгүй байна';
 
   /// The Note tab: no teacher note endpoint exists (BACKEND GAP).
   static const String noteUnavailable = 'Тэмдэглэл одоогоор боломжгүй байна';

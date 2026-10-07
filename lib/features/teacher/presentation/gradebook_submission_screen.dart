@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/open_external_url.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../home/presentation/home_strings.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import '../domain/teacher_failure.dart';
 import '../domain/teacher_gradebook_repository.dart';
@@ -17,12 +20,13 @@ import 'widgets/teacher_pill_button.dart';
 /// reference: a card with the Assignment / Note tabs, and Mentor Feedback
 /// at the foot of the screen.
 ///
-/// The submission is the real `GET /teacher/submissions/{id}`. Of what it
-/// confirms, the Assignment tab draws the status and, once reviewed, the
-/// score and the feedback — the feedback in the reference's outlined,
-/// labelled box. The reference's file link and "Тайлбар" text have no
-/// confirmed field (BACKEND GAP), so a line says they are not available.
-/// The Note tab has no teacher endpoint (BACKEND GAP).
+/// The submission is the real `GET /teacher/submissions/{id}`. The
+/// Assignment tab draws its `link` (opened outside the app, as course
+/// materials are) and its `description` in the reference's outlined
+/// "Тайлбар" box, then its status and, once reviewed, the score and the
+/// feedback message in the same box. Its `file` is not drawn: the download
+/// (`/file`) is not verified (BACKEND GAP). The Note tab has no teacher
+/// endpoint (BACKEND GAP).
 ///
 /// **Mentor Feedback is inert.** `POST /teacher/submissions/{id}/review`'s
 /// request (`{score, feedback}`) is confirmed, but its success and error
@@ -33,11 +37,16 @@ class GradebookSubmissionScreen extends StatefulWidget {
     required this.submissionId,
     required this.repository,
     super.key,
+    this.openUrl,
   });
 
   final String courseTitle;
   final int submissionId;
   final TeacherGradebookRepository repository;
+
+  /// Opens the submitted link — `openExternalUrl` unless a test injects one,
+  /// as tests must not reach the platform.
+  final Future<bool> Function(Uri url)? openUrl;
 
   @override
   State<GradebookSubmissionScreen> createState() =>
@@ -77,6 +86,17 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _openLink(String link) async {
+    final url = Uri.tryParse(link);
+    final opened =
+        url != null && await (widget.openUrl ?? openExternalUrl)(url);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(HomeStrings.unexpectedError)),
+      );
     }
   }
 
@@ -182,7 +202,10 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
               Padding(
                 padding: const EdgeInsets.all(AppDimens.cardPadding),
                 child: _tab == 0
-                    ? _AssignmentTab(submission: submission)
+                    ? _AssignmentTab(
+                        submission: submission,
+                        onOpenLink: _openLink,
+                      )
                     : const Text(
                         TeacherGradebookStrings.noteUnavailable,
                         style: AppTypography.cardSupporting,
@@ -254,23 +277,65 @@ class _Tabs extends StatelessWidget {
 }
 
 class _AssignmentTab extends StatelessWidget {
-  const _AssignmentTab({required this.submission});
+  const _AssignmentTab({required this.submission, required this.onOpenLink});
 
   final TeacherSubmission submission;
+  final ValueChanged<String> onOpenLink;
 
   @override
   Widget build(BuildContext context) {
     final score = submission.score;
     final feedback = submission.feedback;
+    final link = submission.link;
+    final description = submission.description;
+    final hasLink = link != null && link.isNotEmpty;
+    final hasDescription = description != null && description.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          TeacherGradebookStrings.contentUnavailable,
-          style: AppTypography.cardSupporting,
-        ),
-        const SizedBox(height: 16),
+        if (hasLink)
+          Semantics(
+            link: true,
+            label: link,
+            excludeSemantics: true,
+            child: GestureDetector(
+              onTap: () => onOpenLink(link),
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                children: [
+                  const Icon(
+                    AppIcons.link,
+                    size: 20,
+                    color: GradebookColors.link,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      link,
+                      style: _linkStyle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (hasDescription)
+          Padding(
+            padding: EdgeInsets.only(top: hasLink ? 24 : 8),
+            child: _OutlinedBox(
+              label: TeacherGradebookStrings.description,
+              text: description,
+            ),
+          ),
+        if (!hasLink && !hasDescription)
+          Text(
+            TeacherGradebookStrings.contentUnavailable,
+            style: AppTypography.cardSupporting,
+          ),
+        const SizedBox(height: 20),
         Row(
           children: [
             _StatusCapsule(submission: submission),
@@ -282,21 +347,38 @@ class _AssignmentTab extends StatelessWidget {
         ),
         if (submission.isReviewed && feedback != null && feedback.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: InputDecorator(
-              isEmpty: false,
-              decoration: InputDecoration(
-                labelText: TeacherGradebookStrings.mentorFeedback,
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-                labelStyle: _boxLabel,
-                contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                border: _boxBorder,
-                enabledBorder: _boxBorder,
-              ),
-              child: Text(feedback, style: _boxText),
+            padding: const EdgeInsets.only(top: 24),
+            child: _OutlinedBox(
+              label: TeacherGradebookStrings.mentorFeedback,
+              text: feedback,
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The reference's outlined box with its label on the outline — the
+/// student's "Тайлбар", and the review's feedback.
+class _OutlinedBox extends StatelessWidget {
+  const _OutlinedBox({required this.label, required this.text});
+
+  final String label;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputDecorator(
+      isEmpty: false,
+      decoration: InputDecoration(
+        labelText: label,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelStyle: _boxLabel,
+        contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        border: _boxBorder,
+        enabledBorder: _boxBorder,
+      ),
+      child: Text(text, style: _boxText),
     );
   }
 }
@@ -357,6 +439,15 @@ final TextStyle _tabStyle = AppTypography.cardSupporting.copyWith(
   height: 22 / 16,
   fontWeight: FontWeight.w400,
   color: TeacherPillColors.ink,
+);
+
+final TextStyle _linkStyle = AppTypography.cardSupporting.copyWith(
+  fontSize: 16,
+  height: 22 / 16,
+  fontWeight: FontWeight.w500,
+  color: GradebookColors.link,
+  decoration: TextDecoration.underline,
+  decorationColor: GradebookColors.link,
 );
 
 final TextStyle _scoreStyle = AppTypography.programTitle.copyWith(
