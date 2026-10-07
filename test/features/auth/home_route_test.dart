@@ -11,10 +11,14 @@ void main() {
     expect(homeRouteFor(UserType.adult), HomeRoutes.adult);
   });
 
-  test('teacher, staff and unknown keep the pre-user_type landing', () {
-    // No teacher or staff mobile experience exists; sign-in always went to
-    // `/home`, and still does for these.
-    for (final type in [UserType.teacher, UserType.staff, UserType.unknown]) {
+  test('a teacher lands on Teacher Home', () {
+    expect(homeRouteFor(UserType.teacher), HomeRoutes.teacher);
+  });
+
+  test('staff and unknown keep the pre-user_type landing', () {
+    // No staff mobile experience exists; sign-in always went to `/home`, and
+    // still does for these.
+    for (final type in [UserType.staff, UserType.unknown]) {
       expect(homeRouteFor(type), '/home', reason: type.name);
     }
   });

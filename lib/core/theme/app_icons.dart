@@ -81,6 +81,25 @@ abstract final class AppIcons {
   /// The attendance action's leading glyph — Phosphor "QrCode".
   static const IconData qrCode = IconData(0xe3e6, fontFamily: _family);
 
+  // --- Teacher Home (Issue #229) ------------------------------------------
+  //
+  // Same standard: codepoints from Phosphor's "Regular" stylesheet
+  // (`@phosphor-icons/web` 2.1.1, whose `house`, `qr-code`, `caret-left` and
+  // `check` match the codepoints above), each rendered from this bundled
+  // font beside the reference's own glyph.
+
+  /// "Хуваарь" (Schedule) tab — Phosphor "Calendar" (the "12" page).
+  static const IconData calendar = IconData(0xe108, fontFamily: _family);
+
+  /// "Дүнгийн хуудас" (Gradebook) tab — Phosphor "Exam" (the "A+" sheet).
+  static const IconData exam = IconData(0xe742, fontFamily: _family);
+
+  /// A class's room — Phosphor "MapPin".
+  static const IconData mapPin = IconData(0xe316, fontFamily: _family);
+
+  /// A class's time — Phosphor "Clock".
+  static const IconData clock = IconData(0xe19a, fontFamily: _family);
+
   // --- Manager contact sheet (Issue #186) --------------------------------
   //
   // Phosphor's own "Regular" codepoints (`phosphor_flutter` 2.1.0's

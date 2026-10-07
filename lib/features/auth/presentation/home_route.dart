@@ -9,18 +9,19 @@ import 'reset_password_strings.dart';
 /// live session already held (`SplashScreen`) go through here, and through
 /// [openSignedIn], so the two cannot disagree.
 ///
-/// Only `child` has an experience of its own. Everything else lands where
-/// sign-in always has:
+/// `child` and `teacher` have experiences of their own: Junior Home, and
+/// Teacher Home (Issue #229) — a teacher's token is refused by the student
+/// dashboard's `GET /me/cohorts` (`403 forbidden`, confirmed live), so a
+/// teacher must never land there. Everything else lands where sign-in always
+/// has:
 ///
-///   * `teacher` — there is no teacher mobile experience yet, so this keeps
-///     today's behaviour (`/home`) rather than inventing one.
-///   * `staff` — back-office, "not a mobile user" per the API index; also
-///     today's behaviour, not a new screen.
+///   * `staff` — back-office, "not a mobile user" per the API index; today's
+///     behaviour, not a new screen.
 ///   * `unknown` — a response without `user_type`; also today's behaviour.
 String homeRouteFor(UserType userType) => switch (userType) {
   UserType.child => HomeRoutes.junior,
+  UserType.teacher => HomeRoutes.teacher,
   UserType.adult ||
-  UserType.teacher ||
   UserType.staff ||
   UserType.unknown => HomeRoutes.adult,
 };
@@ -74,4 +75,7 @@ abstract final class HomeRoutes {
 
   /// Home for a student in kids mode — `JuniorHomeScreen`.
   static const String junior = '/junior-home';
+
+  /// Home for a teacher — `TeacherHomeScreen` (Issue #229).
+  static const String teacher = '/teacher-home';
 }

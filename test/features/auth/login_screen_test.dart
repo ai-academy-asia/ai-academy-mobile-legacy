@@ -722,6 +722,7 @@ void main() {
             ),
             HomeRoutes.adult: (_) => const Text('adult home'),
             HomeRoutes.junior: (_) => const Text('junior home'),
+            HomeRoutes.teacher: (_) => const Text('teacher home'),
           },
         ),
       );
@@ -749,7 +750,15 @@ void main() {
       expect(find.byType(LoginScreen), findsNothing);
     });
 
-    for (final type in [UserType.teacher, UserType.staff, UserType.unknown]) {
+    testWidgets('teacher lands on Teacher Home', (tester) async {
+      await signInAs(tester, UserType.teacher);
+
+      expect(find.text('teacher home'), findsOneWidget);
+      expect(find.text('adult home'), findsNothing);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    for (final type in [UserType.staff, UserType.unknown]) {
       testWidgets('${type.name} keeps the existing /home landing', (
         tester,
       ) async {
