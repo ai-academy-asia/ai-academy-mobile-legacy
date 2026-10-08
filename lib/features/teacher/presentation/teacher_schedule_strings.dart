@@ -26,7 +26,7 @@ abstract final class TeacherScheduleStrings {
   static const String pickDate = 'Огноо сонгох';
 
   /// Accessibility label for the header's bell, the student Home's own. It
-  /// opens nothing yet: there is no notifications screen.
+  /// opens the shared Notification Center (Issue #246).
   static const String notifications = HomeStrings.notifications;
 
   /// No session in the week. Not drawn by the reference — Teacher Home's

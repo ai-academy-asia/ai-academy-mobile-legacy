@@ -4,6 +4,7 @@ import '../data/http_auth_repository.dart';
 import '../data/session_refresher.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session_store.dart';
+import '../../notifications/presentation/notification_center.dart';
 
 /// `AiAcademyApp`'s sign-in route, which [signOutToLogin] lands on.
 const String loginRoute = '/login';
@@ -44,6 +45,8 @@ Future<void> signOutToLogin(
   }
 
   store.clear();
+  // The next account must never see this one's notifications (Issue #246).
+  NotificationCenter.instance.reset();
   returnToLogin(navigator);
 }
 
@@ -62,6 +65,7 @@ void returnToLoginWhenSessionEnds(
   GlobalKey<NavigatorState> navigatorKey,
 ) {
   refresher.onSessionEnded = () {
+    NotificationCenter.instance.reset();
     final navigator = navigatorKey.currentState;
     if (navigator != null) returnToLogin(navigator);
   };

@@ -88,9 +88,9 @@ Student-facing endpoints confirmed by a request in the Postman collection (`post
 | GET | `/me/certificates/{cert_number}/download` | Bearer | documented: contract §2.9, `{"url", "expires_at"}`, pre-signed; not yet verified live | **integrated** (Issue #155): `getCertificateDownload`, fetched fresh per tap and opened with `openExternalUrl` |
 | GET | `/certificates/verify/{cert_number}` | no auth | not yet verified | not integrated |
 | POST | `/me/attendance/check-in` | Bearer; `{"token"}` | not yet verified (see §1.1) | not integrated: the scanner is UI only (Issue #202) |
-| GET | `/me/notifications` | Bearer; `?limit=` | documented: carries `unread_count`; the rest is not yet verified | not integrated |
-| POST | `/me/notifications/{notification_id}/read` | Bearer, no body | not yet verified | not integrated |
-| POST | `/me/notifications/read-all` | Bearer, no body | not yet verified | not integrated |
+| GET | `/me/notifications` | Bearer; `?limit=` | **verified live** (Phase 0, adult student, Issue #246): `{"notifications": [{id int, title str, body str, kind str (`general`, `assignment` seen), created_at ISO-8601, read_at ISO-8601\|null, data object\|null (`assignment`: `{"assignment_id": int}`)}], "unread_count": int}`; `read_at == null` is unread; only `limit` — no cursor/page/has_more | **integrated** (Issue #246): `HttpNotificationRepository.getNotifications`, latest 30; a malformed item is skipped and reported |
+| POST | `/me/notifications/{notification_id}/read` | Bearer, no body | **verified live**: the notification with `read_at` set, and `unread_count`; idempotent on an already-read id; unknown id → `404 {"error": "notification_not_found"}`. Whether the item is wrapped or flat beside `unread_count` is `UNKNOWN` — both are read | **integrated** (Issue #246): `markRead` |
+| POST | `/me/notifications/read-all` | Bearer, no body | **verified live**: `{"unread_count": 0, "updated": n}`; idempotent | **integrated** in the data/controller layers (Issue #246): `markAllRead`; no screen control — none in the Figma (`PRODUCT DECISION`) |
 | POST | `/me/push-tokens` | Bearer; `{"token", "platform"}` (`ios`/`android`/`web`) | not yet verified | not integrated. `mobile_api_v1_1.md` §9: push delivery is not active yet |
 | DELETE | `/me/push-tokens` | Bearer; `{"token"}` | not yet verified | not integrated |
 | POST | `/payments/invoices` | Bearer; `{"provider", "enrollment_id", "amount", "description"}`, `provider` one of `qpay`/`storepay`/`golomt` | not yet verified | not integrated: the payment flow UI runs on fixtures (§10) |

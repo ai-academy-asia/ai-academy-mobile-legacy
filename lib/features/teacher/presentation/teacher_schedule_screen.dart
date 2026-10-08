@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/home_strings.dart';
 import '../../home/presentation/widgets/home_palette.dart';
+import '../../notifications/presentation/notification_screen.dart';
 import '../data/http_teacher_schedule_repository.dart';
 import '../domain/teacher_schedule_repository.dart';
 import '../domain/teacher_session.dart';
@@ -218,17 +219,25 @@ class _Header extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
+                // Opens the shared Notification Center (Issue #246). Drawn as
+                // the reference draws it, white on the blue header, with no
+                // unread dot: no frame shows one here (Teacher Home's bell
+                // carries it).
                 Semantics(
                   button: true,
-                  enabled: false,
                   label: TeacherScheduleStrings.notifications,
-                  child: SvgPicture.asset(
-                    HomeIcons.notification,
-                    width: 20,
-                    height: 20,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.onPrimary,
-                      BlendMode.srcIn,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () => NotificationScreen.open(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: SvgPicture.asset(
+                      HomeIcons.notification,
+                      width: 20,
+                      height: 20,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.onPrimary,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),
