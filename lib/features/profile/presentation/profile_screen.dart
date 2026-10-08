@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -17,53 +16,23 @@ import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
+import 'widgets/profile_parts.dart';
+
+export 'widgets/profile_parts.dart' show captionStyle, rowLabelStyle;
 
 // Measured off the Figma "Adults - Profile" frame at 1:1 (393 wide, a 44pt
-// status-bar inset). Where the frame shares a component with the Junior
-// Profile frame, the values match `JuniorProfileScreen`'s own measurements —
-// the two frames are drawn from the same parts.
+// status-bar inset). The parts it shares with the Teacher Profile frame —
+// header, hero, caption bands, rows, MN/EN control, switch and log-out pill —
+// live in `widgets/profile_parts.dart` (Issue #243); only this frame's own
+// measurements are here.
 
-/// The white header under the status bar, down to its rule.
-const double _headerHeight = 63;
-
-/// The hero band: the avatar 32 below the rule above it, 31 above the one
-/// under it, and the edit control centred on the same line.
-const double _avatarSize = 72;
-const double _heroTop = 32;
-const double _heroBottom = 31;
+/// The name's gap to the avatar, and the edit control centred on the hero.
 const double _avatarToName = 11;
 const double _editSize = 48;
 
 /// The edit glyph's box — the exported SVG's own 20, whose pencil inks the
 /// frame's 16.
 const double _editGlyph = 20;
-
-/// A settings row, and the caption band above each group — the caption's
-/// line 16 below the band's top.
-const double _rowHeight = 55;
-const double _captionBand = 40;
-const double _captionTop = 16;
-
-/// The contact rows, which the frame runs without rules between them.
-const double _contactRowHeight = 56;
-
-/// A row's icon box and its gap to the label — 8 on this frame, a point
-/// tighter than the junior frame's 9.
-const double _rowIcon = 20;
-const double _iconToLabel = 8;
-
-/// The MN/EN control — see [_LanguageToggle].
-const double _toggleHeight = 35;
-const double _toggleInset = 4;
-const double _capsuleWidth = 44;
-const double _otherSegmentWidth = 41;
-const double _toggleRadius = 12;
-const double _capsuleRadius = 8;
-
-/// The footer: Log out 32 below the last contact row, and 32 of page under
-/// it. The frame's version line is not drawn — see [ProfileScreen].
-const double _contactToLogOut = 32;
-const double _bottomPadding = 32;
 
 /// The student's profile and app settings — the Figma "Adults - Profile"
 /// frame.
@@ -180,48 +149,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // White behind the status bar as well as the title, as the frame
-            // draws it.
-            ColoredBox(
-              color: AppColors.surface,
-              child: SafeArea(
-                bottom: false,
-                child: _constrained(
-                  const SizedBox(
-                    height: _headerHeight,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppDimens.screenPadding,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          ProfileStrings.heading,
-                          style: _headingStyle,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const _Rule(),
-            Expanded(child: _constrained(_buildBody())),
+            const ProfileTitleBar(title: ProfileStrings.heading),
+            const ProfileRule(),
+            Expanded(child: profileConstrained(_buildBody())),
           ],
         ),
       ),
     );
   }
-
-  /// Caps the column at [AppDimens.maxContentWidth], centred, as every other
-  /// screen does on a wide window.
-  Widget _constrained(Widget child) => Align(
-    alignment: Alignment.topCenter,
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
-      child: child,
-    ),
-  );
 
   Widget _buildBody() {
     // A `SingleChildScrollView` rather than a `ListView`: the rows are a
@@ -231,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // end. Laying all of it out gives an exact extent, so one fling reaches
     // the bottom.
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: _bottomPadding),
+      padding: const EdgeInsets.only(bottom: ProfileMetrics.bottomPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -242,48 +177,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
               name: _profile.user?.displayName ?? '',
             ),
           ),
-          const _Rule(),
+          const ProfileRule(),
 
-          const _Caption(ProfileStrings.accountSection),
-          const _Group(
+          const ProfileCaption(ProfileStrings.accountSection),
+          const ProfileGroup(
             rows: [
               // No contract status or count: no endpoint reports either.
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.eContract,
                 label: ProfileStrings.eContract,
               ),
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.certificate,
                 label: ProfileStrings.certificate,
               ),
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.transactionHistory,
                 label: ProfileStrings.transactionHistory,
               ),
             ],
           ),
 
-          const _Caption(ProfileStrings.appSettingsSection),
-          _Group(
+          const ProfileCaption(ProfileStrings.appSettingsSection),
+          ProfileGroup(
             rows: [
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.language,
                 label: ProfileStrings.language,
-                trailing: _LanguageToggle(
+                trailing: ProfileLanguageToggle(
                   english: _english,
                   onChanged: (value) => setState(() => _english = value),
                 ),
               ),
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.lightMode,
                 label: ProfileStrings.lightMode,
-                trailing: _Switch(
+                trailing: ProfileSwitch(
                   value: _lightMode,
                   onChanged: (value) => setState(() => _lightMode = value),
                   semanticLabel: ProfileStrings.lightMode,
                 ),
               ),
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.changePassword,
                 label: ProfileStrings.changePassword,
                 onTap: () => Navigator.of(context).push(
@@ -296,13 +231,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
 
-          const _Caption(ProfileStrings.notificationSection),
-          _Group(
+          const ProfileCaption(ProfileStrings.notificationSection),
+          ProfileGroup(
             rows: [
-              _Row(
+              ProfileRow(
                 icon: ProfileIcons.notification,
                 label: ProfileStrings.notification,
-                trailing: _Switch(
+                trailing: ProfileSwitch(
                   value: _notifications,
                   onChanged: (value) => setState(() => _notifications = value),
                   semanticLabel: ProfileStrings.notification,
@@ -311,20 +246,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
 
-          const _Caption(ProfileStrings.contactSection),
+          const ProfileCaption(ProfileStrings.contactSection),
           for (final (icon, label) in const [
             (ProfileIcons.helpCenter, ProfileStrings.helpCenter),
             (ProfileIcons.termsOfService, ProfileStrings.termsOfService),
             (ProfileIcons.privacyPolicy, ProfileStrings.privacyPolicy),
           ])
-            _Row(icon: icon, label: label, height: _contactRowHeight),
+            ProfileRow(
+              icon: icon,
+              label: label,
+              height: ProfileMetrics.contactRowHeight,
+            ),
 
-          const SizedBox(height: _contactToLogOut),
+          const SizedBox(height: ProfileMetrics.contactToLogOut),
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.screenPadding,
             ),
-            child: _LogOutButton(onPressed: _signOut),
+            child: ProfileLogOutButton(onPressed: _signOut),
           ),
         ],
       ),
@@ -346,26 +285,13 @@ class _Header extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimens.screenPadding,
-        _heroTop,
+        ProfileMetrics.heroTop,
         AppDimens.screenPadding,
-        _heroBottom,
+        ProfileMetrics.heroBottom,
       ),
       child: Row(
         children: [
-          Container(
-            width: _avatarSize,
-            height: _avatarSize,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
-              shape: BoxShape.circle,
-              border: Border.all(color: HomePalette.border),
-            ),
-            child: const Icon(
-              Icons.person,
-              size: 36,
-              color: AppColors.textSecondary,
-            ),
-          ),
+          const ProfileAvatar(),
           const SizedBox(width: _avatarToName),
           Expanded(
             child: Column(
@@ -374,7 +300,7 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: _nameStyle,
+                  style: profileNameStyle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -418,353 +344,3 @@ class _EditButton extends StatelessWidget {
     );
   }
 }
-
-/// A grey caption naming the group under it.
-class _Caption extends StatelessWidget {
-  const _Caption(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _captionBand,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.screenPadding,
-          _captionTop,
-          AppDimens.screenPadding,
-          0,
-        ),
-        child: Text(label, style: captionStyle),
-      ),
-    );
-  }
-}
-
-/// Rows with a rule after each one, the last closing the group off. No rule
-/// between a caption and its own first row: the frame runs the caption
-/// straight into the group it names.
-class _Group extends StatelessWidget {
-  const _Group({required this.rows});
-
-  final List<Widget> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final row in rows) ...[row, const _Rule()],
-      ],
-    );
-  }
-}
-
-/// One row: icon, label, and an optional trailing control. No chevron — the
-/// frame draws none on any row, including the ones that will eventually open
-/// a screen of their own.
-class _Row extends StatelessWidget {
-  const _Row({
-    required this.icon,
-    required this.label,
-    this.trailing,
-    this.onTap,
-    this.height = _rowHeight,
-  });
-
-  /// Path to the row's exported SVG — see [ProfileIcons].
-  final String icon;
-
-  final String label;
-
-  /// The row's trailing control, where the row has one.
-  final Widget? trailing;
-
-  /// Pushes the row's destination screen. `null` for every row with no
-  /// destination yet — see the class doc on [ProfileScreen].
-  final VoidCallback? onTap;
-
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    final row = SizedBox(
-      height: height,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimens.screenPadding,
-        ),
-        child: Row(
-          children: [
-            SvgPicture.asset(icon, width: _rowIcon, height: _rowIcon),
-            const SizedBox(width: _iconToLabel),
-            Expanded(
-              child: Text(
-                label,
-                style: rowLabelStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (trailing case final trailing?) ...[
-              const SizedBox(width: 12),
-              trailing,
-            ],
-          ],
-        ),
-      ),
-    );
-
-    final onTap = this.onTap;
-    if (onTap == null) return row;
-
-    return Semantics(
-      button: true,
-      label: label,
-      child: InkWell(onTap: onTap, child: row),
-    );
-  }
-}
-
-/// The MN/EN control: a blue rounded rectangle with the selected language on
-/// a white capsule inset 4 inside it — 93 x 35 overall, the capsule 44 x 27,
-/// as on the junior frame. The halves are not equal: the capsule is 44 wide
-/// and the other language centres in the 41 left over.
-class _LanguageToggle extends StatelessWidget {
-  const _LanguageToggle({required this.english, required this.onChanged});
-
-  final bool english;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: _toggleHeight,
-      padding: const EdgeInsets.all(_toggleInset),
-      decoration: BoxDecoration(
-        color: HomePalette.accent,
-        borderRadius: BorderRadius.circular(_toggleRadius),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _Segment(
-            label: ProfileStrings.languageMn,
-            selected: !english,
-            onTap: () => onChanged(false),
-          ),
-          _Segment(
-            label: ProfileStrings.languageEn,
-            selected: english,
-            onTap: () => onChanged(true),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  const _Segment({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: selected ? _capsuleWidth : _otherSegmentWidth,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? AppColors.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(_capsuleRadius),
-          ),
-          child: Text(
-            label,
-            style: _segmentStyle.copyWith(
-              color: selected ? _segmentInk : AppColors.onPrimary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The frame's switch: a 44 x 24 grey track with a white knob — smaller than
-/// Flutter's own [Switch], so drawn here rather than scaled.
-class _Switch extends StatelessWidget {
-  const _Switch({
-    required this.value,
-    required this.onChanged,
-    required this.semanticLabel,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final String semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      toggled: value,
-      label: semanticLabel,
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: () => onChanged(!value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 44,
-          height: 24,
-          padding: const EdgeInsets.all(2),
-          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-          decoration: BoxDecoration(
-            color: value ? HomePalette.accent : HomePalette.border,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x1A000000),
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The full-width outlined pill.
-class _LogOutButton extends StatelessWidget {
-  const _LogOutButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    const radius = BorderRadius.all(Radius.circular(AppDimens.buttonRadius));
-    return Semantics(
-      button: true,
-      label: ProfileStrings.logOut,
-      excludeSemantics: true,
-      child: Material(
-        color: AppColors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: radius,
-          side: BorderSide(color: HomePalette.border),
-        ),
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const RoundedRectangleBorder(borderRadius: radius),
-          child: const SizedBox(
-            height: AppDimens.buttonHeight,
-            child: Center(
-              child: Text(ProfileStrings.logOut, style: _logOutStyle),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Rule extends StatelessWidget {
-  const _Rule();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: AppDimens.borderWidth,
-      color: HomePalette.headerRule,
-    );
-  }
-}
-
-// --- Colour and type ---------------------------------------------------------
-//
-// Sampled and measured off the frame at 1:1; sizes from cap heights (Manrope's
-// cap height is 0.72 em). The colours are the same ones `JuniorProfileScreen`
-// sampled off the junior frame.
-
-/// "MN" on the white half of the language control — a deep indigo, not the
-/// capsule's blue.
-const Color _segmentInk = Color(0xFF1501A6);
-
-const TextStyle _headingStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 24,
-  height: 32 / 24,
-  fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-const TextStyle _nameStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 24 / 18,
-  fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// A section caption's style. Public so the screen's tests can tell the
-/// "Notification" caption from the "Notification" row.
-@visibleForTesting
-const TextStyle captionStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w700,
-  color: AppColors.textSecondary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-/// A settings row's label style — see [captionStyle].
-@visibleForTesting
-const TextStyle rowLabelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w400,
-  color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-const TextStyle _segmentStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
-
-const TextStyle _logOutStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
-  leadingDistribution: TextLeadingDistribution.even,
-);

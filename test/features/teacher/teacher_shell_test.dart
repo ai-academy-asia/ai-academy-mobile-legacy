@@ -1,11 +1,14 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
+import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
+import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_class_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_student_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_submission_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_request_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
@@ -18,6 +21,7 @@ import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../profile/fake_current_user_repository.dart';
 import 'fake_teacher_gradebook_repository.dart';
 import 'fake_teacher_home_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
@@ -27,7 +31,7 @@ import 'teacher_schedule_screen_test.dart' show upcomingLabel, weekRepository;
 
 /// The Teacher tabs as one persistent shell (Issue #241): one bar, owned by
 /// the shell, that never moves or is rebuilt as a route while the content
-/// above it switches. Профайл has no screen and stays inert.
+/// above it switches. Профайл is the Teacher Profile (Issue #243).
 void main() {
   late GlobalKey<NavigatorState> navigatorKey;
   late FakeTeacherHomeRepository home;
@@ -71,6 +75,9 @@ void main() {
               repository: grades,
               showBottomNav: false,
             ),
+            profile: TeacherProfileScreen(
+              repository: FakeCurrentUserRepository(),
+            ),
           ),
         },
       ),
@@ -91,12 +98,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Exactly one of the three teacher tab screens is on display: [type].
+  /// Exactly one of the four teacher tab screens is on display: [type].
   void expectShowing(Type type) {
     for (final screen in [
       TeacherHomeScreen,
       TeacherScheduleScreen,
       TeacherGradebookScreen,
+      TeacherProfileScreen,
     ]) {
       expect(
         find.byType(screen),
@@ -157,9 +165,8 @@ void main() {
     expect(selectedTab(tester), TeacherTab.schedule.index);
   });
 
-  testWidgets('Профайл stays inert: nothing opens, nothing is selected', (
-    tester,
-  ) async {
+  testWidgets('Профайл opens the Teacher Profile from every tab, selected, '
+      'with no route pushed (Issue #243)', (tester) async {
     await pumpShell(tester);
 
     for (final label in [
@@ -168,10 +175,10 @@ void main() {
       TeacherHomeStrings.navGrades,
     ]) {
       await tapTab(tester, label);
-      final before = selectedTab(tester);
       await tapTab(tester, TeacherHomeStrings.navProfile);
 
-      expect(selectedTab(tester), before, reason: 'from $label');
+      expectShowing(TeacherProfileScreen);
+      expect(selectedTab(tester), TeacherTab.profile.index, reason: label);
       expect(navigatorKey.currentState!.canPop(), isFalse);
     }
   });
@@ -183,11 +190,14 @@ void main() {
     await tapTab(tester, TeacherHomeStrings.navSchedule);
     await tapTab(tester, TeacherHomeStrings.navGrades);
 
+    await tapTab(tester, TeacherHomeStrings.navProfile);
+
     expect(find.byType(TeacherBottomNav), findsOneWidget);
     for (final screen in [
       TeacherHomeScreen,
       TeacherScheduleScreen,
       TeacherGradebookScreen,
+      TeacherProfileScreen,
     ]) {
       expect(
         find.descendant(
@@ -211,8 +221,10 @@ void main() {
       TeacherHomeStrings.navGrades,
       TeacherHomeStrings.navProfile,
       TeacherHomeStrings.navHome,
+      TeacherHomeStrings.navProfile,
       TeacherHomeStrings.navGrades,
       TeacherHomeStrings.navSchedule,
+      TeacherHomeStrings.navProfile,
       TeacherHomeStrings.navHome,
     ]) {
       await tester.tap(barLabel(label));
@@ -299,6 +311,7 @@ void main() {
     for (final label in [
       TeacherHomeStrings.navSchedule,
       TeacherHomeStrings.navGrades,
+      TeacherHomeStrings.navProfile,
     ]) {
       await tapTab(tester, label);
       await navigatorKey.currentState!.maybePop();
@@ -311,7 +324,11 @@ void main() {
   });
 
   testWidgets('opens on the tab its route names', (tester) async {
-    for (final tab in [TeacherTab.schedule, TeacherTab.grades]) {
+    for (final tab in [
+      TeacherTab.schedule,
+      TeacherTab.grades,
+      TeacherTab.profile,
+    ]) {
       await pumpShell(tester, initialTab: tab);
 
       expect(selectedTab(tester), tab.index);
@@ -365,5 +382,21 @@ void main() {
     expectShowing(TeacherGradebookScreen);
     expect(selectedTab(tester), TeacherTab.grades.index);
     expect(navigatorKey.currentState!.canPop(), isFalse);
+  });
+
+  testWidgets('Профайл: Change password still opens over the shell, and backs '
+      'out to Профайл', (tester) async {
+    await pumpShell(tester);
+    await tapTab(tester, TeacherHomeStrings.navProfile);
+
+    await tester.tap(find.text(ProfileStrings.changePassword));
+    await tester.pumpAndSettle();
+    expect(find.byType(ResetPasswordScreen), findsOneWidget);
+    expect(find.byType(AppBottomNav), findsNothing);
+
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+    expectShowing(TeacherProfileScreen);
+    expect(selectedTab(tester), TeacherTab.profile.index);
   });
 }

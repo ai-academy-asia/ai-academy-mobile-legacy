@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dar
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_request_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_session_sheet.dart';
@@ -15,6 +16,7 @@ import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_week_gr
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../profile/fake_current_user_repository.dart';
 import 'fake_teacher_home_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
@@ -329,6 +331,9 @@ void main() {
                 clock: tuesday,
                 showBottomNav: false,
               ),
+              profile: TeacherProfileScreen(
+                repository: FakeCurrentUserRepository(),
+              ),
             ),
           },
         ),
@@ -352,22 +357,23 @@ void main() {
       expect(find.byType(TeacherHomeScreen), findsOneWidget);
     });
 
-    testWidgets('Профайл stays inert', (tester) async {
+    testWidgets('Профайл opens the Teacher Profile (Issue #243); the current '
+        'tab does nothing', (tester) async {
       await pumpApp(tester);
       await tester.tap(find.text(TeacherHomeStrings.navSchedule));
       await tester.pumpAndSettle();
 
-      // Дүнгийн хуудас's route is covered in
+      // The current tab does nothing.
+      await tester.tap(find.text(TeacherHomeStrings.navSchedule));
+      await tester.pumpAndSettle();
+      expect(find.byType(TeacherScheduleScreen), findsOneWidget);
+
+      // Дүнгийн хуудас's switch is covered in
       // teacher_gradebook_screen_test.dart.
-      for (final label in [
-        TeacherHomeStrings.navProfile,
-        // The current tab does nothing either.
-        TeacherHomeStrings.navSchedule,
-      ]) {
-        await tester.tap(find.text(label));
-        await tester.pumpAndSettle();
-        expect(find.byType(TeacherScheduleScreen), findsOneWidget);
-      }
+      await tester.tap(find.text(TeacherHomeStrings.navProfile));
+      await tester.pumpAndSettle();
+      expect(find.byType(TeacherProfileScreen), findsOneWidget);
+      expect(find.byType(TeacherScheduleScreen), findsNothing);
     });
   });
 }
