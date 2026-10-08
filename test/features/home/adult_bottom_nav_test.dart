@@ -27,7 +27,7 @@ void main() {
   const glyphs = [AppIcons.house, AppIcons.bookOpenText, AppIcons.user];
   const filled = [
     'nav_home_selected.svg',
-    'nav_courses_selected.svg',
+    'nav_courses_active.svg',
     'nav_profile_selected.svg',
   ];
 

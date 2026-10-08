@@ -8,9 +8,11 @@ import '../home_strings.dart';
 /// Phosphor "House" Fill.
 const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 
-/// Phosphor "BookOpenText" Fill — its spine and corners measure as the
-/// outline glyph's own, scaled to 24.
-const String _coursesFilled = 'assets/icons/nav_courses_selected.svg';
+/// [AppIcons.bookOpenText] itself, filled — generated from the font glyph's
+/// own contours (its two page holes dropped, the three text lines kept as
+/// cut-outs), so active and inactive are one book, not Phosphor's separately
+/// drawn "BookOpenText" Fill (Issue #237).
+const String _coursesFilled = 'assets/icons/nav_courses_active.svg';
 
 /// Phosphor "User" Fill — the same export `JuniorBottomNav` draws.
 const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
