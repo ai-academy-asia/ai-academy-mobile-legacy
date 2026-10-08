@@ -145,6 +145,60 @@ void main() {
       }
     });
 
+    // Real-device report (PR #245): a Junior course at 100% drew Continue
+    // learning. The state is the server's `status`, never the percentage:
+    // 100% with `issued` is the issued card; 100% with anything else stays
+    // the not-yet card.
+    testWidgets('issued at 100% is the issued card — Download, no Continue '
+        'learning', (tester) async {
+      await pump(
+        tester,
+        _Repo([
+          CertificateEntry(
+            cohortId: 6,
+            cohortName: 'C',
+            courseTitle: 'T',
+            courseSlug: 's',
+            certificate: CourseCertificate(
+              status: CertificateStatus.issued,
+              issued: IssuedCertificate(
+                certNumber: 'TEST-6',
+                issuedAt: DateTime(2026, 4, 1, 12),
+              ),
+            ),
+            progressPercent: 100,
+          ),
+        ]),
+      );
+
+      expect(find.text(CertificateStrings.completedDate), findsOneWidget);
+      expect(find.text('2026/04/01'), findsOneWidget);
+      expect(find.text(CertificateStrings.download), findsOneWidget);
+      expect(find.text(CourseLearningStrings.continueLearning), findsNothing);
+      expect(find.textContaining('% complete'), findsNothing);
+    });
+
+    testWidgets('100% but not issued stays the not-yet card — no Download is '
+        'inferred from progress', (tester) async {
+      await pump(
+        tester,
+        _Repo([
+          const CertificateEntry(
+            cohortId: 7,
+            cohortName: 'C',
+            courseTitle: 'T',
+            courseSlug: 's',
+            certificate: CourseCertificate(status: CertificateStatus.eligible),
+            progressPercent: 100,
+          ),
+        ]),
+      );
+
+      expect(find.text(CourseLearningStrings.percentComplete(100)), findsOne);
+      expect(find.text(CourseLearningStrings.continueLearning), findsOneWidget);
+      expect(find.text(CertificateStrings.download), findsNothing);
+    });
+
     testWidgets('no progress figure draws no bar, and keeps the button', (
       tester,
     ) async {
