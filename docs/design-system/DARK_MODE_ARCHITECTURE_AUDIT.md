@@ -459,7 +459,7 @@ In each phase, **"Light goldens: unchanged"** means the existing PNGs must pass 
 | 6 | **Course Learning** | Module list, Lesson list, Exercise, Assignment, Quiz; move `CourseModuleVisuals` colours to presentation | `course_learning/` (47 files, 63 literals) | 3 | **High** | Light goldens unchanged (Exercise ×11, Quiz ×4) | No |
 | 7 | **Junior** (required) | Home, Progress, Profile, map, calendar, certificate card | `junior_home/` | 3 | High (illustration) | Light goldens unchanged | No (until §13.4) |
 | 8 | **Teacher** (required) | Home, Schedule (+ sheets), Gradebook, Request, Profile | `teacher/` | 3 | Med | Light goldens unchanged | No |
-| 9 | **Dark values** | `AppPalette.dark`, `AppTheme.dark`, dark asset variants; harness brightness parameter; dark goldens for every golden screen | `core/theme/*`, assets, tests | 1–8 + **Figma** | Med | New `*_dark.png` goldens | **Yes** |
+| 9 | **Dark values** | `AppPalette.dark`, `AppTheme.dark` from the **approved** version of [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) (Issue #254), dark asset variants; harness brightness parameter; dark goldens for every golden screen | `core/theme/*`, assets, tests | 1–8 + **Figma** | Med | New `*_dark.png` goldens | **Yes** |
 | 10 | **Preference + controls, all roles** | `ThemePreferenceStore` + `SecureThemePreferenceStore` (existing `flutter_secure_storage`); `AppThemeController.restore` in `main()` before `runApp` (startup initialisation); `setMode` persists. **Three entry points to the one state:** Adult row made interactive (it already reads the global theme), **new Junior row** in App settings, **new Teacher row** in App settings. Theme survives sign-out (§10) | `core/theme/*`, `main.dart`, `profile/profile_screen.dart`, `junior_home/…/junior_profile_screen.dart`, `teacher/…/teacher_profile_screen.dart` | 1, 9 + §13 decisions | Med | Restore-on-start test; write/fallback tests; each Profile row changes the global mode; **a change from one role is seen by the others**; sign-out keeps the mode; Profile goldens updated for the new rows only | Decision (control type; Junior/Teacher row look) |
 | 11 | **Device validation + native** | Physical iOS and Android in both modes; Android `values-night` launch window and iOS launch screen | `android/app/src/main/res/values*/styles.xml` (not the protected iOS files) | 9–10 | Low | Device checklist | Maybe |
 
@@ -541,6 +541,8 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - **Proof:** every pre-existing golden passed unchanged.
 >
 > Not migrated yet: the header's `CourseLearningBackButton` and the screens' `SystemUiOverlayStyle.dark`, which are Phase 3 and Phase 4. **Next: Phase 2 (token consolidation).**
+>
+> **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 
 **"chore: theme foundation — AppPalette (light) and Notifications pilot"**, i.e. Phase 0 + Phase 1:
