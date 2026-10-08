@@ -164,7 +164,7 @@ Honest gaps, to be resolved from Figma rather than invented:
 
 - **No spacing scale.** Gaps are literals (4, 8, 12, 16, 20, 24) chosen per frame. Whether Figma defines a formal scale is `UNKNOWN`.
 - **No motion/animation tokens.** Only two durations exist in the app (splash 7000 ms, its transition 400 ms).
-- **No dark theme.** `AppTheme` defines `light` only.
+- **No dark theme.** `AppTheme` defines `light` only, and no dark palette exists in Figma or the repository. The audit and phased plan are in [DARK_MODE_ARCHITECTURE_AUDIT.md](DARK_MODE_ARCHITECTURE_AUDIT.md) (Issue #250).
 - **No breakpoint system** beyond `maxContentWidth` 480.
 - **No documented empty/error/loading visual specs** — see [COMPONENT_PATTERNS.md](COMPONENT_PATTERNS.md) §6 for what the code currently does.
 - **Figma MCP is unavailable** (quota exhausted). Reconstruction proceeds from screenshots/exports supplied in the task.
