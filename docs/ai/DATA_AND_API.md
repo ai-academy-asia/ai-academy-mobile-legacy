@@ -53,7 +53,7 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 | Endpoint | Fields read | Used for |
 |---|---|---|
 | `GET /me/cohorts` | entry `cohort_id`, `progress_pct` | which cohorts the student is in; progress fallback |
-| `GET /cohorts` | `id`, `name`, `status`, `course.slug`/`title_*`, `start_date`, `end_date`, `start_time`, `end_time`, `meeting_days` | the cohort in view; `LessonSchedule` → next lesson, the attendance calendars' lesson days, and (`start_date`) the earliest month they page back to (Issue #200) |
+| `GET /cohorts` (still lists ended cohorts: 8 listed, 3 past `end_date`, statuses `closed`/`open`, verified live 2026-10-08 for the Certificate screen, PR #245; whether an archived cohort drops out is `UNKNOWN`) | `id`, `name`, `status`, `course.slug`/`title_*`, `start_date`, `end_date`, `start_time`, `end_time`, `meeting_days` | the cohort in view; `LessonSchedule` → next lesson, the attendance calendars' lesson days, and (`start_date`) the earliest month they page back to (Issue #200) |
 | `GET /me/courses/{slug}/learning` | `progress.percent`, per-module `completed`/`locked`, `continue.module_id` | course progress (adult cohort card, Junior Home map); the Junior map's nodes, one per module, and its single current/check-in node: `continue.module_id` while unfinished, else the first unlocked, unfinished module (Issues #202, #204) |
 | `GET /me/attendance?course=` | `summary.attended`, `summary.total_past`, `summary.percent`; per `sessions[]` entry `date`, `status` | the attendance card / badge — the server's figures, never re-derived; the attended and missed calendar marks (Adult attendance detail, Junior "Сурлагын явц") |
 | `GET /me/ledger` | per enrollment `cohort.id`, `balance`, `next_due_date` | the payment card: due in N days, overdue, or absent when nothing is owed |
@@ -84,8 +84,8 @@ Student-facing endpoints confirmed by a request in the Postman collection (`post
 | DELETE | `/cohorts/{cohort_id}/enroll` | Bearer, no body | not yet verified | not integrated |
 | GET | `/me/assignments/{assignment_id}` | Bearer | documented: the §2.6 `assignment` object (`course_learning_api_contract_v1.md`) | not called: the lesson detail already carries the assignment |
 | GET | `/me/files/{file_id}/download` | Bearer | not yet verified (§2.8 says only that a student file is read back through a pre-signed URL, like materials) | not integrated |
-| GET | `/me/courses/{course_slug}/certificate` | Bearer | documented: contract §2.9 (`status`, `requirements`, `certificate`) | not integrated: no certificate UI design (Issue #155) |
-| GET | `/me/certificates/{cert_number}/download` | Bearer | documented: contract §2.9, `{"url", "expires_at"}`, pre-signed | not integrated (Issue #155) |
+| GET | `/me/courses/{course_slug}/certificate` | Bearer | documented: contract §2.9 (`status` `not_eligible`/`eligible`/`issued`, `requirements`, `certificate {cert_number, issued_at, verify_url}`); not yet verified live | **integrated** (Issue #155): `HttpCourseLearningRepository.getCourseCertificate` reads `status`, `cert_number`, `issued_at`; `requirements` and `verify_url` are not read (no design) |
+| GET | `/me/certificates/{cert_number}/download` | Bearer | documented: contract §2.9, `{"url", "expires_at"}`, pre-signed; not yet verified live | **integrated** (Issue #155): `getCertificateDownload`, fetched fresh per tap and opened with `openExternalUrl` |
 | GET | `/certificates/verify/{cert_number}` | no auth | not yet verified | not integrated |
 | POST | `/me/attendance/check-in` | Bearer; `{"token"}` | not yet verified (see §1.1) | not integrated: the scanner is UI only (Issue #202) |
 | GET | `/me/notifications` | Bearer; `?limit=` | documented: carries `unread_count`; the rest is not yet verified | not integrated |

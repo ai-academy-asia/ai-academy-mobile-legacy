@@ -52,6 +52,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Teacher Gradebook | `/teacher-gradebook` (in `TeacherShell`; student list, student detail, submission detail pushed on top, no bottom nav) | white title band + rule; the shell's teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
 | Cohort List | `/my-cohorts` (in `AdultStudentShell`), `/cohorts` | bottom nav — the shell's on `/my-cohorts`, its own on `/cohorts` | `cohorts` + `enrollments` (real) |
 | Profile | `/profile` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | `auth` current user (real) |
+| Certificate | pushed from the Certificate row of the Adult and Junior Profiles (`CertificateScreen.open`) | `CourseLearningBackButton` (arrow) with the title centred on its row; no bottom nav | `certificates` — enrolled cohorts + §2.9 certificate per course + download (real) |
 | Teacher Profile | Профайл tab of `TeacherShell` (no route; Change password pushed on top) | white title band + rule; the shell's teacher bottom nav, Профайл selected | `auth` current user (real); log out and change password real; MN/EN, Notification, contact rows inert |
 | Course Catalog | `/courses` | — | `courses` (real) |
 | Course Detail | pushed | — | `courses` (real) |

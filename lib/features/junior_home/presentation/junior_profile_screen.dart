@@ -10,6 +10,9 @@ import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
+import '../../certificates/domain/certificate_list_repository.dart';
+import '../../certificates/presentation/certificate_screen.dart';
+import '../../course_learning/domain/course_learning_repository.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
@@ -75,7 +78,8 @@ const double _iconToLabel = 9;
 /// the adult Profile's exported SVGs ([ProfileIcons]) — the same artwork the
 /// junior frame draws — plus the junior frame's own "Payment receipt" SVG
 /// ([JuniorProfileIcons]). Change password pushes the same [ResetPasswordScreen]
-/// the adult row does.
+/// the adult row does, and Certificate opens the same Certificate screen
+/// (Issue #155).
 ///
 /// **Gaps.** No confirmed response carries an avatar URL, so the avatar is
 /// a placeholder disc, as on the adult Profile — the frame's photo is design
@@ -90,6 +94,8 @@ class JuniorProfileScreen extends StatefulWidget {
     this.authRepository,
     this.sessionStore,
     this.showBottomNav = true,
+    this.certificateRepository,
+    this.courseLearningRepository,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -103,6 +109,12 @@ class JuniorProfileScreen extends StatefulWidget {
   /// Whether this screen draws its tab bar itself. False inside
   /// `JuniorStudentShell`, which owns the one persistent bar (Issue #241).
   final bool showBottomNav;
+
+  /// What the Certificate row's screen reads (Issue #155) — the same
+  /// Certificate screen the Adult Profile opens. Default to the real API;
+  /// injected in tests.
+  final CertificateListRepository? certificateRepository;
+  final CourseLearningRepository? courseLearningRepository;
 
   @override
   State<JuniorProfileScreen> createState() => _JuniorProfileScreenState();
@@ -221,18 +233,24 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           const _Rule(),
 
           const _Caption(JuniorProfileStrings.accountSection),
-          const _Group(
+          _Group(
             rows: [
               // No contract status: no endpoint reports one.
-              _Row(
+              const _Row(
                 icon: _RowIcon(ProfileIcons.eContract),
                 label: JuniorProfileStrings.eContract,
               ),
+              // The student's certificates, one per course (Issue #155).
               _Row(
-                icon: _RowIcon(ProfileIcons.certificate),
+                icon: const _RowIcon(ProfileIcons.certificate),
                 label: JuniorProfileStrings.certificate,
+                onTap: () => CertificateScreen.open(
+                  context,
+                  repository: widget.certificateRepository,
+                  courseLearning: widget.courseLearningRepository,
+                ),
               ),
-              _Row(
+              const _Row(
                 icon: _RowIcon(ProfileIcons.transactionHistory),
                 label: JuniorProfileStrings.transactionHistory,
               ),

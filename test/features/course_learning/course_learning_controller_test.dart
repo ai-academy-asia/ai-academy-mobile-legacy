@@ -1,3 +1,4 @@
+import 'package:aia_mobile/features/course_learning/domain/course_certificate.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
@@ -44,6 +45,14 @@ class _ThrowingRepository implements CourseLearningRepository {
   @override
   Future<MaterialDownload> getMaterialDownload(int materialId) =>
       _delegate.getMaterialDownload(materialId);
+
+  @override
+  Future<CourseCertificate> getCourseCertificate(String courseSlug) =>
+      _delegate.getCourseCertificate(courseSlug);
+
+  @override
+  Future<CertificateDownload> getCertificateDownload(String certNumber) =>
+      _delegate.getCertificateDownload(certNumber);
 
   @override
   Future<AssignmentSubmission> submitAssignment(
