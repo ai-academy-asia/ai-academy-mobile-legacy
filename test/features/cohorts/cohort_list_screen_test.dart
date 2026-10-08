@@ -209,22 +209,23 @@ void main() {
       );
     });
 
-    testWidgets('the selected Courses tab draws its outline book in blue', (
+    testWidgets('the selected Courses tab draws its book filled blue', (
       tester,
     ) async {
       await pumpCatalog(tester);
 
-      // The same outline Phosphor book as when inactive, only recoloured —
-      // no filled export (Issue #237).
+      // The filled weight of the same Phosphor book (Issue #188), scaled with
+      // the bar's icon size and tinted with its selected colour.
       final nav = find.byType(AppBottomNav);
-      expect(
+      final svg = tester.widget<SvgPicture>(
         find.descendant(of: nav, matching: find.byType(SvgPicture)),
-        findsNothing,
       );
+      expect(svg.bytesLoader.toString(), contains('nav_courses_selected'));
       expect(
-        tester.widget<Icon>(find.byIcon(AppIcons.bookOpenText)).color,
-        const Color(0xFF2970FF),
+        svg.colorFilter,
+        const ColorFilter.mode(Color(0xFF2970FF), BlendMode.srcIn),
       );
+      expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
 
       // The inactive tabs keep their outline glyphs.
       expect(find.byIcon(AppIcons.house), findsOneWidget);

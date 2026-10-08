@@ -8,6 +8,10 @@ import '../home_strings.dart';
 /// Phosphor "House" Fill.
 const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 
+/// Phosphor "BookOpenText" Fill — its spine and corners measure as the
+/// outline glyph's own, scaled to 24.
+const String _coursesFilled = 'assets/icons/nav_courses_selected.svg';
+
 /// Phosphor "User" Fill — the same export `JuniorBottomNav` draws.
 const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
 
@@ -22,14 +26,10 @@ const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
 /// its own screen and outline elsewhere. Now every destination has one glyph
 /// in two weights, on every screen: the gray Phosphor outline from the font
 /// when inactive, and the same glyph's Phosphor *Fill* weight in the bar's
-/// blue when active — Нүүр [AppIcons.house] / [_homeFilled], Профайл
-/// [AppIcons.user] / [_profileFilled]. The font carries the outline weight
-/// only, so the filled ones are the Figma exports.
-///
-/// **Хичээл is the exception** (Issue #237): one shape in both states, the
-/// outline [AppIcons.bookOpenText], gray when inactive and blue when active.
-/// Its filled export changed the book's shape on selection, which read on a
-/// device as a different icon rather than the same one turning active.
+/// blue when active — Нүүр [AppIcons.house] / [_homeFilled], Хичээл
+/// [AppIcons.bookOpenText] / [_coursesFilled], Профайл [AppIcons.user] /
+/// [_profileFilled]. The font carries the outline weight only, so the filled
+/// ones are the Figma exports.
 ///
 /// Inside `AdultStudentShell` the bar is drawn once, by the shell, with
 /// [onSelect] switching the shell's tab in place (Issue #237); a screen drawn
@@ -60,7 +60,7 @@ class AdultBottomNav extends StatelessWidget {
     AppBottomNavItem item(
       StudentTab tab, {
       required IconData icon,
-      String? filled,
+      required String filled,
       required String label,
     }) {
       return AppBottomNavItem(
@@ -87,6 +87,7 @@ class AdultBottomNav extends StatelessWidget {
         item(
           StudentTab.progress,
           icon: AppIcons.bookOpenText,
+          filled: _coursesFilled,
           label: HomeStrings.navCourses,
         ),
         item(

@@ -25,41 +25,33 @@ void main() {
   );
 
   const glyphs = [AppIcons.house, AppIcons.bookOpenText, AppIcons.user];
-
-  /// Хичээл has no filled export: its outline turns blue (Issue #237).
-  const filled = ['nav_home_selected.svg', null, 'nav_profile_selected.svg'];
+  const filled = [
+    'nav_home_selected.svg',
+    'nav_courses_selected.svg',
+    'nav_profile_selected.svg',
+  ];
 
   Iterable<String> drawnAssets(WidgetTester tester) => tester
       .widgetList<SvgPicture>(find.byType(SvgPicture))
       .map((svg) => svg.bytesLoader.toString());
 
   for (final current in StudentTab.values) {
-    testWidgets('with ${current.name} current, the active tab is drawn blue '
-        'and the others gray outlines', (tester) async {
+    testWidgets('with ${current.name} current, the active tab is its own '
+        'glyph filled blue and the others gray outlines', (tester) async {
       await pumpNav(tester, current);
 
       for (var i = 0; i < glyphs.length; i++) {
-        if (i == current.index && filled[i] != null) {
+        if (i == current.index) {
           // The filled weight of the same glyph, never a font outline.
           expect(find.byIcon(glyphs[i]), findsNothing);
         } else {
           final icon = tester.widget<Icon>(find.byIcon(glyphs[i]));
-          expect(
-            icon.color,
-            i == current.index
-                ? const Color(0xFF2970FF)
-                : AppColors.textSecondary,
-          );
+          expect(icon.color, AppColors.textSecondary);
         }
       }
       final assets = drawnAssets(tester).toList();
-      final expectedAsset = filled[current.index];
-      if (expectedAsset == null) {
-        expect(assets, isEmpty);
-        return;
-      }
       expect(assets, hasLength(1));
-      expect(assets.single, contains(expectedAsset));
+      expect(assets.single, contains(filled[current.index]));
       final svg = tester.widget<SvgPicture>(find.byType(SvgPicture));
       expect(
         svg.colorFilter,
@@ -81,8 +73,7 @@ void main() {
     expect(perScreen[1], perScreen[0]);
     expect(perScreen[2], perScreen[0]);
     for (var i = 0; i < filled.length; i++) {
-      final asset = filled[i];
-      expect(perScreen[0][i], asset == null ? isNull : endsWith(asset));
+      expect(perScreen[0][i], endsWith(filled[i]));
     }
   });
 
