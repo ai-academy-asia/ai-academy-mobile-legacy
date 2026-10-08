@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/utils/pick_local_file.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
@@ -173,9 +175,9 @@ class _CourseExerciseDetailScreenState
       // Dark status-bar glyphs: the reference keeps the bar on the page's own
       // light background and starts the video below it, rather than running
       // the navy up behind it.
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: _page,
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.surfaceSubtle,
       ),
       child: Scaffold(
         backgroundColor: _page,

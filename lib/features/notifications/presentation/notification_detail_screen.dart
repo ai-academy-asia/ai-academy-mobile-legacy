@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/app_notification.dart';
 import 'notification_header.dart';
@@ -46,10 +47,7 @@ class NotificationDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: palette.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: palette.surface),
       child: Scaffold(
         backgroundColor: palette.surface,
         body: SafeArea(

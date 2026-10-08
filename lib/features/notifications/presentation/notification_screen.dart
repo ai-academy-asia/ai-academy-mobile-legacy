@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/app_notification.dart';
 import 'notification_center.dart';
@@ -86,10 +87,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: context.palette.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         backgroundColor: context.palette.surface,
         body: SafeArea(

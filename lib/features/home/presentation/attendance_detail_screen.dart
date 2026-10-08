@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../junior_home/domain/junior_progress.dart';
 import '../../junior_home/presentation/junior_progress_strings.dart';
@@ -111,10 +113,7 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
         _month.year == _today.year && _month.month == _today.month;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(

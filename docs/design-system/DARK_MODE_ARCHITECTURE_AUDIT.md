@@ -222,6 +222,13 @@ The **Kind** column groups each palette's values:
 
 ## 8. System UI impact
 
+> **Phase 4 done (Issue #260).** All 25 regions go through `AppSystemUi`.
+> - `page(context, navigationBar:)` reads the active theme's brightness, so system UI follows `AppThemeController` → `ThemeMode` → `Theme`, the same path as the colours.
+> - `overDarkContent(...)` keeps the scanner and Teacher Schedule light-iconed in every theme.
+> - In light mode every style equals the legacy expression, field for field (tested). A theme-mode change updates the regions (tested).
+>
+> **Flagged, preserved, not changed:** Flutter's `SystemUiOverlayStyle.dark` sets `systemNavigationBarIconBrightness: Brightness.light`. So on every light page Android is asked for light navigation-bar icons over a white or near-white bar. That's existing light-mode behaviour; fixing it (dark icons on light pages) is a small, visible Android change for a separate decision. Native launch windows remain Phase 11.
+
 - **25 screens** wrap themselves in `AnnotatedRegion<SystemUiOverlayStyle>`:
   - **23 use `SystemUiOverlayStyle.dark`** (dark icons on a light page);
   - **2 use `.light`**: `attendance_scanner_screen.dart` (camera with a dark scrim) and `teacher_schedule_screen.dart` (its `_Header` is a `HomePalette.accent` blue band under the status bar).

@@ -262,6 +262,8 @@ Same hue family in each case. Pale fills become deep tinted fills, and inks get 
 
 ## 9. System UI treatment
 
+> The mechanism exists since Phase 4 (Issue #260): `AppSystemUi.page` and `overDarkContent` (`lib/core/theme/app_system_ui.dart`). Dark Mode only needs `AppTheme.dark` to have `brightness: Brightness.dark`; the regions follow on their own.
+
 - **Status bar.** Derived from the active theme, not per screen (audit §8, Phase 4).
   - Dark theme → light icons (`SystemUiOverlayStyle.light`) on transparent.
   - The two screens that already use `.light` (camera scanner, Teacher Schedule's blue band) stay `.light` in both modes.

@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/contract_banner.dart';
 import '../../home/presentation/widgets/home_header.dart';
@@ -118,10 +120,7 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         // The page grey under the header; the header paints its own white.
         backgroundColor: AppColors.surfaceSubtle,

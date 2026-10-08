@@ -4,6 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -154,10 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav

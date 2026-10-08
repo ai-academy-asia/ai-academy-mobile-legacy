@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
@@ -114,10 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav

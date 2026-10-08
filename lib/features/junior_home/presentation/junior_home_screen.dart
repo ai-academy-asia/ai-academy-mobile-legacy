@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../attendance/presentation/attendance_scanner_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
@@ -90,10 +92,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         // White, so the status-bar inset above the header reads as part of
         // the header rather than as the top of the blue map.

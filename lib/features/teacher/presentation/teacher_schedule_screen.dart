@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/home_strings.dart';
 import '../../home/presentation/widgets/home_palette.dart';
@@ -99,9 +101,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
+      value: AppSystemUi.overDarkContent(
+        navigationBar: context.palette.surface,
       ),
       child: Scaffold(
         backgroundColor: AppColors.surface,

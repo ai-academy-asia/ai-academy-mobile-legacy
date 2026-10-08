@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../data/course_module_visuals.dart';
 import '../data/http_course_learning_repository.dart';
@@ -93,9 +95,9 @@ class _LessonListScreenState extends State<LessonListScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.pageBackground,
       ),
       // No `SafeArea`: the hero runs up under the status bar, as the
       // reference draws it, and places its own back control at the inset.
