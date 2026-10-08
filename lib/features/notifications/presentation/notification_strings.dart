@@ -36,12 +36,12 @@ abstract final class NotificationStrings {
   }
 
   /// When a notification was sent, as Notification Detail writes it (Issue
-  /// #248): `2026.10.01 12:57`, in local time, 24-hour. No frame draws the
+  /// #248): `2026.10.08 · 15:18`, in local time, 24-hour. No frame draws the
   /// detail screen, so the format is the product brief's own example.
   static String sentAt(DateTime createdAt) {
     final local = createdAt.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
-        '${two(local.hour)}:${two(local.minute)}';
+        '· ${two(local.hour)}:${two(local.minute)}';
   }
 }

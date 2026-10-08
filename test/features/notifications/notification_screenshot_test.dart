@@ -80,7 +80,7 @@ void main() {
                 'Test body, second paragraph, also longer than a single '
                 'line of the list.',
             kind: 'announcement',
-            createdAt: DateTime(2026, 10, 1, 12, 57),
+            createdAt: DateTime(2026, 10, 8, 15, 18),
             data: {'cohort_id': 3},
           ),
         ),

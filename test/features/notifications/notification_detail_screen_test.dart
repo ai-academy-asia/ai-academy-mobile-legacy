@@ -1,10 +1,13 @@
+import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/home/presentation/widgets/home_palette.dart';
 import 'package:aia_mobile/features/notifications/domain/app_notification.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_detail_screen.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -38,14 +41,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  test('sentAt reads year.month.day hour:minute, local and padded', () {
+  test('sentAt reads year.month.day · hour:minute, local and padded', () {
     expect(
-      NotificationStrings.sentAt(DateTime(2026, 10, 1, 12, 57)),
-      '2026.10.01 12:57',
+      NotificationStrings.sentAt(DateTime(2026, 10, 8, 15, 18)),
+      '2026.10.08 · 15:18',
     );
     expect(
       NotificationStrings.sentAt(DateTime(2026, 3, 4, 5, 6)),
-      '2026.03.04 05:06',
+      '2026.03.04 · 05:06',
     );
     final utc = DateTime.utc(2026, 10, 8, 7, 18, 50);
     final local = utc.toLocal();
@@ -53,7 +56,7 @@ void main() {
     expect(
       NotificationStrings.sentAt(utc),
       '${local.year}.${two(local.month)}.${two(local.day)} '
-      '${two(local.hour)}:${two(local.minute)}',
+      '· ${two(local.hour)}:${two(local.minute)}',
     );
   });
 
@@ -78,7 +81,79 @@ void main() {
       find.text('«1 минутын AI видео» — 10/07 хүртэл илгээнэ үү.'),
       findsOneWidget,
     );
-    expect(find.text('2026.10.01 12:57'), findsOneWidget);
+    expect(find.text('2026.10.01 · 12:57'), findsOneWidget);
+  });
+
+  testWidgets('the bell sits small on a pale-blue disc, centred', (
+    tester,
+  ) async {
+    await pumpDetail(tester, sampleNotification());
+
+    final disc = find.ancestor(
+      of: find.byType(SvgPicture),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    expect(disc, findsOneWidget);
+    expect(
+      (tester.widget<Container>(disc).decoration as BoxDecoration).color,
+      HomePalette.liveFill,
+    );
+    expect(tester.getSize(disc), const Size(48, 48));
+    expect(tester.getCenter(disc).dx, 393 / 2);
+
+    final glyph = tester.widget<SvgPicture>(find.byType(SvgPicture));
+    expect(tester.getSize(find.byType(SvgPicture)), const Size(24, 24));
+    expect(
+      glyph.colorFilter,
+      const ColorFilter.mode(HomePalette.accent, BlendMode.srcIn),
+    );
+  });
+
+  testWidgets('title over time: one centred block, the title strongest', (
+    tester,
+  ) async {
+    await pumpDetail(
+      tester,
+      sampleNotification(
+        title: 'Short title',
+        createdAt: DateTime(2026, 10, 8, 15, 18),
+      ),
+    );
+
+    final title = tester.widget<Text>(find.text('Short title'));
+    expect(title.style?.fontSize, 18);
+    expect(title.style?.height, 24 / 18);
+    expect(title.style?.fontWeight, FontWeight.w700);
+    expect(title.style?.color, AppColors.textPrimary);
+    expect(title.textAlign, TextAlign.center);
+
+    final date = tester.widget<Text>(find.text('2026.10.08 · 15:18'));
+    expect(date.style?.fontSize, 14);
+    expect(date.style?.color, AppColors.textSecondary);
+    expect(date.textAlign, TextAlign.center);
+    expect(
+      tester.getRect(find.text('2026.10.08 · 15:18')).top -
+          tester.getRect(find.text('Short title')).bottom,
+      4,
+    );
+    expect(tester.getCenter(find.text('Short title')).dx, 393 / 2);
+  });
+
+  testWidgets('the body reads 16/24 in the primary ink, left-aligned', (
+    tester,
+  ) async {
+    await pumpDetail(tester, sampleNotification(body: 'Body text'));
+
+    final body = tester.widget<Text>(find.text('Body text'));
+    expect(body.style?.fontSize, 16);
+    expect(body.style?.height, 24 / 16);
+    expect(body.style?.color, AppColors.textPrimary);
+    expect(tester.getRect(find.text('Body text')).left, 16);
   });
 
   testWidgets('a long title and body are drawn whole, never truncated', (

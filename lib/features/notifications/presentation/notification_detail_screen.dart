@@ -16,9 +16,10 @@ import 'notification_strings.dart';
 /// this holds all of both, scrolling when they run long.
 ///
 /// No Figma frame draws it: by product decision it is the Notification
-/// Center's own header and language — the row's glyph and accent, its title
-/// and body type a step larger, a [HomePalette.headerRule] rule — with
-/// nothing new. Built from the [AppNotification] the list already loaded:
+/// Center's own header and language, with nothing new — top to bottom, a
+/// centred metadata block (the row's bell in [HomePalette.accent] on a 48pt
+/// [HomePalette.liveFill] disc, the title, the sent time), a
+/// [HomePalette.headerRule] rule, then the body, left-aligned for reading. Built from the [AppNotification] the list already loaded:
 /// the contract has no detail endpoint, and nothing here changes. Read state
 /// stays with `NotificationCenter`; `kind` and `data` are not read — no deep
 /// links are defined.
@@ -61,33 +62,46 @@ class NotificationDetailScreen extends StatelessWidget {
                     _contentBottom + MediaQuery.paddingOf(context).bottom,
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SvgPicture.asset(
-                        HomeIcons.notification,
-                        width: _iconSize,
-                        height: _iconSize,
-                        colorFilter: const ColorFilter.mode(
-                          HomePalette.accent,
-                          BlendMode.srcIn,
+                      Center(
+                        child: Container(
+                          width: _discSize,
+                          height: _discSize,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: HomePalette.liveFill,
+                            shape: BoxShape.circle,
+                          ),
+                          child: SvgPicture.asset(
+                            HomeIcons.notification,
+                            width: _iconSize,
+                            height: _iconSize,
+                            colorFilter: const ColorFilter.mode(
+                              HomePalette.accent,
+                              BlendMode.srcIn,
+                            ),
+                            excludeFromSemantics: true,
+                          ),
                         ),
-                        excludeFromSemantics: true,
                       ),
-                      const SizedBox(height: _iconToTitle),
+                      const SizedBox(height: _discToTitle),
                       Semantics(
                         header: true,
-                        child: Text(notification.title, style: _titleStyle),
+                        child: Text(
+                          notification.title,
+                          style: _titleStyle,
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                       const SizedBox(height: _titleToDate),
                       Text(
                         NotificationStrings.sentAt(notification.createdAt),
                         style: _dateStyle,
+                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: _dateToRule),
-                      // Full width: a childless box in a Column would size
-                      // to nothing.
+                      const SizedBox(height: _metaToRule),
                       const SizedBox(
-                        width: double.infinity,
                         height: AppDimens.borderWidth,
                         child: ColoredBox(color: HomePalette.headerRule),
                       ),
@@ -105,30 +119,38 @@ class NotificationDetailScreen extends StatelessWidget {
   }
 }
 
-// --- No frame: the Notification Center's own spacing, a step roomier ------
+// --- No frame: the app's own spacing — `AppDimens` where it has the value,
+// the Notification row's otherwise ----------------------------------------
 
-/// As the list's first row sits under the header, doubled for a page.
-const double _headerToContent = 24;
-const double _contentBottom = 24;
+/// The space Login and the manager sheet leave under a heading.
+const double _headerToContent = AppDimens.headingToForm;
+const double _contentBottom = AppDimens.headingToForm;
 
-/// The row's glyph, a third larger as the page's one mark.
-const double _iconSize = 32;
-const double _iconToTitle = 16;
+/// The bell at the row's 24pt, on a 48pt disc — present, not dominant.
+const double _discSize = 48;
+const double _iconSize = 24;
+
+/// The icon, the title and the time read as one block: [AppDimens.fieldGap]
+/// under the disc, the row's own 4 between title and time.
+const double _discToTitle = AppDimens.fieldGap;
 const double _titleToDate = 4;
-const double _dateToRule = 16;
-const double _ruleToBody = 16;
 
-/// The row's title (16/24 w700), a step up.
+/// The rule sits a heading's gap from the metadata and from the body.
+const double _metaToRule = AppDimens.headingToForm;
+const double _ruleToBody = AppDimens.headingToForm;
+
+/// The header title's size on the row title's 24 line — still the page's
+/// strongest text, a step under the old 20/28.
 const TextStyle _titleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
-  fontSize: 20,
-  height: 28 / 20,
+  fontSize: 18,
+  height: 24 / 18,
   fontWeight: FontWeight.w700,
   color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
-/// The row's age type.
+/// The row's age type, in the app's secondary ink.
 const TextStyle _dateStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 14,
