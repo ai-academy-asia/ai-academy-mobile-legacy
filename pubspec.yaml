@@ -53,6 +53,11 @@ dependencies:
   # `url_launcher`; needs no permission or Info.plist key on either platform.
   file_selector: ^1.1.0
 
+  # Keeps the signed-in session (access + refresh token) across a restart, in
+  # the iOS Keychain / Android encrypted storage (Issue #235). Swift Package
+  # Manager on iOS, like the two above; no entitlement or permission needed.
+  flutter_secure_storage: ^11.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

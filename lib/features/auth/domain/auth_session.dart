@@ -2,10 +2,8 @@ import 'user_type.dart';
 
 /// A signed-in session: the bearer token the API issued, and how long it lasts.
 ///
-/// Nothing persists this yet. The login flow ends at the placeholder home
-/// screen, so the token lives only as long as the object holding it. Storing it
-/// (and attaching it to later requests) belongs to the screen that first needs
-/// an authenticated call.
+/// Held — and, in the app, persisted across restarts — by `AuthSessionStore`
+/// (Issue #235).
 class AuthSession {
   const AuthSession({
     required this.accessToken,
@@ -16,9 +14,10 @@ class AuthSession {
 
   final String accessToken;
 
-  /// The login response's `refresh_token`, kept only so sign-out can revoke
-  /// it (`POST /auth/logout`). Null when the response carried none. Nothing
-  /// refreshes a session with it.
+  /// The login (or refresh) response's `refresh_token`: what `SessionRefresher`
+  /// renews the session with (`POST /auth/refresh`, rotated on every renewal)
+  /// and sign-out revokes (`POST /auth/logout`). Null when the response
+  /// carried none.
   final String? refreshToken;
 
   /// Which app experience the login response says to open. [UserType.unknown]

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session.dart';
 import '../domain/auth_session_store.dart';
@@ -22,11 +23,16 @@ import 'http_auth_repository.dart';
 /// token, the new lifetime, and the user type (the old one when the response
 /// carries none).
 ///
-/// **On failure** — a refused or spent refresh token, no refresh token at
-/// all, or a refresh that could not complete — the local session is cleared
-/// and [onSessionEnded] fires once. `POST /auth/logout` is not called: the
-/// refresh token is already unusable, and local sign-out never depends on the
-/// server.
+/// **When the refresh token is unusable** — refused, spent, or absent — the
+/// local session is cleared and [onSessionEnded] fires once. `POST
+/// /auth/logout` is not called: the refresh token is already unusable, and
+/// local sign-out never depends on the server.
+///
+/// **When the refresh only could not complete** — no network, a timeout, a
+/// 5xx ([transientFailures]) — the session is kept and [refresh] answers
+/// false: the refresh token was never refused, and the session is persisted
+/// (Issue #235), so ending it would sign out a student who merely came back
+/// on a bad connection. The next authenticated request tries again.
 class SessionRefresher {
   SessionRefresher({
     required AuthSessionStore sessionStore,
@@ -41,6 +47,12 @@ class SessionRefresher {
     sessionStore: AuthSessionStore.instance,
   );
 
+  /// Failures that say nothing about the refresh token — see the class doc.
+  static const Set<AuthFailureKind> transientFailures = {
+    AuthFailureKind.network,
+    AuthFailureKind.server,
+  };
+
   final AuthSessionStore _store;
   final AuthRepository _auth;
 
@@ -51,7 +63,8 @@ class SessionRefresher {
 
   /// Makes the session usable again after [failedToken] was refused (or ran
   /// out locally). Completes with true when the store now holds an access
-  /// token to retry with, false when the session has ended.
+  /// token to retry with, false when it does not — the session has ended, or
+  /// the renewal could not complete and the session is kept for next time.
   Future<bool> refresh({String? failedToken}) {
     // Already ended (or never signed in): nothing to renew, and the session's
     // end has been signalled once already.
@@ -81,9 +94,13 @@ class SessionRefresher {
     final AuthSession renewed;
     try {
       renewed = await _auth.refresh(refreshToken: refreshToken);
-    } catch (_) {
+    } on AuthFailure catch (failure) {
+      if (transientFailures.contains(failure.kind)) return false;
       // Signed out (or in again) meanwhile: that session is not this one's
       // to end.
+      if (identical(_store.session, session)) _end();
+      return false;
+    } catch (_) {
       if (identical(_store.session, session)) _end();
       return false;
     }
