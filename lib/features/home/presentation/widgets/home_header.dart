@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
+import '../../../../shared/widgets/app_svg_icon.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../home_strings.dart';
-import 'home_palette.dart';
 import '../../../notifications/presentation/notification_center.dart';
 import '../../../notifications/presentation/notification_screen.dart';
 
@@ -50,8 +51,9 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Colours by role (Dark Mode Phase 3, Issue #258) — light values as ever.
     return ColoredBox(
-      color: AppColors.surface,
+      color: context.palette.surface,
       child: Padding(
         // 10 over the bell and 9 under it: the reference's rule sits 63 below
         // the status bar, not 64.
@@ -116,6 +118,14 @@ class _BrandLockup extends StatelessWidget {
           SvgPicture.asset(
             HomeIcons.wordmark,
             height: AppDimens.headerLogoHeight,
+            // Single-colour artwork drawn in the brand navy. Tinted only when
+            // the theme's `wordmark` role is another colour — a same-colour
+            // tint still moves edge pixels (29/255 measured) — so light mode
+            // draws it as authored and a dark theme can recolour it (the navy
+            // is invisible on a dark ground). See `AppSvgIcon`.
+            colorFilter: context.palette.wordmark == AppColors.wordmark
+                ? null
+                : ColorFilter.mode(context.palette.wordmark, BlendMode.srcIn),
             // The lockup's own [Semantics] announces it.
             excludeFromSemantics: true,
           ),
@@ -164,16 +174,17 @@ class _NotificationButtonState extends State<_NotificationButton> {
       listenable: widget.center,
       builder: (context, _) {
         final unread = widget.center.unreadCount > 0;
+        final palette = context.palette;
         return Semantics(
           button: true,
           label: unread
               ? '${HomeStrings.notifications}, ${widget.center.unreadCount}'
               : HomeStrings.notifications,
           child: Material(
-            color: AppColors.surface,
-            shape: const CircleBorder(
+            color: palette.surface,
+            shape: CircleBorder(
               side: BorderSide(
-                color: HomePalette.border,
+                color: palette.outline,
                 width: AppDimens.borderWidth,
               ),
             ),
@@ -186,13 +197,9 @@ class _NotificationButtonState extends State<_NotificationButton> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    SvgPicture.asset(
-                      HomeIcons.notification,
-                      width: 20,
-                      height: 20,
-                    ),
+                    const AppSvgIcon(HomeIcons.notification, size: 20),
                     if (unread)
-                      const Positioned(
+                      Positioned(
                         top: _badgeInset,
                         right: _badgeInset,
                         child: SizedBox.square(
@@ -200,7 +207,7 @@ class _NotificationButtonState extends State<_NotificationButton> {
                           dimension: _badgeSize,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: HomePalette.accent,
+                              color: palette.accent,
                               shape: BoxShape.circle,
                             ),
                           ),

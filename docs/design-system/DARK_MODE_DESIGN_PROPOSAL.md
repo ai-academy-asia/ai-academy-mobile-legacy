@@ -233,7 +233,7 @@ Same hue family in each case. Pale fills become deep tinted fills, and inks get 
 
 | Class | Assets | Proposal |
 |---|---|---|
-| Monochrome, black | 17: Profile row icons, the bell, the exercise icons, the lock | Draw through one tinting widget (`AppSvgIcon`, audit §7) with `ColorFilter.mode(role, srcIn)`: `textPrimary` by default, `textSecondary`/`textInactive`/`accent` where light already varies them. **No asset changes** |
+| Monochrome, black | 17: Profile row icons, the bell, the exercise icons, the lock | Draw through `AppSvgIcon` (exists since Phase 3, Issue #258): `ColorFilter.mode(role, srcIn)` with role `iconInk` by default, applied **only when the role differs from the asset's own black**, because a same-colour tint moves edge pixels. In dark, `iconInk` takes the approved value (proposed: as `textPrimary`). **No asset changes** |
 | Monochrome, brand blue | `nav_*_active` ×5, `certificate_badge` | Tint with `accentText` in dark (selected nav already uses a `colorFilter`) |
 | Single-colour status and brand | `quiz_correct` `#009951`, `quiz_incorrect` `#EF4444`, `course_detail_completed_check` `#14AE5C`, `contract_warning` `#B86200` | Tint with the status ink (§4.5) in dark; keep as authored in light |
 | Near-black glyph | `exercise_play` `#0B1230` (on the video header) | Tint `#FFFFFF`; it sits on dark in both modes. Check whether it's already drawn light (§16) |

@@ -147,6 +147,14 @@ abstract final class AppColors {
   /// The label of a control that cannot be used.
   static const Color disabledInk = Color(0xFFAEAFB0);
 
+  /// The ink of the monochrome SVG icons — the bell, the Profile row icons
+  /// — which are drawn `stroke="black"`. A tint of this exact colour paints
+  /// them as they always were (Phase 3, Issue #258).
+  static const Color iconInk = Color(0xFF000000);
+
+  /// The "AI academy Asia" wordmark — the brand [navy] it is drawn in.
+  static const Color wordmark = navy;
+
   /// The faint band under a white pill (`HomePillButton`'s secondary).
   static const Color subtleDepth = Color(0x0A000000);
 

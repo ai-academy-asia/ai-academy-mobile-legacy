@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
+import '../../../../shared/widgets/app_svg_icon.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 import '../profile_strings.dart';
 
 /// The measured parts the profile frames are drawn from — the Figma "Adults -
@@ -75,7 +75,7 @@ class ProfileTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.surface,
+      color: context.palette.surface,
       child: SafeArea(
         bottom: false,
         child: profileConstrained(
@@ -87,7 +87,12 @@ class ProfileTitleBar extends StatelessWidget {
               ),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(title, style: profileHeadingStyle),
+                child: Text(
+                  title,
+                  style: profileHeadingStyle.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
+                ),
               ),
             ),
           ),
@@ -108,11 +113,11 @@ class ProfileAvatar extends StatelessWidget {
       width: ProfileMetrics.avatarSize,
       height: ProfileMetrics.avatarSize,
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: context.palette.surfaceMuted,
         shape: BoxShape.circle,
-        border: Border.all(color: HomePalette.border),
+        border: Border.all(color: context.palette.outline),
       ),
-      child: const Icon(Icons.person, size: 36, color: AppColors.textSecondary),
+      child: Icon(Icons.person, size: 36, color: context.palette.textSecondary),
     );
   }
 }
@@ -134,7 +139,10 @@ class ProfileCaption extends StatelessWidget {
           AppDimens.screenPadding,
           0,
         ),
-        child: Text(label, style: captionStyle),
+        child: Text(
+          label,
+          style: captionStyle.copyWith(color: context.palette.textSecondary),
+        ),
       ),
     );
   }
@@ -195,12 +203,14 @@ class ProfileRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            SvgPicture.asset(icon, width: _rowIcon, height: _rowIcon),
+            AppSvgIcon(icon, size: _rowIcon),
             const SizedBox(width: _iconToLabel),
             Expanded(
               child: Text(
                 label,
-                style: rowLabelStyle,
+                style: rowLabelStyle.copyWith(
+                  color: context.palette.textPrimary,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -249,7 +259,7 @@ class ProfileLanguageToggle extends StatelessWidget {
       height: _toggleHeight,
       padding: const EdgeInsets.all(_toggleInset),
       decoration: BoxDecoration(
-        color: HomePalette.accent,
+        color: context.palette.accent,
         borderRadius: BorderRadius.circular(_toggleRadius),
       ),
       child: Row(
@@ -295,13 +305,15 @@ class _Segment extends StatelessWidget {
           width: selected ? _capsuleWidth : _otherSegmentWidth,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppColors.surface : Colors.transparent,
+            color: selected ? context.palette.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(_capsuleRadius),
           ),
           child: Text(
             label,
             style: _segmentStyle.copyWith(
-              color: selected ? _segmentInk : AppColors.onPrimary,
+              color: selected
+                  ? context.palette.linkInk
+                  : context.palette.onPrimary,
             ),
           ),
         ),
@@ -330,6 +342,7 @@ class ProfileSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onChanged = this.onChanged;
+    final palette = context.palette;
     return Semantics(
       toggled: value,
       // Only an inert switch says so; an active one is drawn as it always was.
@@ -345,18 +358,18 @@ class ProfileSwitch extends StatelessWidget {
           padding: const EdgeInsets.all(2),
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: value ? HomePalette.accent : HomePalette.border,
+            color: value ? palette.accent : palette.outline,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Container(
             width: 20,
             height: 20,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
+            decoration: BoxDecoration(
+              color: palette.surface,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
+                  color: palette.shadow,
                   blurRadius: 2,
                   offset: Offset(0, 1),
                 ),
@@ -383,18 +396,23 @@ class ProfileLogOutButton extends StatelessWidget {
       label: ProfileStrings.logOut,
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
-        shape: const RoundedRectangleBorder(
+        color: context.palette.surface,
+        shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: BorderSide(color: HomePalette.border),
+          side: BorderSide(color: context.palette.outline),
         ),
         child: InkWell(
           onTap: onPressed,
           customBorder: const RoundedRectangleBorder(borderRadius: radius),
-          child: const SizedBox(
+          child: SizedBox(
             height: AppDimens.buttonHeight,
             child: Center(
-              child: Text(ProfileStrings.logOut, style: _logOutStyle),
+              child: Text(
+                ProfileStrings.logOut,
+                style: _logOutStyle.copyWith(
+                  color: context.palette.textPrimary,
+                ),
+              ),
             ),
           ),
         ),
@@ -410,7 +428,7 @@ class ProfileRule extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: AppDimens.borderWidth,
-      color: HomePalette.headerRule,
+      color: context.palette.divider,
     );
   }
 }
@@ -420,10 +438,11 @@ class ProfileRule extends StatelessWidget {
 // Sampled and measured off the frames at 1:1; sizes from cap heights
 // (Manrope's cap height is 0.72 em). The colours are the same ones
 // `JuniorProfileScreen` sampled off the junior frame.
-
-/// "MN" on the white half of the language control — a deep indigo, not the
-/// capsule's blue.
-const Color _segmentInk = AppColors.linkInk;
+//
+// The parts above draw every colour from `context.palette` (Dark Mode Phase
+// 3, Issue #258) — "MN"'s deep indigo is `linkInk`, not the capsule's blue.
+// The public styles below keep their light colours for the screens that
+// still use them directly; the parts apply the role's colour over them.
 
 /// The title band's "Profile".
 const TextStyle profileHeadingStyle = TextStyle(

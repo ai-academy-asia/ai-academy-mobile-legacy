@@ -4,7 +4,7 @@ import 'app_colors.dart';
 
 /// The app's colours by **role** — what a colour is for, not what it looks
 /// like — for every experience (Adult, Junior, Teacher) at once (Issue
-/// #252; roles completed in Phase 2, Issue #256 —
+/// #252; roles completed in Phase 2, Issue #256, icon roles in Phase 3, #258 —
 /// `docs/design-system/DARK_MODE_ARCHITECTURE_AUDIT.md` §14,
 /// `DARK_MODE_DESIGN_PROPOSAL.md` §3).
 ///
@@ -38,6 +38,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.textMuted,
     required this.textInactive,
     required this.textLocked,
+    required this.iconInk,
+    required this.wordmark,
     required this.border,
     required this.borderFocused,
     required this.divider,
@@ -99,6 +101,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     textMuted: AppColors.textMuted,
     textInactive: AppColors.textInactive,
     textLocked: AppColors.textLocked,
+    iconInk: AppColors.iconInk,
+    wordmark: AppColors.wordmark,
     border: AppColors.border,
     borderFocused: AppColors.borderFocused,
     divider: AppColors.divider,
@@ -191,6 +195,13 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color textLocked;
 
   // --- Lines -----------------------------------------------------------------
+
+  /// The ink of the monochrome SVG icons (black), applied as a tint by
+  /// `AppSvgIcon`.
+  final Color iconInk;
+
+  /// The "AI academy Asia" wordmark's colour (brand navy), applied as a tint.
+  final Color wordmark;
 
   /// A field's or outlined button's resting edge (`#E4E6EF`).
   final Color border;
@@ -349,6 +360,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? textMuted,
     Color? textInactive,
     Color? textLocked,
+    Color? iconInk,
+    Color? wordmark,
     Color? border,
     Color? borderFocused,
     Color? divider,
@@ -407,6 +420,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     textMuted: textMuted ?? this.textMuted,
     textInactive: textInactive ?? this.textInactive,
     textLocked: textLocked ?? this.textLocked,
+    iconInk: iconInk ?? this.iconInk,
+    wordmark: wordmark ?? this.wordmark,
     border: border ?? this.border,
     borderFocused: borderFocused ?? this.borderFocused,
     divider: divider ?? this.divider,
@@ -471,6 +486,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
       textMuted: mix(textMuted, other.textMuted),
       textInactive: mix(textInactive, other.textInactive),
       textLocked: mix(textLocked, other.textLocked),
+      iconInk: mix(iconInk, other.iconInk),
+      wordmark: mix(wordmark, other.wordmark),
       border: mix(border, other.border),
       borderFocused: mix(borderFocused, other.borderFocused),
       divider: mix(divider, other.divider),

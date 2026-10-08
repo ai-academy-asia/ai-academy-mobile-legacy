@@ -33,6 +33,8 @@ void main() {
       'textMuted': (light.textMuted, const Color(0xFF808080)),
       'textInactive': (light.textInactive, const Color(0xFFB2B2B2)),
       'textLocked': (light.textLocked, const Color(0xFFB5B5B5)),
+      'iconInk': (light.iconInk, const Color(0xFF000000)),
+      'wordmark': (light.wordmark, const Color(0xFF14053D)),
       'border': (light.border, const Color(0xFFE4E6EF)),
       'borderFocused': (light.borderFocused, const Color(0xE6000000)),
       'divider': (light.divider, const Color(0xFFEAEDF0)),
