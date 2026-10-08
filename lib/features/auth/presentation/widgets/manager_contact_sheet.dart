@@ -31,14 +31,16 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
 /// The sheet itself.
 ///
 /// No Figma frame draws it, so nothing here is new design: it is assembled
-/// from Login's own frame and the sign-out dialog (#166), restyled so it reads
-/// as part of Login rather than a stock sheet (Issue #239):
+/// from Login's own frame and existing tokens, so it reads as part of Login
+/// rather than a stock sheet (Issue #239):
 ///
-///  * the heading, "Бид танд туслахад бэлэн", is set in Login's screen
-///    [AppTypography.heading], with a short message under it in
-///    [AppTypography.statLabel] — the sign-out dialog's message style —
-///    [AppDimens.titleToSupporting] apart, as Reset Password spaces its
-///    heading and supporting line;
+///  * a header cue — Phosphor [AppIcons.chatCircleDots] in [AppColors.blue]
+///    on a round [AppDimens.avatarSize] tile of the same pale blue as the
+///    options' own tiles — over the heading, "Танд асуух зүйл байна уу?", in
+///    [AppTypography.catalogTitle]: a section heading, a step below Login's
+///    22pt screen heading. Under it, [AppDimens.fieldGap] apart, a short
+///    message in [AppTypography.statLabel] darkened to
+///    [AppColors.textPrimary] so it reads as copy rather than a caption;
 ///  * each option is the Login frame's contact card — white surface, 1pt
 ///    [AppColors.border], [AppDimens.cardRadius], [AppDimens.cardHeight],
 ///    trailing [AppIcons.caretRight] — led by its Phosphor glyph in
@@ -47,8 +49,11 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
 ///    [AppTypography.statLabel].
 ///
 /// Spacing is Login's: [AppDimens.screenPadding] at the sides,
-/// [AppDimens.headingToForm] above the heading, between the message and the
-/// options and under the last one, [AppDimens.fieldGap] between the options.
+/// [AppDimens.headingToForm] above the cue and between the message and the
+/// options, [AppDimens.fieldGap] under the cue, under the heading and between
+/// the options, and
+/// [AppDimens.cardPadding] under the last option — the safe area adds the
+/// rest.
 class ManagerContactSheet extends StatefulWidget {
   const ManagerContactSheet({super.key});
 
@@ -57,6 +62,10 @@ class ManagerContactSheet extends StatefulWidget {
 }
 
 class _ManagerContactSheetState extends State<ManagerContactSheet> {
+  /// The header cue's glyph — the 24pt nominal size the tab bar's Phosphor
+  /// glyphs use, one step up from the options' 20.
+  static const double headerIconSize = 24;
+
   // A second tap landing before the route is gone would pop Login itself.
   // Only the first answer counts — same guard as the sign-out dialog.
   bool _answered = false;
@@ -76,21 +85,31 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
           AppDimens.screenPadding,
           AppDimens.headingToForm,
           AppDimens.screenPadding,
-          AppDimens.headingToForm,
+          AppDimens.cardPadding,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Center(
+              child: _IconTile(
+                icon: AppIcons.chatCircleDots,
+                size: AppDimens.avatarSize,
+                iconSize: headerIconSize,
+              ),
+            ),
+            const SizedBox(height: AppDimens.fieldGap),
             const Text(
               LoginStrings.contactSheetTitle,
-              style: AppTypography.heading,
+              style: AppTypography.catalogTitle,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppDimens.titleToSupporting),
-            const Text(
+            const SizedBox(height: AppDimens.fieldGap),
+            Text(
               LoginStrings.contactMessage,
-              style: AppTypography.statLabel,
+              style: AppTypography.statLabel.copyWith(
+                color: AppColors.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppDimens.headingToForm),
@@ -125,10 +144,6 @@ class _ContactOption extends StatelessWidget {
     required this.onTap,
   });
 
-  /// The tile behind the glyph: [AppColors.blue] at 12%, the same tint the
-  /// Home program card's decoration draws its blue with.
-  static final Color tileFill = AppColors.blue.withValues(alpha: 0.12);
-
   final IconData icon;
   final String label;
   final String value;
@@ -160,19 +175,10 @@ class _ContactOption extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: AppDimens.statIconTile,
-                  height: AppDimens.statIconTile,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: tileFill,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    size: AppDimens.settingsRowIconSize,
-                    color: AppColors.blue,
-                  ),
+                _IconTile(
+                  icon: icon,
+                  size: AppDimens.statIconTile,
+                  iconSize: AppDimens.settingsRowIconSize,
                 ),
                 const SizedBox(width: AppDimens.fieldGap),
                 Expanded(
@@ -207,6 +213,35 @@ class _ContactOption extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A Phosphor glyph in [AppColors.blue] on a round pale-blue tile — the
+/// header cue and each option's lead.
+class _IconTile extends StatelessWidget {
+  const _IconTile({
+    required this.icon,
+    required this.size,
+    required this.iconSize,
+  });
+
+  /// [AppColors.blue] at 12%, the same tint the Home program card's
+  /// decoration draws its blue with.
+  static final Color fill = AppColors.blue.withValues(alpha: 0.12);
+
+  final IconData icon;
+  final double size;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
+      child: Icon(icon, size: iconSize, color: AppColors.blue),
     );
   }
 }

@@ -121,4 +121,9 @@ abstract final class AppIcons {
 
   /// "Email бичих" — Phosphor "Envelope".
   static const IconData envelope = IconData(0xe214, fontFamily: _family);
+
+  /// The manager contact sheet's header cue (Issue #239) — Phosphor
+  /// "ChatCircleDots", confirmed by rendering `0xe16c` from the bundled font
+  /// among its chat-bubble neighbours.
+  static const IconData chatCircleDots = IconData(0xe16c, fontFamily: _family);
 }

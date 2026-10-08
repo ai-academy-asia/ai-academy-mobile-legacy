@@ -51,7 +51,7 @@ void main() {
     await openSheet(tester);
 
     expect(sheet(), findsOneWidget);
-    expect(find.text('Бид танд туслахад бэлэн'), findsOneWidget);
+    expect(find.text('Танд асуух зүйл байна уу?'), findsOneWidget);
     // The Login card's own title is not reused as the heading.
     expect(
       find.descendant(
@@ -62,7 +62,8 @@ void main() {
     );
     expect(
       find.text(
-        'Асуух зүйл байвал доорх утас, имэйлээр бидэнтэй холбогдоорой.',
+        'Сургалт болон бүртгэлтэй холбоотой мэдээлэл авах бол бидэнтэй '
+        'холбогдоорой.',
       ),
       findsOneWidget,
     );
@@ -78,18 +79,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('heads with Login\'s heading over the dialog\'s message style', (
-    tester,
-  ) async {
+  testWidgets('heads with a blue chat cue over a section heading and a '
+      'readable message', (tester) async {
     await openSheet(tester);
+
+    // The cue: Phosphor ChatCircleDots, blue, on the options' pale-blue
+    // round tile at the larger avatar size — above the heading.
+    final cue = find.byIcon(AppIcons.chatCircleDots);
+    expect(tester.widget<Icon>(cue).color, AppColors.blue);
+    final tile = find.ancestor(of: cue, matching: find.byType(Container)).first;
+    final fill = tester.widget<Container>(tile).decoration! as BoxDecoration;
+    expect(fill.shape, BoxShape.circle);
+    expect(fill.color, AppColors.blue.withValues(alpha: 0.12));
+    expect(tester.getSize(tile), const Size.square(AppDimens.avatarSize));
+    expect(
+      tester.getBottomLeft(tile).dy,
+      lessThan(tester.getTopLeft(find.text(LoginStrings.contactSheetTitle)).dy),
+    );
+    expect(
+      tester.getCenter(tile).dx,
+      moreOrLessEquals(tester.getCenter(sheet()).dx),
+    );
 
     final heading = tester.widget<Text>(
       find.text(LoginStrings.contactSheetTitle),
     );
-    expect(heading.style, AppTypography.heading);
+    expect(heading.style, AppTypography.catalogTitle);
     expect(heading.textAlign, TextAlign.center);
     final message = tester.widget<Text>(find.text(LoginStrings.contactMessage));
-    expect(message.style, AppTypography.statLabel);
+    expect(
+      message.style,
+      AppTypography.statLabel.copyWith(color: AppColors.textPrimary),
+    );
     expect(
       tester.getTopLeft(find.text(LoginStrings.contactMessage)).dy,
       greaterThan(

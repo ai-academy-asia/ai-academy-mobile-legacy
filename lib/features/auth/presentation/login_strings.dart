@@ -43,11 +43,11 @@ abstract final class LoginStrings {
 
   /// The contact sheet's heading (#239) — its own, not the bottom card's
   /// [contactManager].
-  static const String contactSheetTitle = 'Бид танд туслахад бэлэн';
+  static const String contactSheetTitle = 'Танд асуух зүйл байна уу?';
 
   /// Under the sheet's heading: what the two options below are for (#239).
   static const String contactMessage =
-      'Асуух зүйл байвал доорх утас, имэйлээр бидэнтэй холбогдоорой.';
+      'Сургалт болон бүртгэлтэй холбоотой мэдээлэл авах бол бидэнтэй холбогдоорой.';
 
   /// Opens the manager's phone number.
   static const String contactCall = 'Утасдах';
