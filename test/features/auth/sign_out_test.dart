@@ -11,6 +11,7 @@ import 'package:aia_mobile/features/junior_home/presentation/junior_profile_scre
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,8 +36,8 @@ void main() {
     refreshToken: 'refresh-1',
   );
 
-  /// The two Profiles, each with its own "Гарах" label, built with the
-  /// injected repository and store.
+  /// The three Profiles — Adult, Junior and Teacher (Issue #243) — each with
+  /// its own log-out label, built with the injected repository and store.
   final profiles =
       <
         ({
@@ -49,6 +50,15 @@ void main() {
           name: 'Adult Profile',
           logOut: ProfileStrings.logOut,
           build: (auth, store) => ProfileScreen(
+            repository: FakeCurrentUserRepository(hold: true),
+            authRepository: auth,
+            sessionStore: store,
+          ),
+        ),
+        (
+          name: 'Teacher Profile',
+          logOut: ProfileStrings.logOut,
+          build: (auth, store) => TeacherProfileScreen(
             repository: FakeCurrentUserRepository(hold: true),
             authRepository: auth,
             sessionStore: store,

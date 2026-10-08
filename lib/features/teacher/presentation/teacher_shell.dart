@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../../shared/widgets/persistent_tab_shell.dart';
 import 'teacher_gradebook_screen.dart';
 import 'teacher_home_screen.dart';
+import 'teacher_profile_screen.dart';
 import 'teacher_schedule_screen.dart';
 import 'widgets/teacher_bottom_nav.dart';
 import 'widgets/teacher_tabs.dart';
@@ -12,13 +13,14 @@ import 'widgets/teacher_tabs.dart';
 /// describes: a tab switch changes only the content above the bar, never
 /// pushes a route, and keeps each opened tab as it was left.
 ///
-/// Three tabs have content. Профайл has no screen (a `PRODUCT DECISION`,
-/// #241), so its bar item stays inert and the shell never selects it.
+/// All four tabs have content; Профайл is [TeacherProfileScreen] (Issue
+/// #243).
 ///
 /// `/teacher-home`, `/teacher-schedule` and `/teacher-gradebook` each open it
-/// on their own tab. Deeper screens — session sheets, the request screen,
-/// Gradebook's class, student and submission screens — are still pushed over
-/// the whole shell.
+/// on their own tab; Профайл has no route of its own — it is reached from
+/// the bar. Deeper screens — session sheets, the request screen, Gradebook's
+/// class, student and submission screens, Profile's Change password — are
+/// still pushed over the whole shell.
 class TeacherShell extends StatelessWidget {
   const TeacherShell({
     super.key,
@@ -26,16 +28,18 @@ class TeacherShell extends StatelessWidget {
     this.home,
     this.schedule,
     this.grades,
-  }) : assert(initialTab != TeacherTab.profile);
+    this.profile,
+  });
 
-  /// The tab shown first. Never [TeacherTab.profile].
+  /// The tab shown first.
   final TeacherTab initialTab;
 
-  /// The three tab screens, each drawn without its own bar. Default to the
+  /// The four tab screens, each drawn without its own bar. Default to the
   /// real ones; injected in tests.
   final Widget? home;
   final Widget? schedule;
   final Widget? grades;
+  final Widget? profile;
 
   /// The tabs with content, in bar order — their index here is their index
   /// on the bar.
@@ -43,6 +47,7 @@ class TeacherShell extends StatelessWidget {
     TeacherTab.home,
     TeacherTab.schedule,
     TeacherTab.grades,
+    TeacherTab.profile,
   ];
 
   Widget _screenFor(TeacherTab tab) => switch (tab) {
@@ -51,8 +56,7 @@ class TeacherShell extends StatelessWidget {
       schedule ?? const TeacherScheduleScreen(showBottomNav: false),
     TeacherTab.grades =>
       grades ?? const TeacherGradebookScreen(showBottomNav: false),
-    // Never built: the bar keeps Профайл inert.
-    TeacherTab.profile => const SizedBox.shrink(),
+    TeacherTab.profile => profile ?? const TeacherProfileScreen(),
   };
 
   @override

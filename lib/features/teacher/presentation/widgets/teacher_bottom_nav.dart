@@ -33,8 +33,9 @@ const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
 /// "Дүнгийн хуудас" on one line in its 90pt tab.
 ///
 /// Нүүр, Хуваарь (Issue #231) and Дүнгийн хуудас (Issue #233) switch
-/// through [openTeacherTab]. The teacher Profile has no screen, so its tab
-/// stays inert ([AppBottomNavItem.onTap] null). The `dungiin-huudas`
+/// through [openTeacherTab]. Профайл (Issue #243) is a tab of `TeacherShell`
+/// only — it has no route — so it switches only through [onSelect]; on a
+/// bar drawn outside the shell it stays inert. The `dungiin-huudas`
 /// reference draws a different bar (Хуваарь, Дүнгийн хуудас, Хөтөлбөр,
 /// Профайл); the app keeps this one by instruction.
 ///
@@ -49,7 +50,6 @@ const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
 /// Inside `TeacherShell` the bar is drawn once, by the shell, with [onSelect]
 /// switching the shell's tab in place (Issue #241); a screen drawn on its own
 /// leaves [onSelect] null and switches routes through [openTeacherTab].
-/// Профайл stays inert either way.
 class TeacherBottomNav extends StatelessWidget {
   const TeacherBottomNav({
     this.current = TeacherTab.home,
@@ -94,12 +94,12 @@ class TeacherBottomNav extends StatelessWidget {
           label: TeacherHomeStrings.navGrades,
           onTap: open(TeacherTab.grades),
         ),
-        // Inert: there is no Teacher Profile screen (#241), so the shell never
-        // selects it — the fill is only the bar's treatment kept consistent.
-        const AppBottomNavItem(
+        AppBottomNavItem(
           icon: AppIcons.user,
           selectedAsset: _profileFilled,
           label: TeacherHomeStrings.navProfile,
+          // Shell-only: no route to switch to from a standalone bar.
+          onTap: onSelect == null ? null : open(TeacherTab.profile),
         ),
       ],
     );

@@ -13,12 +13,14 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_strin
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/gradebook_widgets.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../profile/fake_current_user_repository.dart';
 import 'fake_teacher_gradebook_repository.dart';
 import 'fake_teacher_home_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
@@ -542,6 +544,9 @@ void main() {
                 ),
                 showBottomNav: false,
               ),
+              profile: TeacherProfileScreen(
+                repository: FakeCurrentUserRepository(),
+              ),
             ),
           },
         ),
@@ -588,13 +593,24 @@ void main() {
       expect(find.byType(TeacherGradebookScreen), findsNothing);
     });
 
-    testWidgets('Профайл stays inert', (tester) async {
+    testWidgets('Профайл opens the Teacher Profile, and Дүнгийн хуудас '
+        'returns as it was left (Issue #243)', (tester) async {
       await pumpApp(tester);
       await tester.tap(find.text(TeacherHomeStrings.navGrades));
       await tester.pumpAndSettle();
+      final gradebook = tester.state(find.byType(TeacherGradebookScreen));
+
       await tester.tap(find.text(TeacherHomeStrings.navProfile));
       await tester.pumpAndSettle();
-      expect(find.byType(TeacherGradebookScreen), findsOneWidget);
+      expect(find.byType(TeacherProfileScreen), findsOneWidget);
+      expect(find.byType(TeacherGradebookScreen), findsNothing);
+
+      await tester.tap(find.text(TeacherHomeStrings.navGrades));
+      await tester.pumpAndSettle();
+      expect(
+        identical(tester.state(find.byType(TeacherGradebookScreen)), gradebook),
+        isTrue,
+      );
     });
   });
 }
