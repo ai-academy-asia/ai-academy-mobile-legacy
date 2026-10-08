@@ -1,4 +1,5 @@
 import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_palette.dart';
@@ -78,7 +79,9 @@ void main() {
     expect(find.text(NotificationStrings.title), findsOneWidget);
     expect(find.text('Шинэ даалгавар'), findsOneWidget);
     expect(
-      find.text('«1 минутын AI видео» — 10/07 хүртэл илгээнэ үү.'),
+      find.text(
+        bindShortLastWords('«1 минутын AI видео» — 10/07 хүртэл илгээнэ үү.'),
+      ),
       findsOneWidget,
     );
     expect(find.text('2026.10.01 · 12:57'), findsOneWidget);
@@ -144,16 +147,144 @@ void main() {
     expect(tester.getCenter(find.text('Short title')).dx, 393 / 2);
   });
 
-  testWidgets('the body reads 16/24 in the primary ink, left-aligned', (
+  testWidgets('the body: 16/24 primary ink, left-aligned, on the page grey', (
     tester,
   ) async {
-    await pumpDetail(tester, sampleNotification(body: 'Body text'));
+    await pumpDetail(tester, sampleNotification(body: 'A body to read'));
+    final text = find.text(bindShortLastWords('A body to read'));
 
-    final body = tester.widget<Text>(find.text('Body text'));
+    final body = tester.widget<Text>(text);
     expect(body.style?.fontSize, 16);
     expect(body.style?.height, 24 / 16);
     expect(body.style?.color, AppColors.textPrimary);
-    expect(tester.getRect(find.text('Body text')).left, 16);
+    expect(body.textAlign, isNull);
+
+    final ground = find.ancestor(
+      of: text,
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is DecoratedBox &&
+            w.decoration is BoxDecoration &&
+            (w.decoration as BoxDecoration).color == AppColors.background,
+      ),
+    );
+    expect(ground, findsOneWidget);
+    final decoration =
+        tester.widget<DecoratedBox>(ground).decoration as BoxDecoration;
+    expect(
+      decoration.borderRadius,
+      BorderRadius.circular(AppDimens.cardRadius),
+    );
+    expect(decoration.border, isNull);
+    expect(decoration.boxShadow, isNull);
+
+    // Full width of the column, the text 16 inside it.
+    final groundRect = tester.getRect(ground);
+    expect(groundRect.left, 16);
+    expect(groundRect.right, 393 - 16);
+    expect(tester.getRect(text).left, 32);
+    expect(tester.getRect(text).top - groundRect.top, 16);
+  });
+
+  testWidgets('a short body is one tidy section, close under the rule', (
+    tester,
+  ) async {
+    await pumpDetail(tester, sampleNotification(body: 'Short.'));
+
+    final text = find.text('Short.');
+    expect(tester.getSize(text).height, 24, reason: 'one line');
+    expect(tester.takeException(), isNull);
+  });
+
+  group('the last line never holds a short word alone', () {
+    /// The last line of [body] as laid out on the detail screen at
+    /// [viewportWidth].
+    Future<String> lastLineOf(
+      WidgetTester tester,
+      String body,
+      double viewportWidth,
+    ) async {
+      useLogicalViewport(
+        tester,
+        Size(viewportWidth, 875),
+        padding: iPhonePadding,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: NotificationDetailScreen(
+            notification: sampleNotification(body: body),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final shown = bindShortLastWords(body);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: find.text(shown), matching: find.byType(RichText)),
+      );
+      // Laid out as the paragraph is: its own text, at its own width.
+      final painter = TextPainter(
+        text: paragraph.text,
+        textDirection: TextDirection.ltr,
+        textScaler: paragraph.textScaler,
+      )..layout(maxWidth: paragraph.size.width);
+      addTearDown(painter.dispose);
+      final line = painter.getLineBoundary(
+        TextPosition(offset: shown.length - 1),
+      );
+      return shown.substring(line.start, line.end).trim();
+    }
+
+    // The device case: a sentence a hair wider than its line. At 419 wide
+    // the body column is 355, which drops exactly the last word.
+    const sentence = '«1 минутын AI видео» — 10/07 хүртэл илгээнэ үү.';
+
+    testWidgets('a sentence just over one line takes a word with it', (
+      tester,
+    ) async {
+      expect(await lastLineOf(tester, sentence, 419), 'илгээнэ\u00A0үү.');
+    });
+
+    testWidgets('at every width from SE to Pro Max', (tester) async {
+      for (var width = 320.0; width <= 440; width += 1) {
+        final last = await lastLineOf(tester, sentence, width);
+        expect(last, isNot('үү.'), reason: 'at $width');
+        expect(last.length, greaterThan(3), reason: 'at $width');
+      }
+    });
+  });
+
+  group('bindShortLastWords', () {
+    test('binds a short last word to the one before', () {
+      expect(bindShortLastWords('илгээнэ үү.'), 'илгээнэ\u00A0үү.');
+      expect(
+        bindShortLastWords('send it by Friday ok'),
+        'send it by Friday\u00A0ok',
+      );
+    });
+
+    test('leaves a long last word, a single word and empty text alone', () {
+      expect(bindShortLastWords('one two three'), 'one two three');
+      expect(bindShortLastWords('word'), 'word');
+      expect(bindShortLastWords(''), '');
+    });
+
+    test('never binds a pair too long to share a line safely', () {
+      const long = 'pneumonoultramicroscopicsilicovolcanoconiosis ok';
+      expect(bindShortLastWords(long), long);
+    });
+
+    test('each paragraph on its own; line breaks and spacing kept', () {
+      expect(
+        bindShortLastWords('First line is ok\n\nSecond one too  \n'),
+        'First line is\u00A0ok\n\nSecond one\u00A0too  \n',
+      );
+    });
+
+    test('changes nothing but the one space', () {
+      const body = 'Сайн байна уу? Маргааш 10 цагт хичээл болно.\nБаярлалаа!';
+      expect(bindShortLastWords(body).replaceAll('\u00A0', ' '), body);
+    });
   });
 
   testWidgets('a long title and body are drawn whole, never truncated', (
@@ -183,12 +314,15 @@ void main() {
     await pumpDetail(tester, sampleNotification(body: body));
 
     expect(find.byType(Scrollable), findsOneWidget);
-    final bodyRect = tester.getRect(find.text(body));
+    final bodyRect = tester.getRect(find.text(bindShortLastWords(body)));
     expect(bodyRect.bottom, greaterThan(875));
 
     await tester.drag(find.byType(Scrollable), const Offset(0, -3000));
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.text(body)).bottom, lessThanOrEqualTo(875));
+    expect(
+      tester.getRect(find.text(bindShortLastWords(body))).bottom,
+      lessThanOrEqualTo(875),
+    );
   });
 
   testWidgets('the title is announced as a heading', (tester) async {

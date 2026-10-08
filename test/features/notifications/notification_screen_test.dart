@@ -231,7 +231,10 @@ void main() {
 
       expect(detail(), findsOneWidget);
       expect(
-        find.descendant(of: detail(), matching: find.text('Unread body')),
+        find.descendant(
+          of: detail(),
+          matching: find.text(bindShortLastWords('Unread body')),
+        ),
         findsOneWidget,
       );
       expect(repository.markCalls, [3]);
@@ -248,7 +251,10 @@ void main() {
 
       expect(detail(), findsOneWidget);
       expect(
-        find.descendant(of: detail(), matching: find.text('Read body')),
+        find.descendant(
+          of: detail(),
+          matching: find.text(bindShortLastWords('Read body')),
+        ),
         findsOneWidget,
       );
       expect(repository.markCalls, isEmpty);

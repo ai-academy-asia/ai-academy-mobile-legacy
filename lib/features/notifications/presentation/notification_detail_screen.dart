@@ -19,10 +19,15 @@ import 'notification_strings.dart';
 /// Center's own header and language, with nothing new — top to bottom, a
 /// centred metadata block (the row's bell in [HomePalette.accent] on a 48pt
 /// [HomePalette.liveFill] disc, the title, the sent time), a
-/// [HomePalette.headerRule] rule, then the body, left-aligned for reading. Built from the [AppNotification] the list already loaded:
-/// the contract has no detail endpoint, and nothing here changes. Read state
-/// stays with `NotificationCenter`; `kind` and `data` are not read — no deep
-/// links are defined.
+/// [HomePalette.headerRule] rule, then the body, left-aligned for reading on
+/// an [AppColors.background] ground — the app's own page grey, so a short
+/// message reads as a section rather than a line floating on white. The body
+/// never ends on a short word alone: see [bindShortLastWords].
+///
+/// Built from the [AppNotification] the list already loaded: the contract
+/// has no detail endpoint, and nothing here changes. Read state stays with
+/// `NotificationCenter`; `kind` and `data` are not read — no deep links are
+/// defined.
 class NotificationDetailScreen extends StatelessWidget {
   const NotificationDetailScreen({required this.notification, super.key});
 
@@ -106,7 +111,21 @@ class NotificationDetailScreen extends StatelessWidget {
                         child: ColoredBox(color: HomePalette.headerRule),
                       ),
                       const SizedBox(height: _ruleToBody),
-                      Text(notification.body, style: _bodyStyle),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cardRadius,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppDimens.cardPadding),
+                          child: Text(
+                            bindShortLastWords(notification.body),
+                            style: _bodyStyle,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -170,3 +189,38 @@ const TextStyle _bodyStyle = TextStyle(
   color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
+
+/// [text] with each paragraph's last word bound to the one before it by a
+/// no-break space, when that last word is short — so a body never ends on a
+/// stray `үү.` alone. Flutter has no balanced or "pretty" wrap, and a
+/// sentence a hair under the column's width (the device's own shaping can
+/// add the hair) otherwise drops just its last word.
+///
+/// Only a last word of at most [maxShortWord] characters is bound, and only
+/// when the pair is at most [maxPair] — short enough to sit on any line of
+/// the column, so binding can never force a break inside a word. Spaces,
+/// line breaks and every character are otherwise kept as sent.
+@visibleForTesting
+String bindShortLastWords(
+  String text, {
+  int maxShortWord = 4,
+  int maxPair = 24,
+}) => text
+    .split('\n')
+    .map((paragraph) {
+      final end = paragraph.trimRight().length;
+      if (end == 0) return paragraph;
+      final lastSpace = paragraph.lastIndexOf(' ', end - 1);
+      if (lastSpace <= 0) return paragraph;
+      final previousSpace = paragraph.lastIndexOf(' ', lastSpace - 1);
+      final lastWord = end - lastSpace - 1;
+      final previousWord = lastSpace - previousSpace - 1;
+      if (previousWord == 0 ||
+          lastWord > maxShortWord ||
+          previousWord + 1 + lastWord > maxPair) {
+        return paragraph;
+      }
+      return '${paragraph.substring(0, lastSpace)}\u00A0'
+          '${paragraph.substring(lastSpace + 1)}';
+    })
+    .join('\n');
