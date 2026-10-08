@@ -188,6 +188,35 @@ abstract final class AppColors {
   /// The faint lift under a small outlined control.
   static const Color shadowSubtle = Color(0x14000000);
 
+  // Adult (Dark Mode Phase 5, Issue #262).
+
+  /// A deeper blue outline marking the current item — the next installment on Payment.
+  static const Color accentOutline = Color(0xFF155EEF);
+
+  /// The pale indigo line joining Payment's installment timeline.
+  static const Color timelineConnector = Color(0xFFBAC5FF);
+
+  /// Black @ 30 % — an upcoming installment's date and amount.
+  static const Color textFaint = Color(0x4D000000);
+
+  /// The deep navy-black of the payment flow's bank names.
+  static const Color textDeep = Color(0xFF101828);
+
+  /// A statistic's warm-grey caption on the Home cards.
+  static const Color textStatLabel = Color(0xFF726D6D);
+
+  /// The Attendance card's gradient, start.
+  static const Color attendanceGradientStart = Color(0xFF175FEF);
+
+  /// The Attendance card's gradient, end.
+  static const Color attendanceGradientEnd = Color(0xFF518BFF);
+
+  /// A white barely tinted blue — the cohort card.
+  static const Color surfaceTinted = Color(0xFFF8FAFF);
+
+  /// Over camera video — the attendance scanner.
+  static const Color scrim = Color(0x94000000);
+
   // Junior.
   static const Color juniorCard = _blueWash;
   static const Color juniorCardBorder = Color(0xFFD1D3F5);

@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -21,7 +20,6 @@ import 'widgets/adult_bottom_nav.dart';
 import 'widgets/attendance_card.dart';
 import 'widgets/contract_banner.dart';
 import 'widgets/home_header.dart';
-import 'widgets/home_palette.dart';
 import 'widgets/payment_card.dart';
 import 'widgets/program_card.dart';
 
@@ -118,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? const AdultBottomNav(current: StudentTab.home)
             : null,
@@ -128,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // White behind the status bar, as every frame draws it, rather
             // than the page's grey.
             ColoredBox(
-              color: AppColors.surface,
+              color: context.palette.surface,
               child: SizedBox(height: MediaQuery.paddingOf(context).top),
             ),
             Expanded(
@@ -151,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             HomeHeader(onLogoTap: _refreshFromLogo),
                             Container(
                               height: AppDimens.borderWidth,
-                              color: HomePalette.headerRule,
+                              color: context.palette.divider,
                             ),
                             Expanded(child: _buildBody()),
                           ],
@@ -270,7 +268,7 @@ class _DashboardView extends StatelessWidget {
     return RefreshIndicator(
       key: refreshIndicatorKey,
       onRefresh: onRefresh,
-      color: AppColors.blue,
+      color: context.palette.primary,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
@@ -360,13 +358,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -385,7 +383,9 @@ class _EmptyView extends StatelessWidget {
         ),
         child: Text(
           HomeStrings.empty,
-          style: AppTypography.cardSupporting,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
       ),
@@ -411,7 +411,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

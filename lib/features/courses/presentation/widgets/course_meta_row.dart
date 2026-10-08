@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/course.dart';
 import '../course_catalog_strings.dart';
 
@@ -25,9 +26,24 @@ class CourseMetaRow extends StatelessWidget {
       spacing: 10,
       runSpacing: 4,
       children: [
-        Text(duration, style: AppTypography.cardSupporting),
-        Text(age, style: AppTypography.cardSupporting),
-        Text(dates, style: AppTypography.cardSupporting),
+        Text(
+          duration,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
+        Text(
+          age,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
+        Text(
+          dates,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
       ],
     );
   }

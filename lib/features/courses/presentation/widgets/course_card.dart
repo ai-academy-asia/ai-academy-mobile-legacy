@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/course.dart';
 import '../course_catalog_strings.dart';
 
@@ -45,10 +46,12 @@ class CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOpen = course.status.toLowerCase() == 'open';
-    final contentColor = isOpen ? AppColors.textPrimary : AppColors.textSecondary;
+    final contentColor = isOpen
+        ? context.palette.textPrimary
+        : context.palette.textSecondary;
 
     return Material(
-      color: AppColors.surface,
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(AppDimens.cardRadius),
       child: InkWell(
         onTap: onTap,
@@ -57,7 +60,10 @@ class CourseCard extends StatelessWidget {
           padding: const EdgeInsets.all(AppDimens.cardPadding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-            border: Border.all(color: AppColors.border, width: AppDimens.borderWidth),
+            border: Border.all(
+              color: context.palette.border,
+              width: AppDimens.borderWidth,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +94,9 @@ class CourseCard extends StatelessWidget {
                 const SizedBox(height: AppDimens.cardLineGap),
                 Text(
                   tagline,
-                  style: AppTypography.cardSupporting,
+                  style: AppTypography.cardSupporting.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -172,10 +180,11 @@ class _Banner extends StatelessWidget {
         child: Image.network(
           url,
           fit: BoxFit.cover,
-          loadingBuilder: (context, child, progress) =>
-              progress == null ? child : const ColoredBox(color: AppColors.surfaceMuted),
+          loadingBuilder: (context, child, progress) => progress == null
+              ? child
+              : ColoredBox(color: context.palette.surfaceMuted),
           errorBuilder: (context, error, stackTrace) =>
-              const ColoredBox(color: AppColors.surfaceMuted),
+              ColoredBox(color: context.palette.surfaceMuted),
         ),
       ),
     );
@@ -202,8 +211,11 @@ class _TrackBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border, width: AppDimens.borderWidth),
+        color: context.palette.surface,
+        border: Border.all(
+          color: context.palette.border,
+          width: AppDimens.borderWidth,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -213,7 +225,12 @@ class _TrackBadge extends StatelessWidget {
             SvgPicture.asset(asset, height: 14),
             const SizedBox(width: 4),
           ],
-          Text(_capitalize(level), style: AppTypography.catalogTrackLabel),
+          Text(
+            _capitalize(level),
+            style: AppTypography.catalogTrackLabel.copyWith(
+              color: context.palette.textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -236,12 +253,14 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isOpen ? AppColors.blue : AppColors.textPrimary,
+        color: isOpen ? context.palette.primary : context.palette.textPrimary,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         _capitalize(status),
-        style: AppTypography.catalogStatusLabel.copyWith(color: AppColors.onPrimary),
+        style: AppTypography.catalogStatusLabel.copyWith(
+          color: context.palette.onPrimary,
+        ),
       ),
     );
   }
@@ -260,7 +279,12 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTypography.catalogSectionLabel),
+        Text(
+          label,
+          style: AppTypography.catalogSectionLabel.copyWith(
+            color: context.palette.textSecondary,
+          ),
+        ),
         const SizedBox(height: 2),
         Text(value, style: AppTypography.catalogSectionValue.copyWith(color: valueColor)),
       ],
@@ -271,7 +295,10 @@ class _Section extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(height: AppDimens.borderWidth, color: AppColors.border);
+    return Container(
+      height: AppDimens.borderWidth,
+      color: context.palette.border,
+    );
   }
 }
 
@@ -301,15 +328,19 @@ class _PriceRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${_formatAmount(course.priceAmount)} ${course.currency}',
-            style: AppTypography.cardSupporting.copyWith(
-              decoration: TextDecoration.lineThrough,
-            ),
+            style: AppTypography.cardSupporting
+                .copyWith(color: context.palette.textSecondary)
+                .copyWith(decoration: TextDecoration.lineThrough),
           ),
           const SizedBox(width: 6),
           _DiscountBadge(percent: course.discountPercent),
         ],
         const Spacer(),
-        const Icon(AppIcons.caretRight, size: AppDimens.caretSize, color: AppColors.textSecondary),
+        Icon(
+          AppIcons.caretRight,
+          size: AppDimens.caretSize,
+          color: context.palette.textSecondary,
+        ),
       ],
     );
   }
@@ -325,12 +356,15 @@ class _DiscountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.error, width: AppDimens.borderWidth),
+        border: Border.all(
+          color: context.palette.error,
+          width: AppDimens.borderWidth,
+        ),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         '-$percent%',
-        style: AppTypography.badgeLabel.copyWith(color: AppColors.error),
+        style: AppTypography.badgeLabel.copyWith(color: context.palette.error),
       ),
     );
   }

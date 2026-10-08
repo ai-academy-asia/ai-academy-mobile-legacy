@@ -9,7 +9,6 @@ import '../../../../core/theme/app_system_ui.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../../payments/domain/payment_checkout.dart';
-import '../widgets/home_palette.dart';
 import '../widgets/home_pill_button.dart';
 import 'payment_flow_strings.dart';
 
@@ -29,7 +28,7 @@ abstract final class PaymentFlowPalette {
   static const Color handle = AppColors.sheetHandle;
 
   /// The bank sheet's names — a cooler near-black than the text tokens.
-  static const Color bankName = Color(0xFF101828);
+  static const Color bankName = AppColors.textDeep;
 
   /// Inside the success tick's ring: its green at 20%.
   static const Color successFill = AppColors.successFillStrong;
@@ -68,22 +67,28 @@ Widget paymentFlowText(
 }) {
   return Semantics(
     header: header,
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: align,
-      style: paymentFlowStyle(
-        size: size,
-        box: box,
-        weight: weight,
-        color: color,
+    // A `Builder` for the theme's context: it adds no render object, so the
+    // text lays out exactly as before (Dark Mode Phase 5).
+    child: Builder(
+      builder: (context) => Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: align,
+        style: paymentFlowStyle(
+          context,
+          size: size,
+          box: box,
+          weight: weight,
+          color: color,
+        ),
       ),
     ),
   );
 }
 
-TextStyle paymentFlowStyle({
+TextStyle paymentFlowStyle(
+  BuildContext context, {
   required double size,
   required double box,
   FontWeight weight = FontWeight.w400,
@@ -95,7 +100,7 @@ TextStyle paymentFlowStyle({
     height: box / size,
     leadingDistribution: TextLeadingDistribution.even,
     fontWeight: weight,
-    color: color ?? AppColors.textPrimary,
+    color: color ?? context.palette.textPrimary,
   );
 }
 
@@ -109,7 +114,7 @@ class PaymentFlowHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.surface,
+      color: context.palette.surface,
       child: SafeArea(
         bottom: false,
         child: SizedBox(
@@ -168,7 +173,7 @@ class PaymentFlowScaffold extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         body: Column(
           children: [
             PaymentFlowHeader(title: title),
@@ -218,13 +223,16 @@ class PaymentFlowScaffold extends StatelessWidget {
 
 /// A full-width hairline in the Home border grey.
 class PaymentFlowRule extends StatelessWidget {
-  const PaymentFlowRule({super.key, this.color = HomePalette.border});
+  const PaymentFlowRule({super.key, this.color});
 
-  final Color color;
+  /// Null is the theme's [AppPalette.outline].
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) =>
-      SizedBox(height: 1, child: ColoredBox(color: color));
+  Widget build(BuildContext context) => SizedBox(
+    height: 1,
+    child: ColoredBox(color: color ?? context.palette.outline),
+  );
 }
 
 /// "Төлбөрийн хэлбэр": the bordered card of payment methods, each a row
@@ -250,8 +258,8 @@ class PaymentMethodCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: HomePalette.border),
+          color: context.palette.surface,
+          border: Border.all(color: context.palette.outline),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -335,7 +343,7 @@ class _MethodRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final (asset, left, top, width, height) = _logos[method]!;
     final shape = RoundedRectangleBorder(
-      side: const BorderSide(color: HomePalette.border),
+      side: BorderSide(color: context.palette.outline),
       borderRadius: BorderRadius.circular(16),
     );
     return Semantics(
@@ -345,7 +353,7 @@ class _MethodRow extends StatelessWidget {
       label: label(method),
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
+        color: context.palette.surface,
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -397,10 +405,10 @@ class PaymentRadio extends StatelessWidget {
       height: 20,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surface,
+        color: context.palette.surface,
         border: selected
-            ? Border.all(color: HomePalette.accent, width: 6)
-            : Border.all(color: HomePalette.border),
+            ? Border.all(color: context.palette.accent, width: 6)
+            : Border.all(color: context.palette.outline),
       ),
     );
   }
@@ -429,9 +437,9 @@ class PaymentCopyButton extends StatelessWidget {
       label: PaymentFlowStrings.copy(label),
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
-        shape: const CircleBorder(side: BorderSide(color: HomePalette.border)),
-        shadowColor: Colors.black.withValues(alpha: 0.08),
+        color: context.palette.surface,
+        shape: CircleBorder(side: BorderSide(color: context.palette.outline)),
+        shadowColor: context.palette.shadowSubtle.withValues(alpha: 0.08),
         elevation: 1,
         child: InkWell(
           customBorder: const CircleBorder(),
@@ -503,9 +511,9 @@ class BankTransferDetailsView extends StatelessWidget {
         const SizedBox(height: 25.13),
         // A hairline with a fainter third of a point under it, as drawn.
         const PaymentFlowRule(),
-        const SizedBox(
+        SizedBox(
           height: 0.67,
-          child: ColoredBox(color: HomePalette.headerRule),
+          child: ColoredBox(color: context.palette.divider),
         ),
         const SizedBox(height: 15.77),
         _DetailRow(
@@ -545,7 +553,7 @@ class _DetailRow extends StatelessWidget {
                 label,
                 size: 14,
                 box: 20,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
             Positioned(
@@ -579,8 +587,8 @@ Future<T?> showPaymentSheet<T>(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
-    barrierColor: PaymentFlowPalette.barrier,
+    backgroundColor: context.palette.surface,
+    barrierColor: context.palette.barrier,
     elevation: 0,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -609,7 +617,7 @@ class PaymentSheetFrame extends StatelessWidget {
               width: 72,
               height: 6,
               decoration: BoxDecoration(
-                color: PaymentFlowPalette.handle,
+                color: context.palette.sheetHandle,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -626,22 +634,19 @@ enum PaymentGlyph { check, copy }
 /// bundled Phosphor font is the regular weight only, so these two are
 /// painted from Phosphor's own 256-unit geometry at its bold stroke (24).
 class PaymentBoldGlyph extends StatelessWidget {
-  const PaymentBoldGlyph(
-    this.glyph, {
-    super.key,
-    this.size = 20,
-    this.color = AppColors.textPrimary,
-  });
+  const PaymentBoldGlyph(this.glyph, {super.key, this.size = 20, this.color});
 
   final PaymentGlyph glyph;
   final double size;
-  final Color color;
+
+  /// Null is the theme's [AppPalette.textPrimary].
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size.square(size),
-      painter: _BoldGlyphPainter(glyph, color),
+      painter: _BoldGlyphPainter(glyph, color ?? context.palette.textPrimary),
     );
   }
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/home_palette.dart';
 import '../widgets/home_pill_button.dart';
 import 'payment_flow_strings.dart';
 import 'payment_flow_widgets.dart';
+import '../../../../core/theme/app_palette.dart';
 
 /// Shows [PaymentSuccessDialog] and completes once "Ойлголоо" closes it.
 ///
@@ -13,7 +13,7 @@ Future<void> showPaymentSuccessDialog(BuildContext context) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    barrierColor: PaymentFlowPalette.barrier,
+    barrierColor: context.palette.barrier,
     builder: (_) => const PaymentSuccessDialog(),
   );
 }
@@ -28,11 +28,11 @@ class PaymentSuccessDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16),
-      backgroundColor: Colors.white,
+      backgroundColor: context.palette.surfaceElevated,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: HomePalette.headerRule, width: 1.5),
+        side: BorderSide(color: context.palette.divider, width: 1.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
@@ -47,13 +47,16 @@ class PaymentSuccessDialog extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: PaymentFlowPalette.successFill,
-                  border: Border.all(color: HomePalette.activeInk, width: 2),
+                  color: context.palette.successFillStrong,
+                  border: Border.all(
+                    color: context.palette.successInk,
+                    width: 2,
+                  ),
                 ),
-                child: const Center(
+                child: Center(
                   child: PaymentBoldGlyph(
                     PaymentGlyph.check,
-                    color: HomePalette.activeInk,
+                    color: context.palette.successInk,
                   ),
                 ),
               ),

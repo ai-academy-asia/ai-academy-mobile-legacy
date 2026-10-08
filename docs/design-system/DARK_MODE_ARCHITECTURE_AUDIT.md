@@ -563,6 +563,13 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >
 > **Next: Phase 4 (system UI).**
 >
+> **Phase 5 done (Issue #262).** The Adult experience reads colours only through `context.palette`.
+> - **Scope:** `home` (incl. Payment and the payment flow), `cohorts`, `courses`, `profile`, `payments`, `enrollments`, plus Certificate and the attendance scanner, which Junior also opens. That's 29 files, about 218 direct reads and 36 baked-colour typography uses.
+> - **Nine Adult roles** hold the remaining single-use values (68 roles).
+> - **Guard:** `adult_palette_scope_test.dart` keeps the scope clean, with a documented allowlist.
+> - **Goldens:** all unchanged.
+> - **`course_learning`** is shared by Adult and Junior and is Phase 6.
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 

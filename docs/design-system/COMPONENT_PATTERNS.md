@@ -21,6 +21,15 @@ That third step is a real convention here, not boilerplate. Several widgets exis
 - **Monochrome SVG icons go through `AppSvgIcon`.** It tints from `AppPalette.iconInk`, **but only when the role differs from the asset's own colour** (`authoredInk`). A `srcIn` `ColorFilter` re-rasterises the SVG and moves anti-aliased edge pixels even at the same colour: up to 29/255 on the wordmark, 9/255 on the Profile icons, measured on the goldens. So light mode draws icons as authored, and only another palette tints them. The `HomeHeader` wordmark follows the same rule with `AppPalette.wordmark`.
 - **Not moved yet,** because each is used by one role only: `HomePillButton` (Adult), `TeacherPillButton` (Teacher), Junior Profile's private row and switch, and every sheet. They move with their feature (audit Phases 5–8).
 
+**Migrating a screen onto the palette (Phase 5, Issue #262): the patterns that keep light mode identical.**
+- **A colour that was a default parameter** (`this.color = HomePalette.border`) becomes nullable and resolves in `build` (`color ?? context.palette.outline`). A default value must be a constant.
+- **A top-level or static `TextStyle` with a colour** drops the colour, and each use applies it: `_titleStyle.copyWith(color: context.palette.textTitle)`. The public `profile_parts` styles keep theirs until Teacher migrates.
+- **An `AppTypography` style that bakes a colour** gets it supplied at use: `.copyWith(color: context.palette.textPrimary)`. Leaving it null would inherit Material's default text colour, which is not the same.
+- **A `CustomPainter` has no context:** pass its colours in, and compare them in `shouldRepaint`.
+- **A helper that builds a `Text` without a context** wraps it in a `Builder`. It adds no render object, so layout is unchanged.
+- **Remove only the `const` a palette read invalidates.**
+- **Keep a deliberate *authored* colour as the constant it is.** An example is `HomeHeader`'s wordmark check `palette.wordmark == AppColors.wordmark`. Rewriting it to the palette made it always true, and the theme test caught that.
+
 Equally: **do not widen a shared widget's contract for one screen.** That reasoning is recorded in `_ContinueLearningButton` (Module List) — it is a local button precisely so `AppButton` stays a full-width 44pt block for everyone else.
 
 ## 2. Buttons

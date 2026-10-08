@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -10,12 +9,10 @@ import '../../course_learning/presentation/widgets/course_learning_back_button.d
 import '../../junior_home/domain/junior_progress.dart';
 import '../../junior_home/presentation/junior_progress_strings.dart';
 import '../../junior_home/presentation/widgets/attendance_panel_parts.dart';
-import '../../junior_home/presentation/widgets/junior_home_palette.dart';
 import '../../junior_home/presentation/widgets/junior_progress_calendar.dart';
 import '../domain/home_dashboard.dart';
 import '../domain/lesson_schedule.dart';
 import 'home_strings.dart';
-import 'widgets/home_palette.dart';
 
 // Measured off the Figma "HomePage - Adult / attendance" frame at 1:1 (393
 // wide, a 44pt status-bar inset).
@@ -115,7 +112,7 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         body: SafeArea(
           bottom: false,
           child: Align(
@@ -174,10 +171,10 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
   }
 }
 
-BoxDecoration get _cardDecoration => BoxDecoration(
-  color: AppColors.surface,
+BoxDecoration _cardDecoration(BuildContext context) => BoxDecoration(
+  color: context.palette.surface,
   borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-  border: Border.all(color: JuniorPalette.mutedFill, width: _cardBorder),
+  border: Border.all(color: context.palette.divider, width: _cardBorder),
 );
 
 /// "Хичээлийн ирц" with the server's `attended/total · percent%` pill at the
@@ -192,7 +189,7 @@ class _HeaderCard extends StatelessWidget {
     return Container(
       height: _headerHeight,
       padding: const EdgeInsets.symmetric(horizontal: _cardInset),
-      decoration: _cardDecoration,
+      decoration: _cardDecoration(context),
       child: Row(
         children: [
           const Expanded(
@@ -234,7 +231,7 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _cardDecoration,
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -272,12 +269,12 @@ class _Panel extends StatelessWidget {
               month: month,
               selectedDay: selectedDay,
               days: days,
-              missedRing: HomePalette.overdueOutline,
+              missedRing: context.palette.errorOutline,
             ),
           ),
           Container(
             height: AppDimens.borderWidth,
-            color: JuniorPalette.mutedFill,
+            color: context.palette.divider,
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import 'home_palette.dart';
 
 /// Which of the Home frames' two pill treatments a [HomePillButton] draws.
@@ -86,33 +87,33 @@ class HomePillButton extends StatelessWidget {
     final Color ink;
     final BoxShadow depth;
 
-    const faintDepth = BoxShadow(
-      color: HomePalette.secondaryDepth,
+    final faintDepth = BoxShadow(
+      color: context.palette.subtleDepth,
       offset: Offset(0, _secondaryDepth),
     );
 
     if (secondary) {
-      fill = AppColors.surface;
-      outline = enabled ? HomePalette.border : HomePalette.mutedOutline;
-      ink = enabled ? AppColors.textPrimary : HomePalette.mutedInk;
+      fill = context.palette.surface;
+      outline = enabled ? context.palette.outline : context.palette.divider;
+      ink = enabled ? context.palette.textPrimary : context.palette.disabledInk;
       depth = faintDepth;
     } else if (filled) {
-      fill = HomePalette.accent;
+      fill = context.palette.accent;
       outline = null;
-      ink = AppColors.onPrimary;
+      ink = context.palette.onPrimary;
       depth = raised
-          ? const BoxShadow(
-              color: AppColors.primaryDepth,
+          ? BoxShadow(
+              color: context.palette.primaryDepth,
               offset: Offset(0, _depth),
             )
           : faintDepth;
     } else {
-      fill = HomePalette.mutedFill;
-      outline = HomePalette.mutedOutline;
-      ink = HomePalette.mutedInk;
+      fill = context.palette.surfaceSubtle;
+      outline = context.palette.divider;
+      ink = context.palette.disabledInk;
       depth = raised
-          ? const BoxShadow(
-              color: AppColors.mutedDepth,
+          ? BoxShadow(
+              color: context.palette.neutralDepth,
               offset: Offset(0, _depth),
             )
           : faintDepth;
@@ -133,8 +134,12 @@ class HomePillButton extends StatelessWidget {
           child: InkWell(
             onTap: onPressed,
             borderRadius: radius,
-            splashColor: filled ? Colors.white24 : null,
-            highlightColor: filled ? Colors.white10 : null,
+            splashColor: filled
+                ? context.palette.onPrimary.withAlpha(0x3D)
+                : null,
+            highlightColor: filled
+                ? context.palette.onPrimary.withAlpha(0x1A)
+                : null,
             child: Ink(
               height: height,
               decoration: BoxDecoration(
@@ -151,7 +156,7 @@ class HomePillButton extends StatelessWidget {
                     Icon(
                       icon,
                       size: 20,
-                      color: secondary ? ink : AppColors.onPrimary,
+                      color: secondary ? ink : context.palette.onPrimary,
                     ),
                     const SizedBox(width: 6),
                   ],

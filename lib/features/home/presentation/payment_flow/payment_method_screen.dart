@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../payments/domain/payment_checkout.dart';
 import '../payment_strings.dart';
 import 'ebarimt_receipt_screen.dart';
@@ -108,7 +108,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                   PaymentFlowStrings.installment(checkout.installmentNumber),
                   size: 14,
                   box: 20,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
                 SizedBox(height: full ? 1.34 : 0.90),
                 paymentFlowText(

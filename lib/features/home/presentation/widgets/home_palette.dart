@@ -36,14 +36,14 @@ abstract final class HomePalette {
   /// A statistic's caption — "Дараанийн төлөлт", "Хичээлийн ирц". A warm
   /// grey, not [AppColors.textSecondary]: it reads `#726D6D` on white where
   /// the half-black token reads `#808080`.
-  static const Color statLabel = Color(0xFF726D6D);
+  static const Color statLabel = AppColors.textStatLabel;
 
   /// The icon tile beside a full-width statistic row.
   static const Color iconTileFill = AppColors.surfaceSubtle;
 
   /// "Хичээлийн ирц" as a tile: a left-to-right blue gradient.
-  static const Color attendanceStart = Color(0xFF175FEF);
-  static const Color attendanceEnd = Color(0xFF518BFF);
+  static const Color attendanceStart = AppColors.attendanceGradientStart;
+  static const Color attendanceEnd = AppColors.attendanceGradientEnd;
 
   /// An overdue payment tile, its status line, and its outline.
   static const Color overdueFill = AppColors.errorFill;

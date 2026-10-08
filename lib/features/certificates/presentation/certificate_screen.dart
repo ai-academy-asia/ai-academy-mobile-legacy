@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -14,7 +13,6 @@ import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../course_learning/presentation/widgets/certificate_preview.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../course_learning/presentation/widgets/course_progress_cta_row.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../data/enrolled_certificate_list_repository.dart';
 import '../domain/certificate_entry.dart';
 import '../domain/certificate_list_repository.dart';
@@ -131,7 +129,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         body: SafeArea(
           bottom: false,
           child: Align(
@@ -213,10 +211,10 @@ class _Header extends StatelessWidget {
         Positioned.fill(
           // The button's own 12 above it, so the title centres on the circle.
           top: _backButtonTop,
-          child: const Center(
+          child: Center(
             child: Text(
               CertificateStrings.title,
-              style: _titleStyle,
+              style: _titleStyle.copyWith(color: context.palette.textTitle),
               textAlign: TextAlign.center,
             ),
           ),
@@ -252,9 +250,12 @@ class _CertificateCard extends StatelessWidget {
         AppDimens.cardPadding - AppDimens.borderWidth,
       ),
       decoration: BoxDecoration(
-        color: _cardFill,
+        color: context.palette.surfaceSubtle,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(color: _cardBorder, width: AppDimens.borderWidth),
+        border: Border.all(
+          color: context.palette.divider,
+          width: AppDimens.borderWidth,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -263,14 +264,16 @@ class _CertificateCard extends StatelessWidget {
           const SizedBox(height: _previewToCaption),
           Text(
             entry.cohortName,
-            style: _captionStyle,
+            style: _captionStyle.copyWith(
+              color: context.palette.textSupporting,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: _captionToTitle),
           Text(
             entry.courseTitle,
-            style: _cardTitleStyle,
+            style: _cardTitleStyle.copyWith(color: context.palette.textTitle),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -279,13 +282,20 @@ class _CertificateCard extends StatelessWidget {
               const SizedBox(height: _titleToDate),
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       CertificateStrings.completedDate,
-                      style: _dateStyle,
+                      style: _dateStyle.copyWith(
+                        color: context.palette.textSupporting,
+                      ),
                     ),
                   ),
-                  Text(CertificateStrings.date(issuedAt), style: _dateStyle),
+                  Text(
+                    CertificateStrings.date(issuedAt),
+                    style: _dateStyle.copyWith(
+                      color: context.palette.textSupporting,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -327,7 +337,9 @@ class _DownloadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const shape = StadiumBorder(side: BorderSide(color: HomePalette.border));
+    final shape = StadiumBorder(
+      side: BorderSide(color: context.palette.outline),
+    );
     // Its own node — one "Download" button to a screen reader, busy or not.
     return Semantics(
       container: true,
@@ -336,7 +348,7 @@ class _DownloadButton extends StatelessWidget {
       label: CertificateStrings.download,
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
+        color: context.palette.surface,
         shape: shape,
         child: InkWell(
           onTap: downloading ? null : onPressed,
@@ -345,11 +357,11 @@ class _DownloadButton extends StatelessWidget {
             height: _downloadHeight,
             child: Center(
               child: downloading
-                  ? const SizedBox.square(
+                  ? SizedBox.square(
                       dimension: _downloadIcon,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.blue,
+                        color: context.palette.primary,
                       ),
                     )
                   : Row(
@@ -361,9 +373,11 @@ class _DownloadButton extends StatelessWidget {
                           height: _downloadIcon,
                         ),
                         const SizedBox(width: _iconToLabel),
-                        const Text(
+                        Text(
                           CertificateStrings.download,
-                          style: _downloadStyle,
+                          style: _downloadStyle.copyWith(
+                            color: context.palette.textPrimary,
+                          ),
                         ),
                       ],
                     ),
@@ -393,7 +407,9 @@ class _Message extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.statLabel,
+              style: AppTypography.statLabel.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             if (action case final action?) ...[
@@ -418,10 +434,6 @@ const double _headerToCard = 28;
 
 const double _cardGap = 12;
 
-/// The card: the Module List certification panel's fill and outline.
-const Color _cardFill = AppColors.surfaceSubtle;
-const Color _cardBorder = HomePalette.headerRule;
-
 /// The certificate 12 inside its gradient frame, as this frame draws it.
 const double _artworkInset = 12;
 
@@ -441,16 +453,11 @@ const double _iconToLabel = 6;
 const String _downloadGlyph =
     'assets/images/course_learning/exercise_download.svg';
 
-/// Ink: the Module List frame's two text greys.
-const Color _primaryInk = AppColors.textTitle;
-const Color _secondaryInk = AppColors.textSupporting;
-
 const TextStyle _titleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 18,
   height: 26 / 18,
   fontWeight: FontWeight.w700,
-  color: _primaryInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -459,7 +466,6 @@ const TextStyle _captionStyle = TextStyle(
   fontSize: 12,
   height: 16 / 12,
   fontWeight: FontWeight.w400,
-  color: _secondaryInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -468,7 +474,6 @@ const TextStyle _cardTitleStyle = TextStyle(
   fontSize: 18,
   height: 26 / 18,
   fontWeight: FontWeight.w700,
-  color: _primaryInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -477,7 +482,6 @@ const TextStyle _dateStyle = TextStyle(
   fontSize: 12,
   height: 16 / 12,
   fontWeight: FontWeight.w400,
-  color: _secondaryInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -486,6 +490,5 @@ const TextStyle _downloadStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w600,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );

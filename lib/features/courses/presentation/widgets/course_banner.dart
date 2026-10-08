@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 
 /// A course's banner image, 16:9, with rounded corners matching the design
 /// system's field radius. Caller supplies [url] only when
@@ -21,10 +21,11 @@ class CourseBanner extends StatelessWidget {
         child: Image.network(
           url,
           fit: BoxFit.cover,
-          loadingBuilder: (context, child, progress) =>
-              progress == null ? child : const ColoredBox(color: AppColors.surfaceMuted),
+          loadingBuilder: (context, child, progress) => progress == null
+              ? child
+              : ColoredBox(color: context.palette.surfaceMuted),
           errorBuilder: (context, error, stackTrace) =>
-              const ColoredBox(color: AppColors.surfaceMuted),
+              ColoredBox(color: context.palette.surfaceMuted),
         ),
       ),
     );

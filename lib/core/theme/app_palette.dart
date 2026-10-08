@@ -74,6 +74,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.sheetHandle,
     required this.shadow,
     required this.shadowSubtle,
+    required this.accentOutline,
+    required this.timelineConnector,
+    required this.textFaint,
+    required this.textDeep,
+    required this.textStatLabel,
+    required this.attendanceGradientStart,
+    required this.attendanceGradientEnd,
+    required this.surfaceTinted,
+    required this.scrim,
     required this.juniorCard,
     required this.juniorCardBorder,
     required this.juniorMapSky,
@@ -137,6 +146,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     sheetHandle: AppColors.sheetHandle,
     shadow: AppColors.shadow,
     shadowSubtle: AppColors.shadowSubtle,
+    accentOutline: AppColors.accentOutline,
+    timelineConnector: AppColors.timelineConnector,
+    textFaint: AppColors.textFaint,
+    textDeep: AppColors.textDeep,
+    textStatLabel: AppColors.textStatLabel,
+    attendanceGradientStart: AppColors.attendanceGradientStart,
+    attendanceGradientEnd: AppColors.attendanceGradientEnd,
+    surfaceTinted: AppColors.surfaceTinted,
+    scrim: AppColors.scrim,
     juniorCard: AppColors.juniorCard,
     juniorCardBorder: AppColors.juniorCardBorder,
     juniorMapSky: AppColors.juniorMapSky,
@@ -313,6 +331,35 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// The faint lift under a small outlined control.
   final Color shadowSubtle;
 
+  // --- Adult -----------------------------------------------------------------
+
+  /// A deeper blue outline marking the current item (Payment's next installment).
+  final Color accentOutline;
+
+  /// The line joining a timeline's steps (Payment installments).
+  final Color timelineConnector;
+
+  /// Text further back than [textSecondary] — an upcoming installment.
+  final Color textFaint;
+
+  /// The deep navy-black of the payment flow's bank names.
+  final Color textDeep;
+
+  /// A statistic's caption on the Home cards (warm grey).
+  final Color textStatLabel;
+
+  /// The Attendance card's blue gradient, start.
+  final Color attendanceGradientStart;
+
+  /// The Attendance card's blue gradient, end.
+  final Color attendanceGradientEnd;
+
+  /// A white barely tinted blue — the cohort card.
+  final Color surfaceTinted;
+
+  /// Over camera video — the attendance scanner's scrim.
+  final Color scrim;
+
   // --- Junior ----------------------------------------------------------------
 
   /// Junior's pale-blue course and progress cards.
@@ -396,6 +443,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? sheetHandle,
     Color? shadow,
     Color? shadowSubtle,
+    Color? accentOutline,
+    Color? timelineConnector,
+    Color? textFaint,
+    Color? textDeep,
+    Color? textStatLabel,
+    Color? attendanceGradientStart,
+    Color? attendanceGradientEnd,
+    Color? surfaceTinted,
+    Color? scrim,
     Color? juniorCard,
     Color? juniorCardBorder,
     Color? juniorMapSky,
@@ -456,6 +512,16 @@ class AppPalette extends ThemeExtension<AppPalette> {
     sheetHandle: sheetHandle ?? this.sheetHandle,
     shadow: shadow ?? this.shadow,
     shadowSubtle: shadowSubtle ?? this.shadowSubtle,
+    accentOutline: accentOutline ?? this.accentOutline,
+    timelineConnector: timelineConnector ?? this.timelineConnector,
+    textFaint: textFaint ?? this.textFaint,
+    textDeep: textDeep ?? this.textDeep,
+    textStatLabel: textStatLabel ?? this.textStatLabel,
+    attendanceGradientStart:
+        attendanceGradientStart ?? this.attendanceGradientStart,
+    attendanceGradientEnd: attendanceGradientEnd ?? this.attendanceGradientEnd,
+    surfaceTinted: surfaceTinted ?? this.surfaceTinted,
+    scrim: scrim ?? this.scrim,
     juniorCard: juniorCard ?? this.juniorCard,
     juniorCardBorder: juniorCardBorder ?? this.juniorCardBorder,
     juniorMapSky: juniorMapSky ?? this.juniorMapSky,
@@ -522,6 +588,21 @@ class AppPalette extends ThemeExtension<AppPalette> {
       sheetHandle: mix(sheetHandle, other.sheetHandle),
       shadow: mix(shadow, other.shadow),
       shadowSubtle: mix(shadowSubtle, other.shadowSubtle),
+      accentOutline: mix(accentOutline, other.accentOutline),
+      timelineConnector: mix(timelineConnector, other.timelineConnector),
+      textFaint: mix(textFaint, other.textFaint),
+      textDeep: mix(textDeep, other.textDeep),
+      textStatLabel: mix(textStatLabel, other.textStatLabel),
+      attendanceGradientStart: mix(
+        attendanceGradientStart,
+        other.attendanceGradientStart,
+      ),
+      attendanceGradientEnd: mix(
+        attendanceGradientEnd,
+        other.attendanceGradientEnd,
+      ),
+      surfaceTinted: mix(surfaceTinted, other.surfaceTinted),
+      scrim: mix(scrim, other.scrim),
       juniorCard: mix(juniorCard, other.juniorCard),
       juniorCardBorder: mix(juniorCardBorder, other.juniorCardBorder),
       juniorMapSky: mix(juniorMapSky, other.juniorMapSky),

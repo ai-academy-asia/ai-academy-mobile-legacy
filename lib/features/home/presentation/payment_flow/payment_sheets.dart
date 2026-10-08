@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../payments/domain/payment_checkout.dart';
 import 'payment_flow_widgets.dart';
+import '../../../../core/theme/app_palette.dart';
 
 /// The bank sheet (Issue #198, reference 5): the banks and wallets four to a
 /// row, each a 40pt logo over its name. Choosing one closes the sheet with
@@ -84,7 +85,7 @@ class _BankTile extends StatelessWidget {
                 bank.name,
                 size: 11,
                 box: 14,
-                color: PaymentFlowPalette.bankName,
+                color: context.palette.textDeep,
                 align: TextAlign.center,
               ),
             ),

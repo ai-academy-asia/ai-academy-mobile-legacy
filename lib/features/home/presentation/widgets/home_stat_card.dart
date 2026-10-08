@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
-import 'home_palette.dart';
 
 // Measured off the Figma Home frames at 1:1 — the tiles in frames 2–4 and the
 // full-width rows in frames 1–2 share every value here.
@@ -38,12 +37,12 @@ class HomeStatCard extends StatelessWidget {
     required this.value,
     required this.action,
     super.key,
-    this.fill = AppColors.surface,
+    this.fill,
     this.gradient,
-    this.outline = HomePalette.border,
-    this.iconColor = HomePalette.accent,
-    this.labelColor = HomePalette.statLabel,
-    this.valueColor = HomePalette.accent,
+    this.outline,
+    this.iconColor,
+    this.labelColor,
+    this.valueColor,
   });
 
   final HomeStatLayout layout;
@@ -52,18 +51,27 @@ class HomeStatCard extends StatelessWidget {
   final String value;
   final Widget action;
 
-  final Color fill;
+  /// Null is [AppPalette.surface] (Dark Mode Phase 5: defaults resolve from
+  /// the theme in [build], as a default parameter value cannot).
+  final Color? fill;
 
   /// Painted over [fill] when set — the attendance tile's.
   final Gradient? gradient;
 
-  final Color outline;
-  final Color iconColor;
-  final Color labelColor;
-  final Color valueColor;
+  /// Null is the theme's `outline`, `accent`, `textStatLabel`, `accent`.
+  final Color? outline;
+  final Color? iconColor;
+  final Color? labelColor;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final fill = this.fill ?? palette.surface;
+    final outline = this.outline ?? palette.outline;
+    final iconColor = this.iconColor ?? palette.accent;
+    final labelColor = this.labelColor ?? palette.textStatLabel;
+    final valueColor = this.valueColor ?? palette.accent;
     final isTile = layout == HomeStatLayout.tile;
 
     final figures = Column(
@@ -93,9 +101,9 @@ class HomeStatCard extends StatelessWidget {
       decoration: isTile
           ? null
           : BoxDecoration(
-              color: HomePalette.iconTileFill,
+              color: context.palette.surfaceSubtle,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: HomePalette.border),
+              border: Border.all(color: context.palette.outline),
             ),
       child: Icon(icon, size: _iconSize, color: iconColor),
     );

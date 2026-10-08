@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 
 /// One titled block of content on the detail screen — description,
 /// curriculum, prerequisites, what's included. All four share this shape
@@ -30,14 +31,21 @@ class CourseDetailSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTypography.cardHeading),
+          Text(
+            title,
+            style: AppTypography.cardHeading.copyWith(
+              color: context.palette.textPrimary,
+            ),
+          ),
           const SizedBox(height: 8),
           for (final line in lines)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
                 bulleted ? '•  $line' : line,
-                style: AppTypography.cardSupporting,
+                style: AppTypography.cardSupporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
               ),
             ),
         ],
