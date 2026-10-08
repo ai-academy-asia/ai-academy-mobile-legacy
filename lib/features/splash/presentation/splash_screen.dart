@@ -51,9 +51,10 @@ import 'splash_strings.dart';
 /// same [homeRouteFor] sign-in uses, not whatever the login response once
 /// said. The request starts in `initState`, so it runs under the animation
 /// rather than after it. No session, an expired one, or any failure of that
-/// request falls back to Login, the only recovery the API offers. (The store
-/// is in-memory today, so a cold start finds nothing; this is the one place
-/// that changes nothing when it starts persisting.) An account whose
+/// request falls back to Login, the only recovery the API offers. The store
+/// is restored from secure storage before the first frame (Issue #235), so
+/// a cold start — the OS having killed the app in the background — finds the
+/// session here too. An account whose
 /// `must_change_password` is true goes to "Нууц үгээ тохируулах" first,
 /// exactly as after sign-in — see [openSignedIn] (Issue #182).
 ///

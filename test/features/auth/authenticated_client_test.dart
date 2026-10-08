@@ -138,15 +138,30 @@ void main() {
     expect(sentTokens, ['old']);
   });
 
-  test('a network failure during refresh also ends the session', () async {
-    auth.refreshed = null;
-    auth.refreshFailure = const AuthFailure(AuthFailureKind.network);
+  for (final kind in SessionRefresher.transientFailures) {
+    test('a ${kind.name} failure during refresh keeps the session for the '
+        'next request (Issue #235)', () async {
+      final renewed = auth.refreshed;
+      auth.refreshed = null;
+      auth.refreshFailure = AuthFailure(kind);
+      final client = clientFor();
 
-    await get(clientFor());
+      final response = await get(client);
 
-    expect(store.isSignedIn, isFalse);
-    expect(sessionsEnded, 1);
-  });
+      // The refresh token was never refused: nothing ends.
+      expect(response.statusCode, 401);
+      expect(store.isSignedIn, isTrue);
+      expect(store.session?.refreshToken, 'r1');
+      expect(sessionsEnded, 0);
+
+      // Back online, the same refresh token renews it.
+      auth.refreshFailure = null;
+      auth.refreshed = renewed;
+      expect((await get(client)).statusCode, 200);
+      expect(auth.refreshCalls, ['r1', 'r1']);
+      expect(store.session?.refreshToken, 'r2');
+    });
+  }
 
   test('a session with no refresh token ends instead of refreshing', () async {
     store.save(const AuthSession(accessToken: 'old'));

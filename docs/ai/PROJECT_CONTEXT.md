@@ -20,9 +20,9 @@
 
 ### Runtime dependencies (deliberately few)
 
-`http ^1.6.0`, `flutter_svg ^2.2.1`, `cupertino_icons ^1.0.8`, `url_launcher ^6.3.2` (opens a lesson material — a file's signed download link, or a link material's own URL), `file_selector ^1.1.0` (the OS document picker behind assignment file submission). Dev: `flutter_lints ^6.0.0`, `flutter_launcher_icons ^0.14.4` (build-time only).
+`http ^1.6.0`, `flutter_svg ^2.2.1`, `cupertino_icons ^1.0.8`, `url_launcher ^6.3.2` (opens a lesson material — a file's signed download link, or a link material's own URL), `file_selector ^1.1.0` (the OS document picker behind assignment file submission), `flutter_secure_storage ^11.2.0` (keeps the auth session across restarts in the iOS Keychain / Android encrypted storage, Issue #235). Dev: `flutter_lints ^6.0.0`, `flutter_launcher_icons ^0.14.4` (build-time only).
 
-**There is no state-management package, no routing package, no DI container, no secure-storage package, and no HTTP interceptor layer.** Every one of those roles is filled by hand-written code described in [ARCHITECTURE.md](ARCHITECTURE.md). Adding a dependency is a decision that needs its own task and justification.
+**There is no state-management package, no routing package, no DI container, and no HTTP interceptor layer.** Every one of those roles is filled by hand-written code described in [ARCHITECTURE.md](ARCHITECTURE.md). Adding a dependency is a decision that needs its own task and justification.
 
 ## 2. Feature map and maturity
 
@@ -30,7 +30,7 @@ Twelve features under `lib/features/`. **Maturity differs sharply between them**
 
 | Feature | Data source | State |
 |---|---|---|
-| `auth` | **Real API** — `POST /auth/login`, `POST /auth/change-password`, `GET /auth/me` | Implemented. Session is **in-memory only** (see §4) |
+| `auth` | **Real API** — `POST /auth/login`, `POST /auth/change-password`, `GET /auth/me` | Implemented. Session is **persisted in secure storage** and restored at launch (see §4) |
 | `courses` | **Real API** — `GET /courses`, `GET /courses/{slug}` | Implemented |
 | `cohorts` | **Real API** — `GET /cohorts` | Implemented |
 | `enrollments` | **Real API** — `GET /me/cohorts`, `POST /cohorts/{id}/enroll` | Implemented. Cancel-enrollment is **not** wired though the endpoint exists |
@@ -88,7 +88,7 @@ These gaps are intentional and documented in code. **Do not "fix" them as drive-
 
 ## 4. Known constraints and sharp edges
 
-1. **The auth session does not survive an app restart.** `AuthSessionStore` is in-memory only (a deliberate choice documented in the class — persisting a bearer token means a keychain dependency and platform entitlements). An expired access token is renewed with the refresh token and the request retried once (Issue #176, `DATA_AND_API.md` §5); only a session that cannot be renewed sends the user back to Login.
+1. **The auth session survives an app restart** (Issue #235). The OS killing a backgrounded app used to sign the student out; `main` now attaches `AuthSessionStore.instance` to secure storage (`flutter_secure_storage`), so the session is restored at launch and every save/clear is written through. An expired access token is renewed with the refresh token and the request retried once (Issue #176, `DATA_AND_API.md` §5); only a session whose refresh token is refused or missing sends the user back to Login. Two open edges: a cold start **with no network** still lands on Login (Splash needs `GET /auth/me`; the stored session is kept for the next launch — `PRODUCT DECISION`), and the iOS Keychain outlives an uninstall, so a reinstall may restore the old session (`UNKNOWN` whether that is acceptable).
 2. **There is no dev-only route any more.** `/dev/course-exercise-preview` was removed once Exercise Detail became reachable through Module List → Lesson List (Issue #148). The sample-backed Exercise Detail is now reached only from tests; a real lesson's quiz runs against the backend (Issue #150).
 3. **Three iOS files carry persistent local changes that must never be reverted.** See [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3 — this is a hard rule.
 4. **No known test failures.** The full suite passes on `main` and `flutter analyze` reports no issues (the stale catalog test was fixed in Issue #211). See [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §5.
