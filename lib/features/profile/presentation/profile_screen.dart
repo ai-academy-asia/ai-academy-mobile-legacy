@@ -12,7 +12,9 @@ import '../../auth/presentation/reset_password_screen.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../certificates/domain/certificate_list_repository.dart';
 import '../../certificates/presentation/certificate_screen.dart';
+import '../../course_learning/domain/course_learning_repository.dart';
 import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
@@ -78,6 +80,8 @@ class ProfileScreen extends StatefulWidget {
     this.authRepository,
     this.sessionStore,
     this.showBottomNav = true,
+    this.certificateRepository,
+    this.courseLearningRepository,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -87,6 +91,11 @@ class ProfileScreen extends StatefulWidget {
   /// default to the app's own (see [signOutToLogin]). Injected in tests.
   final AuthRepository? authRepository;
   final AuthSessionStore? sessionStore;
+
+  /// What the Certificate row's screen reads (Issue #155). Default to the
+  /// real API; injected in tests.
+  final CertificateListRepository? certificateRepository;
+  final CourseLearningRepository? courseLearningRepository;
 
   /// Whether this screen draws the adult tab bar itself. False inside
   /// `AdultStudentShell`, which owns the one persistent bar (Issue #237).
@@ -192,10 +201,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ProfileRow(
                 icon: ProfileIcons.certificate,
                 label: ProfileStrings.certificate,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const CertificateScreen(),
-                  ),
+                onTap: () => CertificateScreen.open(
+                  context,
+                  repository: widget.certificateRepository,
+                  courseLearning: widget.courseLearningRepository,
                 ),
               ),
               const ProfileRow(

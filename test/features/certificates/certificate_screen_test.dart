@@ -334,20 +334,30 @@ void main() {
     });
   });
 
-  testWidgets('the Adult Profile\'s Certificate row opens it', (tester) async {
+  testWidgets('the Adult Profile\'s Certificate row opens it, and back '
+      'returns to Profile', (tester) async {
     useLogicalViewport(tester, const Size(393, 1219), padding: iPhonePadding);
     await tester.pumpWidget(
       MaterialApp(
-        home: ProfileScreen(repository: FakeCurrentUserRepository(hold: true)),
+        home: ProfileScreen(
+          repository: FakeCurrentUserRepository(hold: true),
+          certificateRepository: _Repo([issuedEntry]),
+          courseLearningRepository: learning,
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(ProfileStrings.certificate));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
 
     expect(find.byType(CertificateScreen), findsOneWidget);
+    expect(find.text('Test Course One'), findsOneWidget);
+
+    Navigator.of(tester.element(find.byType(CertificateScreen))).pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(CertificateScreen), findsNothing);
+    expect(find.byType(ProfileScreen), findsOneWidget);
   });
 }
 

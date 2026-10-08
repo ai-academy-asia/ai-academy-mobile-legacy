@@ -36,8 +36,14 @@ import 'certificate_strings.dart';
 /// the frame, so it draws as not yet issued (a `PRODUCT DECISION`, #155);
 /// the `requirements` list and `verify_url` are not drawn — no design.
 ///
-/// Reached from the Adult Profile's "Certificate" row. The artwork is the
-/// same for every student ([CertificatePreview]).
+/// Reached from the "Certificate" row of both student Profiles — Adult and
+/// Junior — through [CertificateScreen.open]. A Junior student is a student
+/// in kids mode (`user_type: child`), on the same student token and the same
+/// `/me/...` endpoints Junior Home already reads, so both see the same cards;
+/// "Continue learning" opens the course's Module List, which Junior Home's
+/// own course card opens too (Issues #174, #207). There is no Junior-specific
+/// certificate frame. The artwork is the same for every student
+/// ([CertificatePreview]).
 class CertificateScreen extends StatefulWidget {
   const CertificateScreen({
     super.key,
@@ -57,6 +63,22 @@ class CertificateScreen extends StatefulWidget {
   /// Opens the download link. Defaults to `openExternalUrl`. Injected in
   /// tests.
   final Future<bool> Function(Uri url)? openUrl;
+
+  /// Pushes the screen over [context]'s navigator — what both Profiles'
+  /// "Certificate" rows do. [repository] and [courseLearning] default to the
+  /// real API; the Profiles pass theirs through so tests can inject fakes.
+  static Future<void> open(
+    BuildContext context, {
+    CertificateListRepository? repository,
+    CourseLearningRepository? courseLearning,
+  }) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => CertificateScreen(
+        repository: repository,
+        courseLearning: courseLearning,
+      ),
+    ),
+  );
 
   @override
   State<CertificateScreen> createState() => _CertificateScreenState();
