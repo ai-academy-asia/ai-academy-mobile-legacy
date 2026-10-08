@@ -5,10 +5,12 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/presentation/sign_out.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_header.dart';
 import 'package:aia_mobile/features/notifications/domain/notification_failure.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_detail_screen.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_screen.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
@@ -212,27 +214,85 @@ void main() {
   });
 
   group('reading', () {
-    testWidgets('tapping an unread row marks it read', (tester) async {
+    Finder detail() => find.byType(NotificationDetailScreen);
+
+    Future<void> back(WidgetTester tester) async {
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('tapping an unread row opens the detail and marks it read', (
+      tester,
+    ) async {
       await pumpScreen(tester);
 
       await tester.tap(tileOf('Unread title'));
       await tester.pumpAndSettle();
 
+      expect(detail(), findsOneWidget);
+      expect(
+        find.descendant(of: detail(), matching: find.text('Unread body')),
+        findsOneWidget,
+      );
       expect(repository.markCalls, [3]);
-      expect(dotIn(tileOf('Unread title')), findsNothing);
       expect(center.unreadCount, 0);
     });
 
-    testWidgets('tapping a read row sends nothing', (tester) async {
+    testWidgets('tapping a read row opens the detail and sends nothing', (
+      tester,
+    ) async {
       await pumpScreen(tester);
 
       await tester.tap(tileOf('Read title'));
       await tester.pumpAndSettle();
 
+      expect(detail(), findsOneWidget);
+      expect(
+        find.descendant(of: detail(), matching: find.text('Read body')),
+        findsOneWidget,
+      );
       expect(repository.markCalls, isEmpty);
     });
 
-    testWidgets('a failed mark rolls back and says why', (tester) async {
+    testWidgets('the detail opens without waiting for the mark', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      repository.markGate = gate;
+      await pumpScreen(tester);
+
+      await tester.tap(tileOf('Unread title'));
+      await tester.pumpAndSettle();
+
+      expect(detail(), findsOneWidget);
+      expect(repository.markCalls, [3]);
+      expect(center.unreadCount, 0, reason: 'optimistic');
+
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(center.unreadCount, 0);
+    });
+
+    testWidgets('back returns to the list, the row now read', (tester) async {
+      await pumpScreen(tester);
+
+      await tester.tap(tileOf('Unread title'));
+      await tester.pumpAndSettle();
+      await back(tester);
+
+      expect(detail(), findsNothing);
+      expect(find.byType(NotificationScreen), findsOneWidget);
+      expect(dotIn(tileOf('Unread title')), findsNothing);
+
+      // Read now: opening it again sends nothing more.
+      await tester.tap(tileOf('Unread title'));
+      await tester.pumpAndSettle();
+      expect(detail(), findsOneWidget);
+      expect(repository.markCalls, [3]);
+    });
+
+    testWidgets('a failed mark still opens the detail, says why, and rolls '
+        'the row back', (tester) async {
       repository.markFailure = const NotificationFailure(
         NotificationFailureKind.network,
       );
@@ -241,13 +301,17 @@ void main() {
       await tester.tap(tileOf('Unread title'));
       await tester.pumpAndSettle();
 
-      expect(dotIn(tileOf('Unread title')), findsOneWidget);
+      expect(detail(), findsOneWidget);
       expect(
         find.text(
           NotificationStrings.messageFor(NotificationFailureKind.network),
         ),
         findsOneWidget,
       );
+
+      await back(tester);
+      expect(dotIn(tileOf('Unread title')), findsOneWidget);
+      expect(center.unreadCount, 1);
     });
   });
 
@@ -296,9 +360,16 @@ void main() {
 
       await tester.tap(tileOf('Unread title'));
       await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(NotificationScreen))).pop();
+      // Back from the detail, then from the list.
+      final navigator = Navigator.of(
+        tester.element(find.byType(NotificationDetailScreen)),
+      );
+      navigator.pop();
+      await tester.pumpAndSettle();
+      navigator.pop();
       await tester.pumpAndSettle();
 
+      expect(find.byType(HomeHeader), findsOneWidget);
       expect(find.byKey(HomeHeader.unreadBadgeKey), findsNothing);
     });
 

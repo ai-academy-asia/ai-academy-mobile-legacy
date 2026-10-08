@@ -54,6 +54,7 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Profile | `/profile` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | `auth` current user (real) |
 | Certificate | pushed from the Certificate row of the Adult and Junior Profiles (`CertificateScreen.open`) | `CourseLearningBackButton` (arrow) with the title centred on its row; no bottom nav | `certificates` — enrolled cohorts + §2.9 certificate per course + download (real) |
 | Notification | pushed from any bell (`NotificationScreen.open`) | `CourseLearningBackButton` (arrow) with "Notification" centred; no bottom nav; 72pt rows with full-width rules | `notifications` — `GET /me/notifications`, mark read (real) |
+| Notification Detail | pushed by any Notification row tap (`NotificationDetailScreen.open`) | no frame (Issue #248, product decision): the Notification header (`NotificationHeader`); a scrolling page — 32pt accent bell, title 20/28 w700, sent time `2026.10.01 12:57` 14/20 `textSecondary`, a `HomePalette.headerRule` rule, the body 16/24 `textPrimary`, untruncated | the tapped `AppNotification`, as already loaded — no request of its own |
 | Teacher Profile | Профайл tab of `TeacherShell` (no route; Change password pushed on top) | white title band + rule; the shell's teacher bottom nav, Профайл selected | `auth` current user (real); log out and change password real; MN/EN, Notification, contact rows inert |
 | Course Catalog | `/courses` | — | `courses` (real) |
 | Course Detail | pushed | — | `courses` (real) |

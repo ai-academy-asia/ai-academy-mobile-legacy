@@ -4,13 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../home/presentation/home_strings.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import '../domain/app_notification.dart';
 import 'notification_center.dart';
+import 'notification_detail_screen.dart';
+import 'notification_header.dart';
 import 'notification_strings.dart';
 
 /// The Notification Center — the Figma "Notification" frame (Issue #246):
@@ -20,9 +20,11 @@ import 'notification_strings.dart';
 /// role, on the shared [NotificationCenter].
 ///
 /// A row reads unread — blue glyph, dark title, grey body, blue dot — while
-/// its `read_at` is null, and all grey once read. Tapping an unread row
-/// marks it read; nothing opens, because the contract carries no
-/// destination (no deep links). Pull down to refresh.
+/// its `read_at` is null, and all grey once read. Tapping any row opens
+/// [NotificationDetailScreen] with its full text (Issue #248); an unread row
+/// is marked read on the way. The detail is the same for every `kind` — the
+/// contract carries no destination, so there are no deep links. Pull down to
+/// refresh.
 ///
 /// One glyph for every `kind`: the frame's Money icon illustrates a payment
 /// notice, and no payment kind is verified, so per-kind icons wait on a
@@ -64,6 +66,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  /// Opens the detail at once, and marks an unread row read alongside —
+  /// never waiting on it: a failed mark rolls the row back and says why
+  /// (the SnackBar shows over the detail), but never keeps the message from
+  /// being read. A read row sends nothing.
+  void _open(AppNotification notification) {
+    if (!notification.isRead) _markRead(notification);
+    NotificationDetailScreen.open(context, notification);
+  }
+
   Future<void> _markRead(AppNotification notification) async {
     final message = await _center.markRead(notification.id);
     if (message != null && mounted) _showError(message);
@@ -87,7 +98,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _Header(),
+              const NotificationHeader(),
               Expanded(
                 child: ListenableBuilder(
                   listenable: _center,
@@ -146,35 +157,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
           return NotificationTile(
             notification: notification,
             age: NotificationStrings.age(notification.createdAt, now),
-            onTap: notification.isRead ? null : () => _markRead(notification),
+            onTap: () => _open(notification),
           );
         },
       ),
-    );
-  }
-}
-
-/// The back button with "Notification" centred on its row — the Certificate
-/// screen's header, which this frame draws the same.
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
-        Positioned.fill(
-          top: _backButtonTop,
-          child: const Center(
-            child: Text(
-              NotificationStrings.title,
-              style: _titleStyle,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -195,7 +181,8 @@ class NotificationTile extends StatelessWidget {
   /// The age as drawn, e.g. `1d` — see `NotificationStrings.age`.
   final String age;
 
-  /// Marks it read. Null for a read row.
+  /// Opens the notification — see `NotificationScreen`. Null draws a row
+  /// that does nothing.
   final VoidCallback? onTap;
 
   @override
@@ -338,9 +325,6 @@ class _Message extends StatelessWidget {
 // --- Measured off the Figma "Notification" frame at 1:1 (393 wide, a 44pt
 // status-bar inset) -----------------------------------------------------------
 
-/// `CourseLearningBackButton`'s own inset above the circle.
-const double _backButtonTop = 12;
-
 /// The header ends at the circle's bottom (y 96); the first row starts at
 /// y 108.
 const double _headerToList = 12;
@@ -364,15 +348,6 @@ const Color _readInk = Color(0xFFB2B2B2);
 
 /// Read by a screen reader before an unread row's title.
 const String _unreadLabel = 'Шинэ';
-
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-  color: Color(0xFF191919),
-  leadingDistribution: TextLeadingDistribution.even,
-);
 
 const TextStyle _rowTitleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
