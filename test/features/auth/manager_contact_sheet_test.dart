@@ -51,11 +51,18 @@ void main() {
     await openSheet(tester);
 
     expect(sheet(), findsOneWidget);
-    expect(find.text(LoginStrings.contactManager), findsOneWidget);
+    expect(find.text('Бид танд туслахад бэлэн'), findsOneWidget);
+    // The Login card's own title is not reused as the heading.
+    expect(
+      find.descendant(
+        of: sheet(),
+        matching: find.text(LoginStrings.contactManager),
+      ),
+      findsNothing,
+    );
     expect(
       find.text(
-        'Дэлгэрэнгүй мэдээлэл авахыг хүсвэл бидэнтэй доорх утас, имэйл '
-        'хаягаар холбогдоорой.',
+        'Асуух зүйл байвал доорх утас, имэйлээр бидэнтэй холбогдоорой.',
       ),
       findsOneWidget,
     );
@@ -76,7 +83,9 @@ void main() {
   ) async {
     await openSheet(tester);
 
-    final heading = tester.widget<Text>(find.text(LoginStrings.contactManager));
+    final heading = tester.widget<Text>(
+      find.text(LoginStrings.contactSheetTitle),
+    );
     expect(heading.style, AppTypography.heading);
     expect(heading.textAlign, TextAlign.center);
     final message = tester.widget<Text>(find.text(LoginStrings.contactMessage));
@@ -84,7 +93,7 @@ void main() {
     expect(
       tester.getTopLeft(find.text(LoginStrings.contactMessage)).dy,
       greaterThan(
-        tester.getBottomLeft(find.text(LoginStrings.contactManager)).dy,
+        tester.getBottomLeft(find.text(LoginStrings.contactSheetTitle)).dy,
       ),
     );
   });
@@ -197,7 +206,7 @@ void main() {
     for (final close in <Future<void> Function()>[
       () => tester.tapAt(const Offset(196, 40)),
       () => tester.drag(
-        find.text(LoginStrings.contactManager),
+        find.text(LoginStrings.contactSheetTitle),
         const Offset(0, 500),
       ),
       () => tester.binding.handlePopRoute(),

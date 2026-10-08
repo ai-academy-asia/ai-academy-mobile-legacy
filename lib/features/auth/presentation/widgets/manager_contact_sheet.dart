@@ -34,7 +34,7 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
 /// from Login's own frame and the sign-out dialog (#166), restyled so it reads
 /// as part of Login rather than a stock sheet (Issue #239):
 ///
-///  * the heading is Login's own "Менежертэй холбогдоорой" in Login's screen
+///  * the heading, "Бид танд туслахад бэлэн", is set in Login's screen
 ///    [AppTypography.heading], with a short message under it in
 ///    [AppTypography.statLabel] — the sign-out dialog's message style —
 ///    [AppDimens.titleToSupporting] apart, as Reset Password spaces its
@@ -83,7 +83,7 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              LoginStrings.contactManager,
+              LoginStrings.contactSheetTitle,
               style: AppTypography.heading,
               textAlign: TextAlign.center,
             ),
