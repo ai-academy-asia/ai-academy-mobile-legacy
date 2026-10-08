@@ -7,11 +7,10 @@ import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/auth/presentation/student_tabs.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
-import 'features/home/presentation/home_screen.dart';
+import 'features/home/presentation/adult_student_shell.dart';
 import 'features/junior_home/presentation/junior_home_screen.dart';
 import 'features/junior_home/presentation/junior_profile_screen.dart';
 import 'features/junior_home/presentation/junior_progress_screen.dart';
-import 'features/profile/presentation/profile_screen.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/teacher/presentation/teacher_gradebook_screen.dart';
 import 'features/teacher/presentation/teacher_home_screen.dart';
@@ -53,18 +52,21 @@ class AiAcademyApp extends StatelessWidget {
             const ResetPasswordScreen(showBackButton: true),
         // Sign-in lands on one of these two, by `user_type` — see
         // `homeRouteFor`. `/home` is the adult Нүүр tab, the dashboard.
-        HomeRoutes.adult: (_) => const HomeScreen(),
+        // The adult tabs are one persistent shell (Issue #237): each of its
+        // routes opens it on that tab.
+        HomeRoutes.adult: (_) => const AdultStudentShell(),
         HomeRoutes.junior: (_) => const JuniorHomeScreen(),
         HomeRoutes.teacher: (_) => const TeacherHomeScreen(),
         // The teacher bar's Хуваарь — see `openTeacherTab` (Issue #231).
         TeacherTabRoutes.schedule: (_) => const TeacherScheduleScreen(),
         // Дүнгийн хуудас (Issue #233).
         TeacherTabRoutes.gradebook: (_) => const TeacherGradebookScreen(),
-        // Each Home's other two tabs — the adult pair and the junior pair;
-        // see `openStudentTab`.
+        // Each Home's other two tabs — the adult pair, as the shell, and the
+        // junior pair; see `openStudentTab`.
         StudentTabRoutes.adultProgress: (_) =>
-            const CohortListScreen(enrolledOnly: true),
-        StudentTabRoutes.adultProfile: (_) => const ProfileScreen(),
+            const AdultStudentShell(initialTab: StudentTab.progress),
+        StudentTabRoutes.adultProfile: (_) =>
+            const AdultStudentShell(initialTab: StudentTab.profile),
         StudentTabRoutes.juniorProgress: (_) => const JuniorProgressScreen(),
         StudentTabRoutes.juniorProfile: (_) => const JuniorProfileScreen(),
         // The draft course catalog. No longer reached from Home's Хичээл tab

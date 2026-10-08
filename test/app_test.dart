@@ -1,6 +1,7 @@
 import 'package:aia_mobile/app.dart';
+import 'package:aia_mobile/features/auth/presentation/student_tabs.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
-import 'package:aia_mobile/features/home/presentation/home_screen.dart';
+import 'package:aia_mobile/features/home/presentation/adult_student_shell.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,9 +27,8 @@ void main() {
     );
   });
 
-  testWidgets('registers the student\'s cohort list as /my-cohorts', (
-    tester,
-  ) async {
+  testWidgets('registers the adult Хичээл and Профайл tabs as the shell, on '
+      'their own tab (Issue #237)', (tester) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = const Size(393, 852) * 3;
     addTearDown(tester.view.reset);
@@ -36,13 +36,17 @@ void main() {
     await tester.pumpWidget(const AiAcademyApp());
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    final builder = app.routes?['/my-cohorts'];
+    final context = tester.element(find.byType(MaterialApp));
 
-    expect(builder, isNotNull);
-    // Built, not pumped: the real screen would reach for the real API.
-    final screen = builder!(tester.element(find.byType(MaterialApp)));
-    expect(screen, isA<CohortListScreen>());
-    expect((screen as CohortListScreen).enrolledOnly, isTrue);
+    // Built, not pumped: the real screens would reach for the real API.
+    for (final (route, tab) in [
+      ('/my-cohorts', StudentTab.progress),
+      ('/profile', StudentTab.profile),
+    ]) {
+      final screen = app.routes?[route]?.call(context);
+      expect(screen, isA<AdultStudentShell>(), reason: route);
+      expect((screen as AdultStudentShell).initialTab, tab, reason: route);
+    }
   });
 
   testWidgets('registers both homes sign-in can land on', (tester) async {
@@ -61,7 +65,9 @@ void main() {
 
     expect(home, isNotNull);
     // Built, not pumped: the real screens would reach for the real API.
-    expect(home!(context), isA<HomeScreen>());
+    final adultHome = home!(context);
+    expect(adultHome, isA<AdultStudentShell>());
+    expect((adultHome as AdultStudentShell).initialTab, StudentTab.home);
     expect(juniorHome, isNotNull);
     expect(juniorHome!(context), isA<JuniorHomeScreen>());
     expect(app.routes, isNot(contains('/dev/junior-home')));
