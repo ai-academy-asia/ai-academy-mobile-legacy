@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:aia_mobile/features/course_learning/domain/course_certificate.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
@@ -282,6 +283,63 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     if (downloadFailure case final failure?) throw failure;
 
     return download ?? sampleDownload(materialId: materialId);
+  }
+
+  // --- getCourseCertificate / getCertificateDownload --------------------
+
+  /// Each course's certificate, by slug. A slug with none answers
+  /// [CertificateStatus.notEligible], with no issued certificate.
+  Map<String, CourseCertificate> certificates = {};
+
+  /// Thrown by [getCourseCertificate] instead of returning, when set.
+  CourseLearningFailure? certificateFailure;
+
+  /// Every slug [getCourseCertificate] was called with, in order.
+  final List<String> certificateCalls = [];
+
+  @override
+  Future<CourseCertificate> getCourseCertificate(String courseSlug) async {
+    certificateCalls.add(courseSlug);
+    if (certificateFailure case final failure?) throw failure;
+    return certificates[courseSlug] ??
+        const CourseCertificate(status: CertificateStatus.notEligible);
+  }
+
+  /// Returned by [getCertificateDownload] on success. Defaults to a fixed
+  /// test link.
+  CertificateDownload? certificateDownload;
+
+  /// Thrown by [getCertificateDownload] instead of returning, after
+  /// [holdCertificateDownload] releases. Settable between calls.
+  CourseLearningFailure? certificateDownloadFailure;
+
+  /// When true, [getCertificateDownload] blocks until
+  /// [releaseCertificateDownload].
+  bool holdCertificateDownload = false;
+
+  /// Every certificate number [getCertificateDownload] was called with.
+  final List<String> certificateDownloadCalls = [];
+
+  Completer<void>? _certificateDownloadGate;
+
+  void releaseCertificateDownload() {
+    final gate = _certificateDownloadGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<CertificateDownload> getCertificateDownload(String certNumber) async {
+    certificateDownloadCalls.add(certNumber);
+    if (holdCertificateDownload) {
+      _certificateDownloadGate = Completer<void>();
+      await _certificateDownloadGate!.future;
+    }
+    if (certificateDownloadFailure case final failure?) throw failure;
+    return certificateDownload ??
+        CertificateDownload(
+          url: Uri.parse('https://files.example.test/cert/$certNumber.pdf'),
+          expiresAt: DateTime.utc(2030),
+        );
   }
 
   // --- submitAssignment --------------------------------------------------

@@ -14,7 +14,9 @@ import 'course_exercise_detail_screen.dart';
 import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
 import 'lesson_list_screen.dart';
+import 'widgets/certificate_preview.dart';
 import 'widgets/course_learning_back_button.dart';
+import 'widgets/course_progress_cta_row.dart';
 import 'widgets/course_module_card.dart';
 
 /// Everything below is measured off the Figma reference frame at 1:1 — a
@@ -34,8 +36,6 @@ const double _heroTintHeight = 75;
 const Color _border = Color(0xFFEAEDF0);
 const Color _primaryInk = Color(0xFF191919);
 const Color _secondaryInk = Color(0xFF7D7D7E);
-const Color _progressTrack = Color(0xFFD6DBE1);
-const Color _accent = Color(0xFF2970FF);
 const Color _certificationFill = Color(0xFFF9FAFB);
 
 /// The illustration's box. Larger than the 86 x 75 the frame measures because
@@ -51,24 +51,12 @@ const double _illustrationHeight = 82;
 /// which would push the progress row down.
 const double _illustrationRise = -6;
 
-/// The progress/CTA row. The bar flexes; everything right of it is fixed, so
-/// the same widget lands the button on the frame's x213 in both the hero (a
-/// 361-wide container) and the certification card (329 wide) — which is why
-/// the button's width differs between the two and is passed in.
-const double _barHeight = 8;
-const double _barToPercent = 13;
-const double _percentToButton = 31;
-const double _ctaHeight = 40;
-const double _ctaRadius = 20;
+/// The "Continue learning" button's width in each placement of the shared
+/// `CourseProgressCtaRow` — the hero (a 361-wide container) and the
+/// certification card (329 wide) — which keeps it on the frame's x213 in
+/// both.
 const double _heroCtaWidth = 164;
 const double _certificationCtaWidth = 148;
-
-/// The button's depth: a flat darker-blue band under it, the same idiom the
-/// module cards use. Sampled at 1:1 — the reference has *no* blur around the
-/// button at all (the pixel beside its edge is pure white), so this is a
-/// zero-blur shadow of the button's own shape, not a glow.
-const Color _ctaDepth = AppColors.primaryDepth;
-const double _ctaDepthOffset = 4;
 
 /// Module cards: an 86-tall box every 102, so 16 of layout gap between boxes —
 /// 4 of which the card's own band fills, leaving the reference's 12 of white.
@@ -480,101 +468,13 @@ class _ProgressCtaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: path.percentComplete / 100,
-              minHeight: _barHeight,
-              backgroundColor: _progressTrack,
-              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
-            ),
-          ),
-        ),
-        const SizedBox(width: _barToPercent),
-        Text(
-          CourseLearningStrings.percentComplete(path.percentComplete),
-          style: AppTypography.catalogSectionValue.copyWith(
-            fontSize: 14,
-            height: 20 / 14,
-            color: _primaryInk,
-          ),
-        ),
-        const SizedBox(width: _percentToButton),
-        _ContinueLearningButton(
-          path: path,
-          repository: repository,
-          width: buttonWidth,
-        ),
-      ],
-    );
-  }
-}
-
-class _ContinueLearningButton extends StatelessWidget {
-  const _ContinueLearningButton({
-    required this.path,
-    required this.repository,
-    required this.width,
-  });
-
-  final CourseLearningPath path;
-  final CourseLearningRepository repository;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
     final lessonId = _continueLessonId(path);
-
-    return Semantics(
-      button: true,
-      label: CourseLearningStrings.continueLearning,
-      child: DecoratedBox(
-        // The button's depth is a flat band of a darker blue along its bottom,
-        // not a glow: beside the button's edge the reference is pure white, so
-        // there is no blur to reproduce. A zero-blur shadow of the button's own
-        // rounded rect, offset down, gives exactly that band — the same way
-        // `CourseModuleCard` draws its own. Painted on a wrapping
-        // `DecoratedBox` rather than via `Material.elevation`, whose shadow is
-        // a neutral blurred grey; the box adds no size, so the button's
-        // footprint is unchanged and the band paints below it.
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(_ctaRadius),
-          boxShadow: const [
-            BoxShadow(color: _ctaDepth, offset: Offset(0, _ctaDepthOffset)),
-          ],
-        ),
-        child: Material(
-          color: _accent,
-          borderRadius: BorderRadius.circular(_ctaRadius),
-          child: InkWell(
-            onTap: lessonId == null
-                ? null
-                : () => _openExerciseDetail(context, lessonId, repository),
-            borderRadius: BorderRadius.circular(_ctaRadius),
-            splashColor: Colors.white24,
-            highlightColor: Colors.white10,
-            child: SizedBox(
-              width: width,
-              height: _ctaHeight,
-              child: const Center(
-                child: Text(
-                  CourseLearningStrings.continueLearning,
-                  style: TextStyle(
-                    fontFamily: AppTypography.fontFamily,
-                    fontSize: 14,
-                    height: 20 / 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onPrimary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    return CourseProgressCtaRow(
+      percent: path.percentComplete,
+      buttonWidth: buttonWidth,
+      onContinue: lessonId == null
+          ? null
+          : () => _openExerciseDetail(context, lessonId, repository),
     );
   }
 }
@@ -702,7 +602,7 @@ class _CertificationSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const _CertificatePreview(),
+          const CertificatePreview(),
           const SizedBox(height: 17),
           _ProgressCtaRow(
             path: path,
@@ -710,55 +610,6 @@ class _CertificationSection extends StatelessWidget {
             buttonWidth: _certificationCtaWidth,
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The sample certificate image, framed by the exported gradient background —
-/// two flat images layered, not redrawn with Flutter text/shapes.
-///
-/// Both source PNGs are lower resolution than where they end up drawn: at
-/// this card's measured size on a 3x-density phone, `certificate.png` (305 x
-/// 201 native) and `certificate_backround.png` (328 x 225 native) are each
-/// upscaled roughly 3x by the renderer, which is what reads as blur/softness
-/// on device — a genuine shortfall in the exported assets, not something a
-/// widget property can fix. `FilterQuality.high` (`Image`'s own default is
-/// `medium`) is the one improvement available without new art: Skia's best
-/// resampling for that upscale, in place of its default. It measurably
-/// softens the blur but cannot restore detail the source files never had —
-/// the real fix is re-exporting both PNGs at a higher resolution (or as
-/// proper `1.0x`/`2.0x`/`3.0x` variants).
-class _CertificatePreview extends StatelessWidget {
-  const _CertificatePreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 329 / 225,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/images/certificate_backround.png',
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.high,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(6),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/certificate.png',
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.high,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/api_failure.dart';
 import '../../../core/models/localized_text.dart';
 import '../../auth/domain/auth_session_store.dart';
+import '../domain/course_certificate.dart';
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_path.dart';
@@ -183,6 +184,39 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
   Future<MaterialDownload> getMaterialDownload(int materialId) async {
     final body = await _authorizedGet('/me/materials/$materialId/download');
     return _downloadFromBody(body);
+  }
+
+  /// §2.9 `GET /me/courses/{course_slug}/certificate` — the student's
+  /// certificate status for one course, and the issued certificate when there
+  /// is one. See [_certificateFromBody].
+  ///
+  /// Statuses map as every endpoint's here do, through [_failureForStatus].
+  @override
+  Future<CourseCertificate> getCourseCertificate(String courseSlug) async {
+    final body = await _authorizedGet(
+      '/me/courses/${Uri.encodeComponent(courseSlug)}/certificate',
+    );
+    return _certificateFromBody(body);
+  }
+
+  /// §2.9 `GET /me/certificates/{cert_number}/download` — `{url,
+  /// expires_at}`, a pre-signed link to the certificate's file.
+  @override
+  Future<CertificateDownload> getCertificateDownload(String certNumber) async {
+    final body = await _authorizedGet(
+      '/me/certificates/${Uri.encodeComponent(certNumber)}/download',
+    );
+    final decoded = _decodeObject(body);
+    final url = _requireHttpUrl(decoded, 'download.url');
+    final rawExpiresAt = _requireString(decoded, 'download.expires_at');
+    final expiresAt = DateTime.tryParse(rawExpiresAt);
+    if (expiresAt == null) {
+      throw CourseLearningFailure(
+        CourseLearningFailureKind.server,
+        detail: 'download.expires_at: not a timestamp ("$rawExpiresAt")',
+      );
+    }
+    return CertificateDownload(url: url, expiresAt: expiresAt);
   }
 
   /// §2.6 `POST /me/assignments/{assignment_id}/submissions` with
@@ -1339,6 +1373,44 @@ int? _continueId(Object? value, String key) {
   if (value is! Map<String, dynamic>) return null;
   final id = value[key];
   return id is num ? id.toInt() : null;
+}
+
+/// §2.9's certificate response: `status` (required), and the issued
+/// `certificate` object's `cert_number` and `issued_at` when it is present.
+///
+/// A status this build does not know reads as [CertificateStatus.unknown],
+/// never as issued. An issued status without a readable `certificate`
+/// object keeps [CourseCertificate.issued] null — the screen then has no
+/// number to download with. `requirements` and `verify_url` are not read.
+CourseCertificate _certificateFromBody(String body) {
+  final decoded = _decodeObject(body);
+  final status = decoded['status'];
+  if (status is! String || status.isEmpty) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail:
+          'certificate.status: expected a non-empty string, '
+          'got ${status.runtimeType}',
+    );
+  }
+
+  final certificate = decoded['certificate'];
+  IssuedCertificate? issued;
+  if (certificate is Map<String, dynamic>) {
+    final certNumber = certificate['cert_number'];
+    final issuedAt = certificate['issued_at'];
+    if (certNumber is String && certNumber.isNotEmpty) {
+      issued = IssuedCertificate(
+        certNumber: certNumber,
+        issuedAt: issuedAt is String ? DateTime.tryParse(issuedAt) : null,
+      );
+    }
+  }
+
+  return CourseCertificate(
+    status: CertificateStatus.fromApi(status),
+    issued: issued,
+  );
 }
 
 /// `certificate.status`, passed through as the wire string.

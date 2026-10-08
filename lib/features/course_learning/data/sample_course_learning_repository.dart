@@ -1,3 +1,4 @@
+import '../domain/course_certificate.dart';
 import '../domain/course_exercise.dart';
 import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_path.dart';
@@ -258,6 +259,24 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
     throw CourseLearningFailure(
       CourseLearningFailureKind.notFound,
       detail: 'sample material $materialId has no stored file',
+    );
+  }
+
+  /// The sample issues no certificates: it has no server to decide a
+  /// status, so these fail rather than answer with one nobody decided.
+  @override
+  Future<CourseCertificate> getCourseCertificate(String courseSlug) async {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.notFound,
+      detail: 'the sample has no certificate for $courseSlug',
+    );
+  }
+
+  @override
+  Future<CertificateDownload> getCertificateDownload(String certNumber) async {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.notFound,
+      detail: 'the sample has no certificate $certNumber',
     );
   }
 

@@ -1,3 +1,4 @@
+import 'course_certificate.dart';
 import 'course_exercise.dart';
 import 'course_learning_path.dart';
 import 'course_quiz.dart';
@@ -52,6 +53,14 @@ abstract interface class CourseLearningRepository {
   /// `GET /me/materials/{material_id}/download`. [materialId] is
   /// `CourseExerciseMaterial.id`.
   Future<MaterialDownload> getMaterialDownload(int materialId);
+
+  /// Where the student stands on [courseSlug]'s certificate — §2.9
+  /// `GET /me/courses/{course_slug}/certificate` (Issue #155).
+  Future<CourseCertificate> getCourseCertificate(String courseSlug);
+
+  /// A fresh link to issued certificate [certNumber]'s file — §2.9
+  /// `GET /me/certificates/{cert_number}/download`, pre-signed and expiring.
+  Future<CertificateDownload> getCertificateDownload(String certNumber);
 
   /// Submits — or resubmits, the same call — a [link], an uploaded file, or
   /// both to assignment [assignmentId] and returns the new latest submission

@@ -12,6 +12,7 @@ import '../../auth/presentation/reset_password_screen.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../certificates/presentation/certificate_screen.dart';
 import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
@@ -43,9 +44,9 @@ const double _editGlyph = 20;
 /// no "Payment receipt" — while sharing its measured parts (the header,
 /// avatar, caption bands, rows, MN/EN control, switch and log-out pill).
 ///
-/// **Every row but the header and Change password is UI only.** E-Contract,
-/// Certificate, Transaction history, edit profile, Help center, Term of
-/// Service and Privacy Policy have no destination yet, and the language,
+/// **Every row but the header, Certificate (Issue #155) and Change password
+/// is UI only.** E-Contract, Transaction history, edit profile, Help center,
+/// Term of Service and Privacy Policy have no destination yet, and the language,
 /// light-mode and notification controls hold local state that nothing else
 /// reads — there is no locale mechanism, no dark palette and no
 /// notification-preference endpoint in the app to hand them to.
@@ -180,18 +181,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const ProfileRule(),
 
           const ProfileCaption(ProfileStrings.accountSection),
-          const ProfileGroup(
+          ProfileGroup(
             rows: [
               // No contract status or count: no endpoint reports either.
-              ProfileRow(
+              const ProfileRow(
                 icon: ProfileIcons.eContract,
                 label: ProfileStrings.eContract,
               ),
+              // The student's certificates, one per course (Issue #155).
               ProfileRow(
                 icon: ProfileIcons.certificate,
                 label: ProfileStrings.certificate,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const CertificateScreen(),
+                  ),
+                ),
               ),
-              ProfileRow(
+              const ProfileRow(
                 icon: ProfileIcons.transactionHistory,
                 label: ProfileStrings.transactionHistory,
               ),
