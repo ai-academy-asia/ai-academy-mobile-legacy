@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_dimens.dart';
 import '../../core/theme/app_typography.dart';
 
@@ -133,12 +133,14 @@ class _AppTextFieldState extends State<AppTextField> {
   Widget build(BuildContext context) {
     final hasError = widget.errorText != null;
     final floating = _focused || widget.controller.text.isNotEmpty;
+    // Colours by role (Dark Mode Phase 3, Issue #258) — light values as ever.
+    final palette = context.palette;
 
     // Error outranks focus: a red box that turns blue when tapped would hide
     // the very thing the user has to fix.
     final Color labelColor = hasError
-        ? AppColors.error
-        : (_focused ? AppColors.borderFocused : AppColors.textSecondary);
+        ? palette.error
+        : (_focused ? palette.borderFocused : palette.textSecondary);
 
     return TextField(
       controller: widget.controller,
@@ -149,15 +151,17 @@ class _AppTextFieldState extends State<AppTextField> {
       textInputAction: widget.textInputAction,
       autofillHints: widget.autofillHints,
       onSubmitted: widget.onSubmitted,
-      style: AppTypography.fieldValue,
-      cursorColor: AppColors.borderFocused,
+      style: AppTypography.fieldValue.copyWith(color: palette.textPrimary),
+      cursorColor: palette.borderFocused,
       cursorWidth: 1.5,
       decoration: InputDecoration(
         // The resting text is the long placeholder; the floating text is the
         // short label. Both ride the same slot, so the swap happens exactly as
         // the label lifts.
         labelText: floating ? widget.floatingLabel : widget.placeholder,
-        labelStyle: AppTypography.fieldPlaceholder,
+        labelStyle: AppTypography.fieldPlaceholder.copyWith(
+          color: palette.textSecondary,
+        ),
         floatingLabelStyle: _floatingLabelStyle.copyWith(color: labelColor),
         floatingLabelBehavior: FloatingLabelBehavior.auto,
         // The reference shows no message under an errored field — the red
@@ -165,23 +169,29 @@ class _AppTextFieldState extends State<AppTextField> {
         // the reason is not lost; see LoginScreen for where it surfaces.
         errorText: null,
         filled: true,
-        fillColor: widget.enabled ? AppColors.surface : AppColors.surfaceMuted,
+        fillColor: widget.enabled ? palette.surface : palette.surfaceMuted,
         isDense: false,
         // 18 + 20 (one line of 15/20 type) + 18 lands the box on the design's
         // 56pt. Material draws the outline inside this, not around it.
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
+        ),
         enabledBorder: _border(
-          hasError ? AppColors.error : AppColors.border,
+          hasError ? palette.error : palette.border,
           hasError ? AppDimens.borderWidthEmphasis : AppDimens.borderWidth,
         ),
         focusedBorder: _border(
-          hasError ? AppColors.error : AppColors.borderFocused,
+          hasError ? palette.error : palette.borderFocused,
           AppDimens.borderWidthEmphasis,
         ),
-        disabledBorder: _border(AppColors.border, AppDimens.borderWidth),
-        border: _border(AppColors.border, AppDimens.borderWidth),
+        disabledBorder: _border(palette.border, AppDimens.borderWidth),
+        border: _border(palette.border, AppDimens.borderWidth),
         suffixIcon: widget.suffix,
-        suffixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 44,
+          minHeight: 44,
+        ),
       ),
     );
   }

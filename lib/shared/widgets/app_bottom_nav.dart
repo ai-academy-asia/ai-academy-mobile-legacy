@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_dimens.dart';
 import '../../core/theme/app_typography.dart';
-
-/// The bar's top rule — a lighter grey than the global [AppColors.border],
-/// sampled off the reference frame at 1:1.
-const Color _dividerColor = AppColors.divider;
 
 /// The icon's nominal size. A Phosphor glyph inks about 0.88 of it — the
 /// reference's ~21. A 26pt step up was tried and read too dominant on a
@@ -35,11 +31,6 @@ const double _iconToLabelGap = 3;
 /// three other widgets, so the size is overridden here rather than on the
 /// token.
 const double _labelSize = 12;
-
-/// The selected tab's icon and label — the Adult Home and Profile frames'
-/// `#2970FF`, the same blue the selected-tab SVGs carry. Not [AppColors.blue]
-/// (`#296CFF`), which is close but sampled from a different capture.
-const Color _selectedColor = AppColors.accent;
 
 /// One tab of [AppBottomNav].
 class AppBottomNavItem {
@@ -83,7 +74,7 @@ class AppBottomNav extends StatelessWidget {
     this.iconSize = _iconSize,
     this.labelSize = _labelSize,
     this.horizontalPadding = AppDimens.screenPadding,
-    this.selectedColor = _selectedColor,
+    this.selectedColor,
   });
 
   final List<AppBottomNavItem> items;
@@ -99,16 +90,22 @@ class AppBottomNav extends StatelessWidget {
   /// equally.
   final double horizontalPadding;
 
-  /// The selected tab's icon and label.
-  final Color selectedColor;
+  /// The selected tab's icon and label. Null — every caller today — is the
+  /// theme's [AppPalette.accentText].
+  final Color? selectedColor;
 
   @override
   Widget build(BuildContext context) {
+    // Colours by role (Dark Mode Phase 3, Issue #258): the bar is `surface`,
+    // its top rule the light `divider` sampled off the frame (not the global
+    // field `border`), the selection `accentText` — `#2970FF`, the blue the
+    // selected-tab SVGs carry, not `primary` (`#296CFF`).
+    final palette = context.palette;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: palette.surface,
         border: Border(
-          top: BorderSide(color: _dividerColor, width: AppDimens.borderWidth),
+          top: BorderSide(color: palette.divider, width: AppDimens.borderWidth),
         ),
       ),
       child: SafeArea(
@@ -125,7 +122,7 @@ class AppBottomNav extends StatelessWidget {
                     selected: i == currentIndex,
                     iconSize: iconSize,
                     labelSize: labelSize,
-                    selectedColor: selectedColor,
+                    selectedColor: selectedColor ?? palette.accentText,
                   ),
                 ),
             ],
@@ -153,7 +150,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? selectedColor : AppColors.textSecondary;
+    final color = selected ? selectedColor : context.palette.textSecondary;
     final selectedAsset = selected ? item.selectedAsset : null;
 
     return Semantics(

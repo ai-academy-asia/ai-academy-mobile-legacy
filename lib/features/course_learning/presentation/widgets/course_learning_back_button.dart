@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../course_learning_strings.dart';
-
-/// The Figma reference's own border colour for this control — a cooler,
-/// lighter grey than [AppColors.border]. Nothing in the shared palette
-/// matches it, so it stays a local constant here rather than in
-/// `AppColors`, which is sampled from the Login/Home/Catalog references,
-/// not this one.
-const Color _borderColor = AppColors.outline;
 
 /// Back navigation for the Course Learning screens.
 ///
@@ -30,6 +23,10 @@ class CourseLearningBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Colours by role (Dark Mode Phase 3, Issue #258): a `surface` disc in an
+    // `outline` ring — the reference's own cooler grey, not the field
+    // `border` — with a soft black lift and a `textPrimary` glyph.
+    final palette = context.palette;
     return Padding(
       // 12 above, not the screen's 16: the reference puts this control's top
       // edge 12 below the safe-area inset.
@@ -45,9 +42,12 @@ class CourseLearningBackButton extends StatelessWidget {
           button: true,
           label: CourseLearningStrings.back,
           child: Material(
-            color: AppColors.surface,
-            shape: const CircleBorder(side: BorderSide(color: _borderColor)),
-            shadowColor: Colors.black.withValues(alpha: 0.08),
+            color: palette.surface,
+            shape: CircleBorder(side: BorderSide(color: palette.outline)),
+            // Black @ 8 %, exactly as before: `shadowSubtle`'s hue at the
+            // reference's own 0.08 (the role's 0x14 is 0.0784 and moves a
+            // pixel).
+            shadowColor: palette.shadowSubtle.withValues(alpha: 0.08),
             elevation: 2,
             child: InkWell(
               onTap: () => Navigator.of(context).maybePop(),
@@ -55,7 +55,7 @@ class CourseLearningBackButton extends StatelessWidget {
               child: SizedBox(
                 width: _size,
                 height: _size,
-                child: Icon(icon, size: 20, color: AppColors.textPrimary),
+                child: Icon(icon, size: 20, color: palette.textPrimary),
               ),
             ),
           ),

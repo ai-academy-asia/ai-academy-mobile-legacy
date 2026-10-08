@@ -547,7 +547,14 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - The feature palettes and the duplicated private constants (115 sites) now alias those roles, guarded by `color_literal_consolidation_test.dart`.
 > - Every golden is unchanged.
 >
-> **Next: Phase 3 (shared components).**
+> **Phase 3 done (Issue #258).** The shared components that are actually reused across roles read only `context.palette`, proven under a sentinel palette:
+> - `AppButton`, `AppTextField`, `AppBottomNav`;
+> - `CourseLearningBackButton`, `HomeHeader`;
+> - `profile_parts`.
+>
+> Monochrome SVGs go through `AppSvgIcon` (new roles `iconInk` and `wordmark`), tinted only when the role differs from the asset's colour, because a same-colour tint still moves edge pixels. All goldens are unchanged. Single-role widgets (`HomePillButton`, `TeacherPillButton`, Junior Profile parts, sheets) move with their feature phases.
+>
+> **Next: Phase 4 (system UI).**
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 

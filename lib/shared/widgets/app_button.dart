@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_dimens.dart';
 import '../../core/theme/app_typography.dart';
 
@@ -47,18 +47,21 @@ class AppButton extends StatelessWidget {
 
     final isFilled = variant == AppButtonVariant.filled;
 
+    // Colours by role (Dark Mode Phase 3, Issue #258): the same values as
+    // ever in light mode, from the active theme.
+    final palette = context.palette;
     final Color background;
     final Color foreground;
     final Color? borderColor;
 
     if (isFilled) {
-      background = active ? AppColors.blue : AppColors.disabled;
-      foreground = AppColors.onPrimary;
+      background = active ? palette.primary : palette.disabled;
+      foreground = palette.onPrimary;
       borderColor = null;
     } else {
-      background = AppColors.surface;
-      foreground = active ? AppColors.textPrimary : AppColors.disabled;
-      borderColor = active ? AppColors.border : AppColors.disabled;
+      background = palette.surface;
+      foreground = active ? palette.textPrimary : palette.disabled;
+      borderColor = active ? palette.border : palette.disabled;
     }
 
     return Semantics(
@@ -71,8 +74,9 @@ class AppButton extends StatelessWidget {
         child: InkWell(
           onTap: enabled ? onPressed : null,
           borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
-          splashColor: isFilled ? Colors.white24 : null,
-          highlightColor: isFilled ? Colors.white10 : null,
+          // `Colors.white24` / `white10`, as tints of [AppPalette.onPrimary].
+          splashColor: isFilled ? palette.onPrimary.withAlpha(0x3D) : null,
+          highlightColor: isFilled ? palette.onPrimary.withAlpha(0x1A) : null,
           child: Ink(
             height: AppDimens.buttonHeight,
             decoration: BoxDecoration(
