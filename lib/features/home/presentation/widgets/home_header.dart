@@ -5,6 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../home_strings.dart';
 import 'home_palette.dart';
+import '../../../notifications/presentation/notification_center.dart';
+import '../../../notifications/presentation/notification_screen.dart';
 
 /// The dashboard's header: the brand lockup, and the notification control at
 /// the trailing edge.
@@ -22,11 +24,23 @@ import 'home_palette.dart';
 /// [AppDimens.headerActionSize] (44), so the header keeps the reference's
 /// height.
 class HomeHeader extends StatelessWidget {
-  const HomeHeader({super.key, this.onNotifications, this.onLogoTap});
+  const HomeHeader({
+    super.key,
+    this.onNotifications,
+    this.onLogoTap,
+    this.notifications,
+  });
 
-  /// What the bell does. Null draws it as the reference does but inert —
-  /// there is no notifications screen in the app yet.
+  /// What the bell does. Null — every Home's case — opens the Notification
+  /// Center (Issue #246).
   final VoidCallback? onNotifications;
+
+  /// The bell's unread dot, for tests.
+  static const Key unreadBadgeKey = ValueKey('home-header-unread-badge');
+
+  /// The unread state the bell draws. Defaults to
+  /// [NotificationCenter.instance]; injected in tests.
+  final NotificationCenter? notifications;
 
   /// What a tap on the brand lockup does — Adult and Junior Home refresh
   /// their data with it (Issue #221). Null leaves the lockup inert, as it
@@ -60,7 +74,10 @@ class HomeHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            _NotificationButton(onTap: onNotifications),
+            _NotificationButton(
+              center: notifications ?? NotificationCenter.instance,
+              onTap: onNotifications,
+            ),
           ],
         ),
       ),
@@ -111,41 +128,96 @@ class _BrandLockup extends StatelessWidget {
 /// The circular bell: a white circle with a hairline border, the same control
 /// shape as the profile header's edit button, at the frame's
 /// [AppDimens.headerActionSize] (44) with its 20pt glyph.
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({required this.onTap});
+/// The bell: opens the Notification Center, and carries an unread dot while
+/// the server reports unread notifications (Issue #246).
+///
+/// It asks for the count once per session when it first appears
+/// ([NotificationCenter.loadIfNeeded]), so every Home shows it without each
+/// screen loading notifications itself. No frame draws the bell's unread
+/// state; the dot is the Notification frame's own 8pt row dot, in the same
+/// blue (a `PRODUCT DECISION`).
+class _NotificationButton extends StatefulWidget {
+  const _NotificationButton({required this.center, required this.onTap});
 
+  final NotificationCenter center;
+
+  /// Overrides opening the Notification Center.
   final VoidCallback? onTap;
 
   @override
+  State<_NotificationButton> createState() => _NotificationButtonState();
+}
+
+class _NotificationButtonState extends State<_NotificationButton> {
+  @override
+  void initState() {
+    super.initState();
+    widget.center.loadIfNeeded();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      enabled: onTap != null,
-      label: HomeStrings.notifications,
-      child: Material(
-        color: AppColors.surface,
-        shape: const CircleBorder(
-          side: BorderSide(
-            color: HomePalette.border,
-            width: AppDimens.borderWidth,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            width: AppDimens.headerActionSize,
-            height: AppDimens.headerActionSize,
-            child: Center(
-              child: SvgPicture.asset(
-                HomeIcons.notification,
-                width: 20,
-                height: 20,
+    final onTap =
+        widget.onTap ??
+        () => NotificationScreen.open(context, center: widget.center);
+    return ListenableBuilder(
+      listenable: widget.center,
+      builder: (context, _) {
+        final unread = widget.center.unreadCount > 0;
+        return Semantics(
+          button: true,
+          label: unread
+              ? '${HomeStrings.notifications}, ${widget.center.unreadCount}'
+              : HomeStrings.notifications,
+          child: Material(
+            color: AppColors.surface,
+            shape: const CircleBorder(
+              side: BorderSide(
+                color: HomePalette.border,
+                width: AppDimens.borderWidth,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox(
+                width: AppDimens.headerActionSize,
+                height: AppDimens.headerActionSize,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      HomeIcons.notification,
+                      width: 20,
+                      height: 20,
+                    ),
+                    if (unread)
+                      const Positioned(
+                        top: _badgeInset,
+                        right: _badgeInset,
+                        child: SizedBox.square(
+                          key: HomeHeader.unreadBadgeKey,
+                          dimension: _badgeSize,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: HomePalette.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
+
+/// The unread dot: the Notification frame's 8pt dot, inside the bell's
+/// circle by its upper-right edge.
+const double _badgeSize = 8;
+const double _badgeInset = 10;
