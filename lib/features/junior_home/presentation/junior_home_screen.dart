@@ -47,6 +47,7 @@ class JuniorHomeScreen extends StatefulWidget {
     this.repository,
     this.courseLearningRepository,
     this.clock,
+    this.showBottomNav = true,
   });
 
   /// Defaults to the real API. Injected in tests.
@@ -60,6 +61,10 @@ class JuniorHomeScreen extends StatefulWidget {
   /// Read when the map builds, as Adult Home reads its attendance action.
   /// Injected in tests.
   final DateTime Function()? clock;
+
+  /// Whether this screen draws its tab bar itself. False inside
+  /// `JuniorStudentShell`, which owns the one persistent bar (Issue #241).
+  final bool showBottomNav;
 
   @override
   State<JuniorHomeScreen> createState() => _JuniorHomeScreenState();
@@ -93,7 +98,9 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         // White, so the status-bar inset above the header reads as part of
         // the header rather than as the top of the blue map.
         backgroundColor: AppColors.surface,
-        bottomNavigationBar: const JuniorBottomNav(current: StudentTab.home),
+        bottomNavigationBar: widget.showBottomNav
+            ? const JuniorBottomNav(current: StudentTab.home)
+            : null,
         body: SafeArea(
           bottom: false,
           child: Column(

@@ -8,9 +8,9 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dar
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_request_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_session_sheet.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_tabs.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_week_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -316,13 +316,20 @@ void main() {
         MaterialApp(
           theme: AppTheme.light,
           initialRoute: HomeRoutes.teacher,
+          // The app's own: the tabs inside one persistent shell (#241).
           routes: {
-            HomeRoutes.teacher: (_) => TeacherHomeScreen(
-              repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
-              clock: tuesday,
+            HomeRoutes.teacher: (_) => TeacherShell(
+              home: TeacherHomeScreen(
+                repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
+                clock: tuesday,
+                showBottomNav: false,
+              ),
+              schedule: TeacherScheduleScreen(
+                repository: schedule,
+                clock: tuesday,
+                showBottomNav: false,
+              ),
             ),
-            TeacherTabRoutes.schedule: (_) =>
-                TeacherScheduleScreen(repository: schedule, clock: tuesday),
           },
         ),
       );

@@ -39,11 +39,20 @@ const String _profileSelectedAsset = 'assets/icons/nav_profile_selected.svg';
 ///
 /// Filled exports go through [AppBottomNavItem.selectedAsset], which the bar
 /// scales and tints exactly as it does on the adult bar.
+///
+/// Inside `JuniorStudentShell` the bar is drawn once, by the shell, with
+/// [onSelect] switching the shell's tab in place (Issue #241); a screen drawn
+/// on its own leaves [onSelect] null and switches routes through
+/// [openStudentTab].
 class JuniorBottomNav extends StatelessWidget {
-  const JuniorBottomNav({required this.current, super.key});
+  const JuniorBottomNav({required this.current, super.key, this.onSelect});
 
   /// The tab whose screen this is. Drawn selected, and inert — already here.
   final StudentTab current;
+
+  /// Switches to another tab without navigating. Null routes the switch
+  /// through [openStudentTab].
+  final ValueChanged<StudentTab>? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +70,8 @@ class JuniorBottomNav extends StatelessWidget {
         label: label,
         onTap: selected
             ? null
+            : onSelect != null
+            ? () => onSelect!(tab)
             : () => openStudentTab(context, StudentTrack.junior, tab),
       );
     }

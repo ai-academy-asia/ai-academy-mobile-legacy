@@ -31,10 +31,18 @@ import 'widgets/teacher_tabs.dart';
 /// Spinner, empty line, error + retry and pull-to-refresh follow Teacher
 /// Home; the reference draws none of them.
 class TeacherGradebookScreen extends StatefulWidget {
-  const TeacherGradebookScreen({super.key, this.repository});
+  const TeacherGradebookScreen({
+    super.key,
+    this.repository,
+    this.showBottomNav = true,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final TeacherGradebookRepository? repository;
+
+  /// Whether this screen draws its tab bar itself. False inside
+  /// `TeacherShell`, which owns the one persistent bar (Issue #241).
+  final bool showBottomNav;
 
   @override
   State<TeacherGradebookScreen> createState() => _TeacherGradebookScreenState();
@@ -77,7 +85,9 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        bottomNavigationBar: const TeacherBottomNav(current: TeacherTab.grades),
+        bottomNavigationBar: widget.showBottomNav
+            ? const TeacherBottomNav(current: TeacherTab.grades)
+            : null,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

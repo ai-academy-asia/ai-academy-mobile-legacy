@@ -8,13 +8,9 @@ import 'features/auth/presentation/student_tabs.dart';
 import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
 import 'features/home/presentation/adult_student_shell.dart';
-import 'features/junior_home/presentation/junior_home_screen.dart';
-import 'features/junior_home/presentation/junior_profile_screen.dart';
-import 'features/junior_home/presentation/junior_progress_screen.dart';
+import 'features/junior_home/presentation/junior_student_shell.dart';
 import 'features/splash/presentation/splash_screen.dart';
-import 'features/teacher/presentation/teacher_gradebook_screen.dart';
-import 'features/teacher/presentation/teacher_home_screen.dart';
-import 'features/teacher/presentation/teacher_schedule_screen.dart';
+import 'features/teacher/presentation/teacher_shell.dart';
 import 'features/teacher/presentation/widgets/teacher_tabs.dart';
 
 /// The application root.
@@ -55,20 +51,25 @@ class AiAcademyApp extends StatelessWidget {
         // The adult tabs are one persistent shell (Issue #237): each of its
         // routes opens it on that tab.
         HomeRoutes.adult: (_) => const AdultStudentShell(),
-        HomeRoutes.junior: (_) => const JuniorHomeScreen(),
-        HomeRoutes.teacher: (_) => const TeacherHomeScreen(),
-        // The teacher bar's Хуваарь — see `openTeacherTab` (Issue #231).
-        TeacherTabRoutes.schedule: (_) => const TeacherScheduleScreen(),
-        // Дүнгийн хуудас (Issue #233).
-        TeacherTabRoutes.gradebook: (_) => const TeacherGradebookScreen(),
-        // Each Home's other two tabs — the adult pair, as the shell, and the
-        // junior pair; see `openStudentTab`.
+        // The junior and teacher tabs are persistent shells too (Issue #241):
+        // each of their routes opens the shell on that tab.
+        HomeRoutes.junior: (_) => const JuniorStudentShell(),
+        HomeRoutes.teacher: (_) => const TeacherShell(),
+        // The teacher bar's Хуваарь (Issue #231) and Дүнгийн хуудас (#233).
+        TeacherTabRoutes.schedule: (_) =>
+            const TeacherShell(initialTab: TeacherTab.schedule),
+        TeacherTabRoutes.gradebook: (_) =>
+            const TeacherShell(initialTab: TeacherTab.grades),
+        // Each Home's other two tabs, the adult and the junior pair — each
+        // as its track's shell.
         StudentTabRoutes.adultProgress: (_) =>
             const AdultStudentShell(initialTab: StudentTab.progress),
         StudentTabRoutes.adultProfile: (_) =>
             const AdultStudentShell(initialTab: StudentTab.profile),
-        StudentTabRoutes.juniorProgress: (_) => const JuniorProgressScreen(),
-        StudentTabRoutes.juniorProfile: (_) => const JuniorProfileScreen(),
+        StudentTabRoutes.juniorProgress: (_) =>
+            const JuniorStudentShell(initialTab: StudentTab.progress),
+        StudentTabRoutes.juniorProfile: (_) =>
+            const JuniorStudentShell(initialTab: StudentTab.profile),
         // The draft course catalog. No longer reached from Home's Хичээл tab
         // (or anywhere else); still registered, and still pushes `/cohorts`
         // with a course id, until it is deleted.

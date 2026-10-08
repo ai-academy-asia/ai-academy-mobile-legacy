@@ -27,16 +27,32 @@ const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 /// The selected Хуваарь draws the outline calendar in the bar's blue, and the
 /// selected Дүнгийн хуудас the outline "A+" sheet: the references' filled
 /// glyphs have not been exported.
+///
+/// Inside `TeacherShell` the bar is drawn once, by the shell, with [onSelect]
+/// switching the shell's tab in place (Issue #241); a screen drawn on its own
+/// leaves [onSelect] null and switches routes through [openTeacherTab].
+/// Профайл stays inert either way.
 class TeacherBottomNav extends StatelessWidget {
-  const TeacherBottomNav({this.current = TeacherTab.home, super.key});
+  const TeacherBottomNav({
+    this.current = TeacherTab.home,
+    super.key,
+    this.onSelect,
+  });
 
   /// The tab whose screen this is. Drawn selected, and inert.
   final TeacherTab current;
 
+  /// Switches to another tab without navigating. Null routes the switch
+  /// through [openTeacherTab].
+  final ValueChanged<TeacherTab>? onSelect;
+
   @override
   Widget build(BuildContext context) {
-    VoidCallback? open(TeacherTab tab) =>
-        tab == current ? null : () => openTeacherTab(context, tab);
+    VoidCallback? open(TeacherTab tab) => tab == current
+        ? null
+        : onSelect != null
+        ? () => onSelect!(tab)
+        : () => openTeacherTab(context, tab);
 
     return AppBottomNav(
       currentIndex: current.index,

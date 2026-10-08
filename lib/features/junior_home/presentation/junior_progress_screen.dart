@@ -81,10 +81,18 @@ const double _calendarInset = 6;
 /// frame draws them and do nothing, for the reason the adult dashboard's own
 /// unwired actions document.
 class JuniorProgressScreen extends StatefulWidget {
-  const JuniorProgressScreen({super.key, this.repository});
+  const JuniorProgressScreen({
+    super.key,
+    this.repository,
+    this.showBottomNav = true,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final JuniorProgressRepository? repository;
+
+  /// Whether this screen draws its tab bar itself. False inside
+  /// `JuniorStudentShell`, which owns the one persistent bar (Issue #241).
+  final bool showBottomNav;
 
   @override
   State<JuniorProgressScreen> createState() => _JuniorProgressScreenState();
@@ -117,9 +125,9 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
       child: Scaffold(
         // The page grey under the header; the header paints its own white.
         backgroundColor: AppColors.surfaceSubtle,
-        bottomNavigationBar: const JuniorBottomNav(
-          current: StudentTab.progress,
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? const JuniorBottomNav(current: StudentTab.progress)
+            : null,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

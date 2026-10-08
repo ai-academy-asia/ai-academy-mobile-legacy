@@ -2,7 +2,9 @@ import 'package:aia_mobile/app.dart';
 import 'package:aia_mobile/features/auth/presentation/student_tabs.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/home/presentation/adult_student_shell.dart';
-import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
+import 'package:aia_mobile/features/junior_home/presentation/junior_student_shell.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
+import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_tabs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -69,8 +71,45 @@ void main() {
     expect(adultHome, isA<AdultStudentShell>());
     expect((adultHome as AdultStudentShell).initialTab, StudentTab.home);
     expect(juniorHome, isNotNull);
-    expect(juniorHome!(context), isA<JuniorHomeScreen>());
+    final junior = juniorHome!(context);
+    expect(junior, isA<JuniorStudentShell>());
+    expect((junior as JuniorStudentShell).initialTab, StudentTab.home);
+    final teacher = app.routes?['/teacher-home']?.call(context);
+    expect(teacher, isA<TeacherShell>());
+    expect((teacher as TeacherShell).initialTab, TeacherTab.home);
     expect(app.routes, isNot(contains('/dev/junior-home')));
+  });
+
+  testWidgets('registers the junior and teacher tabs as their shells, on '
+      'their own tab (Issue #241)', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    tester.view.physicalSize = const Size(393, 852) * 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const AiAcademyApp());
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    final context = tester.element(find.byType(MaterialApp));
+
+    // Built, not pumped: the real screens would reach for the real API.
+    for (final (route, tab) in [
+      ('/junior-progress', StudentTab.progress),
+      ('/junior-profile', StudentTab.profile),
+    ]) {
+      final screen = app.routes?[route]?.call(context);
+      expect(screen, isA<JuniorStudentShell>(), reason: route);
+      expect((screen as JuniorStudentShell).initialTab, tab, reason: route);
+    }
+    for (final (route, tab) in [
+      ('/teacher-schedule', TeacherTab.schedule),
+      ('/teacher-gradebook', TeacherTab.grades),
+    ]) {
+      final screen = app.routes?[route]?.call(context);
+      expect(screen, isA<TeacherShell>(), reason: route);
+      expect((screen as TeacherShell).initialTab, tab, reason: route);
+    }
+    // No teacher Профайл route: the tab stays inert (Issue #241).
+    expect(app.routes, isNot(contains('/teacher-profile')));
   });
 
   testWidgets('registers no Exercise Detail preview route', (tester) async {

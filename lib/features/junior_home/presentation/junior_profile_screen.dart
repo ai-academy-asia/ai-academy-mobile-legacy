@@ -89,6 +89,7 @@ class JuniorProfileScreen extends StatefulWidget {
     this.repository,
     this.authRepository,
     this.sessionStore,
+    this.showBottomNav = true,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -98,6 +99,10 @@ class JuniorProfileScreen extends StatefulWidget {
   /// default to the app's own (see [signOutToLogin]). Injected in tests.
   final AuthRepository? authRepository;
   final AuthSessionStore? sessionStore;
+
+  /// Whether this screen draws its tab bar itself. False inside
+  /// `JuniorStudentShell`, which owns the one persistent bar (Issue #241).
+  final bool showBottomNav;
 
   @override
   State<JuniorProfileScreen> createState() => _JuniorProfileScreenState();
@@ -149,7 +154,9 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        bottomNavigationBar: const JuniorBottomNav(current: StudentTab.profile),
+        bottomNavigationBar: widget.showBottomNav
+            ? const JuniorBottomNav(current: StudentTab.profile)
+            : null,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

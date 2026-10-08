@@ -30,13 +30,22 @@ import 'widgets/teacher_class_card.dart';
 /// drives. The reference draws none of the non-success states, so they
 /// follow the student Home's.
 class TeacherHomeScreen extends StatefulWidget {
-  const TeacherHomeScreen({super.key, this.repository, this.clock});
+  const TeacherHomeScreen({
+    super.key,
+    this.repository,
+    this.clock,
+    this.showBottomNav = true,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final TeacherHomeRepository? repository;
 
   /// Decides which day is "today". Injected in tests.
   final DateTime Function()? clock;
+
+  /// Whether this screen draws its tab bar itself. False inside
+  /// `TeacherShell`, which owns the one persistent bar (Issue #241).
+  final bool showBottomNav;
 
   @override
   State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
@@ -83,7 +92,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        bottomNavigationBar: const TeacherBottomNav(),
+        bottomNavigationBar: widget.showBottomNav
+            ? const TeacherBottomNav()
+            : null,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
