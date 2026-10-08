@@ -127,6 +127,102 @@ void main() {
     },
   );
 
+  group('one course failing (PR #245 review)', () {
+    List<Cohort> threeCourses() => [
+      cohort(1, 'course-a', name: 'Cohort A'),
+      cohort(2, 'course-b', name: 'Cohort B'),
+      cohort(3, 'course-c', name: 'Cohort C'),
+    ];
+    const enrolledInAll = [
+      EnrolledCohortSummary(cohortId: 1),
+      EnrolledCohortSummary(cohortId: 2),
+      EnrolledCohortSummary(cohortId: 3),
+    ];
+
+    test('a 404 course is left out, and the others still draw', () async {
+      learning
+        ..certificates = {'course-a': issued}
+        ..certificateFailures = {
+          'course-b': const CourseLearningFailure(
+            CourseLearningFailureKind.notFound,
+          ),
+        };
+
+      final entries = await repository(
+        enrolled: enrolledInAll,
+        cohorts: threeCourses(),
+      ).getCertificates();
+
+      expect([for (final e in entries) e.cohortName], ['Cohort A', 'Cohort C']);
+      expect(entries.first.certificate.isIssued, isTrue);
+      expect(entries.last.certificate.isIssued, isFalse);
+    });
+
+    test('a 403 (not enrolled) course is left out too', () async {
+      learning.certificateFailures = {
+        'course-c': const CourseLearningFailure(
+          CourseLearningFailureKind.notEnrolled,
+        ),
+      };
+
+      final entries = await repository(
+        enrolled: enrolledInAll,
+        cohorts: threeCourses(),
+      ).getCertificates();
+
+      expect([for (final e in entries) e.cohortName], ['Cohort A', 'Cohort B']);
+    });
+
+    test('every course 403/404 leaves an empty list, not an error', () async {
+      learning.certificateFailures = {
+        'course-a': const CourseLearningFailure(
+          CourseLearningFailureKind.notFound,
+        ),
+      };
+
+      final entries = await repository(
+        cohorts: [cohort(1, 'course-a')],
+      ).getCertificates();
+
+      expect(entries, isEmpty);
+    });
+
+    for (final kind in [
+      CourseLearningFailureKind.network,
+      CourseLearningFailureKind.server,
+      CourseLearningFailureKind.sessionExpired,
+      CourseLearningFailureKind.unexpected,
+    ]) {
+      test('one course\'s ${kind.name} failure still fails the list', () async {
+        learning.certificateFailures = {
+          'course-b': CourseLearningFailure(kind),
+        };
+
+        await expectLater(
+          repository(
+            enrolled: enrolledInAll,
+            cohorts: threeCourses(),
+          ).getCertificates(),
+          throwsA(
+            isA<CourseLearningFailure>().having((f) => f.kind, 'kind', kind),
+          ),
+        );
+      });
+    }
+
+    test('an unexpected error is not swallowed', () async {
+      learning.certificateFailures = {'course-b': StateError('a bug')};
+
+      await expectLater(
+        repository(
+          enrolled: enrolledInAll,
+          cohorts: threeCourses(),
+        ).getCertificates(),
+        throwsStateError,
+      );
+    });
+  });
+
   test('a failed certificate request fails the list — a card is never drawn '
       'without its status', () async {
     learning.certificateFailure = const CourseLearningFailure(

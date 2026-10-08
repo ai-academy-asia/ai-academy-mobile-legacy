@@ -294,6 +294,10 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   /// Thrown by [getCourseCertificate] instead of returning, when set.
   CourseLearningFailure? certificateFailure;
 
+  /// Thrown by [getCourseCertificate] for one course, by slug — any object,
+  /// so a test can throw something that is not a [CourseLearningFailure].
+  Map<String, Object> certificateFailures = {};
+
   /// Every slug [getCourseCertificate] was called with, in order.
   final List<String> certificateCalls = [];
 
@@ -301,6 +305,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   Future<CourseCertificate> getCourseCertificate(String courseSlug) async {
     certificateCalls.add(courseSlug);
     if (certificateFailure case final failure?) throw failure;
+    if (certificateFailures[courseSlug] case final failure?) throw failure;
     return certificates[courseSlug] ??
         const CourseCertificate(status: CertificateStatus.notEligible);
   }

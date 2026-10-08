@@ -4,6 +4,7 @@ import '../../cohorts/domain/cohort.dart';
 import '../../cohorts/domain/cohort_course_resolver.dart';
 import '../../cohorts/domain/cohort_repository.dart';
 import '../../course_learning/data/http_course_learning_repository.dart';
+import '../../course_learning/domain/course_certificate.dart';
 import '../../course_learning/domain/course_learning_failure.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../courses/data/http_course_repository.dart';
@@ -21,7 +22,12 @@ import '../domain/certificate_list_repository.dart';
 ///
 ///   * `GET /me/cohorts` — which cohorts the student is enrolled in, and the
 ///     `progress_pct` an entry carries when it carries one;
-///   * `GET /cohorts` — each cohort's name and course;
+///   * `GET /cohorts` — each cohort's name and course. A certificate is
+///     usually earned once a cohort has ended, so this relies on the public
+///     catalog still listing ended cohorts: verified live on 2026-10-08
+///     (8 cohorts listed, 3 past their `end_date`, statuses `closed`/`open`).
+///     Whether an *archived* cohort drops out is `UNKNOWN` — no such status
+///     was seen;
 ///   * `GET /courses` — to resolve the course's live slug
 ///     ([resolveCohortCourse]); best-effort, falling back to the cohort's own
 ///     embedded slug, as Home does;
@@ -34,10 +40,16 @@ import '../domain/certificate_list_repository.dart';
 /// One card per enrolled cohort, in `/cohorts` order. **Eligibility is never
 /// computed here**: the card's state is the server's `status`.
 ///
-/// A certificate request that fails fails the whole list: a card drawn
-/// without its status could hide an issued certificate behind a "Continue
-/// learning", so the screen offers a retry instead. Every failure is reported
-/// as a [CourseLearningFailure], whose copy the screen already has.
+/// **A course that answers 403 or 404 is left out**, and the other cards
+/// still draw (PR #245 review): `not_enrolled` — an enrolment that no longer
+/// holds — or `course_not_found` — a stale or removed course — says this
+/// course has no certificate for this student, and there is no designed
+/// "unavailable" card to show instead. Any other certificate failure — the
+/// session, the network, the server, anything unexpected — still fails the
+/// whole list: a card drawn without its status could hide an issued
+/// certificate behind a "Continue learning", so the screen offers a retry
+/// instead. Every failure is reported as a [CourseLearningFailure], whose
+/// copy the screen already has.
 class EnrolledCertificateListRepository implements CertificateListRepository {
   EnrolledCertificateListRepository({
     EnrolledCohortsRepository? enrolledCohorts,
@@ -87,21 +99,30 @@ class EnrolledCertificateListRepository implements CertificateListRepository {
     if (mine.isEmpty) return const [];
 
     final catalog = await _courseCatalog();
-    return Future.wait([
+    final entries = await Future.wait([
       for (final cohort in mine)
         _entryFor(cohort, catalog, progressByCohortId[cohort.id]),
     ]);
+    return [for (final entry in entries) ?entry];
   }
 
-  Future<CertificateEntry> _entryFor(
+  /// The card for [cohort], or null when its course answers 403/404 — see
+  /// the class doc.
+  Future<CertificateEntry?> _entryFor(
     Cohort cohort,
     List<Course> catalog,
     double? progressPct,
   ) async {
     final courseSlug =
         resolveCohortCourse(catalog, cohort.course)?.slug ?? cohort.course.slug;
-    // Throws a CourseLearningFailure, failing the list — see the class doc.
-    final certificate = await _courseLearning.getCourseCertificate(courseSlug);
+    final CourseCertificate certificate;
+    try {
+      certificate = await _courseLearning.getCourseCertificate(courseSlug);
+    } on CourseLearningFailure catch (failure) {
+      if (_courseUnavailable.contains(failure.kind)) return null;
+      // Anything else fails the list — see the class doc.
+      rethrow;
+    }
     final progressPercent = certificate.isIssued
         ? null
         : await _learningPercent(courseSlug) ??
@@ -137,6 +158,13 @@ class EnrolledCertificateListRepository implements CertificateListRepository {
     }
   }
 }
+
+/// The certificate answers that leave one course out rather than failing the
+/// list: §2's `403 not_enrolled` and `404 course_not_found`.
+const Set<CourseLearningFailureKind> _courseUnavailable = {
+  CourseLearningFailureKind.notEnrolled,
+  CourseLearningFailureKind.notFound,
+};
 
 CourseLearningFailureKind _kindForEnrollment(EnrollmentFailureKind kind) =>
     switch (kind) {
