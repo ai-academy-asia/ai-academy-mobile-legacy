@@ -125,7 +125,7 @@ Reach for a token first, a documented screen-local constant second, and a bare l
 
 Two sources, in priority order:
 
-1. **Phosphor font** (`AppIcons`, `assets/fonts/Phosphor.ttf`) — the design's own set; Figma layers use Phosphor names. Currently declared: `caretRight`, `caretLeft`, `arrowLeft`, `check`, `eye`, `eyeClosed`, `checkCircle`, `xCircle`, `house`, `bookOpenText`, `user`, `money`, `calendarCheck`, `qrCode`, `phone`, `envelope`.
+1. **Phosphor font** (`AppIcons`, `assets/fonts/Phosphor.ttf`) — the design's own set; Figma layers use Phosphor names. Currently declared: `caretRight`, `caretLeft`, `arrowLeft`, `check`, `eye`, `eyeClosed`, `checkCircle`, `xCircle`, `house`, `bookOpenText`, `user`, `money`, `calendarCheck`, `qrCode`, `phone`, `envelope`, `chatCircleDots`.
    **Codepoints must be confirmed against the bundled font's cmap, never guessed.** Existing entries document how they were confirmed.
 2. **Material `Icons.*`** — the documented fallback when no confirmed Phosphor codepoint exists. **Always leave a comment saying why**, matching the precedent set in `exercise_info_section.dart`.
 
