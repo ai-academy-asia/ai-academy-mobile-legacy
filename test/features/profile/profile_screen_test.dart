@@ -13,6 +13,7 @@ import 'package:aia_mobile/features/course_learning/presentation/widgets/course_
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
+import 'package:aia_mobile/features/profile/presentation/widgets/profile_parts.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -53,6 +54,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(393, 852),
     FakeCurrentUserRepository? repository,
+    ThemeData? theme,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -60,7 +62,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         home: ProfileScreen(
           repository:
               repository ??
@@ -380,30 +382,73 @@ void main() {
   });
 
   group('toggles', () {
-    testWidgets(
-      'light mode and notification switches start off and flip on tap',
-      (tester) async {
+    // Each switch carries its row's label; `.last` is the switch, not the
+    // row's own text.
+    bool toggled(WidgetTester tester, String label) =>
+        tester
+            .getSemantics(find.bySemanticsLabel(label).last)
+            .flagsCollection
+            .isToggled ==
+        Tristate.isTrue;
+
+    testWidgets('the notification switch starts off and flips on tap', (
+      tester,
+    ) async {
+      await pumpProfile(tester);
+
+      expect(toggled(tester, ProfileStrings.notification), isFalse);
+      await tester.tap(find.bySemanticsLabel(ProfileStrings.notification).last);
+      await tester.pumpAndSettle();
+      expect(toggled(tester, ProfileStrings.notification), isTrue);
+    });
+
+    group('light mode (Issue #252)', () {
+      testWidgets('reads on in the light app — the theme it is really in', (
+        tester,
+      ) async {
         await pumpProfile(tester);
 
-        // Each switch carries its row's label; `.last` is the switch, not the
-        // row's own text.
-        bool toggled(String label) =>
-            tester
-                .getSemantics(find.bySemanticsLabel(label).last)
-                .flagsCollection
-                .isToggled ==
-            Tristate.isTrue;
+        expect(toggled(tester, ProfileStrings.lightMode), isTrue);
+      });
 
-        expect(toggled(ProfileStrings.lightMode), isFalse);
-        expect(toggled(ProfileStrings.notification), isFalse);
+      testWidgets('ignores taps, and says it is disabled', (tester) async {
+        await pumpProfile(tester);
 
         await tester.tap(find.bySemanticsLabel(ProfileStrings.lightMode).last);
         await tester.pumpAndSettle();
 
-        expect(toggled(ProfileStrings.lightMode), isTrue);
-        expect(toggled(ProfileStrings.notification), isFalse);
-      },
-    );
+        expect(toggled(tester, ProfileStrings.lightMode), isTrue);
+        expect(
+          tester
+              .getSemantics(
+                find.bySemanticsLabel(ProfileStrings.lightMode).last,
+              )
+              .flagsCollection
+              .isEnabled,
+          Tristate.isFalse,
+        );
+        final toggle = tester.widget<ProfileSwitch>(
+          find.byWidgetPredicate(
+            (w) =>
+                w is ProfileSwitch &&
+                w.semanticLabel == ProfileStrings.lightMode,
+          ),
+        );
+        expect(toggle.onChanged, isNull);
+      });
+
+      testWidgets('follows the app theme, keeping no copy of its own', (
+        tester,
+      ) async {
+        // A dark *brightness* only — no dark colours exist or are invented.
+        await pumpProfile(
+          tester,
+          theme: AppTheme.light.copyWith(brightness: Brightness.dark),
+        );
+
+        expect(toggled(tester, ProfileStrings.lightMode), isFalse);
+      });
+    });
   });
 
   group('change password', () {

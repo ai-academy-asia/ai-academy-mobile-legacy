@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../home/presentation/home_strings.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../domain/app_notification.dart';
 import 'notification_header.dart';
 import 'notification_strings.dart';
@@ -17,10 +16,10 @@ import 'notification_strings.dart';
 ///
 /// No Figma frame draws it: by product decision it is the Notification
 /// Center's own header and language, with nothing new — top to bottom, a
-/// centred metadata block (the row's bell in [HomePalette.accent] on a 48pt
-/// [HomePalette.liveFill] disc, the title, the sent time), a
-/// [HomePalette.headerRule] rule, then the body, left-aligned for reading on
-/// an [AppColors.background] ground — the app's own page grey, so a short
+/// centred metadata block (the row's bell in [AppPalette.accent] on a 48pt
+/// [AppPalette.accentSubtle] disc, the title, the sent time), an
+/// [AppPalette.divider] rule, then the body, left-aligned for reading on
+/// an [AppPalette.pageBackground] ground — the app's own page grey, so a short
 /// message reads as a section rather than a line floating on white. The body
 /// never ends on a short word alone: see [bindShortLastWords].
 ///
@@ -45,13 +44,14 @@ class NotificationDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
+        systemNavigationBarColor: palette.surface,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: palette.surface,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -74,16 +74,16 @@ class NotificationDetailScreen extends StatelessWidget {
                           width: _discSize,
                           height: _discSize,
                           alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: HomePalette.liveFill,
+                          decoration: BoxDecoration(
+                            color: palette.accentSubtle,
                             shape: BoxShape.circle,
                           ),
                           child: SvgPicture.asset(
                             HomeIcons.notification,
                             width: _iconSize,
                             height: _iconSize,
-                            colorFilter: const ColorFilter.mode(
-                              HomePalette.accent,
+                            colorFilter: ColorFilter.mode(
+                              palette.accent,
                               BlendMode.srcIn,
                             ),
                             excludeFromSemantics: true,
@@ -95,25 +95,29 @@ class NotificationDetailScreen extends StatelessWidget {
                         header: true,
                         child: Text(
                           notification.title,
-                          style: _titleStyle,
+                          style: _titleStyle.copyWith(
+                            color: palette.textPrimary,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       const SizedBox(height: _titleToDate),
                       Text(
                         NotificationStrings.sentAt(notification.createdAt),
-                        style: _dateStyle,
+                        style: _dateStyle.copyWith(
+                          color: palette.textSecondary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: _metaToRule),
-                      const SizedBox(
+                      SizedBox(
                         height: AppDimens.borderWidth,
-                        child: ColoredBox(color: HomePalette.headerRule),
+                        child: ColoredBox(color: palette.divider),
                       ),
                       const SizedBox(height: _ruleToBody),
                       DecoratedBox(
                         decoration: BoxDecoration(
-                          color: AppColors.background,
+                          color: palette.pageBackground,
                           borderRadius: BorderRadius.circular(
                             AppDimens.cardRadius,
                           ),
@@ -122,7 +126,9 @@ class NotificationDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(AppDimens.cardPadding),
                           child: Text(
                             bindShortLastWords(notification.body),
-                            style: _bodyStyle,
+                            style: _bodyStyle.copyWith(
+                              color: palette.textPrimary,
+                            ),
                           ),
                         ),
                       ),
@@ -165,7 +171,6 @@ const TextStyle _titleStyle = TextStyle(
   fontSize: 18,
   height: 24 / 18,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -175,7 +180,6 @@ const TextStyle _dateStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -186,7 +190,6 @@ const TextStyle _bodyStyle = TextStyle(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w400,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 

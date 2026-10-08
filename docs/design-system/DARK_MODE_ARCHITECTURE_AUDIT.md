@@ -3,6 +3,8 @@
 > Issue #250. An audit and plan only: **nothing here is implemented**, no colour has been refactored and no golden changed. Counts were taken from `main` at `5affb09` (after PR #249) with `grep` over `lib/`; re-run them before each phase, because they drift.
 >
 > Status labels follow `AGENTS.md` §3: `UNKNOWN`, `BACKEND GAP`, `PRODUCT DECISION`.
+>
+> **Revised in Issue #252** with a product requirement: Dark Mode covers **Adult, Junior and Teacher** through **one global, role-independent theme state** (§14.1). The Adult Profile's "Light mode" switch is not the source of truth; it becomes one of three UI entry points. Phase 0 + Phase 1 are implemented in Issue #252.
 
 ---
 
@@ -30,6 +32,7 @@
   - Adult Home and Payments: 88 palette uses, 12 payment goldens, PNG bank logos;
   - Junior Home: a daytime illustrated world;
   - 17 monochrome SVG icons hard-coded `stroke="black"`, painted without a `colorFilter`.
+- **All three experiences, one theme.** Adult, Junior and Teacher are all in scope, and none is optional. They share one app-level theme state; each role's Profile is only a way to change it (§14.1).
 - **Recommended first implementation task:** Phase 1 (§15). Add an `AppPalette` `ThemeExtension` (light only, identical values) plus a `context.palette` accessor, and pilot it on **Notifications**: small, recent, golden-covered and already `colorFilter`-driven.
 
 ---
@@ -240,19 +243,31 @@ The **Kind** column groups each palette's values:
 | Fact | Evidence |
 |---|---|
 | Where | **Adult only.** `lib/features/profile/presentation/profile_screen.dart`: `bool _lightMode = false;` (line ~112), a `ProfileRow` with `ProfileIcons.lightMode` (`assets/icons/light_mode.svg`), label `ProfileStrings.lightMode = 'Light mode'`, a `ProfileSwitch` → `setState(() => _lightMode = value)` |
-| Behaviour | Flips local state; **nothing reads it**; not persisted. The value lives in the `State`, so it survives tab switches in the persistent `AdultStudentShell` and is lost on sign-out or app restart. The class doc says so: *"light-mode and notification controls hold local state that nothing else reads — there is no … dark palette"* |
+| Behaviour (before Issue #252) | Flipped local state; **nothing read it**; not persisted. The value lives in the `State`, so it survives tab switches in the persistent `AdultStudentShell` and is lost on sign-out or app restart. The class doc says so: *"light-mode and notification controls hold local state that nothing else reads — there is no … dark palette"* |
 | Junior | No row: `junior_profile_screen.dart` doc says *"no light-mode row"*; `junior_profile_screen_test.dart:79` asserts its absence |
 | Teacher | No row: `teacher_profile_screen.dart` doc says *"no Light mode row"*; `teacher_profile_screen_test.dart:160` asserts its absence |
-| Tests | `profile_screen_test.dart:384`: *"light mode and notification switches start off and flip on tap"* |
+| Tests (before Issue #252) | `profile_screen_test.dart`: *"light mode and notification switches start off and flip on tap"* |
 | Docs | `PROJECT_CONTEXT.md` ("Profile rows … language and theme controls have no destination yet") |
 | **Wording conflict** | The app *is* light, yet the switch labelled **"Light mode" starts OFF**. Read literally, "off" means dark mode is on. The current UI contradicts itself |
 
-**Product decisions needed** (§13):
-1. What the control means:
-   - "Light mode" on/off;
-   - "Dark mode" on/off;
-   - a System / Light / Dark choice, which a switch can't express.
-2. Whether Junior and Teacher get the control. Their frames omit it.
+**Interim treatment, until approved dark values exist (Issue #252, after a device test).** A switch that flips but changes nothing reads as broken, and "Light mode" *off* in a light app is false. So the Adult row now:
+- keeps its place, since Figma draws it;
+- **shows the app's real theme:** `Theme.of(context).brightness == Brightness.light`, which is *on* today. That value comes from the global `AppThemeController` through `MaterialApp`, so the private `_lightMode` copy is gone;
+- is **inert:** `ProfileSwitch(onChanged: null)` ignores taps and is announced as disabled. This is the treatment Teacher's Notification and MN/EN controls already use for settings with nothing behind them.
+
+The only visible change is that switch: `profile.png`'s diff is a 46 × 25 px box, off → on. Hiding the row was rejected because the frame draws it and Phase 10 would only bring it back. A disabled switch left *off* was rejected because it keeps the false statement. Junior and Teacher still have no row until Phase 10.
+
+**Product requirement (Issue #252): every role gets a control, all writing one global state.**
+- The Adult switch is **not** the source of truth. Its local `_lightMode` field is already gone (interim above); in Phase 10 the row becomes interactive and writes `AppThemeController.instance`.
+- **Junior Profile gets a new theme row** in its existing "App settings" section (`junior_profile_screen.dart`, after `_Caption(JuniorProfileStrings.appSettingsSection)`), built with Junior's own `_Row`.
+- **Teacher Profile gets a new theme row** in its existing "App settings" `ProfileGroup` (`teacher_profile_screen.dart`, after `ProfileCaption(ProfileStrings.appSettingsSection)`), beside Language and Change password.
+- All three rows show the same value, because they read the same state. Changing it in one is visible in the others with no extra code.
+- Neither the Junior nor the Teacher Figma frame draws this row, so its exact look in those two frames is a `PRODUCT DECISION`. Until design draws it, each row reuses that screen's own existing row and switch parts.
+
+**Product decision still needed** (§13): what the control means:
+- "Light mode" on/off (today's label, which contradicts its default);
+- "Dark mode" on/off;
+- a System / Light / Dark choice, which a switch can't express.
 
 ---
 
@@ -268,7 +283,18 @@ The **Kind** column groups each palette's values:
 | B. `shared_preferences` | The idiomatic store for settings | A new dependency, which needs a task that asks for it (`AGENTS.md` §5) |
 | C. No persistence: follow the system (`ThemeMode.system`) | Zero storage; matches platform expectations | Only if the product chooses "follow system" with no in-app override |
 
-**Recommendation:** decide the product question first. If an in-app override exists, use option A behind a small `ThemePreferenceStore` interface, so switching to B later touches one class. The preference is **device-side**: there is no backend requirement, and none should be invented.
+**Decision (Issue #252): option A.** Reuse `flutter_secure_storage`, with no `shared_preferences`. Nothing about a theme preference outweighs the cost of a new dependency, and the session already proves the restore-before-`runApp` path. Option A sits behind a small `ThemePreferenceStore` interface, so moving to B later touches one class. The preference is **device-side**: there is no backend requirement, and none should be invented.
+
+| Question | Answer |
+|---|---|
+| Where it lives | `lib/core/theme/theme_preference_store.dart` (interface) + `SecureThemePreferenceStore` over `FlutterSecureStorage`, key `app.theme_mode`, values `system` / `light` / `dark` |
+| Who owns it | `AppThemeController` (§14.1), the only reader or writer. No screen touches storage |
+| Startup | `main()` → `await AppThemeController.instance.restore(store)` next to the session restore, **before** `runApp`, so the first frame is already in the right theme (no light flash). A missing or unreadable value falls back to the default (§13.1) |
+| Writing | `AppThemeController.setMode(mode)` updates memory and notifies first (instant UI), then writes. A failed write keeps the in-memory choice for this run |
+| Sign-out | **Not** cleared. It is a device preference, like the OS setting, and `signOutToLogin` deletes only the session key. Whether a theme should follow the *account* instead is a `PRODUCT DECISION`; account-level would need a backend field (`BACKEND GAP`) |
+| Roles | Adult, Junior and Teacher rows all call the same `setMode` and read the same `mode`. There is no per-role key |
+
+**Not in Phase 0 + 1.** Phase 1 ships the controller in memory only (light); persistence lands in Phase 10.
 
 ---
 
@@ -347,12 +373,12 @@ See §13.
 
 ## 13. Product decisions required (`PRODUCT DECISION`)
 
-1. **Default:** follow the system setting, or light until the user opts in?
+1. **Default:** follow the system setting, or light until the user opts in? Also: is the preference per device (assumed, §10) or per account?
 2. **The control:**
    - a "Light mode" switch (today, and contradictory: §9);
    - a "Dark mode" switch;
    - a System / Light / Dark selector.
-3. **Scope by role:** Adult only (as the frames draw it), or Junior and Teacher too? Their Profile frames have no row.
+3. ~~**Scope by role.**~~ **Decided (Issue #252):** Adult, Junior and Teacher, one global state. Still open: the Junior and Teacher row's look, since no frame draws it (§9).
 4. **Junior world:** does the illustrated daytime map (sky, clouds, grass, coins) stay as-is, get a night variant, or get dimmed?
 5. **Documents and brand media:**
    - does the certificate stay light?
@@ -383,8 +409,32 @@ Built for: no light regression, incremental migration, and reuse of what exists.
 4. **Text:** `AppTypography` geometry unchanged; colour from the palette at use (§6).
 5. **Icons:** `AppSvgIcon` for monochrome SVGs (§7); illustrations listed for design.
 6. **System UI:** `AppSystemUi` derives the overlay from the theme (§8).
-7. **Theme state:** `AppThemeController` (`ChangeNotifier`, `ThemeMode`), read by `AiAcademyApp` via `ListenableBuilder`. It is restored in `main()` before `runApp`, like the session. It starts at `ThemeMode.light` (forced) until the product decision and dark values land, so the plumbing ships with no visible change.
+7. **Theme state:** `AppThemeController` (`ChangeNotifier`, `ThemeMode`), read by `AiAcademyApp` via `ListenableBuilder`; see §14.1. It starts at `ThemeMode.light` until the product decision and dark values land, so the plumbing ships with no visible change (Phase 1). It is restored in `main()` before `runApp` from Phase 10.
 8. **Persistence:** a `ThemePreferenceStore` interface; storage per §10.
+
+### 14.1 Global theme state — one for every role
+
+```
+ThemePreferenceStore (flutter_secure_storage, key app.theme_mode)   ← Phase 10
+        │ restore() in main(), before runApp      ▲ write on setMode()
+        ▼                                         │
+AppThemeController.instance  (ChangeNotifier, ThemeMode)            ← Phase 1
+        │ ListenableBuilder in AiAcademyApp
+        ▼
+MaterialApp(theme: AppTheme.light, darkTheme: AppTheme.dark*, themeMode: controller.mode)
+        │ Theme / AppPalette via context.palette
+        ▼
+Adult shell · Junior shell · Teacher shell · Login · Splash · every pushed route
+
+Writers (Phase 10): Adult Profile row · Junior Profile row · Teacher Profile row
+                    → AppThemeController.instance.setMode(…)
+*AppTheme.dark exists only from Phase 9, when approved values do.
+```
+
+- **One state, above the role split.** The controller sits above `MaterialApp`, so it is set before Splash runs and before `homeRouteFor` picks a role's shell. No shell, screen or role owns theme state, and no role can drift from another.
+- **It follows the repository's existing singleton pattern** (`AuthSessionStore.instance`, `NotificationCenter.instance`): a `static final instance` for the app, and an injectable instance for tests. No state-management package.
+- **Screens never hold a copy.** A Profile row reads `controller.mode` inside a `ListenableBuilder` and writes `setMode`. The retired Adult `_lightMode` field is exactly the kind of copy this forbids.
+- **System UI follows it too** (Phase 4): `AppSystemUi` reads the resolved brightness from `Theme.of(context)`, not a role or a screen flag.
 
 **Deliberately not proposed:**
 - a state-management package;
@@ -401,17 +451,19 @@ In each phase, **"Light goldens: unchanged"** means the existing PNGs must pass 
 | # | Phase | Scope | Major files | Depends on | Risk | Tests | Figma? |
 |---|---|---|---|---|---|---|---|
 | 0 | **Coverage first** | Light goldens for uncovered screens: Splash, Login, Reset password, Course catalog/detail, Cohort list, Manager contact sheet | new `*_screenshot_test.dart` | — | Low | New goldens only | No |
-| 1 | **Foundation + pilot** | `AppPalette` (light), `context.palette`, register on `AppTheme.light`; a test that `AppPalette.light` equals the constants; migrate **Notifications** (`NotificationHeader`, `NotificationTile`, Detail) as the pilot | `core/theme/*`, `notifications/presentation/*` | 0 | Low | Light goldens unchanged; palette-equality test | No |
+| 1 | **Foundation + pilot** | `AppPalette` (light), `context.palette`, register on `AppTheme.light`; a test that `AppPalette.light` equals the constants; **global `AppThemeController`** (in memory, `ThemeMode.light`, no UI, no persistence) wired into `MaterialApp` above every role's shell; migrate **Notifications** (`NotificationHeader`, `NotificationTile`, Detail; shared by all three roles) as the pilot | `core/theme/*`, `app.dart`, `notifications/presentation/*` | 0 | Low | Light goldens unchanged; palette-equality test; controller test | No |
 | 2 | **Token consolidation** | Map the duplicated literals (§3.2) to roles; no value changes | palettes, private constants | 1 | Low–Med (naming) | Light goldens unchanged | No |
 | 3 | **Shared components** | `AppButton`, `AppTextField`, `AppBottomNav`, `CourseLearningBackButton`, `HomeHeader` (and tint its bell), Profile parts (tint row icons), pill buttons, sheets/barrier; `AppSvgIcon` | `lib/shared/widgets/*`, `profile_parts.dart`, `home_header.dart`, … | 1–2 | **Med–High** (wide reach) | All 55 + Phase-0 goldens unchanged | No |
-| 4 | **System UI** | `AppSystemUi`; replace 23 `.dark` sites | 25 screens | 1 | Low | Widget test of overlay per brightness | No |
-| 5 | **Adult** | Home, Payments + payment flow, Certificate, Profile, Attendance, Catalog/Cohorts | `home/`, `certificates/`, `profile/`, `cohorts/`, `courses/`, `attendance/` | 3–4 | High (12 payment goldens) | Light goldens unchanged | No |
+| 4 | **System UI** | `AppSystemUi`, driven by the global theme's brightness; replace 23 `.dark` sites in all three roles | 25 screens | 1 | Low | Widget test of overlay per brightness | No |
+| 5 | **Adult** (required) | Home, Payments + payment flow, Certificate, Profile, Attendance, Catalog/Cohorts | `home/`, `certificates/`, `profile/`, `cohorts/`, `courses/`, `attendance/` | 3–4 | High (12 payment goldens) | Light goldens unchanged | No |
 | 6 | **Course Learning** | Module list, Lesson list, Exercise, Assignment, Quiz; move `CourseModuleVisuals` colours to presentation | `course_learning/` (47 files, 63 literals) | 3 | **High** | Light goldens unchanged (Exercise ×11, Quiz ×4) | No |
-| 7 | **Junior** | Home, Progress, Profile, map, calendar, certificate card | `junior_home/` | 3 | High (illustration) | Light goldens unchanged | No (until §13.4) |
-| 8 | **Teacher** | Home, Schedule (+ sheets), Gradebook, Request, Profile | `teacher/` | 3 | Med | Light goldens unchanged | No |
+| 7 | **Junior** (required) | Home, Progress, Profile, map, calendar, certificate card | `junior_home/` | 3 | High (illustration) | Light goldens unchanged | No (until §13.4) |
+| 8 | **Teacher** (required) | Home, Schedule (+ sheets), Gradebook, Request, Profile | `teacher/` | 3 | Med | Light goldens unchanged | No |
 | 9 | **Dark values** | `AppPalette.dark`, `AppTheme.dark`, dark asset variants; harness brightness parameter; dark goldens for every golden screen | `core/theme/*`, assets, tests | 1–8 + **Figma** | Med | New `*_dark.png` goldens | **Yes** |
-| 10 | **Preference + control** | `AppThemeController`, `ThemePreferenceStore`, Profile control per §13, `ThemeMode` wiring | `app.dart`, `main.dart`, `profile/` | 9 + product decisions | Med | Controller tests; restore-on-start test; Profile tests updated | Decision |
+| 10 | **Preference + controls, all roles** | `ThemePreferenceStore` + `SecureThemePreferenceStore` (existing `flutter_secure_storage`); `AppThemeController.restore` in `main()` before `runApp` (startup initialisation); `setMode` persists. **Three entry points to the one state:** Adult row made interactive (it already reads the global theme), **new Junior row** in App settings, **new Teacher row** in App settings. Theme survives sign-out (§10) | `core/theme/*`, `main.dart`, `profile/profile_screen.dart`, `junior_home/…/junior_profile_screen.dart`, `teacher/…/teacher_profile_screen.dart` | 1, 9 + §13 decisions | Med | Restore-on-start test; write/fallback tests; each Profile row changes the global mode; **a change from one role is seen by the others**; sign-out keeps the mode; Profile goldens updated for the new rows only | Decision (control type; Junior/Teacher row look) |
 | 11 | **Device validation + native** | Physical iOS and Android in both modes; Android `values-night` launch window and iOS launch screen | `android/app/src/main/res/values*/styles.xml` (not the protected iOS files) | 9–10 | Low | Device checklist | Maybe |
+
+**Every role is in scope, and none is optional.** Phases 4–8 and 10 each name Adult, Junior and Teacher work, and Dark Mode is not released until all three are migrated (§13.7). Propagation across screens needs no per-screen work beyond reading `context.palette`: one `MaterialApp` theme reaches every route of every role.
 
 Phases 2–8 are purely mechanical "same colour, new address" changes. They can be split per feature folder into PRs small enough to review, and they don't wait on design.
 
@@ -480,6 +532,16 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 ---
 
 ## 20. Recommended next implementation task
+
+> **Done in Issue #252 (Phase 0 + 1).**
+> - **Phase 0:** light goldens added for Splash, Login, Reset password, Manager contact sheet, Course catalog, Course detail and Cohort list (`test/goldens/`, 7 new).
+> - **Palette:** `lib/core/theme/app_palette.dart` (light only, `context.palette`), registered on `AppTheme.light`.
+> - **Global theme state:** `lib/core/theme/app_theme_controller.dart`, wired into `AiAcademyApp` above every role's shell. Light only, no UI, no persistence (§14.1).
+> - **Pilot:** Notifications (`NotificationHeader`, `NotificationTile`, `NotificationDetailScreen`) reads only `context.palette`.
+> - **Proof:** every pre-existing golden passed unchanged.
+>
+> Not migrated yet: the header's `CourseLearningBackButton` and the screens' `SystemUiOverlayStyle.dark`, which are Phase 3 and Phase 4. **Next: Phase 2 (token consolidation).**
+
 
 **"chore: theme foundation — AppPalette (light) and Notifications pilot"**, i.e. Phase 0 + Phase 1:
 1. Add light goldens for Splash, Login, Reset password, Course catalog, Course detail, Cohort list, Manager contact sheet.

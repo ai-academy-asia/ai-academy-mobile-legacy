@@ -48,10 +48,18 @@ const double _editGlyph = 20;
 ///
 /// **Every row but the header, Certificate (Issue #155) and Change password
 /// is UI only.** E-Contract, Transaction history, edit profile, Help center,
-/// Term of Service and Privacy Policy have no destination yet, and the language,
-/// light-mode and notification controls hold local state that nothing else
-/// reads — there is no locale mechanism, no dark palette and no
-/// notification-preference endpoint in the app to hand them to.
+/// Term of Service and Privacy Policy have no destination yet, and the language
+/// and notification controls hold local state that nothing else reads — there
+/// is no locale mechanism and no notification-preference endpoint in the app
+/// to hand them to.
+///
+/// **Light mode shows the app's real theme, and is inert** (Issue #252). It
+/// reads the active theme's brightness — set by the one app-wide
+/// `AppThemeController`, never a copy kept here — so it reads on in today's
+/// light app, and ignores taps, as Teacher's inert switches do: no dark
+/// palette exists to switch to. A working control here, on Junior and on
+/// Teacher, all writing that one controller, is Dark Mode Phase 10
+/// (`DARK_MODE_ARCHITECTURE_AUDIT.md` §9).
 ///
 /// Log out signs out for real through [signOutToLogin]: it revokes the
 /// session server-side when it can, always clears it locally, and lands on
@@ -109,7 +117,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // UI-only state. Deliberately not persisted and not read by anything else —
   // see the class doc above.
   bool _english = false;
-  bool _lightMode = false;
   bool _notifications = false;
 
   late final ProfileController _profile;
@@ -229,8 +236,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: ProfileIcons.lightMode,
                 label: ProfileStrings.lightMode,
                 trailing: ProfileSwitch(
-                  value: _lightMode,
-                  onChanged: (value) => setState(() => _lightMode = value),
+                  value: Theme.of(context).brightness == Brightness.light,
+                  onChanged: null,
                   semanticLabel: ProfileStrings.lightMode,
                 ),
               ),

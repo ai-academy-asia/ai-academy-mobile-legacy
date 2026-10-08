@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_theme_controller.dart';
 import 'features/auth/presentation/home_route.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/reset_password_screen.dart';
@@ -28,15 +29,31 @@ import 'features/teacher/presentation/widgets/teacher_tabs.dart';
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 class AiAcademyApp extends StatelessWidget {
-  const AiAcademyApp({super.key});
+  const AiAcademyApp({super.key, this.themeController});
+
+  /// The one theme state for every role (Issue #252). Defaults to
+  /// [AppThemeController.instance]; injected in tests.
+  final AppThemeController? themeController;
 
   @override
   Widget build(BuildContext context) {
+    final controller = themeController ?? AppThemeController.instance;
+    // Above the whole navigator, so Adult, Junior and Teacher — and Login
+    // and Splash — all draw in the same theme. No `darkTheme` yet: every
+    // mode resolves to light until approved dark values exist.
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => _app(controller.mode),
+    );
+  }
+
+  Widget _app(ThemeMode themeMode) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
       title: 'AI academy Asia',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      themeMode: themeMode,
       initialRoute: '/',
       routes: {
         '/': (_) => const SplashScreen(),
