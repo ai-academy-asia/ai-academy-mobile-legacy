@@ -587,7 +587,7 @@ Future<T?> showPaymentSheet<T>(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: context.palette.surface,
+    backgroundColor: context.palette.surfaceElevated,
     barrierColor: context.palette.barrier,
     elevation: 0,
     shape: const RoundedRectangleBorder(

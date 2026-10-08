@@ -354,15 +354,29 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color color, Color fill) = switch (status.toLowerCase()) {
-      'open' => (context.palette.successOutline, context.palette.successFill),
-      'active' => (context.palette.successOutline, context.palette.successFill),
-      'finished' => (context.palette.infoInk, context.palette.infoFill),
+    // Outline, label and fill by role. The reference draws each pill's label
+    // in its outline's colour; they stay separate roles because one is a line
+    // and one is text — the same light value, not the same meaning.
+    final palette = context.palette;
+    final (Color outline, Color label, Color fill) = switch (status
+        .toLowerCase()) {
+      'open' => (
+        palette.successOutline,
+        palette.successLabel,
+        palette.successFill,
+      ),
+      'active' => (
+        palette.successOutline,
+        palette.successLabel,
+        palette.successFill,
+      ),
+      'finished' => (palette.infoInk, palette.infoInk, palette.infoFill),
       // Not a status the reference draws, so there is no fill to sample: the
       // neutral outline gets the app's standard low-alpha wash of itself.
       _ => (
-        context.palette.textSecondary,
-        context.palette.textSecondary.withValues(alpha: _pillTintOpacity),
+        palette.textSecondary,
+        palette.textSecondary,
+        palette.textSecondary.withValues(alpha: _pillTintOpacity),
       ),
     };
 
@@ -375,12 +389,12 @@ class _StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color, width: AppDimens.borderWidth),
+        border: Border.all(color: outline, width: AppDimens.borderWidth),
       ),
       child: Text(
         _capitalize(status),
         style: AppTypography.catalogStatusLabel.copyWith(
-          color: color,
+          color: label,
           fontSize: 12,
           height: 16 / 12,
         ),

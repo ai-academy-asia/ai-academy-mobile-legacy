@@ -564,9 +564,14 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > **Next: Phase 4 (system UI).**
 >
 > **Phase 5 done (Issue #262).** The Adult experience reads colours only through `context.palette`.
-> - **Scope:** `home` (incl. Payment and the payment flow), `cohorts`, `courses`, `profile`, `payments`, `enrollments`, plus Certificate and the attendance scanner, which Junior also opens. That's 29 files, about 218 direct reads and 36 baked-colour typography uses.
-> - **Nine Adult roles** hold the remaining single-use values (68 roles).
-> - **Guard:** `adult_palette_scope_test.dart` keeps the scope clean, with a documented allowlist.
+> - **Scope:** `home` (incl. Payment and the payment flow), `cohorts`, `courses`, `profile`, `payments`, `enrollments`, plus Certificate and the attendance scanner, which Junior also opens.
+> - **Size:** 31 files changed in `lib/features`, covering about 218 direct reads and 36 baked-colour typography uses.
+>   - 38 `const` keywords were dropped from expressions and 2 `const` locals became `final`, all because they now read the theme.
+>   - 21 colour-alias declarations were deleted or re-pointed.
+> - **New roles:** nine Adult roles hold the remaining single-use values, plus `successLabel` from the review: the cohort status pill's label is text, so it doesn't share `successOutline`. That makes 69 roles.
+> - **Guard:** `adult_palette_scope_test.dart` keeps the scope clean.
+>   - It catches direct reads (the documented exceptions include only the four Teacher-shared Profile styles' own colour lines).
+>   - It catches any use of a colour-baking text style that doesn't supply a palette colour.
 > - **Goldens:** all unchanged.
 > - **`course_learning`** is shared by Adult and Junior and is Phase 6.
 >

@@ -59,6 +59,7 @@ void main() {
       'successInk': (light.successInk, const Color(0xFF009951)),
       'successFill': (light.successFill, const Color(0xFFEBFFEE)),
       'successOutline': (light.successOutline, const Color(0xFF14AE5C)),
+      'successLabel': (light.successLabel, const Color(0xFF14AE5C)),
       'successFillStrong': (light.successFillStrong, const Color(0xFFCCEBDC)),
       'warning': (light.warning, const Color(0xFFF0A22E)),
       'warningFill': (light.warningFill, const Color(0xFFFFFAE5)),

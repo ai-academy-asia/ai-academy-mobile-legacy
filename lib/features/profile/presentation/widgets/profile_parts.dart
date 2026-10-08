@@ -498,6 +498,5 @@ const TextStyle _logOutStyle = TextStyle(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );

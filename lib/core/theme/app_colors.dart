@@ -158,9 +158,17 @@ abstract final class AppColors {
   /// The faint band under a white pill (`HomePillButton`'s secondary).
   static const Color subtleDepth = Color(0x0A000000);
 
+  static const Color _successGreen = Color(0xFF14AE5C);
+
   static const Color successInk = Color(0xFF009951);
   static const Color successFill = Color(0xFFEBFFEE);
-  static const Color successOutline = Color(0xFF14AE5C);
+  static const Color successOutline = _successGreen;
+
+  /// A status label drawn in its pill's own outline green — the cohort
+  /// card's "Open"/"Active" (`#14AE5C`). Text, so its own role: not
+  /// [successInk] (`#009951`, the Home pill's darker label), and not
+  /// [successOutline], which only shares the light value (Issue #262).
+  static const Color successLabel = _successGreen;
 
   /// The stronger green tile — payment success, a submitted assignment.
   static const Color successFillStrong = Color(0xFFCCEBDC);
