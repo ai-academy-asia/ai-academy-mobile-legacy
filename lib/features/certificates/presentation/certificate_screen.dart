@@ -420,7 +420,7 @@ const double _headerToCard = 28;
 const double _cardGap = 12;
 
 /// The card: the Module List certification panel's fill and outline.
-const Color _cardFill = Color(0xFFF9FAFB);
+const Color _cardFill = AppColors.surfaceSubtle;
 const Color _cardBorder = HomePalette.headerRule;
 
 /// The certificate 12 inside its gradient frame, as this frame draws it.
@@ -443,8 +443,8 @@ const String _downloadGlyph =
     'assets/images/course_learning/exercise_download.svg';
 
 /// Ink: the Module List frame's two text greys.
-const Color _primaryInk = Color(0xFF191919);
-const Color _secondaryInk = Color(0xFF7D7D7E);
+const Color _primaryInk = AppColors.textTitle;
+const Color _secondaryInk = AppColors.textSupporting;
 
 const TextStyle _titleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,

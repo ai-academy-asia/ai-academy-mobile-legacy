@@ -1,5 +1,7 @@
 import 'package:flutter/painting.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 /// The Junior map's colours, sampled from the reference frame at 1:1.
 ///
 /// Screen-local rather than added to [AppColors], for the reason the design
@@ -12,28 +14,28 @@ abstract final class JuniorPalette {
   /// The pale blue field. Only ever seen where the backdrop image does not
   /// reach, so it is [Scaffold]'s colour behind the artwork rather than a
   /// fill anything paints.
-  static const Color mapField = Color(0xFFBFD9F8);
+  static const Color mapField = AppColors.juniorMapSky;
 
   /// The Junior frames' own blue. Four points off [AppColors.blue]
   /// (`#296CFF`) and kept separate for the same reason
   /// `CourseModuleListScreen` keeps its own `#2970FF`: the shared token is
   /// sampled from the Login frame, and moving it to match this screen would
   /// repaint every other one.
-  static const Color accent = Color(0xFF2970FF);
+  static const Color accent = AppColors.accent;
 
   /// The course card, and a completed node's fill.
-  static const Color cardFill = Color(0xFFEFF4FF);
-  static const Color cardBorder = Color(0xFFD1D3F5);
+  static const Color cardFill = AppColors.juniorCard;
+  static const Color cardBorder = AppColors.juniorCardBorder;
 
   /// The ring's untravelled arc, the locked half of the route, and every
   /// node outline that is not the active blue.
-  static const Color muted = Color(0xFFD6DBE1);
+  static const Color muted = AppColors.outline;
 
   /// A locked node's fill, and the certificate panel's.
-  static const Color mutedFill = Color(0xFFEAEDF0);
+  static const Color mutedFill = AppColors.divider;
 
   /// The "Junior" pill.
-  static const Color pillFill = Color(0xFFF9FAFB);
+  static const Color pillFill = AppColors.surfaceSubtle;
 
   // --- "Сурлагын явц" -------------------------------------------------------
   //
@@ -42,14 +44,14 @@ abstract final class JuniorPalette {
   // [mutedFill], `AppColors.surfaceSubtle` and `HomePalette.statLabel`.
 
   /// A calendar day with nothing marked on it: a flat grey disc.
-  static const Color dayNeutral = Color(0xFFF2F2F3);
+  static const Color dayNeutral = AppColors.calendarNeutral;
 
   /// The disc behind a "Хичээлтэй өдөр" mark, and the summary badges' fill —
   /// the same pale blue `HomePalette.liveFill` is.
-  static const Color dayLesson = Color(0xFFE5F4FF);
+  static const Color dayLesson = AppColors.calendarLesson;
 
   /// The disc behind a "Хичээлээ тасалсан" mark.
-  static const Color dayMissed = Color(0xFFFFE7E7);
+  static const Color dayMissed = AppColors.calendarMissed;
 
   /// The summary badges' outline.
   static const Color badgeOutline = Color(0xFFBDE3FF);

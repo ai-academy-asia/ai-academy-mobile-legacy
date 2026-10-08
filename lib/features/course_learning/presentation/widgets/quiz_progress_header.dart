@@ -9,9 +9,9 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// tracking how many of the quiz's questions have been reached, and the
 /// "current/total" counter.
 /// Sampled off the Quiz frames at 1:1.
-const Color _progressFill = Color(0xFF2970FF);
-const Color _progressTrack = Color(0xFFEAEDF0);
-const Color _counterInk = Color(0xFF191919);
+const Color _progressFill = AppColors.accent;
+const Color _progressTrack = AppColors.divider;
+const Color _counterInk = AppColors.textTitle;
 
 class QuizProgressHeader extends StatelessWidget {
   const QuizProgressHeader({

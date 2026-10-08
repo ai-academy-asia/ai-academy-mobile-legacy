@@ -15,7 +15,7 @@ enum ExerciseTab { note, materials, assignment }
 /// Kept as its own local constant rather than silently treated as the same
 /// colour: the two were evidently sampled from two different Figma captures,
 /// and only this screen's own reference confirms this exact value.
-const Color exercisePrimaryColor = Color(0xFF2970FF);
+const Color exercisePrimaryColor = AppColors.accent;
 
 /// The Note / Course materials / Assignment tab header — 49 tall, a thin
 /// divider underneath, and the active tab's own blue underline.
@@ -70,7 +70,7 @@ class ExerciseTabs extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1, color: Color(0xFFEAEDF0)),
+        const Divider(height: 1, color: AppColors.divider),
       ],
     );
   }

@@ -49,10 +49,10 @@ const double _liftOffset = 4;
 /// Sampled off the reference at 1:1. [_border] is the card outline, the band
 /// beneath it and the connector; the app-wide [AppColors.border] (#E4E6EF) is
 /// a different, warmer grey used by other screens.
-const Color _border = Color(0xFFEAEDF0);
-const Color _titleInk = Color(0xFF191919);
-const Color _lockedTitleInk = Color(0xFFB5B5B5);
-const Color _secondaryInk = Color(0xFF7D7D7E);
+const Color _border = AppColors.divider;
+const Color _titleInk = AppColors.textTitle;
+const Color _lockedTitleInk = AppColors.textLocked;
+const Color _secondaryInk = AppColors.textSupporting;
 const Color _lockedTile = Color(0xFFEFEFEF);
 
 /// How strongly a module's own accent tints its icon tile. Solved from the

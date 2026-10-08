@@ -333,8 +333,8 @@ final TextStyle _statTitleStyle = AppTypography.programTitle.copyWith(
 /// The Gradebook references' own colours.
 abstract final class GradebookColors {
   /// The grey name line over a row's title, sampled at `#808080`.
-  static const Color name = Color(0xFF808080);
+  static const Color name = AppColors.textMuted;
 
   /// The submitted link's navy, sampled at `#1501A6`.
-  static const Color link = Color(0xFF1501A6);
+  static const Color link = AppColors.linkInk;
 }

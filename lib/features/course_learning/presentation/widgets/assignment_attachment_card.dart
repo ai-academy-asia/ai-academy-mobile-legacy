@@ -13,7 +13,7 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// The completed file row's leading tile, sampled at 1:1 — the same flat grey
 /// square `CourseMaterialCard` uses, with the tick in the primary ink.
 const double _completeTileSize = 32;
-const Color _completeTileFill = Color(0xFFF5F5F5);
+const Color _completeTileFill = AppColors.surfaceTile;
 
 enum _DownloadStage { idle, downloading, complete }
 

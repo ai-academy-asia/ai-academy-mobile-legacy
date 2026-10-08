@@ -29,7 +29,7 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// `cardHeading`/`cardSupporting` this screen inherits them from.
 const double _tileSize = 32;
 const double _glyphSize = 20;
-const Color _tileFill = Color(0xFFF5F5F5);
+const Color _tileFill = AppColors.surfaceTile;
 const double _titleSize = 14;
 const double _sizeLabelSize = 13;
 

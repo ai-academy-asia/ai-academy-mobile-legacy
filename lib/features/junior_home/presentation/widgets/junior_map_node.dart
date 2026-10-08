@@ -4,6 +4,7 @@ import '../../domain/junior_learning_map.dart';
 import '../junior_home_strings.dart';
 import 'junior_home_palette.dart';
 import 'junior_map_geometry.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// One 84 x 84 stop on the route.
 ///
@@ -138,7 +139,7 @@ class _NodeStyle {
       glyph: 'node_check',
     ),
     JuniorNodeState.current => const _NodeStyle(
-      fill: Color(0xFFFFFFFF),
+      fill: AppColors.surface,
       border: JuniorPalette.muted,
       glyph: 'node_current',
     ),

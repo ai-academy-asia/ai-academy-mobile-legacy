@@ -9,7 +9,7 @@ import '../course_learning_strings.dart';
 /// content centred, with the accepted-types line under the label.
 const double _height = 125;
 const double _radius = 12;
-const Color _dashColor = Color(0xFFD6DBE1);
+const Color _dashColor = AppColors.outline;
 const double _dashLength = 6;
 const double _dashGap = 5;
 

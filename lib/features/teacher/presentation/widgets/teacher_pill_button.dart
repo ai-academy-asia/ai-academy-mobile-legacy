@@ -80,7 +80,7 @@ class TeacherPillButton extends StatelessWidget {
           boxShadow: variant == TeacherPillVariant.outlined
               ? const [
                   BoxShadow(
-                    color: Color(0x14000000),
+                    color: AppColors.shadowSubtle,
                     blurRadius: 2,
                     offset: Offset(0, 1),
                   ),
@@ -125,5 +125,5 @@ class TeacherPillButton extends StatelessWidget {
 
 /// The references' near-black label ink, sampled at `#1A1A1A`.
 abstract final class TeacherPillColors {
-  static const Color ink = Color(0xFF1A1A1A);
+  static const Color ink = AppColors.textStrong;
 }

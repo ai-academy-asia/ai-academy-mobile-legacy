@@ -165,7 +165,7 @@ const double _headerToCards = 28;
 /// and Course Detail's `#EAEDF0`, 2 wide, filling the 16 gap below the
 /// card's own 4pt band. Kept as this file's own copy rather than extracted
 /// from Course Detail, whose constants are private to that screen.
-const Color _connectorColor = Color(0xFFEAEDF0);
+const Color _connectorColor = AppColors.divider;
 const double _cardGap = 16;
 const double _connectorWidth = 2;
 const double _connectorHeight = 12;

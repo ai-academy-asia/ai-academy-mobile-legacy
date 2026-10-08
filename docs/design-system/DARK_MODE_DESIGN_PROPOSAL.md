@@ -396,7 +396,7 @@ Junior has the strongest visual identity, so it is the highest-risk role.
 This fits the audit's phases (§15 there). **No step starts before §17 approval**, except those marked *no design needed*.
 
 1. **Design review of this proposal** → approved values (or changes) written back here and marked **APPROVED**.
-2. **Phase 2: token consolidation** *(no design needed)*. Add the *new* roles from §3 with light values equal to today's, and fold the duplicates. No visible change; goldens unchanged.
+2. **Phase 2: token consolidation** *(no design needed; **done, Issue #256**)*. Add the *new* roles from §3 with light values equal to today's, and fold the duplicates. No visible change; goldens unchanged.
 3. **Phases 3–8: migrate shared components, then Adult, Course Learning, Junior and Teacher** *(no design needed)*. Every screen reads roles; light goldens stay byte-identical.
 4. **Phase 9: `AppPalette.dark` + `AppTheme.dark`** with the **approved** values, plus asset decisions (§8). Add dark goldens (`*_dark.png`) for every golden screen. The harness already takes a theme.
 5. **Phase 4 completion: system UI by brightness.**

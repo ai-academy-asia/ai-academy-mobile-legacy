@@ -337,19 +337,19 @@ abstract final class TeacherScheduleColors {
   static const Color gridLine = HomePalette.headerRule;
 
   /// A held session's block and its label.
-  static const Color heldFill = Color(0xFFEFF4FF);
-  static const Color heldInk = Color(0xFF787A80);
+  static const Color heldFill = AppColors.scheduleHeld;
+  static const Color heldInk = AppColors.scheduleHeldInk;
 
   /// The strip's weekday letters.
-  static const Color weekday = Color(0xFFB2B2B2);
+  static const Color weekday = AppColors.textInactive;
 
   /// The attendance summary's "/ 24", caption and bar track.
   static const Color totalInk = Color(0xFF9CA3AF);
   static const Color captionInk = Color(0xFF4B5563);
-  static const Color barTrack = Color(0xFFE5E7EB);
+  static const Color barTrack = AppColors.outlineSubtle;
 
   /// The sheet's drag handle.
-  static const Color handle = Color(0xFFDBDBDC);
+  static const Color handle = AppColors.sheetHandle;
 
   /// The "Багш нар" names and their role line.
   static const Color teacherName = Color(0xFF0C226E);

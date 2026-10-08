@@ -26,8 +26,8 @@ import 'widgets/quiz_preview_card.dart';
 /// Sampled off the reference frames at 1:1. The page is a shade lighter than
 /// the app-wide [AppColors.background], and the tab card's outline is lighter
 /// than the field outlines inside it (`exerciseBorderColor`).
-const Color _page = Color(0xFFF9FAFB);
-const Color _cardBorder = Color(0xFFEAEDF0);
+const Color _page = AppColors.surfaceSubtle;
+const Color _cardBorder = AppColors.divider;
 
 /// The Exercise Detail screen — one lesson's content, keyed by [lessonId]
 /// and loaded from `GET /me/lessons/{lesson_id}`.
