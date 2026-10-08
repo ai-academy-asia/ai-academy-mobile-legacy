@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../home/presentation/widgets/home_pill_button.dart';
 
@@ -42,9 +43,7 @@ class AttendanceScannerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppSystemUi.overDarkContent(),
       child: Scaffold(
         // What the window shows with no camera behind it — the reference's
         // own white — and, under the scrim, the reference's #6B6B6B.

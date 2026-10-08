@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/utils/describe_json.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
@@ -65,9 +67,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.background,
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.pageBackground,
       ),
       child: Scaffold(
         backgroundColor: AppColors.background,

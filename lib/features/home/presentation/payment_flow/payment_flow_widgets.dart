@@ -5,6 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_system_ui.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../../payments/domain/payment_checkout.dart';
 import '../widgets/home_palette.dart';
@@ -164,10 +166,7 @@ class PaymentFlowScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
-      ),
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: Column(

@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
@@ -99,9 +101,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surfaceSubtle,
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.surfaceSubtle,
       ),
       child: Scaffold(
         // The reference's own page fill (#F9FAFB), which `surfaceSubtle` holds

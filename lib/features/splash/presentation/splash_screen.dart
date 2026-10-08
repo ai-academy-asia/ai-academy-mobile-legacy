@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../../auth/domain/current_user_repository.dart';
@@ -242,9 +244,9 @@ class _SplashScreenState extends State<SplashScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Dark status-bar content on the light background, matching the Figma
       // frame and the same treatment every other screen in this app applies.
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surfaceSubtle,
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.surfaceSubtle,
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
