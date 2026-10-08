@@ -41,14 +41,16 @@ abstract final class LoginStrings {
 
   // --- Contact sheet (Issue #186) ------------------------------------------
 
+  /// Under the sheet's heading: what the two options below are for (#239).
+  static const String contactMessage =
+      'Дэлгэрэнгүй мэдээлэл авахыг хүсвэл бидэнтэй доорх утас, имэйл хаягаар '
+      'холбогдоорой.';
+
   /// Opens the manager's phone number.
   static const String contactCall = 'Утасдах';
 
   /// Opens a new email to the manager's address.
   static const String contactEmail = 'Email бичих';
-
-  /// Closes the sheet. The same word the sign-out dialog uses for its way back.
-  static const String contactCancel = 'Цуцлах';
 
   // --- Validation ----------------------------------------------------------
 

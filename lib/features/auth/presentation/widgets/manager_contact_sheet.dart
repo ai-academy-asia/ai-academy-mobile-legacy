@@ -4,15 +4,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/app_button.dart';
 import '../login_strings.dart';
 import '../manager_contact.dart';
 
 /// Asks how to reach the manager — call or email (Issue #186) — and completes
 /// with the chosen link, [ManagerContact.phone] or [ManagerContact.email].
 ///
-/// "Цуцлах", a tap on the barrier and the system back gesture all complete
-/// with null: nothing is launched and Login is left exactly as it was.
+/// A tap on the barrier, a drag down and the system back gesture all complete
+/// with null: nothing is launched and Login is left exactly as it was. There
+/// is no "Цуцлах" button — those already are the way out (Issue #239).
 Future<Uri?> chooseManagerContact(BuildContext context) =>
     showModalBottomSheet<Uri>(
       context: context,
@@ -30,21 +30,25 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
 
 /// The sheet itself.
 ///
-/// No Figma frame draws it, so nothing here is new design. It is assembled
-/// from what Login's own frame and the sign-out dialog (#166) already use:
+/// No Figma frame draws it, so nothing here is new design: it is assembled
+/// from Login's own frame and the sign-out dialog (#166), restyled so it reads
+/// as part of Login rather than a stock sheet (Issue #239):
 ///
-///  * the heading is Login's own "Менежертэй холбогдоорой" in
-///    [AppTypography.cardHeading], as the dialog heads its card;
+///  * the heading is Login's own "Менежертэй холбогдоорой" in Login's screen
+///    [AppTypography.heading], with a short message under it in
+///    [AppTypography.statLabel] — the sign-out dialog's message style —
+///    [AppDimens.titleToSupporting] apart, as Reset Password spaces its
+///    heading and supporting line;
 ///  * each option is the Login frame's contact card — white surface, 1pt
-///    [AppColors.border], [AppDimens.cardRadius], trailing
-///    [AppIcons.caretRight] — with the action as its [AppTypography.cardTitle]
-///    line and the contact itself as its [AppTypography.cardSupporting] line,
-///    led by a Phosphor glyph from the font the design draws with;
-///  * "Цуцлах" is the dialog's outlined [AppButton], its way back.
+///    [AppColors.border], [AppDimens.cardRadius], [AppDimens.cardHeight],
+///    trailing [AppIcons.caretRight] — led by its Phosphor glyph in
+///    [AppColors.blue] on a round [AppDimens.statIconTile] tile, with the
+///    action in [AppTypography.cardHeading] over the contact in
+///    [AppTypography.statLabel].
 ///
-/// Spacing is the screen's own: [AppDimens.cardPadding] around the content,
-/// [AppDimens.headingToForm] under the heading and above the button,
-/// [AppDimens.fieldGap] between the two options.
+/// Spacing is Login's: [AppDimens.screenPadding] at the sides,
+/// [AppDimens.headingToForm] above the heading, between the message and the
+/// options and under the last one, [AppDimens.fieldGap] between the options.
 class ManagerContactSheet extends StatefulWidget {
   const ManagerContactSheet({super.key});
 
@@ -57,7 +61,7 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
   // Only the first answer counts — same guard as the sign-out dialog.
   bool _answered = false;
 
-  void _answer(Uri? choice) {
+  void _answer(Uri choice) {
     if (_answered) return;
     _answered = true;
     Navigator.of(context).pop(choice);
@@ -68,14 +72,25 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.all(AppDimens.cardPadding),
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.screenPadding,
+          AppDimens.headingToForm,
+          AppDimens.screenPadding,
+          AppDimens.headingToForm,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
               LoginStrings.contactManager,
-              style: AppTypography.cardHeading,
+              style: AppTypography.heading,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppDimens.titleToSupporting),
+            const Text(
+              LoginStrings.contactMessage,
+              style: AppTypography.statLabel,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppDimens.headingToForm),
@@ -92,12 +107,6 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
               value: ManagerContact.emailLabel,
               onTap: () => _answer(ManagerContact.email),
             ),
-            const SizedBox(height: AppDimens.headingToForm),
-            AppButton(
-              label: LoginStrings.contactCancel,
-              variant: AppButtonVariant.outlined,
-              onPressed: () => _answer(null),
-            ),
           ],
         ),
       ),
@@ -106,8 +115,8 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
 }
 
 /// One way to reach the manager, drawn as the Login frame's contact card:
-/// the same 80pt bordered white surface and trailing caret, with the action
-/// over the contact rather than the card's supporting line over its title.
+/// the same 80pt bordered white surface and trailing caret, led by the
+/// option's glyph on a pale blue tile, with the action over the contact.
 class _ContactOption extends StatelessWidget {
   const _ContactOption({
     required this.icon,
@@ -115,6 +124,10 @@ class _ContactOption extends StatelessWidget {
     required this.value,
     required this.onTap,
   });
+
+  /// The tile behind the glyph: [AppColors.blue] at 12%, the same tint the
+  /// Home program card's decoration draws its blue with.
+  static final Color tileFill = AppColors.blue.withValues(alpha: 0.12);
 
   final IconData icon;
   final String label;
@@ -147,12 +160,21 @@ class _ContactOption extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  size: AppDimens.settingsRowIconSize,
-                  color: AppColors.textPrimary,
+                Container(
+                  width: AppDimens.statIconTile,
+                  height: AppDimens.statIconTile,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: tileFill,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: AppDimens.settingsRowIconSize,
+                    color: AppColors.blue,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppDimens.fieldGap),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -160,21 +182,21 @@ class _ContactOption extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: AppTypography.cardTitle,
+                        style: AppTypography.cardHeading,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppDimens.cardLineGap),
                       Text(
                         value,
-                        style: AppTypography.cardSupporting,
+                        style: AppTypography.statLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppDimens.fieldGap),
                 const Icon(
                   AppIcons.caretRight,
                   size: AppDimens.caretSize,

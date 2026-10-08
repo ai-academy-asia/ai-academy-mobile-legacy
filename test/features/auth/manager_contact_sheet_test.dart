@@ -1,6 +1,8 @@
 import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/manager_contact.dart';
 import 'package:aia_mobile/features/auth/presentation/widgets/manager_contact_sheet.dart';
@@ -42,21 +44,112 @@ void main() {
 
   Finder sheet() => find.byType(ManagerContactSheet);
 
-  testWidgets('shows the heading, both ways to reach the manager with their '
-      'contact, and Цуцлах', (tester) async {
+  testWidgets('shows the heading, its message, and both ways to reach the '
+      'manager with their contact — and no Цуцлах (Issue #239)', (
+    tester,
+  ) async {
     await openSheet(tester);
 
     expect(sheet(), findsOneWidget);
     expect(find.text(LoginStrings.contactManager), findsOneWidget);
+    expect(
+      find.text(
+        'Дэлгэрэнгүй мэдээлэл авахыг хүсвэл бидэнтэй доорх утас, имэйл '
+        'хаягаар холбогдоорой.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Утасдах'), findsOneWidget);
     expect(find.text('+976 7505 1055'), findsOneWidget);
     expect(find.text('Email бичих'), findsOneWidget);
     expect(find.text('info@ai-academy.asia'), findsOneWidget);
+    expect(find.text('Цуцлах'), findsNothing);
     expect(
-      find.widgetWithText(AppButton, LoginStrings.contactCancel),
-      findsOneWidget,
+      find.descendant(of: sheet(), matching: find.byType(AppButton)),
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('heads with Login\'s heading over the dialog\'s message style', (
+    tester,
+  ) async {
+    await openSheet(tester);
+
+    final heading = tester.widget<Text>(find.text(LoginStrings.contactManager));
+    expect(heading.style, AppTypography.heading);
+    expect(heading.textAlign, TextAlign.center);
+    final message = tester.widget<Text>(find.text(LoginStrings.contactMessage));
+    expect(message.style, AppTypography.statLabel);
+    expect(
+      tester.getTopLeft(find.text(LoginStrings.contactMessage)).dy,
+      greaterThan(
+        tester.getBottomLeft(find.text(LoginStrings.contactManager)).dy,
+      ),
+    );
+  });
+
+  testWidgets('each option is a Login contact card: blue glyph on a pale '
+      'blue round tile, the action over its contact', (tester) async {
+    await openSheet(tester);
+
+    for (final (glyph, label, value) in [
+      (AppIcons.phone, 'Утасдах', '+976 7505 1055'),
+      (AppIcons.envelope, 'Email бичих', 'info@ai-academy.asia'),
+    ]) {
+      expect(tester.widget<Icon>(find.byIcon(glyph)).color, AppColors.blue);
+      final tile = tester.widget<Container>(
+        find
+            .ancestor(of: find.byIcon(glyph), matching: find.byType(Container))
+            .first,
+      );
+      final fill = tile.decoration! as BoxDecoration;
+      expect(fill.shape, BoxShape.circle);
+      expect(fill.color, AppColors.blue.withValues(alpha: 0.12));
+      expect(
+        tester.getSize(
+          find
+              .ancestor(
+                of: find.byIcon(glyph),
+                matching: find.byType(Container),
+              )
+              .first,
+        ),
+        const Size.square(AppDimens.statIconTile),
+      );
+      expect(
+        tester.widget<Text>(find.text(label)).style,
+        AppTypography.cardHeading,
+      );
+      expect(
+        tester.widget<Text>(find.text(value)).style,
+        AppTypography.statLabel,
+      );
+      final card = find.ancestor(
+        of: find.text(label),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints?.maxHeight == AppDimens.cardHeight,
+        ),
+      );
+      expect(tester.getSize(card).height, AppDimens.cardHeight);
+    }
+  });
+
+  testWidgets('keeps Login\'s side margins', (tester) async {
+    await openSheet(tester);
+
+    final sheetLeft = tester.getTopLeft(sheet()).dx;
+    final cardLeft = tester
+        .getTopLeft(
+          find.ancestor(
+            of: find.text('Утасдах'),
+            matching: find.byType(InkWell),
+          ),
+        )
+        .dx;
+    expect(cardLeft - sheetLeft, AppDimens.screenPadding);
   });
 
   testWidgets('draws each option with its Phosphor glyph and the card caret', (
@@ -99,14 +192,14 @@ void main() {
     expect(sheet(), findsNothing);
   });
 
-  testWidgets('Цуцлах, the barrier and system back all complete with null', (
-    tester,
-  ) async {
+  testWidgets('the barrier, a drag down and system back all complete with '
+      'null', (tester) async {
     for (final close in <Future<void> Function()>[
-      () => tester.tap(
-        find.widgetWithText(AppButton, LoginStrings.contactCancel),
-      ),
       () => tester.tapAt(const Offset(196, 40)),
+      () => tester.drag(
+        find.text(LoginStrings.contactManager),
+        const Offset(0, 500),
+      ),
       () => tester.binding.handlePopRoute(),
     ]) {
       final answers = await openSheet(tester);

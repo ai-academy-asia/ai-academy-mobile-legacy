@@ -1156,8 +1156,8 @@ void main() {
       expect(opened, isEmpty);
     });
 
-    testWidgets('Цуцлах returns to Login with nothing launched and the auth '
-        'state untouched', (tester) async {
+    testWidgets('dismissing the sheet returns to Login with nothing launched '
+        'and the auth state untouched', (tester) async {
       final store = AuthSessionStore();
       final (:opened, :passwords, :auth) = await pumpWithContact(
         tester,
@@ -1166,7 +1166,9 @@ void main() {
 
       await tester.tap(contactCard());
       await tester.pumpAndSettle();
-      await choose(tester, LoginStrings.contactCancel);
+      // A tap on the barrier above the sheet — there is no Цуцлах (#239).
+      await tester.tapAt(const Offset(196, 40));
+      await tester.pumpAndSettle();
 
       expect(sheet(), findsNothing);
       expect(find.byType(LoginScreen), findsOneWidget);

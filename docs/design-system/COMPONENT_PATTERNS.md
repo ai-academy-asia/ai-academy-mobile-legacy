@@ -71,7 +71,7 @@ Practical consequence: **do not hardcode 361.** A widget that fills its parent s
 Two exist, neither drawn by a Figma frame, so both are assembled from existing tokens and components rather than new design:
 
 - **`SignOutConfirmationDialog`** (`auth`, #166) — a white `Dialog` at `cardRadius` and `cardPadding`: `cardHeading` title, `statLabel` message, then the filled `AppButton` over the outlined one.
-- **`ManagerContactSheet`** (`auth`, #186) — a Material bottom sheet on `AppColors.surface` with `cardRadius` top corners, capped at `maxContentWidth`, inside the bottom safe area: `cardHeading` heading, two options drawn as the Login frame's `ContactManagerCard` (80pt, 1pt border, trailing caret; a leading Phosphor glyph, `cardTitle` action over `cardSupporting` contact), and the outlined `AppButton` to cancel.
+- **`ManagerContactSheet`** (`auth`, #186, restyled #239) — a Material bottom sheet on `AppColors.surface` with `cardRadius` top corners, capped at `maxContentWidth`, inside the bottom safe area, `screenPadding` at the sides and `headingToForm` above and below: Login's `heading` centred, a `statLabel` message `titleToSupporting` under it, then two options drawn as the Login frame's `ContactManagerCard` (80pt, 1pt border, trailing caret) — each led by its Phosphor glyph in `AppColors.blue` on a round `statIconTile` tile of `AppColors.blue` at 12%, with a `cardHeading` action over a `statLabel` contact, `fieldGap` apart. No cancel button: barrier tap, drag down and system back dismiss it with nothing launched.
 
 Both guard against a second tap popping the screen underneath, and every way out other than the action (cancel, barrier, system back) completes as "nothing chosen". Mirror them for any new modal.
 
