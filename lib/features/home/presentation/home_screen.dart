@@ -53,6 +53,7 @@ class HomeScreen extends StatefulWidget {
     this.repository,
     this.clock,
     this.showPaymentPreview = !kReleaseMode,
+    this.showBottomNav = true,
   });
 
   /// Defaults to the composition over the real API. Injected in tests.
@@ -68,6 +69,10 @@ class HomeScreen extends StatefulWidget {
   /// show (Issue #196), and no real student may see those as theirs.
   /// Debug and profile builds open it, for design review on a device.
   final bool showPaymentPreview;
+
+  /// Whether this screen draws the adult tab bar itself. False inside
+  /// `AdultStudentShell`, which owns the one persistent bar (Issue #237).
+  final bool showBottomNav;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -115,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surfaceSubtle,
-        bottomNavigationBar: const AdultBottomNav(current: StudentTab.home),
+        bottomNavigationBar: widget.showBottomNav
+            ? const AdultBottomNav(current: StudentTab.home)
+            : null,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

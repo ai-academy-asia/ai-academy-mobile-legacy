@@ -61,6 +61,7 @@ class CohortListScreen extends StatefulWidget {
     this.enrolledCohortsRepository,
     this.courseId,
     this.enrolledOnly = false,
+    this.showBottomNav = true,
   });
 
   /// Defaults to the real API. Injected in tests.
@@ -87,6 +88,10 @@ class CohortListScreen extends StatefulWidget {
   /// enrolled" is no longer a nicety the list can do without: it decides what
   /// the list *is*, so a failed `GET /me/cohorts` is an error, not a banner.
   final bool enrolledOnly;
+
+  /// Whether this screen draws the adult tab bar itself. False inside
+  /// `AdultStudentShell`, which owns the one persistent bar (Issue #237).
+  final bool showBottomNav;
 
   @override
   State<CohortListScreen> createState() => _CohortListScreenState();
@@ -152,15 +157,17 @@ class _CohortListScreenState extends State<CohortListScreen> {
         // grey page carrying white ones. The cards keep their own tint from
         // `cohort_background.svg`, so only the page changes here.
         backgroundColor: AppColors.surface,
-        bottomNavigationBar: AdultBottomNav(
-          current: StudentTab.progress,
-          // The student's own list *is* the Хичээл tab, so there is nowhere
-          // to go. Any other list was pushed from the course catalog, where
-          // returning to "Хичээл" is a plain pop.
-          onCurrentTap: widget.enrolledOnly
-              ? null
-              : () => Navigator.of(context).maybePop(),
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? AdultBottomNav(
+                current: StudentTab.progress,
+                // The student's own list *is* the Хичээл tab, so there is
+                // nowhere to go. Any other list was pushed from the course
+                // catalog, where returning to "Хичээл" is a plain pop.
+                onCurrentTap: widget.enrolledOnly
+                    ? null
+                    : () => Navigator.of(context).maybePop(),
+              )
+            : null,
         body: SafeArea(
           bottom: false,
           child: ListenableBuilder(

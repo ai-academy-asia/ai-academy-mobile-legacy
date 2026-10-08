@@ -61,23 +61,23 @@ Conventions that hold across the codebase:
 | `/` | `SplashScreen` — animates, then `pushReplacement` to `/login` after 7s |
 | `/login` | `LoginScreen` — on success, `openSignedIn` opens the `homeRouteFor` Home, or first "Нууц үгээ тохируулах" when `must_change_password` (Issue #182) |
 | `/reset-password` | `ResetPasswordScreen` — the authenticated change-password form: from Profile's Change password, from Login's "Нууц үг сэргээх" only while a live session is held, and in place of Home when `must_change_password` (#182). Signed out, "Нууц үг сэргээх" and the "Менежертэй холбогдоорой" card open the contact sheet instead (`chooseManagerContact`, Issue #186): "Утасдах" opens `tel:+97675051055`, "Email бичих" `mailto:info@ai-academy.asia` — the business-confirmed contact (`ManagerContact`, Issue #184) — and "Цуцлах" opens nothing |
-| `/home` | `HomeScreen` (adult Нүүр tab) |
+| `/home` | `AdultStudentShell` on Нүүр (`HomeScreen`) — the adult tabs' persistent shell (Issue #237) |
 | `/junior-home` | `JuniorHomeScreen` (junior Нүүр tab) — `homeRouteFor` picks between the Homes by `user_type` |
 | `/teacher-home` | `TeacherHomeScreen` (teacher Нүүр tab, Issue #229) — where `user_type: "teacher"` lands |
 | `/teacher-schedule` | `TeacherScheduleScreen` (teacher Хуваарь tab, Issue #231), switched to with `openTeacherTab` |
 | `/teacher-gradebook` | `TeacherGradebookScreen` (teacher Дүнгийн хуудас tab, Issue #233), switched to with `openTeacherTab`; the teacher Профайл tab is inert |
-| `/my-cohorts` | `CohortListScreen(enrolledOnly: true)` (adult Хичээл tab) |
+| `/my-cohorts` | `AdultStudentShell` on Хичээл (`CohortListScreen(enrolledOnly: true)`) |
 | `/junior-progress` | `JuniorProgressScreen` (junior Сурлагын явц tab) |
 | `/junior-profile` | `JuniorProfileScreen` (junior Профайл tab) |
 | `/courses` | `CourseCatalogScreen` — draft catalog, no longer reached from Home |
 | `/cohorts` | `CohortListScreen`, optional `int` course-id argument via `ModalRoute.settings.arguments` |
-| `/profile` | `ProfileScreen` (adult Профайл tab) |
+| `/profile` | `AdultStudentShell` on Профайл (`ProfileScreen`) |
 
 **Everything deeper is pushed imperatively** with `Navigator.push(MaterialPageRoute(...))`: Course Detail, Course Module List, Lesson List (from an unlocked module card), Exercise Detail, and the two Quiz screens. There is no deep-linking and no route-argument type safety beyond the one `/cohorts` cast.
 
 One navigation idiom worth knowing, in `course_learning`: `CourseQuizScreen` finishes by calling `pushReplacement` to `CourseQuizResultScreen`, passing the server's `QuizAttemptResult` as the **replaced route's** result. That completes the *original* `push` future immediately (not when the result screen later pops), which is invisible to the user because Exercise Detail is off-screen throughout. Exercise Detail then re-reads the lesson for its quiz summary (`refreshQuiz`) — it does so however the quiz screen ends, since closing part-way leaves an attempt open on the server. The result screen pops once to return there.
 
-**Bottom navigation** (`AppBottomNav`) appears on the six tab screens — each track's Home, progress and profile screen. The two tracks share the bar's *behaviour* but never its screens: every tab switch goes through `openStudentTab(context, track, tab)` (`auth/presentation/student_tabs.dart`), which pops back to Home for Нүүр and otherwise replaces whatever tab sits above Home with the track's own route (`StudentTabRoutes.of`) — so the stack is never deeper than Home plus one tab. Each track draws the bar through one wrapper holding its item list: `AdultBottomNav` (the shared defaults unmodified; each tab a gray Phosphor outline, filled blue when active, the same on every screen, Issue #188) and `JuniorBottomNav` (the same defaults and outline/filled treatment, Issue #190).
+**Bottom navigation** (`AppBottomNav`) appears on each track's Home, progress and profile tab. **Adult** (Issue #237): the three tabs live in one `AdultStudentShell` (`home/presentation/adult_student_shell.dart`) — one `Scaffold` owns the one bar, and a tab switch is a `setState` over a lazily-built `IndexedStack`, so the bar never takes part in a page transition and each opened tab keeps its state (an opened tab is not re-fetched on return; pull-to-refresh still works). The tab screens are built with `showBottomNav: false`; system back on Хичээл/Профайл returns to Нүүр; detail screens are still pushed on the root navigator, over the whole shell. **Junior** (and the standalone `/cohorts` list) still switch by route: `openStudentTab(context, track, tab)` (`auth/presentation/student_tabs.dart`) pops back to Home for Нүүр and otherwise replaces whatever tab sits above Home with the track's own route (`StudentTabRoutes.of`) — so the stack is never deeper than Home plus one tab. Each track draws the bar through one wrapper holding its item list: `AdultBottomNav` (the shared defaults unmodified; each tab a gray Phosphor outline, filled blue when active, the same on every screen, Issue #188) and `JuniorBottomNav` (the same defaults and outline/filled treatment, Issue #190).
 
 ## 4. Repository pattern
 

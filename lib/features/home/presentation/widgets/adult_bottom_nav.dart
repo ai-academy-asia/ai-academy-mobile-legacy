@@ -8,9 +8,11 @@ import '../home_strings.dart';
 /// Phosphor "House" Fill.
 const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 
-/// Phosphor "BookOpenText" Fill — its spine and corners measure as the
-/// outline glyph's own, scaled to 24.
-const String _coursesFilled = 'assets/icons/nav_courses_selected.svg';
+/// [AppIcons.bookOpenText] itself, filled — generated from the font glyph's
+/// own contours (its two page holes dropped, the three text lines kept as
+/// cut-outs), so active and inactive are one book, not Phosphor's separately
+/// drawn "BookOpenText" Fill (Issue #237).
+const String _coursesFilled = 'assets/icons/nav_courses_active.svg';
 
 /// Phosphor "User" Fill — the same export `JuniorBottomNav` draws.
 const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
@@ -30,8 +32,18 @@ const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
 /// [AppIcons.bookOpenText] / [_coursesFilled], Профайл [AppIcons.user] /
 /// [_profileFilled]. The font carries the outline weight only, so the filled
 /// ones are the Figma exports.
+///
+/// Inside `AdultStudentShell` the bar is drawn once, by the shell, with
+/// [onSelect] switching the shell's tab in place (Issue #237); a screen drawn
+/// on its own leaves [onSelect] null and switches routes through
+/// [openStudentTab].
 class AdultBottomNav extends StatelessWidget {
-  const AdultBottomNav({required this.current, super.key, this.onCurrentTap});
+  const AdultBottomNav({
+    required this.current,
+    super.key,
+    this.onCurrentTap,
+    this.onSelect,
+  });
 
   /// The tab whose screen this is. Drawn selected.
   final StudentTab current;
@@ -40,6 +52,10 @@ class AdultBottomNav extends StatelessWidget {
   /// since the student is already there. The cohort list passes a pop when it
   /// was pushed from the course catalog rather than opened as the tab.
   final VoidCallback? onCurrentTap;
+
+  /// Switches to another tab without navigating. Null routes the switch
+  /// through [openStudentTab].
+  final ValueChanged<StudentTab>? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +71,8 @@ class AdultBottomNav extends StatelessWidget {
         label: label,
         onTap: tab == current
             ? onCurrentTap
+            : onSelect != null
+            ? () => onSelect!(tab)
             : () => openStudentTab(context, StudentTrack.adult, tab),
       );
     }

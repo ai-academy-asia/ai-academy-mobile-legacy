@@ -3,7 +3,7 @@ import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/student_tabs.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/home/presentation/home_screen.dart';
-import 'package:aia_mobile/features/home/presentation/home_strings.dart';
+import 'package:aia_mobile/features/home/presentation/adult_student_shell.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_screen.dart';
@@ -23,12 +23,14 @@ import '../junior_home/fake_junior_home_repository.dart';
 import '../junior_home/fake_junior_progress_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 
-/// The student tab bar across its real screens, for both tracks.
+/// The junior tab bar across its real screens.
 ///
-/// Each Home is pumped as the root it is after sign-in, with **every** tab
-/// route registered the way `AiAcademyApp` registers them — both tracks' —
-/// so a junior tab that opened an adult screen (or the reverse) would land on
-/// it here and fail, rather than on a missing route.
+/// Junior Home is pumped as the root it is after sign-in, with **every** tab
+/// route registered the way `AiAcademyApp` registers them — the adult ones
+/// as `AdultStudentShell` — so a junior tab that opened an adult screen would
+/// land on it here and fail, rather than on a missing route. The adult tabs
+/// switch inside that shell rather than by route (Issue #237):
+/// `adult_student_shell_test.dart`.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -59,6 +61,27 @@ void main() {
     );
   });
 
+  /// The adult routes, as `AiAcademyApp` registers them.
+  Widget adultShell(StudentTab initialTab) => AdultStudentShell(
+    initialTab: initialTab,
+    home: HomeScreen(
+      repository: FakeHomeDashboardRepository(),
+      showBottomNav: false,
+    ),
+    progress: CohortListScreen(
+      enrolledOnly: true,
+      showBottomNav: false,
+      repository: FakeCohortRepository(),
+      courseRepository: FakeCourseRepository(),
+      enrollmentRepository: FakeEnrollmentRepository(),
+      enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
+    ),
+    profile: ProfileScreen(
+      repository: FakeCurrentUserRepository(),
+      showBottomNav: false,
+    ),
+  );
+
   /// One track: its Home, the screens its other two tabs open, the screens
   /// they must never open, and the labels its bars draw.
   final tracks = [
@@ -72,17 +95,6 @@ void main() {
       homeLabel: JuniorHomeStrings.navHome,
       progressLabel: JuniorHomeStrings.navProgress,
       profileLabel: JuniorHomeStrings.navProfile,
-    ),
-    (
-      name: 'Adult',
-      route: HomeRoutes.adult,
-      homeType: HomeScreen,
-      progressType: CohortListScreen,
-      profileType: ProfileScreen,
-      foreignTypes: const [JuniorProgressScreen, JuniorProfileScreen],
-      homeLabel: HomeStrings.navHome,
-      progressLabel: HomeStrings.navCourses,
-      profileLabel: HomeStrings.navProfile,
     ),
   ];
 
@@ -105,19 +117,13 @@ void main() {
             theme: AppTheme.light,
             initialRoute: track.route,
             routes: {
-              HomeRoutes.adult: (_) =>
-                  HomeScreen(repository: FakeHomeDashboardRepository()),
+              HomeRoutes.adult: (_) => adultShell(StudentTab.home),
               HomeRoutes.junior: (_) =>
                   JuniorHomeScreen(repository: FakeJuniorHomeRepository()),
-              StudentTabRoutes.adultProgress: (_) => CohortListScreen(
-                enrolledOnly: true,
-                repository: FakeCohortRepository(),
-                courseRepository: FakeCourseRepository(),
-                enrollmentRepository: FakeEnrollmentRepository(),
-                enrolledCohortsRepository: FakeEnrolledCohortsRepository(),
-              ),
+              StudentTabRoutes.adultProgress: (_) =>
+                  adultShell(StudentTab.progress),
               StudentTabRoutes.adultProfile: (_) =>
-                  ProfileScreen(repository: FakeCurrentUserRepository()),
+                  adultShell(StudentTab.profile),
               StudentTabRoutes.juniorProgress: (_) => JuniorProgressScreen(
                 repository: FakeJuniorProgressRepository(),
               ),

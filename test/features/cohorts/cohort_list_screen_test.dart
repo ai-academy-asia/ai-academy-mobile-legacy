@@ -214,13 +214,13 @@ void main() {
     ) async {
       await pumpCatalog(tester);
 
-      // The filled weight of the same Phosphor book (Issue #188), scaled with
-      // the bar's icon size and tinted with its selected colour.
+      // The outline book's own glyph with its pages filled (Issue #237),
+      // scaled with the bar's icon size and tinted with its selected colour.
       final nav = find.byType(AppBottomNav);
       final svg = tester.widget<SvgPicture>(
         find.descendant(of: nav, matching: find.byType(SvgPicture)),
       );
-      expect(svg.bytesLoader.toString(), contains('nav_courses_selected'));
+      expect(svg.bytesLoader.toString(), contains('nav_courses_active'));
       expect(
         svg.colorFilter,
         const ColorFilter.mode(Color(0xFF2970FF), BlendMode.srcIn),
