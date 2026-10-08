@@ -8,6 +8,20 @@ import 'teacher_tabs.dart';
 /// Phosphor "House" Fill — the export `AdultBottomNav` draws.
 const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 
+/// [AppIcons.calendar] itself, filled — generated from the font glyph's own
+/// contours (its page holes dropped, the "12" kept as a cut-out), so active
+/// and inactive are one calendar (Issue #241).
+const String _scheduleFilled = 'assets/icons/nav_schedule_active.svg';
+
+/// [AppIcons.exam] itself, filled — generated from the font glyph's own
+/// contours (its sheet hole dropped, the "A+" kept as a cut-out), so active
+/// and inactive are one sheet (Issue #241).
+const String _gradesFilled = 'assets/icons/nav_grades_active.svg';
+
+/// Phosphor "User" Fill — the export `AdultBottomNav` and `JuniorBottomNav`
+/// draw for the same outline [AppIcons.user].
+const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
+
 /// The teacher tab bar, as the `teacher-homepage` and `huvaari` references
 /// draw it: the app-wide [AppBottomNav] with its defaults and four tabs —
 /// Нүүр, Хуваарь, Дүнгийн хуудас, Профайл. With the bar's 16pt insets the
@@ -24,19 +38,39 @@ const String _homeFilled = 'assets/icons/nav_home_selected.svg';
 /// reference draws a different bar (Хуваарь, Дүнгийн хуудас, Хөтөлбөр,
 /// Профайл); the app keeps this one by instruction.
 ///
-/// The selected Хуваарь draws the outline calendar in the bar's blue, and the
-/// selected Дүнгийн хуудас the outline "A+" sheet: the references' filled
-/// glyphs have not been exported.
+/// Every tab follows the student bars' treatment: its gray outline glyph when
+/// inactive, and the same glyph filled in the bar's blue when active
+/// ([AppBottomNavItem.selectedAsset]). Нүүр and Профайл use the Phosphor Fill
+/// exports the student bars use; Хуваарь and Дүнгийн хуудас — whose
+/// references' filled glyphs were never exported — use fills generated from
+/// the outline glyphs themselves, so the shape never changes on selection
+/// (Issue #241).
+///
+/// Inside `TeacherShell` the bar is drawn once, by the shell, with [onSelect]
+/// switching the shell's tab in place (Issue #241); a screen drawn on its own
+/// leaves [onSelect] null and switches routes through [openTeacherTab].
+/// Профайл stays inert either way.
 class TeacherBottomNav extends StatelessWidget {
-  const TeacherBottomNav({this.current = TeacherTab.home, super.key});
+  const TeacherBottomNav({
+    this.current = TeacherTab.home,
+    super.key,
+    this.onSelect,
+  });
 
   /// The tab whose screen this is. Drawn selected, and inert.
   final TeacherTab current;
 
+  /// Switches to another tab without navigating. Null routes the switch
+  /// through [openTeacherTab].
+  final ValueChanged<TeacherTab>? onSelect;
+
   @override
   Widget build(BuildContext context) {
-    VoidCallback? open(TeacherTab tab) =>
-        tab == current ? null : () => openTeacherTab(context, tab);
+    VoidCallback? open(TeacherTab tab) => tab == current
+        ? null
+        : onSelect != null
+        ? () => onSelect!(tab)
+        : () => openTeacherTab(context, tab);
 
     return AppBottomNav(
       currentIndex: current.index,
@@ -50,16 +84,21 @@ class TeacherBottomNav extends StatelessWidget {
         ),
         AppBottomNavItem(
           icon: AppIcons.calendar,
+          selectedAsset: _scheduleFilled,
           label: TeacherHomeStrings.navSchedule,
           onTap: open(TeacherTab.schedule),
         ),
         AppBottomNavItem(
           icon: AppIcons.exam,
+          selectedAsset: _gradesFilled,
           label: TeacherHomeStrings.navGrades,
           onTap: open(TeacherTab.grades),
         ),
+        // Inert: there is no Teacher Profile screen (#241), so the shell never
+        // selects it — the fill is only the bar's treatment kept consistent.
         const AppBottomNavItem(
           icon: AppIcons.user,
+          selectedAsset: _profileFilled,
           label: TeacherHomeStrings.navProfile,
         ),
       ],

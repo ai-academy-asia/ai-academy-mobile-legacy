@@ -33,7 +33,12 @@ import 'widgets/teacher_week_grid.dart';
 /// follow Teacher Home's: a spinner, the empty line over the grid, the
 /// failure's message with a retry. The grid pulls to refresh.
 class TeacherScheduleScreen extends StatefulWidget {
-  const TeacherScheduleScreen({super.key, this.repository, this.clock});
+  const TeacherScheduleScreen({
+    super.key,
+    this.repository,
+    this.clock,
+    this.showBottomNav = true,
+  });
 
   /// Defaults to the real API. Injected in tests.
   final TeacherScheduleRepository? repository;
@@ -41,6 +46,10 @@ class TeacherScheduleScreen extends StatefulWidget {
   /// Decides which day is "today" and which sessions are over. Injected in
   /// tests.
   final DateTime Function()? clock;
+
+  /// Whether this screen draws its tab bar itself. False inside
+  /// `TeacherShell`, which owns the one persistent bar (Issue #241).
+  final bool showBottomNav;
 
   @override
   State<TeacherScheduleScreen> createState() => _TeacherScheduleScreenState();
@@ -95,9 +104,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surface,
-        bottomNavigationBar: const TeacherBottomNav(
-          current: TeacherTab.schedule,
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? const TeacherBottomNav(current: TeacherTab.schedule)
+            : null,
         body: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) => Column(

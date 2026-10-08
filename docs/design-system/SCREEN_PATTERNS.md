@@ -47,9 +47,9 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 | Login | `/login` | none | `auth` (real) |
 | Reset Password | `/reset-password` | none | `auth` (real) |
 | Home | `/home` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | composed (real) |
-| Teacher Home | `/teacher-home` | teacher bottom nav (four tabs, Профайл inert; 10pt labels per its reference) | `teacher` — `GET /teachers/{actor_id}/schedule` (real) |
-| Teacher Schedule | `/teacher-schedule` | blue date header + week strip; teacher bottom nav, Хуваарь selected | `teacher` — schedule + `GET /teacher/cohorts/{id}/sessions`, sheets read `GET /teacher/sessions/{id}/attendance` (real) |
-| Teacher Gradebook | `/teacher-gradebook` (student list, student detail, submission detail pushed on top, no bottom nav) | white title band + rule; teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
+| Teacher Home | `/teacher-home` (in `TeacherShell`) | teacher bottom nav — the shell's, persistent (four tabs, Профайл inert; 10pt labels per its reference) | `teacher` — `GET /teachers/{actor_id}/schedule` (real) |
+| Teacher Schedule | `/teacher-schedule` (in `TeacherShell`) | blue date header + week strip; the shell's teacher bottom nav, Хуваарь selected | `teacher` — schedule + `GET /teacher/cohorts/{id}/sessions`, sheets read `GET /teacher/sessions/{id}/attendance` (real) |
+| Teacher Gradebook | `/teacher-gradebook` (in `TeacherShell`; student list, student detail, submission detail pushed on top, no bottom nav) | white title band + rule; the shell's teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
 | Cohort List | `/my-cohorts` (in `AdultStudentShell`), `/cohorts` | bottom nav — the shell's on `/my-cohorts`, its own on `/cohorts` | `cohorts` + `enrollments` (real) |
 | Profile | `/profile` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | `auth` current user (real) |
 | Course Catalog | `/courses` | — | `courses` (real) |

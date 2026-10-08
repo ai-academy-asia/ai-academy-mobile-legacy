@@ -13,9 +13,9 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_strin
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/gradebook_widgets.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_card.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_tabs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -523,18 +523,24 @@ void main() {
         MaterialApp(
           theme: AppTheme.light,
           initialRoute: HomeRoutes.teacher,
+          // The app's own: the tabs inside one persistent shell (#241).
           routes: {
-            HomeRoutes.teacher: (_) => TeacherHomeScreen(
-              repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
-              clock: tuesday,
-            ),
-            TeacherTabRoutes.schedule: (_) => TeacherScheduleScreen(
-              repository: FakeTeacherScheduleRepository(),
-              clock: tuesday,
-            ),
-            TeacherTabRoutes.gradebook: (_) => TeacherGradebookScreen(
-              repository: FakeTeacherGradebookRepository(
-                classes: [sampleClass()],
+            HomeRoutes.teacher: (_) => TeacherShell(
+              home: TeacherHomeScreen(
+                repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
+                clock: tuesday,
+                showBottomNav: false,
+              ),
+              schedule: TeacherScheduleScreen(
+                repository: FakeTeacherScheduleRepository(),
+                clock: tuesday,
+                showBottomNav: false,
+              ),
+              grades: TeacherGradebookScreen(
+                repository: FakeTeacherGradebookRepository(
+                  classes: [sampleClass()],
+                ),
+                showBottomNav: false,
               ),
             ),
           },
