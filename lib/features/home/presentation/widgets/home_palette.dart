@@ -1,5 +1,7 @@
 import 'package:flutter/painting.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 /// The Adult Home frames' colours, sampled from the four references at 1:1.
 ///
 /// Screen-local rather than added to [AppColors], for the reason
@@ -12,24 +14,24 @@ import 'package:flutter/painting.dart';
 abstract final class HomePalette {
   /// Every card outline on the screen, the cohort card's divider, the
   /// progress track and the notification circle.
-  static const Color border = Color(0xFFD6DBE1);
+  static const Color border = AppColors.outline;
 
   /// The rule under the header — the bottom bar's own top rule.
-  static const Color headerRule = Color(0xFFEAEDF0);
+  static const Color headerRule = AppColors.divider;
 
   /// The frames' own blue — four points off [AppColors.blue] (`#296CFF`),
   /// the same `#2970FF` `CourseModuleListScreen` and `JuniorPalette` keep.
-  static const Color accent = Color(0xFF2970FF);
+  static const Color accent = AppColors.accent;
 
   /// The "Active"/"Open" pill. The ink is a shade darker than the outline.
-  static const Color activeOutline = Color(0xFF14AE5C);
-  static const Color activeFill = Color(0xFFEBFFEE);
-  static const Color activeInk = Color(0xFF009951);
+  static const Color activeOutline = AppColors.successOutline;
+  static const Color activeFill = AppColors.successFill;
+  static const Color activeInk = AppColors.successInk;
 
   /// The "Live" pill: `CohortCard`'s "Finished" outline and fill, with the
   /// label in [accent].
-  static const Color liveOutline = Color(0xFF0D99FF);
-  static const Color liveFill = Color(0xFFE5F4FF);
+  static const Color liveOutline = AppColors.infoInk;
+  static const Color liveFill = AppColors.infoFill;
 
   /// A statistic's caption — "Дараанийн төлөлт", "Хичээлийн ирц". A warm
   /// grey, not [AppColors.textSecondary]: it reads `#726D6D` on white where
@@ -37,27 +39,27 @@ abstract final class HomePalette {
   static const Color statLabel = Color(0xFF726D6D);
 
   /// The icon tile beside a full-width statistic row.
-  static const Color iconTileFill = Color(0xFFF9FAFB);
+  static const Color iconTileFill = AppColors.surfaceSubtle;
 
   /// "Хичээлийн ирц" as a tile: a left-to-right blue gradient.
   static const Color attendanceStart = Color(0xFF175FEF);
   static const Color attendanceEnd = Color(0xFF518BFF);
 
   /// An overdue payment tile, its status line, and its outline.
-  static const Color overdueFill = Color(0xFFFFF5F5);
-  static const Color overdueOutline = Color(0xFFEF4444);
-  static const Color overdueInk = Color(0xFFDC3412);
+  static const Color overdueFill = AppColors.errorFill;
+  static const Color overdueOutline = AppColors.errorOutline;
+  static const Color overdueInk = AppColors.errorInk;
 
   /// The unsigned-contract banner.
-  static const Color contractFill = Color(0xFFFFFAE5);
-  static const Color contractOutline = Color(0xFFEBA611);
+  static const Color contractFill = AppColors.warningFill;
+  static const Color contractOutline = AppColors.warningOutline;
 
   /// A disabled action: fill, outline and label. The same three
   /// `ExerciseSubmitButton` samples for its muted pill.
-  static const Color mutedFill = Color(0xFFF9FAFB);
-  static const Color mutedOutline = Color(0xFFEAEDF0);
-  static const Color mutedInk = Color(0xFFAEAFB0);
+  static const Color mutedFill = AppColors.surfaceSubtle;
+  static const Color mutedOutline = AppColors.divider;
+  static const Color mutedInk = AppColors.disabledInk;
 
   /// The faint band under a secondary (white) pill — 4% black, flat, 1.5 deep.
-  static const Color secondaryDepth = Color(0x0A000000);
+  static const Color secondaryDepth = AppColors.subtleDepth;
 }

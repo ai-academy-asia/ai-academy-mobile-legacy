@@ -28,16 +28,16 @@ const FontWeight _titleWeight = FontWeight.w800;
 /// reference. Kept as this file's own copy rather than extracted: those
 /// constants are private to Course Detail's card, and this change leaves
 /// that screen untouched.
-const Color _border = Color(0xFFEAEDF0);
+const Color _border = AppColors.divider;
 const double _liftOffset = 4;
 
 /// Sampled off the reference: the number's grey and the title's ink. The
 /// duration and the locked ink are `CourseModuleCard`'s own, since the
 /// reference draws neither on a lesson card.
-const Color _numberInk = Color(0xFF808080);
-const Color _titleInk = Color(0xFF1A1A1A);
-const Color _secondaryInk = Color(0xFF7D7D7E);
-const Color _lockedInk = Color(0xFFB5B5B5);
+const Color _numberInk = AppColors.textMuted;
+const Color _titleInk = AppColors.textStrong;
+const Color _secondaryInk = AppColors.textSupporting;
+const Color _lockedInk = AppColors.textLocked;
 
 /// Course Detail's own completed badge and padlock — the same assets
 /// `CourseModuleCard` draws, at their native sizes.

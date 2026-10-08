@@ -18,11 +18,11 @@ const double _titleToAnswer = 6;
 /// sharing one gap.
 const double _titleToExplanation = 4;
 const double _answerToExplanation = 12;
-const Color _border = Color(0xFFEAEDF0);
-const Color _correctInk = Color(0xFF009951);
-const Color _wrongInk = Color(0xFFDC3412);
-const Color _answerInk = Color(0xFF1A1A1A);
-const Color _bodyInk = Color(0xFF808080);
+const Color _border = AppColors.divider;
+const Color _correctInk = AppColors.successInk;
+const Color _wrongInk = AppColors.errorInk;
+const Color _answerInk = AppColors.textStrong;
+const Color _bodyInk = AppColors.textMuted;
 
 class QuizFeedbackCard extends StatelessWidget {
   const QuizFeedbackCard({

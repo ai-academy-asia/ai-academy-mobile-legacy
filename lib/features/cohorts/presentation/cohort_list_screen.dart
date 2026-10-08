@@ -28,7 +28,7 @@ import 'widgets/cohort_card.dart';
 /// rule is a lighter grey than the global [AppColors.border].
 const double _headingSize = 24;
 const double _headingToRule = 14;
-const Color _ruleColor = Color(0xFFEAEDF0);
+const Color _ruleColor = AppColors.divider;
 
 /// The heading's line box starts flush with the safe-area inset — this screen
 /// does not take [AppDimens.resetHeadingTop]'s 32, which three other screens

@@ -21,7 +21,7 @@ const double _headingSize = 18;
 /// The feedback card's own outline and its avatar, measured at 1:1 — the
 /// outline is lighter than the field outlines (`exerciseBorderColor`) and the
 /// avatar is 40 across, not 36.
-const Color _cardBorder = Color(0xFFE5E7EB);
+const Color _cardBorder = AppColors.outlineSubtle;
 const double _avatarRadius = 20;
 
 /// The feedback card's own inner rhythm, measured off `Exercise - 14` at 1:1:

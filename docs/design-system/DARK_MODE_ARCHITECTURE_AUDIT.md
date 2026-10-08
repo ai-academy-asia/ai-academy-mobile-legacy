@@ -542,6 +542,13 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >
 > Not migrated yet: the header's `CourseLearningBackButton` and the screens' `SystemUiOverlayStyle.dark`, which are Phase 3 and Phase 4. **Next: Phase 2 (token consolidation).**
 >
+> **Phase 2 done (Issue #256).**
+> - `AppPalette` has 57 roles with exactly the shipped light values. Each value is written once in `AppColors`.
+> - The feature palettes and the duplicated private constants (115 sites) now alias those roles, guarded by `color_literal_consolidation_test.dart`.
+> - Every golden is unchanged.
+>
+> **Next: Phase 3 (shared components).**
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 

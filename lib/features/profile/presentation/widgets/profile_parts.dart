@@ -356,7 +356,7 @@ class ProfileSwitch extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x1A000000),
+                  color: AppColors.shadow,
                   blurRadius: 2,
                   offset: Offset(0, 1),
                 ),
@@ -423,7 +423,7 @@ class ProfileRule extends StatelessWidget {
 
 /// "MN" on the white half of the language control — a deep indigo, not the
 /// capsule's blue.
-const Color _segmentInk = Color(0xFF1501A6);
+const Color _segmentInk = AppColors.linkInk;
 
 /// The title band's "Profile".
 const TextStyle profileHeadingStyle = TextStyle(

@@ -11,11 +11,11 @@ enum QuizAnswerState { normal, selectedCorrect, selectedWrong }
 /// [_border] and carries a flat band of the same colour beneath it, the same
 /// depth idiom the Course Learning cards use; a row the student has picked
 /// swaps the outline for its state colour and drops the band.
-const Color _border = Color(0xFFEAEDF0);
-const Color _correct = Color(0xFF14AE5C);
-const Color _wrong = Color(0xFFEF4444);
+const Color _border = AppColors.divider;
+const Color _correct = AppColors.successOutline;
+const Color _wrong = AppColors.errorOutline;
 const Color _letterInk = Color(0xFF8A8A8A);
-const Color _labelInk = Color(0xFF1A1A1A);
+const Color _labelInk = AppColors.textStrong;
 const double _depthOffset = 4;
 const double _letterToLabel = 23;
 const double _stateIconBox = 24;

@@ -33,7 +33,7 @@ const double _avatarRadius = 20;
 const double _avatarToMessage = 18;
 const double _messageToTimestamp = 18;
 const double _cardToEdit = 17;
-const Color _cardBorder = Color(0xFFE5E7EB);
+const Color _cardBorder = AppColors.outlineSubtle;
 const double _fieldToError = 8;
 
 class NoteTab extends StatefulWidget {

@@ -7,7 +7,7 @@ import '../../core/theme/app_typography.dart';
 
 /// The bar's top rule — a lighter grey than the global [AppColors.border],
 /// sampled off the reference frame at 1:1.
-const Color _dividerColor = Color(0xFFEAEDF0);
+const Color _dividerColor = AppColors.divider;
 
 /// The icon's nominal size. A Phosphor glyph inks about 0.88 of it — the
 /// reference's ~21. A 26pt step up was tried and read too dominant on a
@@ -39,7 +39,7 @@ const double _labelSize = 12;
 /// The selected tab's icon and label — the Adult Home and Profile frames'
 /// `#2970FF`, the same blue the selected-tab SVGs carry. Not [AppColors.blue]
 /// (`#296CFF`), which is close but sampled from a different capture.
-const Color _selectedColor = Color(0xFF2970FF);
+const Color _selectedColor = AppColors.accent;
 
 /// One tab of [AppBottomNav].
 class AppBottomNavItem {

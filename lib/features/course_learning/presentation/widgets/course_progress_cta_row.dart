@@ -130,9 +130,9 @@ class ContinueLearningButton extends StatelessWidget {
 }
 
 /// Measured off the Module List frame at 1:1.
-const Color _primaryInk = Color(0xFF191919);
-const Color _progressTrack = Color(0xFFD6DBE1);
-const Color _accent = Color(0xFF2970FF);
+const Color _primaryInk = AppColors.textTitle;
+const Color _progressTrack = AppColors.outline;
+const Color _accent = AppColors.accent;
 const double _barHeight = 8;
 const double _barToPercent = 13;
 const double _percentToButton = 31;

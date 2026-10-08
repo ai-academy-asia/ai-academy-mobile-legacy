@@ -345,7 +345,7 @@ class _AmountSlider extends StatelessWidget {
                         border: Border.all(color: HomePalette.accent, width: 2),
                         boxShadow: const [
                           BoxShadow(
-                            color: Color(0x14000000),
+                            color: AppColors.shadowSubtle,
                             blurRadius: 4,
                             offset: Offset(0, 2),
                           ),
@@ -420,7 +420,7 @@ class _Tooltip extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x14000000),
+                color: AppColors.shadowSubtle,
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),

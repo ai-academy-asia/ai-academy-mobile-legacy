@@ -24,10 +24,10 @@ import '../course_learning_strings.dart';
 /// 329 x 44 with a 4pt band of [AppColors.primaryDepth] under it; the
 /// disabled pill is the same shape in [_mutedFill] with a [_mutedBorder]
 /// outline and the grey band.
-const Color _fill = Color(0xFF2970FF);
-const Color _mutedFill = Color(0xFFF9FAFB);
-const Color _mutedBorder = Color(0xFFEAEDF0);
-const Color _mutedInk = Color(0xFFAEAFB0);
+const Color _fill = AppColors.accent;
+const Color _mutedFill = AppColors.surfaceSubtle;
+const Color _mutedBorder = AppColors.divider;
+const Color _mutedInk = AppColors.disabledInk;
 const double _depthOffset = 4;
 const double _defaultWidth = 329;
 

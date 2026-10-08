@@ -28,15 +28,15 @@ import 'widgets/course_module_card.dart';
 
 /// The page, and the wash behind the hero: a light blue that clears to the
 /// page colour 75 down from the top of the safe area.
-const Color _page = Color(0xFFFFFFFF);
+const Color _page = AppColors.surface;
 const Color _heroTint = Color(0xFFE8F3FF);
 const double _heroTintHeight = 75;
 
 /// Outlines, the band under each module card, and the connector between them.
-const Color _border = Color(0xFFEAEDF0);
-const Color _primaryInk = Color(0xFF191919);
-const Color _secondaryInk = Color(0xFF7D7D7E);
-const Color _certificationFill = Color(0xFFF9FAFB);
+const Color _border = AppColors.divider;
+const Color _primaryInk = AppColors.textTitle;
+const Color _secondaryInk = AppColors.textSupporting;
+const Color _certificationFill = AppColors.surfaceSubtle;
 
 /// The illustration's box. Larger than the 86 x 75 the frame measures because
 /// `how_ai_works.svg` carries roughly 9% of empty margin inside its own

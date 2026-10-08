@@ -29,7 +29,7 @@ Future<void> showTeacherSessionSheet(
   isScrollControlled: true,
   backgroundColor: AppColors.surface,
   // The reference's scrim: `#666666` over a white screen.
-  barrierColor: const Color(0x99000000),
+  barrierColor: AppColors.barrier,
   constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.vertical(top: Radius.circular(16)),

@@ -46,8 +46,8 @@ import 'widgets/quiz_progress_header.dart';
 /// Sampled off the Quiz frames at 1:1. The page is a shade lighter than the
 /// app-wide [AppColors.background], and the CTA runs the full content column
 /// rather than the 329 the Exercise frames inset it to.
-const Color _page = Color(0xFFF9FAFB);
-const Color _titleInk = Color(0xFF191919);
+const Color _page = AppColors.surfaceSubtle;
+const Color _titleInk = AppColors.textTitle;
 const double _titleSize = 18;
 const double _titleToOptions = 15;
 

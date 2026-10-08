@@ -42,22 +42,22 @@ const double _pillTintOpacity = 0.12;
 /// than the global [AppColors.border] (`#E4E6EF`); both are kept local because
 /// the global tokens are shared with 25 other files.
 const Color _cardFill = Color(0xFFF8FAFF);
-const Color _cardBorder = Color(0xFFD6DBE1);
+const Color _cardBorder = AppColors.outline;
 
 /// The progress bar, measured off the reference: 8 tall (not the global
 /// [AppDimens.progressBarHeight] of 6, which other screens rely on), filled in
 /// the reference's blue and tracked in the same grey as the card's outline.
 const double _progressBarHeight = 8;
-const Color _progressFill = Color(0xFF2970FF);
-const Color _progressTrack = Color(0xFFD6DBE1);
+const Color _progressFill = AppColors.accent;
+const Color _progressTrack = AppColors.outline;
 
 /// The status pills' fills and outlines, straight off the reference. These are
 /// not [AppColors.blue]/[AppColors.success] at an alpha — the reference uses
 /// its own flat pairs, and the hues differ from the app's semantic tokens.
-const Color _finishedInk = Color(0xFF0D99FF);
-const Color _finishedFill = Color(0xFFE5F4FF);
-const Color _runningInk = Color(0xFF14AE5C);
-const Color _runningFill = Color(0xFFEBFFEE);
+const Color _finishedInk = AppColors.infoInk;
+const Color _finishedFill = AppColors.infoFill;
+const Color _runningInk = AppColors.successOutline;
+const Color _runningFill = AppColors.successFill;
 
 /// The badge row to the caption: 24 in Figma.
 const double _rowToCaptionGap = 24;

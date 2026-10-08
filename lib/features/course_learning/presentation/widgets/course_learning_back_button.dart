@@ -10,7 +10,7 @@ import '../course_learning_strings.dart';
 /// matches it, so it stays a local constant here rather than in
 /// `AppColors`, which is sampled from the Login/Home/Catalog references,
 /// not this one.
-const Color _borderColor = Color(0xFFD6DBE1);
+const Color _borderColor = AppColors.outline;
 
 /// Back navigation for the Course Learning screens.
 ///

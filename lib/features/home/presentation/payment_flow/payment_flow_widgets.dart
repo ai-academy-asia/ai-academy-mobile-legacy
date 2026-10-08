@@ -21,16 +21,16 @@ import 'payment_flow_strings.dart';
 /// The colours the shared palettes do not already hold.
 abstract final class PaymentFlowPalette {
   /// Behind a sheet: the references darken white to #666666.
-  static const Color barrier = Color(0x99000000);
+  static const Color barrier = AppColors.barrier;
 
   /// A sheet's drag handle.
-  static const Color handle = Color(0xFFDBDBDC);
+  static const Color handle = AppColors.sheetHandle;
 
   /// The bank sheet's names — a cooler near-black than the text tokens.
   static const Color bankName = Color(0xFF101828);
 
   /// Inside the success tick's ring: its green at 20%.
-  static const Color successFill = Color(0xFFCCEBDC);
+  static const Color successFill = AppColors.successFillStrong;
 }
 
 /// **TEMPORARY** (Issue #198): the logos, method icons and eBarimt QR are cut

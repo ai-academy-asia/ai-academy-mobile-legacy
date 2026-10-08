@@ -8,7 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 /// cooler, lighter grey than [AppColors.border]. Nothing in the shared
 /// palette matches it; see the same constant's note in
 /// `CourseLearningBackButton`.
-const Color exerciseBorderColor = Color(0xFFD6DBE1);
+const Color exerciseBorderColor = AppColors.outline;
 
 /// One bordered input box on the Exercise Detail screen — the link field, the
 /// assignment description, and the note textarea all use this, sized to each

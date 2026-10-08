@@ -17,8 +17,8 @@ import 'widgets/quiz_result_question_row.dart';
 /// refreshed `last_result`.
 /// Sampled off the Quiz result frame at 1:1. The title fits one line there;
 /// at the 22 this used it wrapped to two and pulled the whole column up.
-const Color _page = Color(0xFFF9FAFB);
-const Color _titleInk = Color(0xFF191919);
+const Color _page = AppColors.surfaceSubtle;
+const Color _titleInk = AppColors.textTitle;
 const Color _scoreInk = Color(0xFFDD940E);
 const double _titleSize = 18;
 
@@ -33,7 +33,7 @@ const double _summaryToList = 12;
 /// Sampled off the Quiz result frame at 1:1: the CTA runs the full content
 /// column, and the row dividers are lighter than [AppColors.border].
 const double _ctaWidth = 361;
-const Color _rowDivider = Color(0xFFEAEDF0);
+const Color _rowDivider = AppColors.divider;
 
 class CourseQuizResultScreen extends StatelessWidget {
   const CourseQuizResultScreen({

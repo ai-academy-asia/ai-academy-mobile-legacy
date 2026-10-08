@@ -20,12 +20,12 @@ import 'mentor_feedback_card.dart';
 /// value is used.
 const double _successTileWidth = 44;
 const double _successTileHeight = 30;
-const Color _successTileFill = Color(0xFFCCEBDC);
+const Color _successTileFill = AppColors.successFillStrong;
 
 /// The pair of ticks spans the tile almost edge to edge in the reference, in
 /// a deeper green than [AppColors.success].
 const double _successCheckSize = 32;
-const Color _successCheckInk = Color(0xFF009951);
+const Color _successCheckInk = AppColors.successInk;
 
 /// Negative, so the pair reaches the tile's edges: two centred glyphs pull
 /// their ink *inward* as they grow, so a bigger size alone narrows the pair.
@@ -36,7 +36,7 @@ const String _resubmitIconAsset =
     'assets/images/course_learning/exercise_resubmit.svg';
 const double _resubmitIconBox = 24;
 const double _resubmitLabelSize = 16;
-const Color _resubmitBorder = Color(0xFFD6DBE1);
+const Color _resubmitBorder = AppColors.outline;
 
 /// The submitted card's own rhythm, measured off the reference at 1:1:
 /// divider -> tile 31, tile -> message 41, message -> button 34. The gaps
