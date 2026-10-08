@@ -243,15 +243,22 @@ The **Kind** column groups each palette's values:
 | Fact | Evidence |
 |---|---|
 | Where | **Adult only.** `lib/features/profile/presentation/profile_screen.dart`: `bool _lightMode = false;` (line ~112), a `ProfileRow` with `ProfileIcons.lightMode` (`assets/icons/light_mode.svg`), label `ProfileStrings.lightMode = 'Light mode'`, a `ProfileSwitch` → `setState(() => _lightMode = value)` |
-| Behaviour | Flips local state; **nothing reads it**; not persisted. The value lives in the `State`, so it survives tab switches in the persistent `AdultStudentShell` and is lost on sign-out or app restart. The class doc says so: *"light-mode and notification controls hold local state that nothing else reads — there is no … dark palette"* |
+| Behaviour (before Issue #252) | Flipped local state; **nothing read it**; not persisted. The value lives in the `State`, so it survives tab switches in the persistent `AdultStudentShell` and is lost on sign-out or app restart. The class doc says so: *"light-mode and notification controls hold local state that nothing else reads — there is no … dark palette"* |
 | Junior | No row: `junior_profile_screen.dart` doc says *"no light-mode row"*; `junior_profile_screen_test.dart:79` asserts its absence |
 | Teacher | No row: `teacher_profile_screen.dart` doc says *"no Light mode row"*; `teacher_profile_screen_test.dart:160` asserts its absence |
-| Tests | `profile_screen_test.dart:384`: *"light mode and notification switches start off and flip on tap"* |
+| Tests (before Issue #252) | `profile_screen_test.dart`: *"light mode and notification switches start off and flip on tap"* |
 | Docs | `PROJECT_CONTEXT.md` ("Profile rows … language and theme controls have no destination yet") |
 | **Wording conflict** | The app *is* light, yet the switch labelled **"Light mode" starts OFF**. Read literally, "off" means dark mode is on. The current UI contradicts itself |
 
+**Interim treatment, until approved dark values exist (Issue #252, after a device test).** A switch that flips but changes nothing reads as broken, and "Light mode" *off* in a light app is false. So the Adult row now:
+- keeps its place, since Figma draws it;
+- **shows the app's real theme:** `Theme.of(context).brightness == Brightness.light`, which is *on* today. That value comes from the global `AppThemeController` through `MaterialApp`, so the private `_lightMode` copy is gone;
+- is **inert:** `ProfileSwitch(onChanged: null)` ignores taps and is announced as disabled. This is the treatment Teacher's Notification and MN/EN controls already use for settings with nothing behind them.
+
+The only visible change is that switch: `profile.png`'s diff is a 46 × 25 px box, off → on. Hiding the row was rejected because the frame draws it and Phase 10 would only bring it back. A disabled switch left *off* was rejected because it keeps the false statement. Junior and Teacher still have no row until Phase 10.
+
 **Product requirement (Issue #252): every role gets a control, all writing one global state.**
-- The Adult switch is **not** the source of truth. Its local `_lightMode` field is retired in Phase 10, and the row reads and writes `AppThemeController.instance`.
+- The Adult switch is **not** the source of truth. Its local `_lightMode` field is already gone (interim above); in Phase 10 the row becomes interactive and writes `AppThemeController.instance`.
 - **Junior Profile gets a new theme row** in its existing "App settings" section (`junior_profile_screen.dart`, after `_Caption(JuniorProfileStrings.appSettingsSection)`), built with Junior's own `_Row`.
 - **Teacher Profile gets a new theme row** in its existing "App settings" `ProfileGroup` (`teacher_profile_screen.dart`, after `ProfileCaption(ProfileStrings.appSettingsSection)`), beside Language and Change password.
 - All three rows show the same value, because they read the same state. Changing it in one is visible in the others with no extra code.
@@ -453,7 +460,7 @@ In each phase, **"Light goldens: unchanged"** means the existing PNGs must pass 
 | 7 | **Junior** (required) | Home, Progress, Profile, map, calendar, certificate card | `junior_home/` | 3 | High (illustration) | Light goldens unchanged | No (until §13.4) |
 | 8 | **Teacher** (required) | Home, Schedule (+ sheets), Gradebook, Request, Profile | `teacher/` | 3 | Med | Light goldens unchanged | No |
 | 9 | **Dark values** | `AppPalette.dark`, `AppTheme.dark`, dark asset variants; harness brightness parameter; dark goldens for every golden screen | `core/theme/*`, assets, tests | 1–8 + **Figma** | Med | New `*_dark.png` goldens | **Yes** |
-| 10 | **Preference + controls, all roles** | `ThemePreferenceStore` + `SecureThemePreferenceStore` (existing `flutter_secure_storage`); `AppThemeController.restore` in `main()` before `runApp` (startup initialisation); `setMode` persists. **Three entry points to the one state:** Adult row rewired (drop `_lightMode`), **new Junior row** in App settings, **new Teacher row** in App settings. Theme survives sign-out (§10) | `core/theme/*`, `main.dart`, `profile/profile_screen.dart`, `junior_home/…/junior_profile_screen.dart`, `teacher/…/teacher_profile_screen.dart` | 1, 9 + §13 decisions | Med | Restore-on-start test; write/fallback tests; each Profile row changes the global mode; **a change from one role is seen by the others**; sign-out keeps the mode; Profile goldens updated for the new rows only | Decision (control type; Junior/Teacher row look) |
+| 10 | **Preference + controls, all roles** | `ThemePreferenceStore` + `SecureThemePreferenceStore` (existing `flutter_secure_storage`); `AppThemeController.restore` in `main()` before `runApp` (startup initialisation); `setMode` persists. **Three entry points to the one state:** Adult row made interactive (it already reads the global theme), **new Junior row** in App settings, **new Teacher row** in App settings. Theme survives sign-out (§10) | `core/theme/*`, `main.dart`, `profile/profile_screen.dart`, `junior_home/…/junior_profile_screen.dart`, `teacher/…/teacher_profile_screen.dart` | 1, 9 + §13 decisions | Med | Restore-on-start test; write/fallback tests; each Profile row changes the global mode; **a change from one role is seen by the others**; sign-out keeps the mode; Profile goldens updated for the new rows only | Decision (control type; Junior/Teacher row look) |
 | 11 | **Device validation + native** | Physical iOS and Android in both modes; Android `values-night` launch window and iOS launch screen | `android/app/src/main/res/values*/styles.xml` (not the protected iOS files) | 9–10 | Low | Device checklist | Maybe |
 
 **Every role is in scope, and none is optional.** Phases 4–8 and 10 each name Adult, Junior and Teacher work, and Dark Mode is not released until all three are migrated (§13.7). Propagation across screens needs no per-screen work beyond reading `context.palette`: one `MaterialApp` theme reaches every route of every role.
