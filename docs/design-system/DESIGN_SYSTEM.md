@@ -36,6 +36,13 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 `lib/core/theme/app_colors.dart`. Brand colours were sampled from the logo export; neutrals are the design's.
 
+**Reading colours: `context.palette` (Issue #252).** `AppPalette` (`lib/core/theme/app_palette.dart`) names colours by role (`surface`, `textPrimary`, `divider`, `accent`, …). It is a `ThemeExtension` on `AppTheme.light`, and its light values *are* the constants below and in `HomePalette` (held equal by `test/core/theme/app_palette_test.dart`).
+- **New and migrated widgets** read `context.palette`, not `AppColors` / `HomePalette` / a literal.
+- **Pilot:** Notifications is migrated.
+- **Everything else** moves feature by feature (`DARK_MODE_ARCHITECTURE_AUDIT.md` §15).
+
+The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
+
 | Token | Value | Role |
 |---|---|---|
 | `blue` | `#296CFF` | Primary action, focused border, cursor |

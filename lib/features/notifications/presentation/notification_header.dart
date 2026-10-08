@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import 'notification_strings.dart';
@@ -8,7 +9,9 @@ import 'notification_strings.dart';
 /// The back button with "Notification" centred on its row — the Certificate
 /// screen's header, which the Figma "Notification" frame draws the same.
 /// Shared by the Notification Center and Notification Detail (Issue #248),
-/// so the detail screen reads as the same place.
+/// so the detail screen reads as the same place. Its title takes
+/// `AppPalette.textTitle` (Issue #252); the back button is a shared
+/// component and moves with the others (audit Phase 3).
 class NotificationHeader extends StatelessWidget {
   const NotificationHeader({super.key});
 
@@ -19,10 +22,10 @@ class NotificationHeader extends StatelessWidget {
         const CourseLearningBackButton(icon: AppIcons.arrowLeft),
         Positioned.fill(
           top: _backButtonTop,
-          child: const Center(
+          child: Center(
             child: Text(
               NotificationStrings.title,
-              style: _titleStyle,
+              style: _titleStyle.copyWith(color: context.palette.textTitle),
               textAlign: TextAlign.center,
             ),
           ),
@@ -40,6 +43,5 @@ const TextStyle _titleStyle = TextStyle(
   fontSize: 18,
   height: 26 / 18,
   fontWeight: FontWeight.w700,
-  color: Color(0xFF191919),
   leadingDistribution: TextLeadingDistribution.even,
 );

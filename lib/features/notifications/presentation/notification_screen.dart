@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../home/presentation/home_strings.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../domain/app_notification.dart';
 import 'notification_center.dart';
 import 'notification_detail_screen.dart';
@@ -89,10 +88,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: AppColors.surface,
+        systemNavigationBarColor: context.palette.surface,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -188,6 +187,7 @@ class NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unread = !notification.isRead;
+    final palette = context.palette;
     final row = SizedBox(
       height: _rowHeight,
       child: Padding(
@@ -204,7 +204,7 @@ class NotificationTile extends StatelessWidget {
                 width: _iconSize,
                 height: _iconSize,
                 colorFilter: ColorFilter.mode(
-                  unread ? _unreadAccent : _readInk,
+                  unread ? palette.accent : palette.textInactive,
                   BlendMode.srcIn,
                 ),
               ),
@@ -219,7 +219,9 @@ class NotificationTile extends StatelessWidget {
                     Text(
                       notification.title,
                       style: _rowTitleStyle.copyWith(
-                        color: unread ? AppColors.textPrimary : _readInk,
+                        color: unread
+                            ? palette.textPrimary
+                            : palette.textInactive,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -228,7 +230,9 @@ class NotificationTile extends StatelessWidget {
                     Text(
                       notification.body,
                       style: _bodyStyle.copyWith(
-                        color: unread ? AppColors.textSecondary : _readInk,
+                        color: unread
+                            ? palette.textSecondary
+                            : palette.textInactive,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -243,14 +247,17 @@ class NotificationTile extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(age, style: _ageStyle),
+                  Text(
+                    age,
+                    style: _ageStyle.copyWith(color: palette.textSecondary),
+                  ),
                   const SizedBox(width: _ageToDot),
                   SizedBox.square(
                     dimension: _dotSize,
                     child: unread
-                        ? const DecoratedBox(
+                        ? DecoratedBox(
                             decoration: BoxDecoration(
-                              color: _unreadAccent,
+                              color: palette.accent,
                               shape: BoxShape.circle,
                             ),
                           )
@@ -279,10 +286,10 @@ class NotificationTile extends StatelessWidget {
         children: [
           InkWell(onTap: onTap, child: row),
           // Full width: a childless box in a Column would size to nothing.
-          const SizedBox(
+          SizedBox(
             width: double.infinity,
             height: AppDimens.borderWidth,
-            child: ColoredBox(color: HomePalette.headerRule),
+            child: ColoredBox(color: palette.divider),
           ),
         ],
       ),
@@ -308,7 +315,9 @@ class _Message extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.statLabel,
+              style: AppTypography.statLabel.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             if (action case final action?) ...[
@@ -340,12 +349,6 @@ const double _titleToBody = 4;
 const double _ageToDot = 13;
 const double _dotSize = 8;
 
-/// Unread glyph and dot.
-const Color _unreadAccent = HomePalette.accent;
-
-/// A read row's glyph, title and body.
-const Color _readInk = Color(0xFFB2B2B2);
-
 /// Read by a screen reader before an unread row's title.
 const String _unreadLabel = 'Шинэ';
 
@@ -370,6 +373,5 @@ const TextStyle _ageStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_palette.dart';
 import 'app_typography.dart';
 
 /// The app-wide theme.
@@ -9,7 +10,9 @@ import 'app_typography.dart';
 /// [AppTypography] and `AppDimens` rather than from Material component themes,
 /// because the design is not a Material design. What lives here is only what
 /// the framework needs in order to not contradict it — the font family, the
-/// scaffold background, and the text-selection colours.
+/// scaffold background, and the text-selection colours — plus [AppPalette],
+/// the colour roles migrated widgets read instead of [AppColors] (Issue #252).
+/// There is no dark theme yet: see `AppThemeController`.
 abstract final class AppTheme {
   static ThemeData get light => ThemeData(
     useMaterial3: true,
@@ -26,5 +29,7 @@ abstract final class AppTheme {
       selectionColor: Color(0x33296CFF),
       selectionHandleColor: AppColors.borderFocused,
     ),
+    // The app's colour roles, read with `context.palette` (Issue #252).
+    extensions: const [AppPalette.light],
   );
 }
