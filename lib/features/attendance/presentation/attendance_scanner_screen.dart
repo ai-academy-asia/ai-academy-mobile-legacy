@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../home/presentation/widgets/home_pill_button.dart';
 
@@ -47,16 +47,18 @@ class AttendanceScannerScreen extends StatelessWidget {
       child: Scaffold(
         // What the window shows with no camera behind it — the reference's
         // own white — and, under the scrim, the reference's #6B6B6B.
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         body: Stack(
           children: [
             Positioned.fill(
               child: Semantics(
                 label: AttendanceScannerStrings.window,
-                child: const CustomPaint(
+                child: CustomPaint(
                   painter: _ScrimPainter(
                     windowTop: _windowTop,
                     windowSize: windowSize,
+                    scrim: context.palette.scrim,
+                    bracket: context.palette.onPrimary,
                   ),
                 ),
               ),
@@ -81,7 +83,7 @@ class AttendanceScannerScreen extends StatelessWidget {
                       fontSize: 16,
                       height: 24 / 16,
                       leadingDistribution: TextLeadingDistribution.even,
-                      color: AppColors.onPrimary,
+                      color: context.palette.onPrimary,
                     ),
                   ),
                 ),
@@ -109,12 +111,21 @@ class AttendanceScannerScreen extends StatelessWidget {
 /// The reference's 58% black over everything but the scan window, and the
 /// window's four white corner brackets.
 class _ScrimPainter extends CustomPainter {
-  const _ScrimPainter({required this.windowTop, required this.windowSize});
+  const _ScrimPainter({
+    required this.windowTop,
+    required this.windowSize,
+    required this.scrim,
+    required this.bracket,
+  });
 
   final double windowTop;
   final double windowSize;
 
-  static const Color _scrim = Color(0x94000000);
+  /// The theme's [AppPalette.scrim] and [AppPalette.onPrimary], from the
+  /// widget: a painter has no context (Dark Mode Phase 5).
+  final Color scrim;
+  final Color bracket;
+
   static const double _radius = 32;
 
   /// How far each bracket runs along its two edges from the corner.
@@ -138,11 +149,11 @@ class _ScrimPainter extends CustomPainter {
         Path()..addRect(Offset.zero & size),
         Path()..addRRect(window),
       ),
-      Paint()..color = _scrim,
+      Paint()..color = scrim,
     );
 
     final stroke = Paint()
-      ..color = AppColors.onPrimary
+      ..color = bracket
       ..style = PaintingStyle.stroke
       ..strokeWidth = _bracketStroke;
     final r = window.outerRect;
@@ -168,5 +179,8 @@ class _ScrimPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ScrimPainter old) =>
-      old.windowTop != windowTop || old.windowSize != windowSize;
+      old.windowTop != windowTop ||
+      old.windowSize != windowSize ||
+      old.scrim != scrim ||
+      old.bracket != bracket;
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/course.dart';
 import 'course_badge.dart';
 
@@ -24,15 +24,17 @@ class CoursePriceRow extends StatelessWidget {
       children: [
         Text(
           '${formatCourseAmount(course.finalPriceAmount)} ${course.currency}',
-          style: AppTypography.cardHeading.copyWith(color: AppColors.blue),
+          style: AppTypography.cardHeading.copyWith(
+            color: context.palette.primary,
+          ),
         ),
         if (hasDiscount) ...[
           const SizedBox(width: 8),
           Text(
             '${formatCourseAmount(course.priceAmount)} ${course.currency}',
-            style: AppTypography.cardSupporting.copyWith(
-              decoration: TextDecoration.lineThrough,
-            ),
+            style: AppTypography.cardSupporting
+                .copyWith(color: context.palette.textSecondary)
+                .copyWith(decoration: TextDecoration.lineThrough),
           ),
           const SizedBox(width: 6),
           CourseBadge('-${course.discountPercent}%'),

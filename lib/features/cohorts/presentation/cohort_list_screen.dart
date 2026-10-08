@@ -30,7 +30,6 @@ import 'widgets/cohort_card.dart';
 /// rule is a lighter grey than the global [AppColors.border].
 const double _headingSize = 24;
 const double _headingToRule = 14;
-const Color _ruleColor = AppColors.divider;
 
 /// The heading's line box starts flush with the safe-area inset — this screen
 /// does not take [AppDimens.resetHeadingTop]'s 32, which three other screens
@@ -155,7 +154,7 @@ class _CohortListScreenState extends State<CohortListScreen> {
         // the app: a white page carrying faintly-tinted cards, rather than a
         // grey page carrying white ones. The cards keep their own tint from
         // `cohort_background.svg`, so only the page changes here.
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         bottomNavigationBar: widget.showBottomNav
             ? AdultBottomNav(
                 current: StudentTab.progress,
@@ -195,19 +194,24 @@ class _CohortListScreenState extends State<CohortListScreen> {
                       // way Figma draws it, with no back control.
                       child: Text(
                         CohortListStrings.heading,
-                        style: AppTypography.heading.copyWith(
-                          fontSize: _headingSize,
-                          // The line box stays the 34 the token sets, so only
-                          // the glyphs grow and the heading's top edge does not
-                          // drift: the reference's ink is what was measured,
-                          // its leading was not.
-                          height: 34 / _headingSize,
-                        ),
+                        style: AppTypography.heading
+                            .copyWith(color: context.palette.textPrimary)
+                            .copyWith(
+                              fontSize: _headingSize,
+                              // The line box stays the 34 the token sets, so only
+                              // the glyphs grow and the heading's top edge does not
+                              // drift: the reference's ink is what was measured,
+                              // its leading was not.
+                              height: 34 / _headingSize,
+                            ),
                       ),
                     ),
                     // The header's own bottom rule — this screen had none
                     // before.
-                    Container(height: AppDimens.borderWidth, color: _ruleColor),
+                    Container(
+                      height: AppDimens.borderWidth,
+                      color: context.palette.divider,
+                    ),
                     Expanded(child: _buildBody()),
                   ],
                 ),
@@ -266,13 +270,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -293,7 +297,9 @@ class _EmptyView extends StatelessWidget {
         ),
         child: Text(
           message,
-          style: AppTypography.cardSupporting,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
       ),
@@ -319,7 +325,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -370,7 +378,7 @@ class _CohortList extends StatelessWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: onRefresh,
-            color: AppColors.blue,
+            color: context.palette.primary,
             child: ListView.separated(
               // The same 16 Home leaves between its header rule and its first
               // card.
@@ -444,7 +452,9 @@ class _EnrolledCohortsErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: AppTypography.fieldError,
+              style: AppTypography.fieldError.copyWith(
+                color: context.palette.error,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -458,7 +468,7 @@ class _EnrolledCohortsErrorBanner extends StatelessWidget {
               child: Text(
                 CohortListStrings.retry,
                 style: AppTypography.buttonLabel.copyWith(
-                  color: AppColors.blue,
+                  color: context.palette.primary,
                 ),
               ),
             ),

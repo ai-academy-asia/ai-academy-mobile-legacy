@@ -64,6 +64,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.successInk,
     required this.successFill,
     required this.successOutline,
+    required this.successLabel,
     required this.successFillStrong,
     required this.warning,
     required this.warningFill,
@@ -74,6 +75,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.sheetHandle,
     required this.shadow,
     required this.shadowSubtle,
+    required this.accentOutline,
+    required this.timelineConnector,
+    required this.textFaint,
+    required this.textDeep,
+    required this.textStatLabel,
+    required this.attendanceGradientStart,
+    required this.attendanceGradientEnd,
+    required this.surfaceTinted,
+    required this.scrim,
     required this.juniorCard,
     required this.juniorCardBorder,
     required this.juniorMapSky,
@@ -127,6 +137,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     successInk: AppColors.successInk,
     successFill: AppColors.successFill,
     successOutline: AppColors.successOutline,
+    successLabel: AppColors.successLabel,
     successFillStrong: AppColors.successFillStrong,
     warning: AppColors.warning,
     warningFill: AppColors.warningFill,
@@ -137,6 +148,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     sheetHandle: AppColors.sheetHandle,
     shadow: AppColors.shadow,
     shadowSubtle: AppColors.shadowSubtle,
+    accentOutline: AppColors.accentOutline,
+    timelineConnector: AppColors.timelineConnector,
+    textFaint: AppColors.textFaint,
+    textDeep: AppColors.textDeep,
+    textStatLabel: AppColors.textStatLabel,
+    attendanceGradientStart: AppColors.attendanceGradientStart,
+    attendanceGradientEnd: AppColors.attendanceGradientEnd,
+    surfaceTinted: AppColors.surfaceTinted,
+    scrim: AppColors.scrim,
     juniorCard: AppColors.juniorCard,
     juniorCardBorder: AppColors.juniorCardBorder,
     juniorMapSky: AppColors.juniorMapSky,
@@ -203,7 +223,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// The "AI academy Asia" wordmark's colour (brand navy), applied as a tint.
   final Color wordmark;
 
-  /// A field's or outlined button's resting edge (`#E4E6EF`).
+  /// The resting edge of a field, an outlined button, the bottom card, and
+  /// the Course and Cohort cards (`#E4E6EF`) — lighter than [outline]
+  /// (`#D6DBE1`), which the later frames' cards and pills draw.
   final Color border;
 
   /// A focused field's edge and cursor — neutral, not blue.
@@ -281,6 +303,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// "Active", correct-answer and running-cohort outline and ink.
   final Color successOutline;
 
+  /// A status label drawn in its pill's outline green — the cohort card's
+  /// "Open"/"Active". Text, so separate from [successOutline], which shares
+  /// only its light value; the dark theme needs a legible ink here.
+  final Color successLabel;
+
   /// The stronger green tile — payment success, a submitted assignment.
   final Color successFillStrong;
 
@@ -312,6 +339,35 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   /// The faint lift under a small outlined control.
   final Color shadowSubtle;
+
+  // --- Adult -----------------------------------------------------------------
+
+  /// A deeper blue outline marking the current item (Payment's next installment).
+  final Color accentOutline;
+
+  /// The line joining a timeline's steps (Payment installments).
+  final Color timelineConnector;
+
+  /// Text further back than [textSecondary] — an upcoming installment.
+  final Color textFaint;
+
+  /// The deep navy-black of the payment flow's bank names.
+  final Color textDeep;
+
+  /// A statistic's caption on the Home cards (warm grey).
+  final Color textStatLabel;
+
+  /// The Attendance card's blue gradient, start.
+  final Color attendanceGradientStart;
+
+  /// The Attendance card's blue gradient, end.
+  final Color attendanceGradientEnd;
+
+  /// A white barely tinted blue — the cohort card.
+  final Color surfaceTinted;
+
+  /// Over camera video — the attendance scanner's scrim.
+  final Color scrim;
 
   // --- Junior ----------------------------------------------------------------
 
@@ -386,6 +442,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? successInk,
     Color? successFill,
     Color? successOutline,
+    Color? successLabel,
     Color? successFillStrong,
     Color? warning,
     Color? warningFill,
@@ -396,6 +453,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? sheetHandle,
     Color? shadow,
     Color? shadowSubtle,
+    Color? accentOutline,
+    Color? timelineConnector,
+    Color? textFaint,
+    Color? textDeep,
+    Color? textStatLabel,
+    Color? attendanceGradientStart,
+    Color? attendanceGradientEnd,
+    Color? surfaceTinted,
+    Color? scrim,
     Color? juniorCard,
     Color? juniorCardBorder,
     Color? juniorMapSky,
@@ -446,6 +512,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     successInk: successInk ?? this.successInk,
     successFill: successFill ?? this.successFill,
     successOutline: successOutline ?? this.successOutline,
+    successLabel: successLabel ?? this.successLabel,
     successFillStrong: successFillStrong ?? this.successFillStrong,
     warning: warning ?? this.warning,
     warningFill: warningFill ?? this.warningFill,
@@ -456,6 +523,16 @@ class AppPalette extends ThemeExtension<AppPalette> {
     sheetHandle: sheetHandle ?? this.sheetHandle,
     shadow: shadow ?? this.shadow,
     shadowSubtle: shadowSubtle ?? this.shadowSubtle,
+    accentOutline: accentOutline ?? this.accentOutline,
+    timelineConnector: timelineConnector ?? this.timelineConnector,
+    textFaint: textFaint ?? this.textFaint,
+    textDeep: textDeep ?? this.textDeep,
+    textStatLabel: textStatLabel ?? this.textStatLabel,
+    attendanceGradientStart:
+        attendanceGradientStart ?? this.attendanceGradientStart,
+    attendanceGradientEnd: attendanceGradientEnd ?? this.attendanceGradientEnd,
+    surfaceTinted: surfaceTinted ?? this.surfaceTinted,
+    scrim: scrim ?? this.scrim,
     juniorCard: juniorCard ?? this.juniorCard,
     juniorCardBorder: juniorCardBorder ?? this.juniorCardBorder,
     juniorMapSky: juniorMapSky ?? this.juniorMapSky,
@@ -512,6 +589,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       successInk: mix(successInk, other.successInk),
       successFill: mix(successFill, other.successFill),
       successOutline: mix(successOutline, other.successOutline),
+      successLabel: mix(successLabel, other.successLabel),
       successFillStrong: mix(successFillStrong, other.successFillStrong),
       warning: mix(warning, other.warning),
       warningFill: mix(warningFill, other.warningFill),
@@ -522,6 +600,21 @@ class AppPalette extends ThemeExtension<AppPalette> {
       sheetHandle: mix(sheetHandle, other.sheetHandle),
       shadow: mix(shadow, other.shadow),
       shadowSubtle: mix(shadowSubtle, other.shadowSubtle),
+      accentOutline: mix(accentOutline, other.accentOutline),
+      timelineConnector: mix(timelineConnector, other.timelineConnector),
+      textFaint: mix(textFaint, other.textFaint),
+      textDeep: mix(textDeep, other.textDeep),
+      textStatLabel: mix(textStatLabel, other.textStatLabel),
+      attendanceGradientStart: mix(
+        attendanceGradientStart,
+        other.attendanceGradientStart,
+      ),
+      attendanceGradientEnd: mix(
+        attendanceGradientEnd,
+        other.attendanceGradientEnd,
+      ),
+      surfaceTinted: mix(surfaceTinted, other.surfaceTinted),
+      scrim: mix(scrim, other.scrim),
       juniorCard: mix(juniorCard, other.juniorCard),
       juniorCardBorder: mix(juniorCardBorder, other.juniorCardBorder),
       juniorMapSky: mix(juniorMapSky, other.juniorMapSky),

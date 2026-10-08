@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
-import 'home_palette.dart';
 import 'home_pill_button.dart';
 import 'home_stat_card.dart';
 
@@ -53,9 +52,9 @@ class PaymentCard extends StatelessWidget {
       value: overdue
           ? HomeStrings.paymentOverdue
           : HomeStrings.paymentDueIn(payment.daysUntilDue!),
-      valueColor: overdue ? HomePalette.overdueInk : HomePalette.accent,
-      fill: tinted ? HomePalette.overdueFill : AppColors.surface,
-      outline: tinted ? HomePalette.overdueOutline : HomePalette.border,
+      valueColor: overdue ? context.palette.errorInk : context.palette.accent,
+      fill: tinted ? context.palette.errorFill : context.palette.surface,
+      outline: tinted ? context.palette.errorOutline : context.palette.outline,
       action: isTile
           ? HomePillButton(
               label: HomeStrings.payAction,

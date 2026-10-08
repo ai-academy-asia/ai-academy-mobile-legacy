@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
 import 'home_badges.dart';
-import 'home_palette.dart';
 import 'home_pill_button.dart';
 
 // Measured off the Figma Home frames at 1:1. Figma strokes sit inside the
@@ -86,7 +85,7 @@ class ProgramCard extends StatelessWidget {
     final radius = BorderRadius.circular(AppDimens.homeCardRadius);
 
     return Material(
-      color: AppColors.surface,
+      color: context.palette.surface,
       borderRadius: radius,
       child: InkWell(
         onTap: onTap,
@@ -94,7 +93,7 @@ class ProgramCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            border: Border.all(color: HomePalette.border),
+            border: Border.all(color: context.palette.outline),
           ),
           child: ClipRRect(
             borderRadius: radius,
@@ -103,10 +102,10 @@ class ProgramCard extends StatelessWidget {
               children: [
                 _Summary(program: program),
                 if (nextLesson != null) ...[
-                  const Divider(
+                  Divider(
                     height: 1,
                     thickness: 1,
-                    color: HomePalette.border,
+                    color: context.palette.outline,
                   ),
                   _NextLessonSection(
                     lesson: nextLesson,
@@ -173,13 +172,15 @@ class _Summary extends StatelessWidget {
 
               Text(
                 program.cohortName,
-                style: _captionStyle,
+                style: _captionStyle.copyWith(
+                  color: context.palette.textSecondary,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
                 program.courseTitle,
-                style: _titleStyle,
+                style: _titleStyle.copyWith(color: context.palette.textPrimary),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -202,7 +203,9 @@ class _Summary extends StatelessWidget {
                                   progress.completed!,
                                   progress.total!,
                                 ),
-                                style: _modulesStyle,
+                                style: _modulesStyle.copyWith(
+                                  color: context.palette.textSecondary,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               )
@@ -211,7 +214,9 @@ class _Summary extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         HomeStrings.percentComplete(progress.percent),
-                        style: _percentStyle,
+                        style: _percentStyle.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -259,8 +264,13 @@ class _NextLessonSection extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Text(HomeStrings.nextLesson, style: _headingStyle),
+                Expanded(
+                  child: Text(
+                    HomeStrings.nextLesson,
+                    style: _headingStyle.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                  ),
                 ),
                 if (live) const _LiveBadge(),
               ],
@@ -268,11 +278,14 @@ class _NextLessonSection extends StatelessWidget {
           ),
           Text(
             HomeStrings.lessonWindow(lesson.startsAt, lesson.endsAt),
-            style: _lessonTimeStyle,
+            style: _lessonTimeStyle.copyWith(color: context.palette.accent),
           ),
           if (live) ...[
             const SizedBox(height: _hintGap),
-            const Text(HomeStrings.liveHint, style: _hintStyle),
+            Text(
+              HomeStrings.liveHint,
+              style: _hintStyle.copyWith(color: context.palette.textPrimary),
+            ),
           ],
           const SizedBox(height: _actionGap),
           HomePillButton(
@@ -301,8 +314,8 @@ class _ProgressBar extends StatelessWidget {
       child: LinearProgressIndicator(
         value: fraction,
         minHeight: _barHeight,
-        backgroundColor: HomePalette.border,
-        valueColor: const AlwaysStoppedAnimation<Color>(HomePalette.accent),
+        backgroundColor: context.palette.outline,
+        valueColor: AlwaysStoppedAnimation<Color>(context.palette.accent),
       ),
     );
   }
@@ -324,19 +337,19 @@ class _StatusPill extends StatelessWidget {
     final (Color outline, Color fill, Color ink) = switch (status
         .toLowerCase()) {
       'open' || 'active' => (
-        HomePalette.activeOutline,
-        HomePalette.activeFill,
-        HomePalette.activeInk,
+        context.palette.successOutline,
+        context.palette.successFill,
+        context.palette.successInk,
       ),
       'finished' => (
-        HomePalette.liveOutline,
-        HomePalette.liveFill,
-        HomePalette.liveOutline,
+        context.palette.infoInk,
+        context.palette.infoFill,
+        context.palette.infoInk,
       ),
       _ => (
-        AppColors.textSecondary,
-        AppColors.textSecondary.withValues(alpha: 0.12),
-        AppColors.textSecondary,
+        context.palette.textSecondary,
+        context.palette.textSecondary.withValues(alpha: 0.12),
+        context.palette.textSecondary,
       ),
     };
 
@@ -356,11 +369,11 @@ class _LiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const HomeCapsule(
+    return HomeCapsule(
       label: HomeStrings.live,
-      outline: HomePalette.liveOutline,
-      fill: HomePalette.liveFill,
-      ink: HomePalette.accent,
+      outline: context.palette.infoInk,
+      fill: context.palette.infoFill,
+      ink: context.palette.accent,
       horizontalPadding: 11,
     );
   }
@@ -393,7 +406,6 @@ const TextStyle _percentStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w500,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -403,7 +415,6 @@ const TextStyle _headingStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -413,7 +424,6 @@ const TextStyle _lessonTimeStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w500,
-  color: HomePalette.accent,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -423,7 +433,6 @@ const TextStyle _hintStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w500,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 

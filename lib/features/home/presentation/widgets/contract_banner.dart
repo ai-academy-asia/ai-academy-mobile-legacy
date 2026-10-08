@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../home_strings.dart';
 import 'home_palette.dart';
 
@@ -44,7 +44,7 @@ class ContractBanner extends StatelessWidget {
       button: onTap != null,
       label: title,
       child: Material(
-        color: HomePalette.contractFill,
+        color: context.palette.warningFill,
         borderRadius: radius,
         child: InkWell(
           onTap: onTap,
@@ -53,7 +53,7 @@ class ContractBanner extends StatelessWidget {
             padding: const EdgeInsets.all(16 - AppDimens.borderWidth),
             decoration: BoxDecoration(
               borderRadius: radius,
-              border: Border.all(color: HomePalette.contractOutline),
+              border: Border.all(color: context.palette.warningOutline),
             ),
             child: Row(
               children: [
@@ -63,7 +63,7 @@ class ContractBanner extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: HomePalette.contractOutline),
+                    border: Border.all(color: context.palette.warningOutline),
                   ),
                   child: SvgPicture.asset(
                     HomeIcons.contract,
@@ -79,14 +79,18 @@ class ContractBanner extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: _titleStyle,
+                        style: _titleStyle.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         supporting,
-                        style: _supportingStyle,
+                        style: _supportingStyle.copyWith(
+                          color: context.palette.textSecondary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -94,10 +98,10 @@ class ContractBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(
+                Icon(
                   AppIcons.caretRight,
                   size: 24,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ],
             ),
@@ -114,7 +118,6 @@ const TextStyle _titleStyle = TextStyle(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -124,6 +127,5 @@ const TextStyle _supportingStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );

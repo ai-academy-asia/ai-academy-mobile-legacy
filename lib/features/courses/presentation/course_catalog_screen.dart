@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -63,7 +62,7 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
         navigationBar: context.palette.pageBackground,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.palette.pageBackground,
         body: SafeArea(
           child: ListenableBuilder(
             listenable: _controller,
@@ -85,7 +84,9 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
                       ),
                       child: Text(
                         CourseCatalogStrings.heading,
-                        style: AppTypography.heading,
+                        style: AppTypography.heading.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
                       ),
                     ),
                     Expanded(child: _buildBody()),
@@ -127,13 +128,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -152,7 +153,9 @@ class _EmptyView extends StatelessWidget {
         ),
         child: Text(
           CourseCatalogStrings.empty,
-          style: AppTypography.cardSupporting,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
       ),
@@ -178,7 +181,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -204,7 +209,7 @@ class _CourseList extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
-      color: AppColors.blue,
+      color: context.palette.primary,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,

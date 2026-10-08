@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../home_strings.dart';
-import 'home_palette.dart';
 
 /// The outlined track badge (32 tall) and the outlined capsule (24 tall) the
 /// home cards draw in their top row — Adult Home's `ProgramCard` and Teacher
@@ -32,8 +31,8 @@ class TrackBadge extends StatelessWidget {
       height: homeBadgeHeight,
       padding: const EdgeInsets.only(left: 5, right: 9.5),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: HomePalette.border),
+        color: context.palette.surface,
+        border: Border.all(color: context.palette.outline),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -45,7 +44,12 @@ class TrackBadge extends StatelessWidget {
             height: 20,
           ),
           const SizedBox(width: 8),
-          Text(_capitalize(track), style: _badgeLabelStyle),
+          Text(
+            _capitalize(track),
+            style: _badgeLabelStyle.copyWith(
+              color: context.palette.textPrimary,
+            ),
+          ),
         ],
       ),
     );

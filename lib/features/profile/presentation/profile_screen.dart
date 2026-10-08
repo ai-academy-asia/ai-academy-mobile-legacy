@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
@@ -18,7 +17,6 @@ import '../../certificates/domain/certificate_list_repository.dart';
 import '../../certificates/presentation/certificate_screen.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../home/presentation/widgets/adult_bottom_nav.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
 import 'widgets/profile_parts.dart';
@@ -158,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? const AdultBottomNav(current: StudentTab.profile)
             : null,
@@ -322,7 +320,9 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: profileNameStyle,
+                  style: profileNameStyle.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -351,9 +351,9 @@ class _EditButton extends StatelessWidget {
         width: _editSize,
         height: _editSize,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: HomePalette.border),
+          border: Border.all(color: context.palette.outline),
         ),
         child: Center(
           child: SvgPicture.asset(

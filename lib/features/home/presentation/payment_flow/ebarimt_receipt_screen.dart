@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../payments/domain/payment_checkout.dart';
-import '../widgets/home_palette.dart';
 import 'payment_flow_strings.dart';
 import 'payment_flow_widgets.dart';
 
@@ -50,24 +49,24 @@ class EbarimtReceiptScreen extends StatelessWidget {
                   PaymentFlowStrings.transaction(receipt.transactionId),
                   size: 14,
                   box: 20,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
                 const SizedBox(height: 8.13),
                 paymentFlowText(
                   PaymentFlowStrings.date(receipt.dateLabel),
                   size: 14,
                   box: 20,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
                 const SizedBox(height: 7.95),
                 paymentFlowText(
                   PaymentFlowStrings.vatIncluded,
                   size: 14,
                   box: 20,
-                  color: HomePalette.activeInk,
+                  color: context.palette.successInk,
                 ),
                 const SizedBox(height: 23.28),
-                const PaymentFlowRule(color: HomePalette.headerRule),
+                PaymentFlowRule(color: context.palette.divider),
                 const SizedBox(height: 24.34),
                 paymentFlowText(
                   PaymentFlowStrings.qrTitle,
@@ -101,7 +100,7 @@ class EbarimtReceiptScreen extends StatelessWidget {
           const SizedBox(height: 15.22),
           _CopyField(label: PaymentFlowStrings.ddtd, value: receipt.ddtd),
           const SizedBox(height: 14.82),
-          const PaymentFlowRule(color: HomePalette.headerRule),
+          PaymentFlowRule(color: context.palette.divider),
         ],
       ),
     );
@@ -132,7 +131,7 @@ class _CopyField extends StatelessWidget {
                 label,
                 size: 14,
                 box: 20,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
             Positioned(

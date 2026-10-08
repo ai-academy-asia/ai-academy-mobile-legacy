@@ -2,11 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../payments/domain/payment_checkout.dart';
 import '../payment_strings.dart';
-import '../widgets/home_palette.dart';
 import 'payment_flow_strings.dart';
 import 'payment_flow_widgets.dart';
 import 'payment_method_screen.dart';
@@ -170,9 +169,9 @@ class _PaymentAmountScreenState extends State<PaymentAmountScreen> {
                     text: PaymentStrings.amount(
                       range.eachLaterInstallment(_amount),
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                 ],
@@ -180,9 +179,10 @@ class _PaymentAmountScreenState extends State<PaymentAmountScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: paymentFlowStyle(
+                context,
                 size: 14,
                 box: 20,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -231,7 +231,7 @@ class _Bound extends StatelessWidget {
           label,
           size: 14,
           box: 20,
-          color: AppColors.textSecondary,
+          color: context.palette.textSecondary,
           align: align,
         ),
         const SizedBox(height: 1.34),
@@ -247,7 +247,7 @@ class _Bound extends StatelessWidget {
           caption,
           size: 12,
           box: 16,
-          color: AppColors.textSecondary,
+          color: context.palette.textSecondary,
           align: align,
         ),
       ],
@@ -316,7 +316,7 @@ class _AmountSlider extends StatelessWidget {
                     height: _track,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: HomePalette.border,
+                        color: context.palette.outline,
                         borderRadius: BorderRadius.circular(_track / 2),
                       ),
                     ),
@@ -328,7 +328,7 @@ class _AmountSlider extends StatelessWidget {
                     height: _track,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: HomePalette.accent,
+                        color: context.palette.accent,
                         borderRadius: BorderRadius.circular(_track / 2),
                       ),
                     ),
@@ -341,11 +341,14 @@ class _AmountSlider extends StatelessWidget {
                       height: _thumb,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.surface,
-                        border: Border.all(color: HomePalette.accent, width: 2),
-                        boxShadow: const [
+                        color: context.palette.surface,
+                        border: Border.all(
+                          color: context.palette.accent,
+                          width: 2,
+                        ),
+                        boxShadow: [
                           BoxShadow(
-                            color: AppColors.shadowSubtle,
+                            color: context.palette.shadowSubtle,
                             blurRadius: 4,
                             offset: Offset(0, 2),
                           ),
@@ -395,7 +398,12 @@ class _Tooltip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = paymentFlowStyle(size: 11, box: 14, weight: FontWeight.w600);
+    final style = paymentFlowStyle(
+      context,
+      size: 11,
+      box: 14,
+      weight: FontWeight.w600,
+    );
     final painter = TextPainter(
       text: TextSpan(text: label, style: style),
       textDirection: TextDirection.ltr,
@@ -415,12 +423,12 @@ class _Tooltip extends StatelessWidget {
       child: ExcludeSemantics(
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: HomePalette.border),
+            color: context.palette.surface,
+            border: Border.all(color: context.palette.outline),
             borderRadius: BorderRadius.circular(8),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: AppColors.shadowSubtle,
+                color: context.palette.shadowSubtle,
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),

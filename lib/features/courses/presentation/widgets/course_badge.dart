@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/course.dart';
 
 /// One small pill of text — a course's category, level, format, status, or a
@@ -17,10 +17,15 @@ class CourseBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(label, style: AppTypography.badgeLabel),
+      child: Text(
+        label,
+        style: AppTypography.badgeLabel.copyWith(
+          color: context.palette.textSecondary,
+        ),
+      ),
     );
   }
 }

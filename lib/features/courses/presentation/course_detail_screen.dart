@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -72,7 +71,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
         navigationBar: context.palette.pageBackground,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.palette.pageBackground,
         body: SafeArea(
           child: ListenableBuilder(
             listenable: _controller,
@@ -131,12 +130,12 @@ class _BackButton extends StatelessWidget {
           child: InkWell(
             onTap: () => Navigator.of(context).maybePop(),
             borderRadius: BorderRadius.circular(22),
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.all(8),
               child: Icon(
                 AppIcons.caretLeft,
                 size: 22,
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
             ),
           ),
@@ -151,13 +150,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -182,7 +181,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -225,17 +226,29 @@ class _CourseDetailBody extends StatelessWidget {
 
           Text(
             course.title.preferred ?? course.slug,
-            style: AppTypography.heading,
+            style: AppTypography.heading.copyWith(
+              color: context.palette.textPrimary,
+            ),
           ),
 
           if (course.tagline.preferred case final tagline?) ...[
             const SizedBox(height: AppDimens.titleToSupporting),
-            Text(tagline, style: AppTypography.cardSupporting),
+            Text(
+              tagline,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
           ],
 
           if (course.targetAudience case final audience?) ...[
             const SizedBox(height: AppDimens.cardLineGap),
-            Text(audience, style: AppTypography.cardSupporting),
+            Text(
+              audience,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
           ],
 
           const SizedBox(height: 16),

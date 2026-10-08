@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
-import 'home_palette.dart';
 import 'home_pill_button.dart';
 import 'home_stat_card.dart';
 
@@ -42,13 +41,18 @@ class AttendanceCard extends StatelessWidget {
         attendance.percent,
       ),
       gradient: filled
-          ? const LinearGradient(
-              colors: [HomePalette.attendanceStart, HomePalette.attendanceEnd],
+          ? LinearGradient(
+              colors: [
+                context.palette.attendanceGradientStart,
+                context.palette.attendanceGradientEnd,
+              ],
             )
           : null,
-      iconColor: filled ? AppColors.onPrimary : HomePalette.accent,
-      labelColor: filled ? AppColors.onPrimary : HomePalette.statLabel,
-      valueColor: filled ? AppColors.onPrimary : HomePalette.accent,
+      iconColor: filled ? context.palette.onPrimary : context.palette.accent,
+      labelColor: filled
+          ? context.palette.onPrimary
+          : context.palette.textStatLabel,
+      valueColor: filled ? context.palette.onPrimary : context.palette.accent,
       action: HomePillButton(
         label: HomeStrings.details,
         variant: HomePillVariant.secondary,

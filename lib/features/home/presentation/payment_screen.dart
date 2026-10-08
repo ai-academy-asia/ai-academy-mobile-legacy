@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -10,26 +9,12 @@ import '../../../core/theme/app_palette.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../payments/domain/payment_plan.dart';
 import 'payment_strings.dart';
-import 'widgets/home_palette.dart';
 import 'widgets/home_pill_button.dart';
 
 // Measured off the three Figma "Төлбөр" references at 1:1 (393 wide, a 44pt
 // status-bar inset, a 34pt home-indicator inset). Every text is placed by its
 // baseline: Manrope's line box is 1.366em with the baseline 1.066em down, so a
 // box of height H puts it (H - 1.366·size) / 2 + 1.066·size from its top.
-
-/// The two colours the Home palette does not already hold.
-///
-/// The next installment's badge outline — a deeper blue than the badge's
-/// [HomePalette.liveFill] and the app's [HomePalette.accent].
-const Color _nextOutline = Color(0xFF155EEF);
-
-/// The dotted line joining the schedule's badges.
-const Color _connector = Color(0xFFBAC5FF);
-
-/// An upcoming installment's label and number — 30% black, `#B2B2B2` on the
-/// badge's white.
-const Color _upcomingInk = Color(0x4D000000);
 
 /// The header below the status bar: the back control's 12 + 40, and 11 under
 /// it to the rule.
@@ -103,7 +88,7 @@ class PaymentScreen extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         body: Column(
           children: [
             const _Header(),
@@ -135,7 +120,9 @@ class PaymentScreen extends StatelessWidget {
             // The references draw the bar white while there is something to
             // pay, and in the page's grey under the disabled button.
             ColoredBox(
-              color: paidOff ? AppColors.surfaceSubtle : AppColors.surface,
+              color: paidOff
+                  ? context.palette.surfaceSubtle
+                  : context.palette.surface,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   AppDimens.screenPadding,
@@ -184,7 +171,7 @@ class _Rule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(height: 1, color: HomePalette.headerRule);
+      Container(height: 1, color: context.palette.divider);
 }
 
 /// White, under the status bar: the back control and the centred title.
@@ -194,7 +181,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.surface,
+      color: context.palette.surface,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -257,7 +244,7 @@ class _Summary extends StatelessWidget {
             PaymentStrings.totalLabel(plan.courseTitle),
             size: 14,
             box: 20,
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
           ),
           const SizedBox(height: 0),
           _text(
@@ -273,7 +260,7 @@ class _Summary extends StatelessWidget {
               size: 16,
               box: 22,
               weight: FontWeight.w700,
-              color: HomePalette.activeInk,
+              color: context.palette.successInk,
             ),
           ] else ...[
             const SizedBox(height: 39.62),
@@ -286,14 +273,14 @@ class _Summary extends StatelessWidget {
                     PaymentStrings.paid,
                     size: 14,
                     box: 20,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 _text(
                   PaymentStrings.unpaidInstallments(plan.unpaidCount),
                   size: 14,
                   box: 20,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                   align: TextAlign.end,
                 ),
               ],
@@ -340,13 +327,13 @@ class _ProgressBar extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const ColoredBox(color: HomePalette.border),
+            ColoredBox(color: context.palette.outline),
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: fraction,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: HomePalette.accent,
+                  color: context.palette.accent,
                   borderRadius: BorderRadius.circular(_barHeight / 2),
                 ),
               ),
@@ -424,7 +411,11 @@ class _Connector extends StatelessWidget {
             children: [
               for (var i = 0; i < 5; i++) ...[
                 if (i != 0) const SizedBox(height: 2),
-                Container(width: 4 / 3, height: 2, color: _connector),
+                Container(
+                  width: 4 / 3,
+                  height: 2,
+                  color: context.palette.timelineConnector,
+                ),
               ],
             ],
           ),
@@ -459,11 +450,11 @@ class _InstallmentRow extends StatelessWidget {
     final (String? note, Color? noteColor) = switch (status.kind) {
       InstallmentKind.next => (
         PaymentStrings.dueIn(status.daysLeft!),
-        HomePalette.accent,
+        context.palette.accent,
       ),
       InstallmentKind.overdue => (
         PaymentStrings.overdue,
-        HomePalette.overdueInk,
+        context.palette.errorInk,
       ),
       _ => (null, null),
     };
@@ -526,10 +517,10 @@ class _InstallmentRow extends StatelessWidget {
                   Positioned(
                     left: geometry.caretLeft - _caretInkLeft,
                     top: 21 - _caretInkTop,
-                    child: const Icon(
+                    child: Icon(
                       AppIcons.caretRight,
                       size: 20,
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                 ],
@@ -575,17 +566,25 @@ class _InstallmentBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color fill, Color outline, double outlineWidth) = switch (kind) {
       InstallmentKind.paid => (
-        HomePalette.activeFill,
-        HomePalette.activeOutline,
+        context.palette.successFill,
+        context.palette.successOutline,
         1.0,
       ),
-      InstallmentKind.next => (HomePalette.liveFill, _nextOutline, 4 / 3),
-      InstallmentKind.overdue => (
-        HomePalette.overdueFill,
-        HomePalette.overdueOutline,
+      InstallmentKind.next => (
+        context.palette.infoFill,
+        context.palette.accentOutline,
         4 / 3,
       ),
-      InstallmentKind.upcoming => (AppColors.surface, HomePalette.border, 1.0),
+      InstallmentKind.overdue => (
+        context.palette.errorFill,
+        context.palette.errorOutline,
+        4 / 3,
+      ),
+      InstallmentKind.upcoming => (
+        context.palette.surface,
+        context.palette.outline,
+        1.0,
+      ),
     };
     final upcoming = kind == InstallmentKind.upcoming;
 
@@ -598,10 +597,10 @@ class _InstallmentBadge extends StatelessWidget {
         border: Border.all(color: outline, width: outlineWidth),
       ),
       child: kind == InstallmentKind.paid
-          ? const Icon(
+          ? Icon(
               AppIcons.check,
               size: 24,
-              color: HomePalette.activeOutline,
+              color: context.palette.successOutline,
             )
           : Stack(
               clipBehavior: Clip.none,
@@ -614,7 +613,9 @@ class _InstallmentBadge extends StatelessWidget {
                     PaymentStrings.installment,
                     size: 12,
                     box: 18,
-                    color: upcoming ? _upcomingInk : AppColors.textSecondary,
+                    color: upcoming
+                        ? context.palette.textFaint
+                        : context.palette.textSecondary,
                     align: TextAlign.center,
                   ),
                 ),
@@ -627,7 +628,9 @@ class _InstallmentBadge extends StatelessWidget {
                     size: 18,
                     box: 24,
                     weight: FontWeight.w700,
-                    color: upcoming ? _upcomingInk : AppColors.textPrimary,
+                    color: upcoming
+                        ? context.palette.textFaint
+                        : context.palette.textPrimary,
                     align: TextAlign.center,
                   ),
                 ),
@@ -650,18 +653,22 @@ Widget _text(
 }) {
   return Semantics(
     header: header,
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: align,
-      style: TextStyle(
-        fontFamily: AppTypography.fontFamily,
-        fontSize: size,
-        height: box / size,
-        leadingDistribution: TextLeadingDistribution.even,
-        fontWeight: weight,
-        color: color ?? AppColors.textPrimary,
+    // A `Builder` for the theme's context: it adds no render object, so the
+    // text lays out exactly as before (Dark Mode Phase 5).
+    child: Builder(
+      builder: (context) => Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: align,
+        style: TextStyle(
+          fontFamily: AppTypography.fontFamily,
+          fontSize: size,
+          height: box / size,
+          leadingDistribution: TextLeadingDistribution.even,
+          fontWeight: weight,
+          color: color ?? context.palette.textPrimary,
+        ),
       ),
     ),
   );

@@ -158,9 +158,17 @@ abstract final class AppColors {
   /// The faint band under a white pill (`HomePillButton`'s secondary).
   static const Color subtleDepth = Color(0x0A000000);
 
+  static const Color _successGreen = Color(0xFF14AE5C);
+
   static const Color successInk = Color(0xFF009951);
   static const Color successFill = Color(0xFFEBFFEE);
-  static const Color successOutline = Color(0xFF14AE5C);
+  static const Color successOutline = _successGreen;
+
+  /// A status label drawn in its pill's own outline green — the cohort
+  /// card's "Open"/"Active" (`#14AE5C`). Text, so its own role: not
+  /// [successInk] (`#009951`, the Home pill's darker label), and not
+  /// [successOutline], which only shares the light value (Issue #262).
+  static const Color successLabel = _successGreen;
 
   /// The stronger green tile — payment success, a submitted assignment.
   static const Color successFillStrong = Color(0xFFCCEBDC);
@@ -187,6 +195,35 @@ abstract final class AppColors {
 
   /// The faint lift under a small outlined control.
   static const Color shadowSubtle = Color(0x14000000);
+
+  // Adult (Dark Mode Phase 5, Issue #262).
+
+  /// A deeper blue outline marking the current item — the next installment on Payment.
+  static const Color accentOutline = Color(0xFF155EEF);
+
+  /// The pale indigo line joining Payment's installment timeline.
+  static const Color timelineConnector = Color(0xFFBAC5FF);
+
+  /// Black @ 30 % — an upcoming installment's date and amount.
+  static const Color textFaint = Color(0x4D000000);
+
+  /// The deep navy-black of the payment flow's bank names.
+  static const Color textDeep = Color(0xFF101828);
+
+  /// A statistic's warm-grey caption on the Home cards.
+  static const Color textStatLabel = Color(0xFF726D6D);
+
+  /// The Attendance card's gradient, start.
+  static const Color attendanceGradientStart = Color(0xFF175FEF);
+
+  /// The Attendance card's gradient, end.
+  static const Color attendanceGradientEnd = Color(0xFF518BFF);
+
+  /// A white barely tinted blue — the cohort card.
+  static const Color surfaceTinted = Color(0xFFF8FAFF);
+
+  /// Over camera video — the attendance scanner.
+  static const Color scrim = Color(0x94000000);
 
   // Junior.
   static const Color juniorCard = _blueWash;

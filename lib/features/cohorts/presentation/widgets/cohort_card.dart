@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../enrollments/presentation/enrollment_strings.dart';
 import '../../domain/cohort.dart';
@@ -35,29 +36,10 @@ const double _pillHeight = 24;
 /// reference does not draw and whose fill therefore has no measured value.
 const double _pillTintOpacity = 0.12;
 
-/// The card's own surface and outline, sampled from the reference at 1:1 rather
-/// than taken from [AppColors]. The page is pure white here, so the card reads
-/// as a card by being a shade *cooler* than the page — `AppColors.surface`
-/// would make it invisible. The outline is likewise a touch warmer and darker
-/// than the global [AppColors.border] (`#E4E6EF`); both are kept local because
-/// the global tokens are shared with 25 other files.
-const Color _cardFill = Color(0xFFF8FAFF);
-const Color _cardBorder = AppColors.outline;
-
 /// The progress bar, measured off the reference: 8 tall (not the global
 /// [AppDimens.progressBarHeight] of 6, which other screens rely on), filled in
 /// the reference's blue and tracked in the same grey as the card's outline.
 const double _progressBarHeight = 8;
-const Color _progressFill = AppColors.accent;
-const Color _progressTrack = AppColors.outline;
-
-/// The status pills' fills and outlines, straight off the reference. These are
-/// not [AppColors.blue]/[AppColors.success] at an alpha — the reference uses
-/// its own flat pairs, and the hues differ from the app's semantic tokens.
-const Color _finishedInk = AppColors.infoInk;
-const Color _finishedFill = AppColors.infoFill;
-const Color _runningInk = AppColors.successOutline;
-const Color _runningFill = AppColors.successFill;
 
 /// The badge row to the caption: 24 in Figma.
 const double _rowToCaptionGap = 24;
@@ -132,7 +114,7 @@ class CohortCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: _cardFill,
+      color: context.palette.surfaceTinted,
       borderRadius: BorderRadius.circular(AppDimens.cardRadius),
       child: InkWell(
         onTap: onTap,
@@ -142,7 +124,7 @@ class CohortCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             border: Border.all(
-              color: _cardBorder,
+              color: context.palette.outline,
               width: AppDimens.borderWidth,
             ),
           ),
@@ -193,14 +175,18 @@ class CohortCard extends StatelessWidget {
                         // reference's "Cohort 0N" caption over the bold title.
                         Text(
                           cohort.name,
-                          style: _captionStyle,
+                          style: _captionStyle.copyWith(
+                            color: context.palette.textSecondary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         // The caption's and title's line boxes sit flush in Figma.
                         Text(
                           courseTitle,
-                          style: _titleStyle,
+                          style: _titleStyle.copyWith(
+                            color: context.palette.textPrimary,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -208,7 +194,13 @@ class CohortCard extends StatelessWidget {
                         // No course title to caption: falls back to the single
                         // heading this card always showed, rather than leaving the
                         // card with no bold line at all.
-                        Text(cohort.name, style: _titleStyle, maxLines: 2),
+                        Text(
+                          cohort.name,
+                          style: _titleStyle.copyWith(
+                            color: context.palette.textPrimary,
+                          ),
+                          maxLines: 2,
+                        ),
 
                       if (progressPct case final progressPct?) ...[
                         const SizedBox(height: 12),
@@ -228,7 +220,12 @@ class CohortCard extends StatelessWidget {
 
                       if (enrollError case final message?) ...[
                         const SizedBox(height: 8),
-                        Text(message, style: AppTypography.fieldError),
+                        Text(
+                          message,
+                          style: AppTypography.fieldError.copyWith(
+                            color: context.palette.error,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -258,7 +255,9 @@ class _Progress extends StatelessWidget {
           alignment: Alignment.centerRight,
           child: Text(
             CohortListStrings.percentComplete(percent),
-            style: AppTypography.catalogSectionValue,
+            style: AppTypography.catalogSectionValue.copyWith(
+              color: context.palette.textPrimary,
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -267,8 +266,8 @@ class _Progress extends StatelessWidget {
           child: LinearProgressIndicator(
             value: percent / 100,
             minHeight: _progressBarHeight,
-            backgroundColor: _progressTrack,
-            valueColor: const AlwaysStoppedAnimation<Color>(_progressFill),
+            backgroundColor: context.palette.outline,
+            valueColor: AlwaysStoppedAnimation<Color>(context.palette.accent),
           ),
         ),
       ],
@@ -308,9 +307,9 @@ class _AdultBadge extends StatelessWidget {
       height: _badgeHeight,
       padding: const EdgeInsets.only(left: 4, right: 11.6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         border: Border.all(
-          color: AppColors.border,
+          color: context.palette.border,
           width: AppDimens.borderWidth,
         ),
         borderRadius: BorderRadius.circular(8),
@@ -326,10 +325,9 @@ class _AdultBadge extends StatelessWidget {
           const SizedBox(width: 9),
           Text(
             'Adult',
-            style: AppTypography.catalogTrackLabel.copyWith(
-              fontSize: 16,
-              height: 1,
-            ),
+            style: AppTypography.catalogTrackLabel
+                .copyWith(color: context.palette.textPrimary)
+                .copyWith(fontSize: 16, height: 1),
           ),
         ],
       ),
@@ -356,15 +354,29 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color color, Color fill) = switch (status.toLowerCase()) {
-      'open' => (_runningInk, _runningFill),
-      'active' => (_runningInk, _runningFill),
-      'finished' => (_finishedInk, _finishedFill),
+    // Outline, label and fill by role. The reference draws each pill's label
+    // in its outline's colour; they stay separate roles because one is a line
+    // and one is text — the same light value, not the same meaning.
+    final palette = context.palette;
+    final (Color outline, Color label, Color fill) = switch (status
+        .toLowerCase()) {
+      'open' => (
+        palette.successOutline,
+        palette.successLabel,
+        palette.successFill,
+      ),
+      'active' => (
+        palette.successOutline,
+        palette.successLabel,
+        palette.successFill,
+      ),
+      'finished' => (palette.infoInk, palette.infoInk, palette.infoFill),
       // Not a status the reference draws, so there is no fill to sample: the
       // neutral outline gets the app's standard low-alpha wash of itself.
       _ => (
-        AppColors.textSecondary,
-        AppColors.textSecondary.withValues(alpha: _pillTintOpacity),
+        palette.textSecondary,
+        palette.textSecondary,
+        palette.textSecondary.withValues(alpha: _pillTintOpacity),
       ),
     };
 
@@ -377,12 +389,12 @@ class _StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color, width: AppDimens.borderWidth),
+        border: Border.all(color: outline, width: AppDimens.borderWidth),
       ),
       child: Text(
         _capitalize(status),
         style: AppTypography.catalogStatusLabel.copyWith(
-          color: color,
+          color: label,
           fontSize: 12,
           height: 16 / 12,
         ),
