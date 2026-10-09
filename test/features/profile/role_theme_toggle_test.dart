@@ -12,11 +12,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import '../../support/theme_storage.dart';
 import 'fake_current_user_repository.dart';
 
 /// Every role's Profile has a working "Light mode" switch (Issue #284), and
-/// all three show and write the one `AppThemeController` preference — so no
-/// role can be left in a theme it cannot leave.
+/// all three show and write the one `AppThemeController` — the signed-in
+/// account's own preference (Issue #286) — so no role can be left in a theme
+/// it cannot leave.
 void main() {
   final roles = <String, Widget Function(AppThemeController)>{
     'Adult': (theme) => ProfileScreen(
@@ -69,8 +71,7 @@ void main() {
         tester,
       ) async {
         for (final (stored, expected) in [('dark', false), ('light', true)]) {
-          final theme = AppThemeController();
-          await theme.restore(_Memory(stored));
+          final theme = await themeFor(MemoryThemeStorage({'9': stored}));
           await pumpRole(tester, role, theme);
           expect(on(tester), expected, reason: stored);
         }
@@ -78,9 +79,8 @@ void main() {
 
       testWidgets('Dark → Light → Dark: the whole app follows at once, and '
           'each choice is saved to the one preference', (tester) async {
-        final storage = _Memory('dark');
-        final theme = AppThemeController();
-        await theme.restore(storage);
+        final storage = MemoryThemeStorage({'9': 'dark'});
+        final theme = await themeFor(storage);
         await pumpRole(tester, role, theme);
         expect(brightness(tester), Brightness.dark);
         expect(
@@ -99,45 +99,34 @@ void main() {
         expect(on(tester), isFalse);
         expect(theme.preference, ThemePreference.dark);
         expect(brightness(tester), Brightness.dark);
-        expect(storage.writes, ['light', 'dark']);
+        expect(storage.writes, ['9=light', '9=dark']);
       });
     });
   }
 
-  testWidgets('one preference across roles: chosen on Teacher, read on '
-      'Junior and Adult — as after signing in as another role', (tester) async {
-    final storage = _Memory(null);
-    final theme = AppThemeController();
-    await theme.restore(storage);
+  testWidgets('one preference per account, not per device (Issue #286): '
+      'Dark chosen by Teacher C is not Junior B\'s or Adult A\'s, and C gets '
+      'it back', (tester) async {
+    final storage = MemoryThemeStorage();
+    // Teacher C (account 31) chooses Dark.
+    final theme = await themeFor(storage, account: '31');
     await pumpRole(tester, 'Teacher', theme);
     await tester.tap(lightSwitch());
     await tester.pumpAndSettle();
-    expect(storage.value, 'dark');
+    expect(storage.values, {'31': 'dark'});
 
-    // A later launch restores the same key for whichever role signs in.
-    for (final role in ['Junior', 'Adult']) {
-      final next = AppThemeController();
-      await next.restore(storage);
-      await pumpRole(tester, role, next);
-      expect(on(tester), isFalse, reason: role);
-      expect(brightness(tester), Brightness.dark, reason: role);
+    // Junior B (12), then Adult A (9), sign in on the same device: Light.
+    for (final (role, account) in [('Junior', '12'), ('Adult', '9')]) {
+      await theme.activateAccount(account);
+      await pumpRole(tester, role, theme);
+      expect(on(tester), isTrue, reason: role);
+      expect(brightness(tester), Brightness.light, reason: role);
     }
+
+    // Teacher C again: their own Dark.
+    await theme.activateAccount('31');
+    await pumpRole(tester, 'Teacher', theme);
+    expect(on(tester), isFalse);
+    expect(brightness(tester), Brightness.dark);
   });
-}
-
-/// A `ThemePreferencePersistence` in memory, recording what is written.
-class _Memory implements ThemePreferencePersistence {
-  _Memory(this.value);
-
-  String? value;
-  final List<String> writes = [];
-
-  @override
-  Future<String?> read() async => value;
-
-  @override
-  Future<void> write(String value) async {
-    writes.add(value);
-    this.value = value;
-  }
 }

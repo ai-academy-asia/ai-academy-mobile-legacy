@@ -54,6 +54,9 @@ class HttpCurrentUserRepository implements CurrentUserRepository {
       );
     }
 
+    // Which sign-in this request belongs to, so its answer can never
+    // identify a session that replaced it meanwhile (Issue #286).
+    final epoch = _sessionStore.accountEpoch;
     final http.Response response;
     try {
       response = await getRaw(
@@ -75,7 +78,11 @@ class HttpCurrentUserRepository implements CurrentUserRepository {
       throw failure;
     }
 
-    return _currentUserFromBody(response.body);
+    final user = _currentUserFromBody(response.body);
+    // The account id the login response does not carry: the theme preference
+    // is kept per account under it (Issue #286).
+    _sessionStore.identify(epoch, user.id);
+    return user;
   }
 }
 

@@ -25,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../../support/theme_storage.dart';
 import 'fake_current_user_repository.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
@@ -430,9 +431,8 @@ void main() {
 
       testWidgets('Light → Dark → Light on tap (Issue #282): the one '
           'preference changes at once and is saved each time', (tester) async {
-        final storage = _MemoryThemeStorage(null);
-        final controller = AppThemeController();
-        await controller.restore(storage);
+        final storage = MemoryThemeStorage();
+        final controller = await themeFor(storage);
         await pumpProfile(tester, themeController: controller);
 
         expect(
@@ -445,21 +445,20 @@ void main() {
         expect(toggled(tester, ProfileStrings.lightMode), isFalse);
         expect(controller.preference, ThemePreference.dark);
         expect(controller.mode, ThemeMode.dark);
-        expect(storage.writes, ['dark']);
+        expect(storage.writes, ['9=dark']);
 
         await tester.tap(lightSwitch());
         await tester.pumpAndSettle();
         expect(toggled(tester, ProfileStrings.lightMode), isTrue);
         expect(controller.preference, ThemePreference.light);
         expect(controller.mode, ThemeMode.light);
-        expect(storage.writes, ['dark', 'light']);
+        expect(storage.writes, ['9=dark', '9=light']);
       });
 
       testWidgets('shows the one saved preference (Issue #278): a stored '
           'Dark reads off, a stored Light on', (tester) async {
         for (final (stored, on) in [('dark', false), ('light', true)]) {
-          final controller = AppThemeController();
-          await controller.restore(_MemoryThemeStorage(stored));
+          final controller = await themeFor(MemoryThemeStorage({'9': stored}));
           await pumpProfile(tester, themeController: controller);
           expect(toggled(tester, ProfileStrings.lightMode), on, reason: stored);
         }
@@ -665,20 +664,3 @@ const List<String> _inventedValues = [
   '1/2',
   'Version 1.2.4 (2025)',
 ];
-
-/// A [ThemePreferencePersistence] in memory, recording what is written.
-class _MemoryThemeStorage implements ThemePreferencePersistence {
-  _MemoryThemeStorage(this.value);
-
-  String? value;
-  final List<String> writes = [];
-
-  @override
-  Future<String?> read() async => value;
-
-  @override
-  Future<void> write(String value) async {
-    writes.add(value);
-    this.value = value;
-  }
-}

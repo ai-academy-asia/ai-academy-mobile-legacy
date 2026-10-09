@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_controller.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -125,6 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Asked with the session just saved, before anything is shown.
     final mustChangePassword = await _controller.passwordChangeRequired();
+    // `/auth/me` just identified the account: open Home already in its own
+    // theme, not in Login's Light (Issue #286).
+    await AppThemeController.instance.ready;
     if (!mounted) return;
 
     final onSignedIn = widget.onSignedIn;

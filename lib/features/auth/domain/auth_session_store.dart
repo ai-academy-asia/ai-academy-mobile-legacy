@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'auth_session.dart';
 import 'session_persistence.dart';
 import 'user_type.dart';
@@ -24,7 +26,13 @@ import 'user_type.dart';
 /// (`POST /auth/refresh`, Issue #176) when its access token runs out, so
 /// [isExpired] calls a session dead only when it can no longer be renewed;
 /// [isAccessTokenExpired] is the access token's own lifetime.
-class AuthSessionStore {
+///
+/// **Which account it is** (Issue #286): [userId], `GET /auth/me`'s `id`,
+/// recorded by [identify] — the login response carries no account id. It is
+/// persisted with the session, kept across a renewal, and forgotten by a new
+/// sign-in or [clear]. Listeners hear every change; the theme follows the
+/// account through them.
+class AuthSessionStore extends ChangeNotifier {
   AuthSessionStore();
 
   /// The instance the app runs on. Injected in tests.
@@ -32,6 +40,12 @@ class AuthSessionStore {
 
   AuthSession? _session;
   DateTime? _expiresAt;
+  int? _userId;
+
+  /// Bumped whenever the account may have changed — a sign-in or a [clear],
+  /// never a renewal — so [identify] can refuse an answer about an account
+  /// that is no longer the one signed in.
+  int _accountEpoch = 0;
 
   SessionPersistence? _persistence;
 
@@ -43,6 +57,14 @@ class AuthSessionStore {
   int _changes = 0;
 
   AuthSession? get session => _session;
+
+  /// The signed-in account's `GET /auth/me` `id`, once [identify] has
+  /// recorded it; null when signed out or not yet identified.
+  int? get userId => _userId;
+
+  /// See [_accountEpoch]. Read before asking `/auth/me`, passed to
+  /// [identify] with its answer.
+  int get accountEpoch => _accountEpoch;
 
   String? get accessToken => _session?.accessToken;
 
@@ -100,30 +122,57 @@ class AuthSessionStore {
     }
     _session = restored.session;
     _expiresAt = restored.expiresAt;
+    _userId = restored.userId;
+    notifyListeners();
   }
 
   /// Completes once every [save] and [clear] so far has reached persistence.
   Future<void> flush() => _writes;
 
-  /// Stores the session issued by a successful sign-in or renewal.
-  void save(AuthSession session, {DateTime? now}) {
+  /// Stores the session issued by a successful sign-in or, with [renewal],
+  /// a renewal of the one held. A renewal keeps [userId]; a sign-in may be
+  /// another account, so it starts unidentified.
+  void save(AuthSession session, {DateTime? now, bool renewal = false}) {
     _changes++;
+    if (!renewal) {
+      _accountEpoch++;
+      _userId = null;
+    }
     _session = session;
     final lifetime = session.expiresIn;
     _expiresAt = lifetime == null
         ? null
         : (now ?? DateTime.now()).add(lifetime);
-    final encoded = _encode(session, _expiresAt);
+    final encoded = _encode(session, _expiresAt, _userId);
     _write((p) => p.write(encoded));
+    notifyListeners();
+  }
+
+  /// Records that the session held since [epoch] ([accountEpoch]) is account
+  /// [userId] — `GET /auth/me`'s `id`. Ignored when signed out, or signed in
+  /// again, since [epoch]: that answer is about another account's session.
+  void identify(int epoch, int userId) {
+    final session = _session;
+    if (session == null || epoch != _accountEpoch || _userId == userId) {
+      return;
+    }
+    _changes++;
+    _userId = userId;
+    final encoded = _encode(session, _expiresAt, userId);
+    _write((p) => p.write(encoded));
+    notifyListeners();
   }
 
   /// Forgets the session — sign-out, or a token the backend has rejected —
   /// on this device too.
   void clear() {
     _changes++;
+    _accountEpoch++;
     _session = null;
     _expiresAt = null;
+    _userId = null;
     _write((p) => p.delete());
+    notifyListeners();
   }
 
   /// Queues [operation] behind the writes already queued, so a quick save
@@ -138,15 +187,21 @@ class AuthSessionStore {
         .then((_) {}, onError: (Object _) {});
   }
 
-  static String _encode(AuthSession session, DateTime? expiresAt) =>
-      jsonEncode({
-        'access_token': session.accessToken,
-        'refresh_token': session.refreshToken,
-        'expires_at': expiresAt?.toUtc().toIso8601String(),
-        'user_type': session.userType.name,
-      });
+  static String _encode(
+    AuthSession session,
+    DateTime? expiresAt,
+    int? userId,
+  ) => jsonEncode({
+    'access_token': session.accessToken,
+    'refresh_token': session.refreshToken,
+    'expires_at': expiresAt?.toUtc().toIso8601String(),
+    'user_type': session.userType.name,
+    'user_id': ?userId,
+  });
 
-  static ({AuthSession session, DateTime? expiresAt})? _decode(String stored) {
+  static ({AuthSession session, DateTime? expiresAt, int? userId})? _decode(
+    String stored,
+  ) {
     try {
       final decoded = jsonDecode(stored);
       if (decoded is! Map<String, dynamic>) return null;
@@ -154,6 +209,7 @@ class AuthSessionStore {
       if (accessToken is! String || accessToken.isEmpty) return null;
       final refreshToken = decoded['refresh_token'];
       final expiresAt = decoded['expires_at'];
+      final userId = decoded['user_id'];
       return (
         session: AuthSession(
           accessToken: accessToken,
@@ -165,6 +221,9 @@ class AuthSessionStore {
         expiresAt: expiresAt is String
             ? DateTime.tryParse(expiresAt)?.toLocal()
             : null,
+        // Absent in a session saved before Issue #286: unidentified until
+        // the next `/auth/me`.
+        userId: userId is int ? userId : null,
       );
     } on FormatException {
       return null;
