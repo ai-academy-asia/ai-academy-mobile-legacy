@@ -18,12 +18,14 @@ import 'app_colors.dart';
 ///
 /// Roles that mean different things stay separate even where they share a
 /// light value ([accentSubtle], [infoFill], [calendarLesson]; [juniorCard],
-/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint], [juniorMutedFill];
-/// [surface], [mediaControl], [onMedia], [onJuniorMapSky]; [textPrimary],
-/// [onMediaControl]; [border], [progressTrack], [juniorHeaderRule];
-/// [outline], [mediaControlOutline]), because their dark values may differ.
-/// Light values that differ are never merged ([border] vs [outline]; the
-/// text greys).
+/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint], [juniorMutedFill],
+/// [avatarPlaceholder]; [surface], [mediaControl], [onMedia],
+/// [onJuniorMapSky]; [textPrimary], [onMediaControl]; [border],
+/// [progressTrack], [juniorHeaderRule]; [outline], [mediaControlOutline],
+/// [teacherSheetRule]; [errorInk], [dangerOutline]; [disabledInk],
+/// [avatarPlaceholderInk]), because their dark values may differ. Light
+/// values that differ are never merged ([border] vs [outline]; the text
+/// greys).
 /// `app_palette_test.dart` holds every role to its legacy constant.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -113,6 +115,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.scheduleBand,
     required this.scheduleHeld,
     required this.scheduleHeldInk,
+    required this.teacherTitle,
+    required this.teacherNameInk,
+    required this.teacherRoleInk,
+    required this.teacherDetailInk,
+    required this.teacherCaptionInk,
+    required this.teacherSheetRule,
+    required this.dangerOutline,
+    required this.avatarPlaceholder,
+    required this.avatarPlaceholderInk,
   });
 
   /// Today's app, unchanged.
@@ -202,6 +213,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     scheduleBand: AppColors.scheduleBand,
     scheduleHeld: AppColors.scheduleHeld,
     scheduleHeldInk: AppColors.scheduleHeldInk,
+    teacherTitle: AppColors.teacherTitle,
+    teacherNameInk: AppColors.teacherNameInk,
+    teacherRoleInk: AppColors.teacherRoleInk,
+    teacherDetailInk: AppColors.teacherDetailInk,
+    teacherCaptionInk: AppColors.teacherCaptionInk,
+    teacherSheetRule: AppColors.teacherSheetRule,
+    dangerOutline: AppColors.dangerOutline,
+    avatarPlaceholder: AppColors.avatarPlaceholder,
+    avatarPlaceholderInk: AppColors.avatarPlaceholderInk,
   );
 
   // --- Grounds ---------------------------------------------------------------
@@ -517,6 +537,41 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// A held session's ink.
   final Color scheduleHeldInk;
 
+  /// The near-black navy of Teacher Home's and the Gradebook's titles and
+  /// the class card titles (`#0B1230`). Not [textTitle] (`#191919`); proposal
+  /// §12 folds it into [textPrimary] in dark, which only a role allows.
+  final Color teacherTitle;
+
+  /// A teacher's name on the Request screen (navy `#0C226E`).
+  final Color teacherNameInk;
+
+  /// That teacher's role line (`#6371A2`).
+  final Color teacherRoleInk;
+
+  /// Teacher's cool-grey detail text (`#9CA3AF`): the Profile's email and
+  /// phone, and the session sheet's "/ total".
+  final Color teacherDetailInk;
+
+  /// The session sheet's attendance caption (`#4B5563`).
+  final Color teacherCaptionInk;
+
+  /// The rule across the session sheet. A rule, so not [outline] or
+  /// [mediaControlOutline], which only share its light value.
+  final Color teacherSheetRule;
+
+  /// A destructive pill's outline, drawn in its label's red. Not
+  /// [errorOutline] (`#EF4444`), a lighter red; not [errorInk], which is the
+  /// label and only shares the light value.
+  final Color dangerOutline;
+
+  /// The Gradebook's placeholder avatar disc. A fill, so not [divider] or
+  /// the other roles that only share its light value.
+  final Color avatarPlaceholder;
+
+  /// The person glyph on a placeholder avatar (Gradebook and Request). Not
+  /// [disabledInk], a disabled control's label that only shares its value.
+  final Color avatarPlaceholderInk;
+
   @override
   AppPalette copyWith({
     Color? pageBackground,
@@ -604,6 +659,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? scheduleBand,
     Color? scheduleHeld,
     Color? scheduleHeldInk,
+    Color? teacherTitle,
+    Color? teacherNameInk,
+    Color? teacherRoleInk,
+    Color? teacherDetailInk,
+    Color? teacherCaptionInk,
+    Color? teacherSheetRule,
+    Color? dangerOutline,
+    Color? avatarPlaceholder,
+    Color? avatarPlaceholderInk,
   }) => AppPalette(
     pageBackground: pageBackground ?? this.pageBackground,
     surfaceSubtle: surfaceSubtle ?? this.surfaceSubtle,
@@ -691,6 +755,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
     scheduleBand: scheduleBand ?? this.scheduleBand,
     scheduleHeld: scheduleHeld ?? this.scheduleHeld,
     scheduleHeldInk: scheduleHeldInk ?? this.scheduleHeldInk,
+    teacherTitle: teacherTitle ?? this.teacherTitle,
+    teacherNameInk: teacherNameInk ?? this.teacherNameInk,
+    teacherRoleInk: teacherRoleInk ?? this.teacherRoleInk,
+    teacherDetailInk: teacherDetailInk ?? this.teacherDetailInk,
+    teacherCaptionInk: teacherCaptionInk ?? this.teacherCaptionInk,
+    teacherSheetRule: teacherSheetRule ?? this.teacherSheetRule,
+    dangerOutline: dangerOutline ?? this.dangerOutline,
+    avatarPlaceholder: avatarPlaceholder ?? this.avatarPlaceholder,
+    avatarPlaceholderInk: avatarPlaceholderInk ?? this.avatarPlaceholderInk,
   );
 
   @override
@@ -789,6 +862,18 @@ class AppPalette extends ThemeExtension<AppPalette> {
       scheduleBand: mix(scheduleBand, other.scheduleBand),
       scheduleHeld: mix(scheduleHeld, other.scheduleHeld),
       scheduleHeldInk: mix(scheduleHeldInk, other.scheduleHeldInk),
+      teacherTitle: mix(teacherTitle, other.teacherTitle),
+      teacherNameInk: mix(teacherNameInk, other.teacherNameInk),
+      teacherRoleInk: mix(teacherRoleInk, other.teacherRoleInk),
+      teacherDetailInk: mix(teacherDetailInk, other.teacherDetailInk),
+      teacherCaptionInk: mix(teacherCaptionInk, other.teacherCaptionInk),
+      teacherSheetRule: mix(teacherSheetRule, other.teacherSheetRule),
+      dangerOutline: mix(dangerOutline, other.dangerOutline),
+      avatarPlaceholder: mix(avatarPlaceholder, other.avatarPlaceholder),
+      avatarPlaceholderInk: mix(
+        avatarPlaceholderInk,
+        other.avatarPlaceholderInk,
+      ),
     );
   }
 }

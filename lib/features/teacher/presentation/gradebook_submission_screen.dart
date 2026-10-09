@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/open_external_url.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/home_strings.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../domain/teacher_failure.dart';
 import '../domain/teacher_gradebook_repository.dart';
 import '../domain/teacher_submission.dart';
@@ -103,7 +102,7 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceSubtle,
+      backgroundColor: context.palette.surfaceSubtle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -147,7 +146,9 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
             children: [
               Text(
                 error,
-                style: AppTypography.cardSupporting,
+                style: AppTypography.cardSupporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -163,13 +164,13 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
     }
 
     if (submission == null) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 28,
           height: 28,
           child: CircularProgressIndicator(
             strokeWidth: 2.5,
-            color: AppColors.blue,
+            color: context.palette.primary,
           ),
         ),
       );
@@ -185,10 +186,11 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(16),
+            // The card's faint edge; the rule under the tabs is `divider`.
             border: Border.all(
-              color: HomePalette.headerRule,
+              color: context.palette.outlineFaint,
               width: AppDimens.borderWidthEmphasis,
             ),
           ),
@@ -206,9 +208,11 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
                         submission: submission,
                         onOpenLink: _openLink,
                       )
-                    : const Text(
+                    : Text(
                         TeacherGradebookStrings.noteUnavailable,
-                        style: AppTypography.cardSupporting,
+                        style: AppTypography.cardSupporting.copyWith(
+                          color: context.palette.textSecondary,
+                        ),
                       ),
               ),
             ],
@@ -234,8 +238,8 @@ class _Tabs extends StatelessWidget {
       TeacherGradebookStrings.tabNote,
     ];
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: HomePalette.headerRule)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.palette.divider)),
       ),
       child: Padding(
         padding: const EdgeInsets.only(left: AppDimens.cardPadding),
@@ -256,7 +260,7 @@ class _Tabs extends StatelessWidget {
                       border: Border(
                         bottom: BorderSide(
                           color: index == selected
-                              ? HomePalette.accent
+                              ? context.palette.accent
                               : Colors.transparent,
                           width: 2,
                         ),
@@ -264,7 +268,15 @@ class _Tabs extends StatelessWidget {
                     ),
                     child: Text(
                       label,
-                      style: index == selected ? _tabSelected : _tabStyle,
+                      // The selected label is text (`accentText`), its
+                      // underline a fill (`accent`).
+                      style: index == selected
+                          ? _tabSelected.copyWith(
+                              color: context.palette.accentText,
+                            )
+                          : _tabStyle.copyWith(
+                              color: context.palette.textStrong,
+                            ),
                     ),
                   ),
                 ),
@@ -304,16 +316,15 @@ class _AssignmentTab extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               child: Row(
                 children: [
-                  const Icon(
-                    AppIcons.link,
-                    size: 20,
-                    color: GradebookColors.link,
-                  ),
+                  Icon(AppIcons.link, size: 20, color: context.palette.linkInk),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       link,
-                      style: _linkStyle,
+                      style: _linkStyle.copyWith(
+                        color: context.palette.linkInk,
+                        decorationColor: context.palette.linkInk,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -333,7 +344,9 @@ class _AssignmentTab extends StatelessWidget {
         if (!hasLink && !hasDescription)
           Text(
             TeacherGradebookStrings.contentUnavailable,
-            style: AppTypography.cardSupporting,
+            style: AppTypography.cardSupporting.copyWith(
+              color: context.palette.textSecondary,
+            ),
           ),
         const SizedBox(height: 20),
         Row(
@@ -341,7 +354,10 @@ class _AssignmentTab extends StatelessWidget {
             _StatusCapsule(submission: submission),
             if (submission.isReviewed && score != null) ...[
               const SizedBox(width: 12),
-              Text(TeacherGradebookStrings.score(score), style: _scoreStyle),
+              Text(
+                TeacherGradebookStrings.score(score),
+                style: _scoreStyle.copyWith(color: context.palette.textStrong),
+              ),
             ],
           ],
         ),
@@ -373,12 +389,17 @@ class _OutlinedBox extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: _boxLabel,
+        labelStyle: _boxLabel.copyWith(color: context.palette.textStrong),
         contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-        border: _boxBorder,
-        enabledBorder: _boxBorder,
+        // A field's edge in this screen's `outline` grey, as Exercise
+        // Detail's fields draw it.
+        border: _boxBorder(context.palette.outline),
+        enabledBorder: _boxBorder(context.palette.outline),
       ),
-      child: Text(text, style: _boxText),
+      child: Text(
+        text,
+        style: _boxText.copyWith(color: context.palette.textStrong),
+      ),
     );
   }
 }
@@ -397,17 +418,12 @@ class _StatusCapsule extends StatelessWidget {
         : submission.isPending
         ? TeacherGradebookStrings.filterPending
         : submission.status;
+    final palette = context.palette;
+    // Reviewed: the success set. Pending: Phase 5's muted set
+    // (`surfaceSubtle` fill, `divider` outline) with `textPrimary` ink.
     final (outline, fill, ink) = submission.isReviewed
-        ? (
-            HomePalette.activeOutline,
-            HomePalette.activeFill,
-            HomePalette.activeInk,
-          )
-        : (
-            HomePalette.mutedOutline,
-            HomePalette.mutedFill,
-            AppColors.textPrimary,
-          );
+        ? (palette.successOutline, palette.successFill, palette.successInk)
+        : (palette.divider, palette.surfaceSubtle, palette.textPrimary);
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 11),
@@ -422,39 +438,34 @@ class _StatusCapsule extends StatelessWidget {
   }
 }
 
-const OutlineInputBorder _boxBorder = OutlineInputBorder(
-  borderRadius: BorderRadius.all(Radius.circular(12)),
-  borderSide: BorderSide(color: HomePalette.border),
+OutlineInputBorder _boxBorder(Color color) => OutlineInputBorder(
+  borderRadius: const BorderRadius.all(Radius.circular(12)),
+  borderSide: BorderSide(color: color),
 );
 
 final TextStyle _tabSelected = AppTypography.programTitle.copyWith(
   fontSize: 16,
   height: 22 / 16,
   fontWeight: FontWeight.w700,
-  color: HomePalette.accent,
 );
 
 final TextStyle _tabStyle = AppTypography.cardSupporting.copyWith(
   fontSize: 16,
   height: 22 / 16,
   fontWeight: FontWeight.w400,
-  color: TeacherPillColors.ink,
 );
 
 final TextStyle _linkStyle = AppTypography.cardSupporting.copyWith(
   fontSize: 16,
   height: 22 / 16,
   fontWeight: FontWeight.w500,
-  color: GradebookColors.link,
   decoration: TextDecoration.underline,
-  decorationColor: GradebookColors.link,
 );
 
 final TextStyle _scoreStyle = AppTypography.programTitle.copyWith(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w700,
-  color: TeacherPillColors.ink,
 );
 
 final TextStyle _capsuleStyle = AppTypography.catalogStatusLabel.copyWith(
@@ -462,13 +473,9 @@ final TextStyle _capsuleStyle = AppTypography.catalogStatusLabel.copyWith(
   height: 16 / 12,
 );
 
-final TextStyle _boxLabel = AppTypography.cardSupporting.copyWith(
-  fontSize: 14,
-  color: TeacherPillColors.ink,
-);
+final TextStyle _boxLabel = AppTypography.cardSupporting.copyWith(fontSize: 14);
 
 final TextStyle _boxText = AppTypography.cardSupporting.copyWith(
   fontSize: 16,
   height: 24 / 16,
-  color: TeacherPillColors.ink,
 );

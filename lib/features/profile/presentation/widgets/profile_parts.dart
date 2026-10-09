@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../shared/widgets/app_svg_icon.dart';
 import '../../../../core/theme/app_dimens.dart';
@@ -441,8 +440,8 @@ class ProfileRule extends StatelessWidget {
 //
 // The parts above draw every colour from `context.palette` (Dark Mode Phase
 // 3, Issue #258) — "MN"'s deep indigo is `linkInk`, not the capsule's blue.
-// The public styles below keep their light colours for the screens that
-// still use them directly; the parts apply the role's colour over them.
+// None of the styles below bakes a colour (Dark Mode Phase 8, Issue #274):
+// every use — the parts here, Adult and Teacher Profile — applies its role.
 
 /// The title band's "Profile".
 const TextStyle profileHeadingStyle = TextStyle(
@@ -450,7 +449,6 @@ const TextStyle profileHeadingStyle = TextStyle(
   fontSize: 24,
   height: 32 / 24,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -460,7 +458,6 @@ const TextStyle profileNameStyle = TextStyle(
   fontSize: 18,
   height: 24 / 18,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -471,7 +468,6 @@ const TextStyle captionStyle = TextStyle(
   fontSize: 12,
   height: 16 / 12,
   fontWeight: FontWeight.w700,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -481,7 +477,6 @@ const TextStyle rowLabelStyle = TextStyle(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w400,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_button.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 import '../../domain/teacher_failure.dart';
 import '../../domain/teacher_schedule_repository.dart';
 import '../../domain/teacher_session.dart';
@@ -13,7 +12,6 @@ import '../teacher_request_screen.dart';
 import '../teacher_schedule_strings.dart';
 import 'teacher_class_card.dart';
 import 'teacher_pill_button.dart';
-import 'teacher_week_grid.dart';
 
 /// Opens a tapped session's sheet (Issue #231): the
 /// `huvaari-deerh-oroh-angi` sheet with "Цаг солих" while the session is
@@ -27,9 +25,11 @@ Future<void> showTeacherSessionSheet(
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
-  backgroundColor: AppColors.surface,
-  // The reference's scrim: `#666666` over a white screen.
-  barrierColor: AppColors.barrier,
+  // A sheet sits above the cards (`surfaceElevated`, as Phase 5's payment
+  // sheets); the reference's scrim, `#666666` over a white screen, is
+  // `barrier`.
+  backgroundColor: context.palette.surfaceElevated,
+  barrierColor: context.palette.barrier,
   constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -76,7 +76,7 @@ class TeacherSessionSheet extends StatelessWidget {
                 width: 72,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: TeacherScheduleColors.handle,
+                  color: context.palette.sheetHandle,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -176,7 +176,9 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
         children: [
           Text(
             error,
-            style: AppTypography.cardSupporting,
+            style: AppTypography.cardSupporting.copyWith(
+              color: context.palette.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -188,7 +190,7 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
         ],
       );
     } else {
-      body = const SizedBox(
+      body = SizedBox(
         height: 92,
         child: Center(
           child: SizedBox(
@@ -196,7 +198,7 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
             height: 24,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: AppColors.blue,
+              color: context.palette.primary,
             ),
           ),
         ),
@@ -207,7 +209,10 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 24),
-        Container(height: AppDimens.borderWidth, color: HomePalette.border),
+        Container(
+          height: AppDimens.borderWidth,
+          color: context.palette.teacherSheetRule,
+        ),
         const SizedBox(height: 24),
         body,
       ],
@@ -222,6 +227,7 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -233,15 +239,21 @@ class _Summary extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text('${counts.attended}', style: _countStyle),
-              Text(' / ${counts.total}', style: _totalStyle),
+              Text(
+                '${counts.attended}',
+                style: _countStyle.copyWith(color: palette.accentText),
+              ),
+              Text(
+                ' / ${counts.total}',
+                style: _totalStyle.copyWith(color: palette.teacherDetailInk),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 4),
         Text(
           TeacherScheduleStrings.attendedCaption,
-          style: _captionStyle,
+          style: _captionStyle.copyWith(color: palette.teacherCaptionInk),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
@@ -252,14 +264,15 @@ class _Summary extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: Container(
             height: 8,
-            color: TeacherScheduleColors.barTrack,
+            // `outlineSubtle`'s documented "Teacher's bar track".
+            color: palette.outlineSubtle,
             alignment: Alignment.centerLeft,
             child: FractionallySizedBox(
               widthFactor: counts.fraction.clamp(0, 1),
               heightFactor: 1,
-              child: const ColoredBox(
-                key: ValueKey('attendance-fill'),
-                color: HomePalette.accent,
+              child: ColoredBox(
+                key: const ValueKey('attendance-fill'),
+                color: palette.accent,
               ),
             ),
           ),
@@ -273,19 +286,16 @@ final TextStyle _countStyle = AppTypography.programTitle.copyWith(
   fontSize: 36,
   height: 44 / 36,
   fontWeight: FontWeight.w800,
-  color: HomePalette.accent,
 );
 
 final TextStyle _totalStyle = AppTypography.programTitle.copyWith(
   fontSize: 16,
   height: 1.2,
   fontWeight: FontWeight.w700,
-  color: TeacherScheduleColors.totalInk,
 );
 
 final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w400,
-  color: TeacherScheduleColors.captionInk,
 );

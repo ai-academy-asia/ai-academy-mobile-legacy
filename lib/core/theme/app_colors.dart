@@ -84,8 +84,8 @@ abstract final class AppColors {
   // --- Role values shared across features (Dark Mode Phase 2, Issue #256) --
   //
   // Each is the single light-mode source of one `AppPalette` role. The
-  // feature palettes (`HomePalette`, the Teacher and Payment palettes; the
-  // Junior one is retired) and the private constants that used to repeat
+  // feature palettes (`HomePalette` and `PaymentFlowPalette`; the Junior and
+  // Teacher ones are retired) and the private constants that used to repeat
   // these literals now alias them, so a value is written once. Values are exactly
   // what shipped; roles that differ in meaning but share a light value (and
   // may not share a dark one — `DARK_MODE_DESIGN_PROPOSAL.md`) share a
@@ -95,6 +95,8 @@ abstract final class AppColors {
   static const Color _ink90 = Color(0xE6000000);
   static const Color _fieldGrey = Color(0xFFE4E6EF);
   static const Color _outlineGrey = Color(0xFFD6DBE1);
+  static const Color _greyInk = Color(0xFFAEAFB0);
+  static const Color _redInk = Color(0xFFDC3412);
   static const Color _blueTint = Color(0xFFE5F4FF);
   static const Color _blueWash = Color(0xFFEFF4FF);
 
@@ -158,7 +160,7 @@ abstract final class AppColors {
   static const Color textLocked = Color(0xFFB5B5B5);
 
   /// The label of a control that cannot be used.
-  static const Color disabledInk = Color(0xFFAEAFB0);
+  static const Color disabledInk = _greyInk;
 
   /// The ink of the monochrome SVG icons — the bell, the Profile row icons
   /// — which are drawn `stroke="black"`. A tint of this exact colour paints
@@ -186,7 +188,7 @@ abstract final class AppColors {
   /// The stronger green tile — payment success, a submitted assignment.
   static const Color successFillStrong = Color(0xFFCCEBDC);
 
-  static const Color errorInk = Color(0xFFDC3412);
+  static const Color errorInk = _redInk;
   static const Color errorFill = Color(0xFFFFF5F5);
   static const Color errorOutline = Color(0xFFEF4444);
 
@@ -306,4 +308,33 @@ abstract final class AppColors {
   static const Color scheduleBand = accent;
   static const Color scheduleHeld = _blueWash;
   static const Color scheduleHeldInk = Color(0xFF787A80);
+
+  // Teacher (Dark Mode Phase 8, Issue #274).
+
+  /// The near-black navy of Teacher Home's and the Gradebook's titles and the class card titles.
+  static const Color teacherTitle = Color(0xFF0B1230);
+
+  /// A teacher's name on the Request screen (navy).
+  static const Color teacherNameInk = Color(0xFF0C226E);
+
+  /// That teacher's role line under the name.
+  static const Color teacherRoleInk = Color(0xFF6371A2);
+
+  /// Teacher's cool-grey detail text: the Profile's email and phone, and the session sheet's "/ total".
+  static const Color teacherDetailInk = Color(0xFF9CA3AF);
+
+  /// The session sheet's attendance caption.
+  static const Color teacherCaptionInk = Color(0xFF4B5563);
+
+  /// The rule across the session sheet, above its body.
+  static const Color teacherSheetRule = _outlineGrey;
+
+  /// A destructive pill's outline, drawn in its label's red.
+  static const Color dangerOutline = _redInk;
+
+  /// The Gradebook's placeholder avatar disc.
+  static const Color avatarPlaceholder = _lineGrey;
+
+  /// The person glyph on a placeholder avatar.
+  static const Color avatarPlaceholderInk = _greyInk;
 }

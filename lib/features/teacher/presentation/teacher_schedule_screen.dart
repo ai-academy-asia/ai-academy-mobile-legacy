@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -10,7 +9,6 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/home_strings.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../../notifications/presentation/notification_screen.dart';
 import '../data/http_teacher_schedule_repository.dart';
 import '../domain/teacher_schedule_repository.dart';
@@ -19,7 +17,6 @@ import 'teacher_home_strings.dart';
 import 'teacher_schedule_controller.dart';
 import 'teacher_schedule_strings.dart';
 import 'widgets/teacher_bottom_nav.dart';
-import 'widgets/teacher_pill_button.dart';
 import 'widgets/teacher_session_sheet.dart';
 import 'widgets/teacher_tabs.dart';
 import 'widgets/teacher_week_grid.dart';
@@ -105,7 +102,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
         navigationBar: context.palette.surface,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         bottomNavigationBar: widget.showBottomNav
             ? const TeacherBottomNav(current: TeacherTab.schedule)
             : null,
@@ -138,7 +135,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
     return RefreshIndicator(
       onRefresh: _controller.load,
-      color: AppColors.blue,
+      color: context.palette.primary,
       child: SingleChildScrollView(
         // Always scrollable, so pull-to-refresh works on any screen height.
         physics: const AlwaysScrollableScrollPhysics(),
@@ -151,13 +148,15 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
               onSessionTap: _openSession,
             ),
             if (_controller.isEmpty)
-              const Positioned(
+              Positioned(
                 left: TeacherWeekGridMetrics.timeColumnWidth,
                 right: 0,
                 top: TeacherWeekGridMetrics.topInset + 24,
                 child: Text(
                   TeacherScheduleStrings.empty,
-                  style: AppTypography.cardSupporting,
+                  style: AppTypography.cardSupporting.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -170,6 +169,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
 /// The blue band, behind the status bar too: the selected date with its
 /// caret — which opens the date picker — and the inert bell.
+///
+/// Its own role, `AppPalette.scheduleBand` — Teacher's identity, not a page
+/// surface — with `onPrimary` ink, under the light status-bar glyphs the
+/// screen keeps (`AppSystemUi.overDarkContent`).
 class _Header extends StatelessWidget {
   const _Header({required this.day, required this.onPickDate});
 
@@ -178,8 +181,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return ColoredBox(
-      color: HomePalette.accent,
+      color: palette.scheduleBand,
       child: Padding(
         padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
         child: SizedBox(
@@ -207,13 +211,15 @@ class _Header extends StatelessWidget {
                       children: [
                         Text(
                           TeacherScheduleStrings.headerDate(day),
-                          style: _headerStyle,
+                          style: _headerStyle.copyWith(
+                            color: palette.onPrimary,
+                          ),
                         ),
                         const SizedBox(width: 10),
-                        const Icon(
+                        Icon(
                           AppIcons.caretDown,
                           size: 16,
-                          color: AppColors.onPrimary,
+                          color: palette.onPrimary,
                         ),
                       ],
                     ),
@@ -235,8 +241,8 @@ class _Header extends StatelessWidget {
                       HomeIcons.notification,
                       width: 20,
                       height: 20,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.onPrimary,
+                      colorFilter: ColorFilter.mode(
+                        palette.onPrimary,
                         BlendMode.srcIn,
                       ),
                     ),
@@ -268,13 +274,13 @@ class _WeekStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 68,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: context.palette.surface,
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 3,
-            offset: Offset(0, 1),
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -322,22 +328,29 @@ class _DayCell extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 4),
-            Text(weekday, style: _weekdayStyle),
+            Text(
+              weekday,
+              style: _weekdayStyle.copyWith(
+                color: context.palette.textInactive,
+              ),
+            ),
             const SizedBox(height: 6),
             Container(
               width: 30,
               height: 30,
               alignment: Alignment.center,
               decoration: selected
-                  ? const BoxDecoration(
-                      color: HomePalette.accent,
+                  ? BoxDecoration(
+                      color: context.palette.accent,
                       shape: BoxShape.circle,
                     )
                   : null,
               child: Text(
                 '${day.day}',
                 style: _dateStyle.copyWith(
-                  color: selected ? AppColors.onPrimary : TeacherPillColors.ink,
+                  color: selected
+                      ? context.palette.onPrimary
+                      : context.palette.textStrong,
                 ),
               ),
             ),
@@ -353,13 +366,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -384,7 +397,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -404,7 +419,6 @@ final TextStyle _headerStyle = AppTypography.programTitle.copyWith(
   fontSize: 20,
   height: 28 / 20,
   fontWeight: FontWeight.w700,
-  color: AppColors.onPrimary,
 );
 
 const TextStyle _weekdayStyle = TextStyle(
@@ -412,7 +426,6 @@ const TextStyle _weekdayStyle = TextStyle(
   fontSize: 12,
   height: 17 / 12,
   fontWeight: FontWeight.w500,
-  color: TeacherScheduleColors.weekday,
 );
 
 const TextStyle _dateStyle = TextStyle(

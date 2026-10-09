@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../../home/presentation/widgets/home_badges.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 import '../../domain/teacher_submission.dart';
 import '../teacher_gradebook_strings.dart';
 import 'teacher_pill_button.dart';
@@ -39,7 +38,7 @@ class GradebookBackHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.surface,
+      color: context.palette.surface,
       child: SafeArea(
         bottom: false,
         child: SizedBox(
@@ -53,7 +52,9 @@ class GradebookBackHeader extends StatelessWidget {
                 child: Center(
                   child: Text(
                     title,
-                    style: gradebookTitleStyle,
+                    style: gradebookTitleStyle.copyWith(
+                      color: context.palette.textStrong,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -135,10 +136,10 @@ class GradebookRowCard extends StatelessWidget {
       label: '${row.studentName}, ${row.assignmentTitle}',
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
+        color: context.palette.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: HomePalette.border),
+          side: BorderSide(color: context.palette.outline),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -180,14 +181,14 @@ class GradebookIdentity extends StatelessWidget {
       children: [
         Text(
           name,
-          style: _nameStyle,
+          style: _nameStyle.copyWith(color: context.palette.textMuted),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 2),
         Text(
           title,
-          style: _rowTitleStyle,
+          style: _rowTitleStyle.copyWith(color: context.palette.textStrong),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -212,13 +213,24 @@ class GradebookAvatar extends StatelessWidget {
       width: 48,
       height: 48,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: HomePalette.mutedOutline,
+      decoration: BoxDecoration(
+        color: context.palette.avatarPlaceholder,
         shape: BoxShape.circle,
       ),
       child: letters == null || letters.isEmpty
-          ? const Icon(AppIcons.user, size: 22, color: HomePalette.mutedInk)
-          : ExcludeSemantics(child: Text(letters, style: _initialsStyle)),
+          ? Icon(
+              AppIcons.user,
+              size: 22,
+              color: context.palette.avatarPlaceholderInk,
+            )
+          : ExcludeSemantics(
+              child: Text(
+                letters,
+                style: _initialsStyle.copyWith(
+                  color: context.palette.textMuted,
+                ),
+              ),
+            ),
     );
   }
 }
@@ -236,13 +248,16 @@ class GradebookStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // A card's faint edge (`outlineFaint`); the capsule is the live blue set
+    // — `infoInk` at 30 % round an `infoFill`, the figure in `accentText`.
     return Container(
       padding: const EdgeInsets.all(AppDimens.cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: HomePalette.headerRule,
+          color: palette.outlineFaint,
           width: AppDimens.borderWidthEmphasis,
         ),
       ),
@@ -251,7 +266,7 @@ class GradebookStatCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: _statTitleStyle,
+            style: _statTitleStyle.copyWith(color: palette.textStrong),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -260,9 +275,9 @@ class GradebookStatCard extends StatelessWidget {
             children: [
               HomeCapsule(
                 label: value,
-                outline: HomePalette.liveOutline.withValues(alpha: 0.3),
-                fill: HomePalette.liveFill,
-                ink: HomePalette.accent,
+                outline: palette.infoInk.withValues(alpha: 0.3),
+                fill: palette.infoFill,
+                ink: palette.accentText,
                 horizontalPadding: 11,
               ),
             ],
@@ -288,7 +303,9 @@ class GradebookNotice extends StatelessWidget {
       ),
       child: Text(
         message,
-        style: AppTypography.cardSupporting,
+        style: AppTypography.cardSupporting.copyWith(
+          color: context.palette.textSecondary,
+        ),
         textAlign: TextAlign.center,
       ),
     );
@@ -299,42 +316,28 @@ final TextStyle gradebookTitleStyle = AppTypography.programTitle.copyWith(
   fontSize: 20,
   height: 28 / 20,
   fontWeight: FontWeight.w700,
-  color: TeacherPillColors.ink,
 );
 
 final TextStyle _nameStyle = AppTypography.programTitle.copyWith(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w600,
-  color: GradebookColors.name,
 );
 
 final TextStyle _rowTitleStyle = AppTypography.programTitle.copyWith(
   fontSize: 17,
   height: 24 / 17,
   fontWeight: FontWeight.w600,
-  color: TeacherPillColors.ink,
 );
 
 final TextStyle _initialsStyle = AppTypography.programTitle.copyWith(
   fontSize: 16,
   height: 1.2,
   fontWeight: FontWeight.w700,
-  color: GradebookColors.name,
 );
 
 final TextStyle _statTitleStyle = AppTypography.programTitle.copyWith(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w700,
-  color: TeacherPillColors.ink,
 );
-
-/// The Gradebook references' own colours.
-abstract final class GradebookColors {
-  /// The grey name line over a row's title, sampled at `#808080`.
-  static const Color name = AppColors.textMuted;
-
-  /// The submitted link's navy, sampled at `#1501A6`.
-  static const Color link = AppColors.linkInk;
-}

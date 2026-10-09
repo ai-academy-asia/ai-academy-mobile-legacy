@@ -656,6 +656,28 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - **Goldens:** all unchanged.
 > - **Next:** Phase 8 (Teacher).
 >
+> **Phase 8 done (Issue #274).** Teacher reads colours only through `context.palette`. With it, every role (Adult, Junior and Teacher) is on the palette.
+> - **Scope:** everything under `teacher/presentation`: Home, Schedule (band, week strip, grid, session sheet), Profile, Request, the Gradebook (class, student, submission) and their widgets. The bottom bar is the shared `AppBottomNav`.
+> - **Schedule band:** `scheduleBand` with `onPrimary` ink. The screen keeps `AppSystemUi.overDarkContent`, and a test fails if the page style replaces it.
+> - **Phase 5 follow-through:** the four public `profile_parts` styles kept their colours "for the Teacher Profile … until Phase 8". They are colour-free now, every use applies its role, and `adult_palette_scope_test`'s exception for them is gone.
+> - **Mapped by meaning, not hex:**
+>   - The session sheet is `surfaceElevated` with `barrier` and `sheetHandle`.
+>   - Grid hairlines and header rules are `divider`; panel edges `outlineFaint`; cards and fields `outline`.
+>   - Blue text is `accentText`, blue fills `accent`.
+>   - The pending capsule is Phase 5's muted set. The live capsule is `infoInk` @ 30 % on `infoFill`.
+> - **New roles:**
+>   - `teacherTitle` `#0B1230`, `teacherNameInk` `#0C226E`, `teacherRoleInk` `#6371A2`, `teacherDetailInk` `#9CA3AF` and `teacherCaptionInk` `#4B5563`. Proposal §12 folds them into `textPrimary`/`textSecondary` in dark, which only separate roles allow.
+>   - `teacherSheetRule` `#D6DBE1`, `dangerOutline` `#DC3412`, `avatarPlaceholder` `#EAEDF0` and `avatarPlaceholderInk` `#AEAFB0`.
+>
+>   Each is pinned to its shipped light value, with no dark value. That makes 94 roles. The four Teacher palettes are retired.
+> - **Kept as authored:** the SVG icons (bell, tab glyphs, track badges).
+> - **Coverage:** four goldens captured from the unmigrated code first (`teacher_state_*`): Schedule and Gradebook loading and failure.
+> - **Guards:**
+>   - `teacher_palette_scope_test.dart` scans the whole folder, with no exceptions.
+>   - `teacher_theme_test.dart` proves the role splits and the band's status bar under a sentinel palette.
+> - **Goldens:** all unchanged.
+> - **Next:** Phase 9 (dark values, once the proposal is approved).
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 

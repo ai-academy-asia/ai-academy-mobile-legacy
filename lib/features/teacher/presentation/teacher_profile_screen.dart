@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -17,7 +16,6 @@ import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../profile/presentation/profile_controller.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../../profile/presentation/widgets/profile_parts.dart';
-import 'widgets/teacher_week_grid.dart';
 
 /// The hero's text column: 8 after the avatar, as the frame inks the name
 /// 9 in with its glyph's own bearing.
@@ -142,7 +140,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -258,10 +256,23 @@ class _Hero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _line(user?.displayName ?? '', profileNameStyle),
+                _line(
+                  user?.displayName ?? '',
+                  profileNameStyle.copyWith(color: context.palette.textPrimary),
+                ),
                 const SizedBox(height: _nameToDetails),
-                _line(user?.email ?? '', _detailStyle),
-                _line(user?.profile.phone ?? '', _detailStyle),
+                _line(
+                  user?.email ?? '',
+                  _detailStyle.copyWith(
+                    color: context.palette.teacherDetailInk,
+                  ),
+                ),
+                _line(
+                  user?.profile.phone ?? '',
+                  _detailStyle.copyWith(
+                    color: context.palette.teacherDetailInk,
+                  ),
+                ),
               ],
             ),
           ),
@@ -288,12 +299,12 @@ class _Hero extends StatelessWidget {
 const double _lineHeight = 24;
 
 /// The email and phone under the name: 14pt regular in the frame's cool grey
-/// `#9CA3AF` — the same grey Teacher Schedule's attendance summary uses.
+/// (`AppPalette.teacherDetailInk`) — the same grey Teacher Schedule's
+/// attendance summary uses.
 const TextStyle _detailStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 14,
   height: 24 / 14,
   fontWeight: FontWeight.w400,
-  color: TeacherScheduleColors.totalInk,
   leadingDistribution: TextLeadingDistribution.even,
 );
