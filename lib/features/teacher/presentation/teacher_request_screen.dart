@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import 'teacher_schedule_strings.dart';
 import 'widgets/teacher_pill_button.dart';
-import 'widgets/teacher_week_grid.dart';
 
 /// Where a row's request stands, as the `tsag-solih` reference draws it.
 ///
@@ -53,7 +51,7 @@ class TeacherRequestScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -70,7 +68,9 @@ class TeacherRequestScreen extends StatelessWidget {
                     child: Center(
                       child: Text(
                         TeacherScheduleStrings.teachersTitle,
-                        style: _titleStyle,
+                        style: _titleStyle.copyWith(
+                          color: context.palette.textStrong,
+                        ),
                       ),
                     ),
                   ),
@@ -105,12 +105,16 @@ class _Unavailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Text(
           TeacherScheduleStrings.requestsUnavailable,
-          style: AppTypography.cardSupporting,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
       ),
@@ -149,14 +153,16 @@ class TeacherRequestRow extends StatelessWidget {
         Container(
           width: 64,
           height: 64,
-          decoration: const BoxDecoration(
-            color: HomePalette.mutedFill,
+          // A placeholder avatar on the icon-tile ground (`surfaceSubtle`),
+          // its person glyph `avatarPlaceholderInk`.
+          decoration: BoxDecoration(
+            color: context.palette.surfaceSubtle,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             AppIcons.user,
             size: 28,
-            color: HomePalette.mutedInk,
+            color: context.palette.avatarPlaceholderInk,
           ),
         ),
         const SizedBox(width: 17),
@@ -166,12 +172,19 @@ class TeacherRequestRow extends StatelessWidget {
             children: [
               Text(
                 candidate.name,
-                style: _nameStyle,
+                style: _nameStyle.copyWith(
+                  color: context.palette.teacherNameInk,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
-              Text(TeacherScheduleStrings.teacherRole, style: _roleStyle),
+              Text(
+                TeacherScheduleStrings.teacherRole,
+                style: _roleStyle.copyWith(
+                  color: context.palette.teacherRoleInk,
+                ),
+              ),
             ],
           ),
         ),
@@ -197,7 +210,6 @@ final TextStyle _titleStyle = AppTypography.programTitle.copyWith(
   fontSize: 20,
   height: 28 / 20,
   fontWeight: FontWeight.w700,
-  color: TeacherPillColors.ink,
 );
 
 /// 17, not the 20 the cap height suggests: sized to the reference's name
@@ -206,12 +218,10 @@ final TextStyle _nameStyle = AppTypography.programTitle.copyWith(
   fontSize: 17,
   height: 24 / 17,
   fontWeight: FontWeight.w700,
-  color: TeacherScheduleColors.teacherName,
 );
 
 final TextStyle _roleStyle = AppTypography.cardSupporting.copyWith(
   fontSize: 13,
   height: 18 / 13,
   fontWeight: FontWeight.w400,
-  color: TeacherScheduleColors.teacherRole,
 );

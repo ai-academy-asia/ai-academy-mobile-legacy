@@ -31,10 +31,9 @@ void main() {
     'attendance',
   ];
 
-  /// The public Profile text styles kept with their light colours for the
-  /// Teacher Profile, which reads them directly until Phase 8. Only the
-  /// colour lines inside these declarations are excepted — any other direct
-  /// colour in `profile_parts.dart` is caught.
+  /// The public Profile text styles, shared with the Teacher Profile. Since
+  /// Phase 8 (Issue #274) none bakes a colour, so there is no exception for
+  /// them; every use outside their own file must still supply one (below).
   const teacherSharedProfileStyles = {
     'profileHeadingStyle',
     'profileNameStyle',
@@ -79,22 +78,6 @@ void main() {
   test('the Adult features read colours only via context.palette', () {
     final sources = adultSources();
 
-    // `profile_parts.dart`: the lines inside the Teacher-shared styles.
-    final profileParts =
-        sources['profile/presentation/widgets/profile_parts.dart']!;
-    final sharedStyleLines = <int>{
-      for (final MapEntry(key: name, value: (start, end, _))
-          in styleDeclarations(profileParts).entries)
-        if (teacherSharedProfileStyles.contains(name))
-          for (
-            var line = lineOf(profileParts, start);
-            line <= lineOf(profileParts, end);
-            line++
-          )
-            line,
-    };
-    expect(sharedStyleLines, isNotEmpty);
-
     /// Allowed on purpose — each says why.
     bool allowed(String file, int lineNumber, String line) => switch (file) {
       // The legacy palette itself: aliases of the `AppColors` roles, kept
@@ -110,11 +93,6 @@ void main() {
       'home/presentation/widgets/home_header.dart' => line.contains(
         'context.palette.wordmark == AppColors.wordmark',
       ),
-      'profile/presentation/widgets/profile_parts.dart' =>
-        sharedStyleLines.contains(lineNumber) &&
-            RegExp(
-              r'^\s*color: AppColors\.(textPrimary|textSecondary),$',
-            ).hasMatch(line),
       _ => false,
     };
 

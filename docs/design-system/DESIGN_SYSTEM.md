@@ -43,8 +43,8 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
 
-**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268; the Quiz roles in Phase 6c, #270; the Junior roles in Phase 7, #272).** `AppPalette` has 85 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
-- The feature palettes (`HomePalette`, `PaymentFlowPalette`, `TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`) and the private constants that used to repeat a literal now **alias** those constants. `JuniorPalette` was retired in Phase 7 (Issue #272), once Junior read the roles.
+**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268; the Quiz roles in Phase 6c, #270; the Junior roles in Phase 7, #272; the Teacher roles in Phase 8, #274).** `AppPalette` has 94 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
+- The feature palettes (`HomePalette`, `PaymentFlowPalette`) and the private constants that used to repeat a literal now **alias** those constants. `JuniorPalette` was retired in Phase 7 (Issue #272) and the Teacher palettes (`TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`, `TeacherHomeColors`) in Phase 8 (Issue #274), once each role read the roles.
 - `color_literal_consolidation_test.dart` fails if a role's value reappears as a literal anywhere else in `lib/`.
 - New code reads `context.palette`; the aliases exist only until Phases 3–8 move their call sites.
 
@@ -62,7 +62,7 @@ The app-wide theme mode is `AppThemeController.instance`, one state for Adult, J
 | Learning Flow | `learningHeroTint` `#E8F3FF` (Course Module List's header wash) · `surfaceLocked` `#EFEFEF` (a locked module's tile) · `cardDepth` `#EAEDF0` (the flat band under a lifted card, an unanswered quiz option included) · `outlineFaint` `#EAEDF0` (that card's edge, the certification panel's, Exercise Detail's tab card and the quiz feedback card) · `textAnswerLetter` `#8A8A8A` (a quiz option's A/B/C/D) |
 | Exercise Detail | `videoSurface` `#080F35` (the video header, dark in every theme) · `mediaControl` white (its back and play discs) · `onMediaControl` black 90 % (the glyph on a disc) · `mediaControlOutline` `#D6DBE1` (the back disc's ring) · `onMedia` white (text and its pill on the video) · `progressTrack` `#E4E6EF` (an upload/download ring's and bar's track) |
 | Junior | `juniorCard` `#EFF4FF` · `juniorCardBorder` `#D1D3F5` · `juniorMapSky` `#BFD9F8` · `calendarNeutral` `#F2F2F3` · `calendarLesson` `#E5F4FF` · `calendarMissed` `#FFE7E7` · `juniorMutedFill` `#EAEDF0` (a map element not yet reached: a locked node, the certificate panel) · `juniorHeaderRule` `#E4E6EF` (Junior Home's header rule) · `onJuniorMapSky` white (a glyph on the sky: the map's spinner) |
-| Teacher | `scheduleBand` `#2970FF` · `scheduleHeld` `#EFF4FF` · `scheduleHeldInk` `#787A80` |
+| Teacher | `scheduleBand` `#2970FF` (the Schedule band, under light status-bar glyphs) · `scheduleHeld` `#EFF4FF` · `scheduleHeldInk` `#787A80` · `teacherTitle` `#0B1230` (Home/Gradebook/class titles) · `teacherNameInk` `#0C226E` / `teacherRoleInk` `#6371A2` (a teacher's name and role) · `teacherDetailInk` `#9CA3AF` (Profile email/phone, the sheet's "/ total") · `teacherCaptionInk` `#4B5563` · `teacherSheetRule` `#D6DBE1` (the session sheet's rule) · `dangerOutline` `#DC3412` (a destructive pill's edge) · `avatarPlaceholder` `#EAEDF0` / `avatarPlaceholderInk` `#AEAFB0` (a placeholder avatar and its glyph) |
 
 Some roles share a light value but stay separate roles, because their meaning (and proposed dark value) differs:
 - `accentSubtle` / `infoFill` / `calendarLesson`;
@@ -74,7 +74,8 @@ Some roles share a light value but stay separate roles, because their meaning (a
 - `border` / `progressTrack` — a field's edge and a transfer's track;
 - `outline` / `mediaControlOutline` — a page outline and the ring of a control on the always-dark video;
 - `divider` / `juniorMutedFill`, `border` / `juniorHeaderRule`, `surface` / `onJuniorMapSky` — a rule and a fill, an edge and a rule, a surface and a glyph on the sky;
-- `accentSubtle` / `calendarLesson` — the summary pill's fill and a calendar day's tint.
+- `accentSubtle` / `calendarLesson` — the summary pill's fill and a calendar day's tint;
+- `outline` / `teacherSheetRule`, `errorInk` / `dangerOutline`, `divider` / `avatarPlaceholder`, `disabledInk` / `avatarPlaceholderInk` — an edge and a rule, a label and an edge, a rule and a fill, a disabled label and a placeholder glyph.
 
 Different light values are never merged.
 

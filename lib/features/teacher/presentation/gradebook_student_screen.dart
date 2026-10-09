@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
-import '../../home/presentation/widgets/home_palette.dart';
+import '../../../core/theme/app_palette.dart';
 import '../domain/teacher_gradebook_repository.dart';
 import 'gradebook_submission_screen.dart';
 import 'teacher_gradebook_strings.dart';
@@ -41,7 +40,7 @@ class GradebookStudentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceSubtle,
+      backgroundColor: context.palette.surfaceSubtle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -95,7 +94,7 @@ class GradebookStudentScreen extends StatelessWidget {
                 const SizedBox(height: 9),
                 Container(
                   height: AppDimens.borderWidth,
-                  color: HomePalette.headerRule,
+                  color: context.palette.divider,
                 ),
                 for (final submission in submissions)
                   Padding(

@@ -2,9 +2,6 @@ import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/home/presentation/payment_flow/payment_flow_widgets.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_palette.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/gradebook_widgets.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_pill_button.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_week_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -109,6 +106,18 @@ void main() {
       'scheduleBand': (light.scheduleBand, const Color(0xFF2970FF)),
       'scheduleHeld': (light.scheduleHeld, const Color(0xFFEFF4FF)),
       'scheduleHeldInk': (light.scheduleHeldInk, const Color(0xFF787A80)),
+      'teacherTitle': (light.teacherTitle, const Color(0xFF0B1230)),
+      'teacherNameInk': (light.teacherNameInk, const Color(0xFF0C226E)),
+      'teacherRoleInk': (light.teacherRoleInk, const Color(0xFF6371A2)),
+      'teacherDetailInk': (light.teacherDetailInk, const Color(0xFF9CA3AF)),
+      'teacherCaptionInk': (light.teacherCaptionInk, const Color(0xFF4B5563)),
+      'teacherSheetRule': (light.teacherSheetRule, const Color(0xFFD6DBE1)),
+      'dangerOutline': (light.dangerOutline, const Color(0xFFDC3412)),
+      'avatarPlaceholder': (light.avatarPlaceholder, const Color(0xFFEAEDF0)),
+      'avatarPlaceholderInk': (
+        light.avatarPlaceholderInk,
+        const Color(0xFFAEAFB0),
+      ),
     };
     for (final MapEntry(key: role, value: (actual, shipped)) in roles.entries) {
       expect(actual, shipped, reason: role);
@@ -159,33 +168,6 @@ void main() {
         PaymentFlowPalette.successFill,
         light.successFillStrong,
       ),
-      'TeacherScheduleColors.gridLine': (
-        TeacherScheduleColors.gridLine,
-        light.divider,
-      ),
-      'TeacherScheduleColors.heldFill': (
-        TeacherScheduleColors.heldFill,
-        light.scheduleHeld,
-      ),
-      'TeacherScheduleColors.heldInk': (
-        TeacherScheduleColors.heldInk,
-        light.scheduleHeldInk,
-      ),
-      'TeacherScheduleColors.weekday': (
-        TeacherScheduleColors.weekday,
-        light.textInactive,
-      ),
-      'TeacherScheduleColors.barTrack': (
-        TeacherScheduleColors.barTrack,
-        light.outlineSubtle,
-      ),
-      'TeacherScheduleColors.handle': (
-        TeacherScheduleColors.handle,
-        light.sheetHandle,
-      ),
-      'GradebookColors.name': (GradebookColors.name, light.textMuted),
-      'GradebookColors.link': (GradebookColors.link, light.linkInk),
-      'TeacherPillColors.ink': (TeacherPillColors.ink, light.textStrong),
     };
     for (final MapEntry(key: name, value: (legacy, role)) in aliases.entries) {
       expect(legacy, role, reason: name);

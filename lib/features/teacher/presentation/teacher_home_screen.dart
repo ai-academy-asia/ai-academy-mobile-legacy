@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/widgets/home_header.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../data/http_teacher_home_repository.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_home_repository.dart';
@@ -90,7 +88,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? const TeacherBottomNav()
             : null,
@@ -99,7 +97,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           children: [
             // White behind the status bar, as the reference draws it.
             ColoredBox(
-              color: AppColors.surface,
+              color: context.palette.surface,
               child: SizedBox(height: MediaQuery.paddingOf(context).top),
             ),
             Expanded(
@@ -122,7 +120,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             HomeHeader(onLogoTap: _refreshFromLogo),
                             Container(
                               height: AppDimens.borderWidth,
-                              color: HomePalette.headerRule,
+                              color: context.palette.divider,
                             ),
                             Expanded(child: _buildBody()),
                           ],
@@ -172,13 +170,18 @@ class _ClassesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <Widget>[
-      Text(TeacherHomeStrings.title, style: _titleStyle),
+      Text(
+        TeacherHomeStrings.title,
+        style: _titleStyle.copyWith(color: context.palette.teacherTitle),
+      ),
       if (classes.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 32),
           child: Text(
             TeacherHomeStrings.empty,
-            style: AppTypography.cardSupporting,
+            style: AppTypography.cardSupporting.copyWith(
+              color: context.palette.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
         )
@@ -195,7 +198,7 @@ class _ClassesView extends StatelessWidget {
     return RefreshIndicator(
       key: refreshIndicatorKey,
       onRefresh: onRefresh,
-      color: AppColors.blue,
+      color: context.palette.primary,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
@@ -221,22 +224,20 @@ const double _titleToFirstCard = 9;
 /// Between cards: 16 in the reference.
 const double _cardGap = 16;
 
-final TextStyle _titleStyle = AppTypography.heading.copyWith(
-  color: TeacherHomeColors.ink,
-);
+final TextStyle _titleStyle = AppTypography.heading.copyWith();
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -261,7 +262,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

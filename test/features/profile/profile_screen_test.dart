@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show Tristate;
 
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/data/http_current_user_repository.dart';
@@ -36,15 +37,22 @@ Future<void> _loadFonts() async {
 }
 
 /// The design uses "Notification" for both a section caption and a row, so
-/// `find.text` alone is ambiguous. These match on the style each role uses.
+/// `find.text` alone is ambiguous. These match on the style each role uses —
+/// the public style with its role's colour applied (Issue #274).
 Finder sectionCaption(String label) => find.byWidgetPredicate(
   (widget) =>
-      widget is Text && widget.data == label && widget.style == captionStyle,
+      widget is Text &&
+      widget.data == label &&
+      widget.style ==
+          captionStyle.copyWith(color: AppPalette.light.textSecondary),
 );
 
 Finder rowLabel(String label) => find.byWidgetPredicate(
   (widget) =>
-      widget is Text && widget.data == label && widget.style == rowLabelStyle,
+      widget is Text &&
+      widget.data == label &&
+      widget.style ==
+          rowLabelStyle.copyWith(color: AppPalette.light.textPrimary),
 );
 
 void main() {

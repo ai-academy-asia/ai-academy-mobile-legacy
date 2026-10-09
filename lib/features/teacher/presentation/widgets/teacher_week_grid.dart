@@ -2,11 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 import '../../domain/teacher_session.dart';
-import 'teacher_pill_button.dart';
 
 /// The `huvaari` reference's grid, in points at its 393pt width.
 abstract final class TeacherWeekGridMetrics {
@@ -179,6 +177,8 @@ class TeacherWeekGrid extends StatelessWidget {
                   painter: _GridPainter(
                     hours: last - first,
                     dayWidth: dayWidth,
+                    // The grid's hairlines are rules (proposal §12).
+                    line: context.palette.divider,
                   ),
                 ),
               ),
@@ -193,7 +193,9 @@ class TeacherWeekGrid extends StatelessWidget {
                   child: Text(
                     '${hour.toString().padLeft(2, '0')}:00',
                     textAlign: TextAlign.right,
-                    style: _hourStyle,
+                    style: _hourStyle.copyWith(
+                      color: context.palette.textStrong,
+                    ),
                   ),
                 ),
               for (final placement in placements)
@@ -240,7 +242,10 @@ class SessionBlock extends StatelessWidget {
     final course = entry.teacherClass.cohort.course;
     final title = course.title.preferred ?? course.slug;
     final session = entry.session;
-    final ink = held ? TeacherScheduleColors.heldInk : AppColors.onPrimary;
+    final palette = context.palette;
+    // A session block is the band's blue (`accent`) with `onPrimary` ink; a
+    // held one is `scheduleHeld` with `scheduleHeldInk`.
+    final ink = held ? palette.scheduleHeldInk : palette.onPrimary;
     final style = _blockStyle.copyWith(color: ink);
 
     return Semantics(
@@ -252,7 +257,7 @@ class SessionBlock extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Container(
           decoration: BoxDecoration(
-            color: held ? TeacherScheduleColors.heldFill : HomePalette.accent,
+            color: held ? palette.scheduleHeld : palette.accent,
             borderRadius: held ? null : BorderRadius.circular(4),
           ),
           padding: const EdgeInsets.fromLTRB(4, 5, 4, 6),
@@ -285,15 +290,22 @@ class SessionBlock extends StatelessWidget {
 }
 
 class _GridPainter extends CustomPainter {
-  _GridPainter({required this.hours, required this.dayWidth});
+  _GridPainter({
+    required this.hours,
+    required this.dayWidth,
+    required this.line,
+  });
 
   final int hours;
   final double dayWidth;
 
+  /// The hairlines' colour — passed in: a painter has no context.
+  final Color line;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = TeacherScheduleColors.gridLine
+      ..color = line
       ..strokeWidth = 1;
 
     for (var i = 0; i <= hours; i++) {
@@ -315,14 +327,13 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GridPainter old) =>
-      old.hours != hours || old.dayWidth != dayWidth;
+      old.hours != hours || old.dayWidth != dayWidth || old.line != line;
 }
 
 final TextStyle _hourStyle = AppTypography.cardSupporting.copyWith(
   fontSize: 12,
   height: 17 / 12,
   fontWeight: FontWeight.w400,
-  color: TeacherPillColors.ink,
 );
 
 final TextStyle _blockStyle = AppTypography.programTitle.copyWith(
@@ -330,28 +341,3 @@ final TextStyle _blockStyle = AppTypography.programTitle.copyWith(
   height: 14 / 11,
   fontWeight: FontWeight.w700,
 );
-
-/// Teacher Schedule's own colours, sampled from the `huvaari` reference.
-abstract final class TeacherScheduleColors {
-  /// The grid's hairlines — the same grey as the header rule.
-  static const Color gridLine = HomePalette.headerRule;
-
-  /// A held session's block and its label.
-  static const Color heldFill = AppColors.scheduleHeld;
-  static const Color heldInk = AppColors.scheduleHeldInk;
-
-  /// The strip's weekday letters.
-  static const Color weekday = AppColors.textInactive;
-
-  /// The attendance summary's "/ 24", caption and bar track.
-  static const Color totalInk = Color(0xFF9CA3AF);
-  static const Color captionInk = Color(0xFF4B5563);
-  static const Color barTrack = AppColors.outlineSubtle;
-
-  /// The sheet's drag handle.
-  static const Color handle = AppColors.sheetHandle;
-
-  /// The "Багш нар" names and their role line.
-  static const Color teacherName = Color(0xFF0C226E);
-  static const Color teacherRole = Color(0xFF6371A2);
-}

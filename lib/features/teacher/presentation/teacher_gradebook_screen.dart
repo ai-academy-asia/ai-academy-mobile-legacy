@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../data/http_teacher_gradebook_repository.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_gradebook_repository.dart';
@@ -83,7 +81,7 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? const TeacherBottomNav(current: TeacherTab.grades)
             : null,
@@ -91,7 +89,7 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ColoredBox(
-              color: AppColors.surface,
+              color: context.palette.surface,
               child: SafeArea(
                 bottom: false,
                 child: Container(
@@ -102,14 +100,16 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     TeacherGradebookStrings.title,
-                    style: _titleStyle,
+                    style: _titleStyle.copyWith(
+                      color: context.palette.teacherTitle,
+                    ),
                   ),
                 ),
               ),
             ),
             Container(
               height: AppDimens.borderWidth,
-              color: HomePalette.headerRule,
+              color: context.palette.divider,
             ),
             Expanded(
               child: ListenableBuilder(
@@ -127,13 +127,13 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
     final classes = _controller.classes;
 
     if (_controller.loading && classes == null) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 28,
           height: 28,
           child: CircularProgressIndicator(
             strokeWidth: 2.5,
-            color: AppColors.blue,
+            color: context.palette.primary,
           ),
         ),
       );
@@ -150,7 +150,9 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
             children: [
               Text(
                 message,
-                style: AppTypography.cardSupporting,
+                style: AppTypography.cardSupporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -168,7 +170,7 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
     final list = classes ?? const <TeacherClass>[];
     return RefreshIndicator(
       onRefresh: _controller.load,
-      color: AppColors.blue,
+      color: context.palette.primary,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
@@ -183,7 +185,9 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
               padding: const EdgeInsets.only(top: 16),
               child: Text(
                 TeacherGradebookStrings.empty,
-                style: AppTypography.cardSupporting,
+                style: AppTypography.cardSupporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -212,5 +216,4 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
 final TextStyle _titleStyle = AppTypography.heading.copyWith(
   fontSize: 24,
   height: 32 / 24,
-  color: TeacherHomeColors.ink,
 );

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../home/presentation/widgets/home_badges.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 import '../../domain/teacher_class.dart';
 import '../teacher_home_strings.dart';
 
@@ -55,12 +54,13 @@ class TeacherClassCard extends StatelessWidget {
     final title = cohort.course.title.preferred ?? cohort.course.slug;
     final room = cohort.classroom?.name;
 
+    final palette = context.palette;
     return Container(
       // 24 inside the card's edge on every side, the 1pt outline included.
       padding: const EdgeInsets.fromLTRB(15, 23, 15, 23),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: HomePalette.border),
+        color: palette.surface,
+        border: Border.all(color: palette.outline),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -74,17 +74,20 @@ class TeacherClassCard extends StatelessWidget {
                 const Spacer(),
                 HomeCapsule(
                   label: TeacherHomeStrings.students(cohort.enrolledCount),
-                  outline: HomePalette.activeOutline,
-                  fill: HomePalette.activeFill,
-                  ink: HomePalette.activeInk,
+                  outline: palette.successOutline,
+                  fill: palette.successFill,
+                  ink: palette.successInk,
                   horizontalPadding: 15,
                 ),
               ],
             ),
           ),
           const SizedBox(height: _badgeToCaption),
-          Text(cohort.name, style: _captionStyle),
-          Text(title, style: _titleStyle),
+          Text(
+            cohort.name,
+            style: _captionStyle.copyWith(color: palette.textSecondary),
+          ),
+          Text(title, style: _titleStyle.copyWith(color: palette.teacherTitle)),
           if (showDetails) ...[
             const SizedBox(height: _titleToDetails),
             Wrap(
@@ -134,9 +137,12 @@ class _Detail extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: HomePalette.accent),
+          Icon(icon, size: 18, color: context.palette.accentText),
           const SizedBox(width: 4),
-          Text(label, style: _detailStyle),
+          Text(
+            label,
+            style: _detailStyle.copyWith(color: context.palette.accentText),
+          ),
         ],
       ),
     );
@@ -160,17 +166,9 @@ final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
 final TextStyle _titleStyle = AppTypography.programTitle.copyWith(
   fontSize: 18,
   height: 26 / 18,
-  color: TeacherHomeColors.ink,
 );
 
 final TextStyle _detailStyle = AppTypography.programTitle.copyWith(
   fontSize: 14,
   height: 20 / 14,
-  color: HomePalette.accent,
 );
-
-/// Teacher Home's one colour of its own: the reference's near-black navy
-/// for the screen title and each class title, sampled from the capture.
-abstract final class TeacherHomeColors {
-  static const Color ink = Color(0xFF0B1230);
-}

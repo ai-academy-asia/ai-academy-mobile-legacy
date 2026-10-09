@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../domain/teacher_class.dart';
@@ -79,7 +79,7 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceSubtle,
+      backgroundColor: context.palette.surfaceSubtle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -114,7 +114,9 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
             children: [
               Text(
                 message,
-                style: AppTypography.cardSupporting,
+                style: AppTypography.cardSupporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -130,13 +132,13 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
     }
 
     if (rows == null) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 28,
           height: 28,
           child: CircularProgressIndicator(
             strokeWidth: 2.5,
-            color: AppColors.blue,
+            color: context.palette.primary,
           ),
         ),
       );
@@ -145,7 +147,7 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
     final visible = filterRows(rows, _filter);
     return RefreshIndicator(
       onRefresh: _controller.load,
-      color: AppColors.blue,
+      color: context.palette.primary,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,

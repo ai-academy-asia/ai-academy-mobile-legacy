@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 
 /// How a [TeacherPillButton] is painted — the three treatments the
 /// `tsag-solih` reference draws, which the session sheet's "Цаг солих"
@@ -23,7 +22,7 @@ enum TeacherPillVariant {
 /// draw their buttons (Issue #231).
 ///
 /// Not [AppButton]: that is the Login frame's 12pt-label button, and these
-/// references set their labels larger, with the cooler [HomePalette.border]
+/// references set their labels larger, with the cooler `AppPalette.outline`
 /// outline and a soft shadow under the outlined pill. Label sizes match the
 /// references' label *widths* (16 for "Цаг солих", 14 in a row): their
 /// typeface runs narrower than Manrope at the same cap height.
@@ -50,21 +49,26 @@ class TeacherPillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // Filled: an `accent` pill (its edge the same blue) with `onPrimary`.
+    // Outlined: `surface` in `outline`, the near-black `textStrong` label.
+    // Danger: `surface` in `dangerOutline`, an `errorInk` label — one red in
+    // light mode, an edge and a label.
     final (fill, outline, ink) = switch (variant) {
       TeacherPillVariant.filled => (
-        HomePalette.accent,
-        HomePalette.accent,
-        AppColors.onPrimary,
+        palette.accent,
+        palette.accent,
+        palette.onPrimary,
       ),
       TeacherPillVariant.outlined => (
-        AppColors.surface,
-        HomePalette.border,
-        TeacherPillColors.ink,
+        palette.surface,
+        palette.outline,
+        palette.textStrong,
       ),
       TeacherPillVariant.danger => (
-        AppColors.surface,
-        HomePalette.overdueInk,
-        HomePalette.overdueInk,
+        palette.surface,
+        palette.dangerOutline,
+        palette.errorInk,
       ),
     };
     final radius = BorderRadius.circular(height / 2);
@@ -78,11 +82,11 @@ class TeacherPillButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: radius,
           boxShadow: variant == TeacherPillVariant.outlined
-              ? const [
+              ? [
                   BoxShadow(
-                    color: AppColors.shadowSubtle,
+                    color: palette.shadowSubtle,
                     blurRadius: 2,
-                    offset: Offset(0, 1),
+                    offset: const Offset(0, 1),
                   ),
                 ]
               : null,
@@ -121,9 +125,4 @@ class TeacherPillButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The references' near-black label ink, sampled at `#1A1A1A`.
-abstract final class TeacherPillColors {
-  static const Color ink = AppColors.textStrong;
 }

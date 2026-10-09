@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
@@ -78,7 +79,7 @@ void main() {
       expect(find.text('99001122'), findsOneWidget);
       expect(
         tester.widget<Text>(find.text('Test Teacher')).style,
-        profileNameStyle,
+        profileNameStyle.copyWith(color: AppPalette.light.textPrimary),
       );
     });
 
