@@ -12,9 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Dark Mode Phase 10 (Issue #278): one theme preference for the whole app,
-/// saved, restored before the first frame — and, while the candidate dark
-/// palette is unapproved, unable to reach it from any production path.
+/// One theme preference for the whole app (Phase 10, Issue #278), saved and
+/// restored before the first frame — Light or Dark, chosen by the user
+/// (Issue #282). System is not offered yet (§16.1).
 void main() {
   group('ThemePreference', () {
     test('parses what it stores, and nothing else', () {
@@ -34,14 +34,17 @@ void main() {
       FlutterSecureStorage.setMockInitialValues({});
       final persistence = SecureThemePreferencePersistence();
       expect(await persistence.read(), isNull);
-      await persistence.write('light');
-      expect(await persistence.read(), 'light');
+      await persistence.write('dark');
+      expect(await persistence.read(), 'dark');
     });
 
-    test('survives sign-out: clearing the session leaves it', () async {
-      FlutterSecureStorage.setMockInitialValues({
-        SecureThemePreferencePersistence.key: 'light',
-      });
+    test('survives sign-out: clearing the session leaves it, and the next '
+        'launch restores it', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final before = AppThemeController();
+      await before.restore(SecureThemePreferencePersistence());
+      await before.setPreference(ThemePreference.dark);
+
       final store = AuthSessionStore();
       await store.attach(SecureSessionPersistence());
       store.save(const AuthSession(accessToken: 'a', userType: UserType.adult));
@@ -52,7 +55,11 @@ void main() {
       await store.flush();
 
       expect(await SecureSessionPersistence().read(), isNull);
-      expect(await SecureThemePreferencePersistence().read(), 'light');
+      expect(await SecureThemePreferencePersistence().read(), 'dark');
+      final after = AppThemeController();
+      await after.restore(SecureThemePreferencePersistence());
+      expect(after.preference, ThemePreference.dark);
+      expect(after.mode, ThemeMode.dark);
     });
   });
 
@@ -75,16 +82,20 @@ void main() {
       expect(controller.mode, ThemeMode.light);
     });
 
-    test('a saved dark or system: light while the dark values are '
-        'unapproved — and the stored value is left as it was', () async {
-      for (final stored in ['dark', 'system']) {
-        final storage = _Memory(stored);
-        final controller = await restored(storage);
-        expect(controller.preference, ThemePreference.light, reason: stored);
-        expect(controller.mode, ThemeMode.light, reason: stored);
-        expect(storage.value, stored);
-        expect(storage.writes, isEmpty);
-      }
+    test('a saved dark: dark', () async {
+      final controller = await restored(_Memory('dark'));
+      expect(controller.preference, ThemePreference.dark);
+      expect(controller.mode, ThemeMode.dark);
+    });
+
+    test('a saved system: light, as it is not offered yet — and the stored '
+        'value is left as it was', () async {
+      final storage = _Memory('system');
+      final controller = await restored(storage);
+      expect(controller.preference, ThemePreference.light);
+      expect(controller.mode, ThemeMode.light);
+      expect(storage.value, 'system');
+      expect(storage.writes, isEmpty);
     });
 
     test('an unknown value: light', () async {
@@ -101,27 +112,43 @@ void main() {
   });
 
   group('AppThemeController.setPreference', () {
-    test('light is chosen and saved', () async {
-      final storage = _Memory(null);
-      final controller = AppThemeController();
-      await controller.restore(storage);
-      expect(await controller.setPreference(ThemePreference.light), isTrue);
-      expect(storage.value, 'light');
-      expect(controller.mode, ThemeMode.light);
-    });
-
-    test('dark and system cannot be chosen while gated: refused, nothing '
-        'saved, nothing notified, the mode stays light', () async {
+    test('Light → Dark → Light: applied at once, notified, saved', () async {
       final storage = _Memory(null);
       final controller = AppThemeController();
       await controller.restore(storage);
       var notified = 0;
       controller.addListener(() => notified++);
-      for (final preference in [ThemePreference.dark, ThemePreference.system]) {
-        expect(await controller.setPreference(preference), isFalse);
-      }
-      expect(controller.preference, ThemePreference.light);
+
+      expect(await controller.setPreference(ThemePreference.dark), isTrue);
+      expect(controller.mode, ThemeMode.dark);
+      expect(storage.value, 'dark');
+      expect(notified, 1);
+
+      expect(await controller.setPreference(ThemePreference.light), isTrue);
       expect(controller.mode, ThemeMode.light);
+      expect(storage.value, 'light');
+      expect(notified, 2);
+    });
+
+    test('choosing the current preference notifies nothing', () async {
+      final controller = AppThemeController();
+      await controller.restore(_Memory('dark'));
+      var notified = 0;
+      controller.addListener(() => notified++);
+      await controller.setPreference(ThemePreference.dark);
+      expect(notified, 0);
+    });
+
+    test('system cannot be chosen yet: refused, nothing saved, nothing '
+        'notified', () async {
+      final storage = _Memory('dark');
+      final controller = AppThemeController();
+      await controller.restore(storage);
+      var notified = 0;
+      controller.addListener(() => notified++);
+      expect(await controller.setPreference(ThemePreference.system), isFalse);
+      expect(controller.preference, ThemePreference.dark);
+      expect(controller.mode, ThemeMode.dark);
       expect(storage.writes, isEmpty);
       expect(notified, 0);
     });
@@ -129,104 +156,58 @@ void main() {
     test('a failed write keeps the choice and never throws', () async {
       final controller = AppThemeController();
       await controller.restore(_Failing());
-      expect(await controller.setPreference(ThemePreference.light), isTrue);
-      expect(controller.preference, ThemePreference.light);
+      expect(await controller.setPreference(ThemePreference.dark), isTrue);
+      expect(controller.preference, ThemePreference.dark);
+      expect(controller.mode, ThemeMode.dark);
     });
   });
 
-  group('the production gate', () {
-    test('only light is available while the dark values are unapproved', () {
+  group('availability', () {
+    test('Light and Dark can be chosen; System not yet (§16.1)', () {
       expect(AppThemeController.isAvailable(ThemePreference.light), isTrue);
-      expect(AppThemeController.isAvailable(ThemePreference.dark), isFalse);
+      expect(AppThemeController.isAvailable(ThemePreference.dark), isTrue);
       expect(AppThemeController.isAvailable(ThemePreference.system), isFalse);
     });
 
-    test('the gate agrees with the proposal: off while §17 is unchecked', () {
+    test('the approval agrees with the proposal\'s §17', () {
       final proposal = File(
         'docs/design-system/DARK_MODE_DESIGN_PROPOSAL.md',
       ).readAsStringSync();
-      final unchecked = proposal.contains(
-        '- [ ] **Every dark value in §4, §11 and §12:**',
+      final checked = proposal.contains(
+        '- [x] **Every dark value in §4, §11 and §12:**',
       );
       expect(
         AppThemeController.darkThemeApproved,
-        !unchecked,
+        checked,
         reason:
             'darkThemeApproved must change only with the §17 approval '
             'recorded in DARK_MODE_DESIGN_PROPOSAL.md',
       );
     });
 
-    test(
-      'no preference, saved or chosen, reaches a mode other than light',
-      () async {
-        for (final stored in [null, 'light', 'dark', 'system', 'x']) {
-          final controller = AppThemeController();
-          await controller.restore(_Memory(stored));
-          for (final choice in ThemePreference.values) {
-            await controller.setPreference(choice);
-            expect(controller.mode, ThemeMode.light, reason: '$stored/$choice');
-          }
-        }
-      },
-    );
-  });
-
-  group('debug-only dark preview (Issue #280)', () {
-    test('allowed only in a debug build that asks for it', () {
-      for (final debugBuild in [true, false]) {
-        for (final requested in [true, false]) {
+    test('every stored × chosen combination ends in light or dark, never '
+        'system', () async {
+      for (final stored in [null, 'light', 'dark', 'system', 'x']) {
+        final controller = AppThemeController();
+        await controller.restore(_Memory(stored));
+        expect(controller.mode, isNot(ThemeMode.system), reason: '$stored');
+        for (final choice in ThemePreference.values) {
+          await controller.setPreference(choice);
           expect(
-            AppThemeController.darkPreviewAllowed(
-              debugBuild: debugBuild,
-              requested: requested,
-            ),
-            debugBuild && requested,
-            reason: 'debug=$debugBuild requested=$requested',
+            controller.mode,
+            isNot(ThemeMode.system),
+            reason: '$stored/$choice',
           );
         }
       }
     });
-
-    test('previewing draws dark whatever is saved or chosen, and never '
-        'writes the preference', () async {
-      for (final stored in [null, 'light', 'dark', 'system', 'x']) {
-        final storage = _Memory(stored);
-        final controller = AppThemeController();
-        await controller.restore(storage, darkPreview: true);
-        expect(controller.mode, ThemeMode.dark, reason: '$stored');
-        expect(controller.preference, ThemePreference.light);
-        await controller.setPreference(ThemePreference.light);
-        expect(controller.mode, ThemeMode.dark, reason: '$stored');
-        expect(storage.value, isNot('dark'));
-      }
-    });
-
-    test('not previewing: as before, light', () async {
-      final controller = AppThemeController();
-      await controller.restore(_Memory('dark'), darkPreview: false);
-      expect(controller.mode, ThemeMode.light);
-    });
-
-    testWidgets('the whole app follows: the first frame is the candidate', (
-      tester,
-    ) async {
-      tester.view.devicePixelRatio = 3;
-      tester.view.physicalSize = const Size(393, 852) * 3;
-      addTearDown(tester.view.reset);
-      final controller = AppThemeController();
-      await tester.runAsync(
-        () => controller.restore(_Memory(null), darkPreview: true),
-      );
-      await tester.pumpWidget(AiAcademyApp(themeController: controller));
-      final context = tester.element(find.byType(Navigator).first);
-      expect(Theme.of(context).brightness, Brightness.dark);
-      expect(context.palette, same(AppPalette.dark));
-    });
   });
 
-  group('startup', () {
-    Future<void> pumpRestored(WidgetTester tester, String? stored) async {
+  group('startup and propagation', () {
+    Future<AppThemeController> pumpRestored(
+      WidgetTester tester,
+      String? stored,
+    ) async {
       tester.view.devicePixelRatio = 3;
       tester.view.physicalSize = const Size(393, 852) * 3;
       addTearDown(tester.view.reset);
@@ -234,17 +215,53 @@ void main() {
       final controller = AppThemeController();
       await tester.runAsync(() => controller.restore(_Memory(stored)));
       await tester.pumpWidget(AiAcademyApp(themeController: controller));
+      return controller;
     }
 
-    for (final stored in [null, 'light', 'dark', 'system']) {
-      testWidgets('the first frame is light, with "$stored" saved — no flash '
-          'of the candidate', (tester) async {
+    void expectTheme(WidgetTester tester, Brightness brightness) {
+      final context = tester.element(find.byType(Navigator).first);
+      expect(Theme.of(context).brightness, brightness);
+      expect(
+        context.palette,
+        same(
+          brightness == Brightness.dark ? AppPalette.dark : AppPalette.light,
+        ),
+      );
+    }
+
+    for (final (stored, brightness) in [
+      (null, Brightness.light),
+      ('light', Brightness.light),
+      ('dark', Brightness.dark),
+      ('system', Brightness.light),
+    ]) {
+      testWidgets('the first frame, with "$stored" saved, is already '
+          '${brightness.name} — no flash of the other', (tester) async {
         await pumpRestored(tester, stored);
-        final context = tester.element(find.byType(Navigator).first);
-        expect(Theme.of(context).brightness, Brightness.light);
-        expect(context.palette, same(AppPalette.light));
+        expectTheme(tester, brightness);
       });
     }
+
+    testWidgets('a change reaches the running app at once, both ways', (
+      tester,
+    ) async {
+      final controller = await pumpRestored(tester, null);
+      expectTheme(tester, Brightness.light);
+      await tester.runAsync(
+        () => controller.setPreference(ThemePreference.dark),
+      );
+      // A frame to rebuild, then past MaterialApp's theme animation.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expectTheme(tester, Brightness.dark);
+      await tester.runAsync(
+        () => controller.setPreference(ThemePreference.light),
+      );
+      // A frame to rebuild, then past MaterialApp's theme animation.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expectTheme(tester, Brightness.light);
+    });
   });
 }
 

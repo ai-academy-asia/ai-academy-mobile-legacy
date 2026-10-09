@@ -278,7 +278,10 @@ void main() {
     );
   });
 
-  group('the candidate is unreachable from production code (Phase 10)', () {
+  /// Since Issue #282 users reach the dark theme — only through the one
+  /// controller's preference, which Profile's switch writes. These keep
+  /// every other path closed.
+  group('production code reaches dark only through the preference', () {
     test('the default mode is light', () {
       expect(AppThemeController().mode, ThemeMode.light);
       expect(AppThemeController.instance.mode, ThemeMode.light);
@@ -317,41 +320,19 @@ void main() {
       },
     );
 
-    test('nothing names ThemeMode.dark or ThemeMode.system — but the '
-        'debug-only preview constant (Issue #280)', () {
+    test('ThemeMode.dark is named once — the controller\'s mapping of an '
+        'available Dark preference (Issue #282) — and ThemeMode.system '
+        'nowhere', () {
       final found = offenders(
         RegExp(r'\bThemeMode\.(dark|system)\b'),
-        (path, line) =>
-            path == controller &&
-            line == 'static const ThemeMode _previewMode = ThemeMode.dark;',
+        (path, line) => path == controller && line == '? ThemeMode.dark',
       );
       expect(found, isEmpty, reason: found.join('\n'));
-    });
-
-    test('the preview that constant serves is debug-only and asked for '
-        '(Issue #280): off in release, off without the define', () {
-      final source = File(controller).readAsStringSync();
       expect(
-        source,
-        contains(
-          'static final bool darkPreviewEnabled = darkPreviewAllowed(\n'
-          '    debugBuild: kDebugMode,\n'
-          "    requested: const bool.fromEnvironment('AIA_DARK_PREVIEW'),\n",
-        ),
-      );
-      expect(
-        AppThemeController.darkPreviewAllowed(
-          debugBuild: false,
-          requested: true,
-        ),
-        isFalse,
-      );
-      // `flutter test` runs no define.
-      expect(AppThemeController.darkPreviewEnabled, isFalse);
-      expect(
-        RegExp(r'\b_previewMode\b').allMatches(source).length,
-        2,
-        reason: 'declared once, read once — by _modeFor, behind _previewing',
+        RegExp(
+          r'\bThemeMode\.dark\b',
+        ).allMatches(File(controller).readAsStringSync()).length,
+        1,
       );
     });
 

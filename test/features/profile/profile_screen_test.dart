@@ -423,54 +423,46 @@ void main() {
         expect(toggled(tester, ProfileStrings.lightMode), isTrue);
       });
 
-      testWidgets('ignores taps, and says it is disabled', (tester) async {
-        await pumpProfile(tester);
+      Finder lightSwitch() => find.byWidgetPredicate(
+        (w) =>
+            w is ProfileSwitch && w.semanticLabel == ProfileStrings.lightMode,
+      );
 
-        await tester.tap(find.bySemanticsLabel(ProfileStrings.lightMode).last);
-        await tester.pumpAndSettle();
-
-        expect(toggled(tester, ProfileStrings.lightMode), isTrue);
-        expect(
-          tester
-              .getSemantics(
-                find.bySemanticsLabel(ProfileStrings.lightMode).last,
-              )
-              .flagsCollection
-              .isEnabled,
-          Tristate.isFalse,
-        );
-        final toggle = tester.widget<ProfileSwitch>(
-          find.byWidgetPredicate(
-            (w) =>
-                w is ProfileSwitch &&
-                w.semanticLabel == ProfileStrings.lightMode,
-          ),
-        );
-        expect(toggle.onChanged, isNull);
-      });
-
-      testWidgets('shows the one saved preference (Issue #278): even a '
-          'stored Dark shows Light while the dark values are unapproved, and '
-          'a tap writes nothing', (tester) async {
-        final storage = _MemoryThemeStorage('dark');
+      testWidgets('Light → Dark → Light on tap (Issue #282): the one '
+          'preference changes at once and is saved each time', (tester) async {
+        final storage = _MemoryThemeStorage(null);
         final controller = AppThemeController();
         await controller.restore(storage);
         await pumpProfile(tester, themeController: controller);
 
-        expect(controller.preference, ThemePreference.light);
-        expect(toggled(tester, ProfileStrings.lightMode), isTrue);
-
-        await tester.tap(
-          find.byWidgetPredicate(
-            (w) =>
-                w is ProfileSwitch &&
-                w.semanticLabel == ProfileStrings.lightMode,
-          ),
+        expect(
+          tester.widget<ProfileSwitch>(lightSwitch()).onChanged,
+          isNotNull,
         );
+
+        await tester.tap(lightSwitch());
+        await tester.pumpAndSettle();
+        expect(toggled(tester, ProfileStrings.lightMode), isFalse);
+        expect(controller.preference, ThemePreference.dark);
+        expect(controller.mode, ThemeMode.dark);
+        expect(storage.writes, ['dark']);
+
+        await tester.tap(lightSwitch());
         await tester.pumpAndSettle();
         expect(toggled(tester, ProfileStrings.lightMode), isTrue);
-        expect(storage.writes, isEmpty);
+        expect(controller.preference, ThemePreference.light);
         expect(controller.mode, ThemeMode.light);
+        expect(storage.writes, ['dark', 'light']);
+      });
+
+      testWidgets('shows the one saved preference (Issue #278): a stored '
+          'Dark reads off, a stored Light on', (tester) async {
+        for (final (stored, on) in [('dark', false), ('light', true)]) {
+          final controller = AppThemeController();
+          await controller.restore(_MemoryThemeStorage(stored));
+          await pumpProfile(tester, themeController: controller);
+          expect(toggled(tester, ProfileStrings.lightMode), on, reason: stored);
+        }
       });
     });
   });
