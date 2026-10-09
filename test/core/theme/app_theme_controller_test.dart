@@ -57,16 +57,21 @@ void main() {
       expect(materialApp(tester).themeMode, ThemeMode.system);
     });
 
-    testWidgets('one theme for every route: the light palette, whatever '
-        'the mode, until a dark theme exists', (tester) async {
-      final controller = AppThemeController(ThemeMode.dark);
-      await pumpApp(tester, controller);
-
-      // No dark theme yet: nothing a user sees may change.
-      expect(materialApp(tester).darkTheme, isNull);
+    testWidgets('one theme for every route: light by default', (tester) async {
+      await pumpApp(tester, AppThemeController());
       final context = tester.element(find.byType(Navigator).first);
       expect(Theme.of(context).brightness, Brightness.light);
       expect(context.palette, same(AppPalette.light));
+    });
+
+    testWidgets('the candidate dark theme (Issue #276) is wired: a dark '
+        'mode — set only here, in a test; nothing in the app sets one until '
+        'Phase 10 — reaches it for every route', (tester) async {
+      await pumpApp(tester, AppThemeController(ThemeMode.dark));
+      expect(materialApp(tester).darkTheme, isNotNull);
+      final context = tester.element(find.byType(Navigator).first);
+      expect(Theme.of(context).brightness, Brightness.dark);
+      expect(context.palette, same(AppPalette.dark));
     });
   });
 }

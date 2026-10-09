@@ -1,6 +1,8 @@
 # Dark Mode — design proposal
 
-> **Status: PROPOSAL, not approved design.** Issue #254. There is **no approved Dark Mode Figma**. Every dark value here is **PROPOSED**: a reasoned starting point for design and product review, derived from this repository's real light-mode code and goldens. **Nothing here is implemented**, and no value may go into `AppPalette.dark` until it is approved (§17).
+> **Status: PROPOSAL, not approved design.** Issue #254. There is **no approved Dark Mode Figma**. Every dark value here is **PROPOSED**: a reasoned starting point for design and product review, derived from this repository's real light-mode code and goldens.
+>
+> **Phase 9 (Issue #276) put these values into code as a gated candidate**, by the product owner's decision. `AppPalette.dark` and `AppTheme.dark` exist and are wired into `MaterialApp`, but they are **unreachable**: `AppThemeController` stays `ThemeMode.light` and nothing sets another mode until Phase 10. Every role is marked PROPOSED, DERIVED or UNRESOLVED (§18). **Nothing is approved by being in code.** Approval (§17) still gates shipping.
 >
 > Builds on the Phase 1 architecture (PR #253): one `AppPalette` `ThemeExtension`, one global `AppThemeController` for Adult, Junior and Teacher. See [DARK_MODE_ARCHITECTURE_AUDIT.md](DARK_MODE_ARCHITECTURE_AUDIT.md) for the inventory and phased plan.
 >
@@ -236,7 +238,7 @@ Same hue family in each case. Pale fills become deep tinted fills, and inks get 
 | Monochrome, black | 17: Profile row icons, the bell, the exercise icons, the lock | Draw through `AppSvgIcon` (exists since Phase 3, Issue #258): `ColorFilter.mode(role, srcIn)` with role `iconInk` by default, applied **only when the role differs from the asset's own black**, because a same-colour tint moves edge pixels. In dark, `iconInk` takes the approved value (proposed: as `textPrimary`). **No asset changes** |
 | Monochrome, brand blue | `nav_*_active` ×5, `certificate_badge` | Tint with `accentText` in dark (selected nav already uses a `colorFilter`) |
 | Single-colour status and brand | `quiz_correct` `#009951`, `quiz_incorrect` `#EF4444`, `course_detail_completed_check` `#14AE5C`, `contract_warning` `#B86200` | Tint with the status ink (§4.5) in dark; keep as authored in light |
-| Near-black glyph | `exercise_play` `#0B1230` (on the video header) | Tint `#FFFFFF`; it sits on dark in both modes. Check whether it's already drawn light (§16) |
+| Near-black glyph | `exercise_play` `#0B1230` (on the video header) | **Keep as authored, no tint.** It sits on the white `mediaControl` play disc, which stays white in every theme (Phase 6b, Issue #268), not on the dark video. *(Corrected in Phase 9: this row used to say "tint `#FFFFFF`", which would have drawn white on white.)* |
 | Wordmark | `splash_wordmark.svg` `#14053D`, on Splash and the Home header | **Tint with `textTitle` in dark.** Single colour, so no new asset is needed. The brand navy on a near-black ground is 1.00:1, which is invisible |
 | Track glyphs | `adult.svg` `#86C3FF`, `junior.svg` `#E16D31` | Keep as authored: both read on dark (role identity, §10–11) |
 | Module art | `module_*` ×6 (bright accents) | Keep; they're illustration and already bright |
@@ -444,4 +446,145 @@ Before any dark value enters code:
 - [ ] **The decisions in §16.**
 - [ ] **Ideally, Figma frames** for at least one screen per role (Adult Home, Junior Home, Teacher Schedule) plus Profile, so implementation is checked against a frame, not this text.
 
-Until then, light mode is the only shipped theme, and `AppThemeController` resolves every mode to light (PR #253).
+Until then, light mode is the only shipped theme. Since Phase 9 (Issue #276) the candidate `AppTheme.dark` exists in code, but nothing reaches it: `AppThemeController` stays `ThemeMode.light`, and no screen, switch or system setting changes that until Phase 10.
+
+---
+
+## 18. Phase 9 candidate: every role's dark value and status
+
+`AppPalette.dark` (Issue #276), role by role. `app_palette_dark_test.dart` fails if the code and this table disagree, or if a role is missing.
+
+- **PROPOSED:** the value in §4, §11 or §12.
+- **DERIVED:** follows a rule this document states (a fold in §3/§5, "unchanged" in §6, "no shadow" in §4.6), or the role's own documented "same in every theme" (the video's media roles).
+- **UNRESOLVED:** this document gives nothing; a stand-in, named, until design decides.
+
+Counts: **48 PROPOSED, 35 DERIVED, 11 UNRESOLVED**, 94 roles in all. None is approved.
+
+| Role | Dark (candidate) | Status | Source / stand-in |
+|---|---|---|---|
+| `pageBackground` | `#FF0F1217` | PROPOSED | §4.1 |
+| `surfaceSubtle` | `#FF14181E` | PROPOSED | §4.1 |
+| `surface` | `#FF1A1F27` | PROPOSED | §4.1 |
+| `surfaceElevated` | `#FF232934` | PROPOSED | §4.1 |
+| `surfaceMuted` | `#FF20252E` | PROPOSED | §4.1 |
+| `surfaceTile` | `#FF14181E` | DERIVED | §3 lists icon tiles under surfaceSubtle |
+| `textPrimary` | `#FFECEFF3` | PROPOSED | §4.2 |
+| `textSecondary` | `#FFA3ACB9` | PROPOSED | §4.2 |
+| `textTitle` | `#FFF5F7FA` | PROPOSED | §4.2 |
+| `textStrong` | `#FFECEFF3` | DERIVED | §3 folds #1A1A1A into textPrimary |
+| `textSupporting` | `#FFA3ACB9` | DERIVED | §3 folds #7D7D7E into textSecondary |
+| `textMuted` | `#FFA3ACB9` | DERIVED | §3 folds #808080 into textSecondary |
+| `textInactive` | `#FF6E7682` | PROPOSED | §4.2 |
+| `textLocked` | `#FF6E7682` | DERIVED | §3: locked lesson ink is textInactive |
+| `iconInk` | `#FFECEFF3` | DERIVED | §7: iconInk as textPrimary |
+| `wordmark` | `#FFF5F7FA` | DERIVED | §7: tint the wordmark with textTitle |
+| `border` | `#FF3A424E` | PROPOSED | §4.3 |
+| `borderFocused` | `#FFECEFF3` | PROPOSED | §4.3 |
+| `divider` | `#FF2A303A` | PROPOSED | §4.3 |
+| `outline` | `#FF3A424E` | DERIVED | §4.3: border covers #D6DBE1 |
+| `outlineSubtle` | `#FF2A303A` | DERIVED | §12: the bar track #E5E7EB → divider |
+| `primary` | `#FF296CFF` | PROPOSED | §4.4 unchanged |
+| `onPrimary` | `#FFFFFFFF` | PROPOSED | §4.4 unchanged |
+| `primaryDepth` | `#FF1D4FC4` | PROPOSED | §4.4 |
+| `accent` | `#FF2970FF` | PROPOSED | §4.4 unchanged |
+| `accentText` | `#FF6E9BFF` | PROPOSED | §4.4 |
+| `accentSubtle` | `#FF1A2A47` | PROPOSED | §4.4 |
+| `accentSubtleOutline` | `#FF2A78B8` | UNRESOLVED | no value; the info outline of the same pale-blue family |
+| `linkInk` | `#FF6E9BFF` | DERIVED | §3: #1501A6 → accentText (pending §16.5) |
+| `disabled` | `#FF20252E` | UNRESOLVED | §4.2 gives only disabledInk; surfaceMuted ("set back") stands in |
+| `disabledInk` | `#FF6E7682` | PROPOSED | §4.2 |
+| `neutralDepth` | `#FF0B0E12` | PROPOSED | §4.4 |
+| `subtleDepth` | `#FF0B0E12` | DERIVED | §3: neutralDepth folds secondaryDepth |
+| `error` | `#FFFF7A70` | PROPOSED | §4.5 error as field text |
+| `errorInk` | `#FFFF7A70` | PROPOSED | §4.5 |
+| `errorFill` | `#FF341A1C` | PROPOSED | §4.5 |
+| `errorOutline` | `#FFC2453F` | PROPOSED | §4.5 |
+| `success` | `#FF45D18C` | DERIVED | §4.5 success ink |
+| `successInk` | `#FF45D18C` | PROPOSED | §4.5 |
+| `successFill` | `#FF0F2E20` | PROPOSED | §4.5 |
+| `successOutline` | `#FF2E8F5E` | PROPOSED | §4.5 |
+| `successLabel` | `#FF45D18C` | DERIVED | text: the §4.5 success ink, as #262 required |
+| `successFillStrong` | `#FF0F2E20` | UNRESOLVED | no value; the §4.5 success fill stands in |
+| `warning` | `#FFF5B547` | DERIVED | §4.5 warning ink (partial state, preview score) |
+| `warningFill` | `#FF33280F` | PROPOSED | §4.5 |
+| `warningOutline` | `#FFA87A1E` | PROPOSED | §4.5 |
+| `warningInk` | `#FFF5B547` | PROPOSED | §4.5 (#DD940E is in its ink set) |
+| `infoInk` | `#FF5CB8FF` | PROPOSED | §4.5 |
+| `infoFill` | `#FF132A42` | PROPOSED | §4.5 |
+| `barrier` | `#B3000000` | PROPOSED | §4.6 black @ 70 % |
+| `sheetHandle` | `#FF4A525E` | PROPOSED | §4.6 |
+| `shadow` | `#00000000` | PROPOSED | §4.6 no shadow |
+| `shadowSubtle` | `#00000000` | DERIVED | §4.6: shadows vanish on dark |
+| `accentOutline` | `#FF2970FF` | UNRESOLVED | no value; the unchanged accent blue stands in |
+| `timelineConnector` | `#FF3A424E` | UNRESOLVED | no value; the border line stands in |
+| `textFaint` | `#FF6E7682` | DERIVED | §5: greys fold into textInactive |
+| `textDeep` | `#FFECEFF3` | DERIVED | §3 folds #101828 into textPrimary |
+| `textStatLabel` | `#FFA3ACB9` | DERIVED | §3 folds statLabel into textSecondary |
+| `attendanceGradientStart` | `#FF175FEF` | PROPOSED | §6 unchanged |
+| `attendanceGradientEnd` | `#FF518BFF` | PROPOSED | §6 unchanged |
+| `surfaceTinted` | `#FF1A1F27` | DERIVED | §6: cards → surface |
+| `scrim` | `#94000000` | PROPOSED | §4.6 unchanged |
+| `learningHeroTint` | `#FF1A2A47` | UNRESOLVED | no value; the blue-tinted accentSubtle stands in |
+| `surfaceLocked` | `#FF20252E` | UNRESOLVED | no value; surfaceMuted ("set back") stands in |
+| `cardDepth` | `#FF0B0E12` | DERIVED | §4.4: depth darker than the page |
+| `outlineFaint` | `#FF2A303A` | UNRESOLVED | no value; the quieter divider line stands in |
+| `videoSurface` | `#FF080F35` | PROPOSED | §6 video header unchanged |
+| `mediaControl` | `#FFFFFFFF` | DERIVED | the role: same in every theme |
+| `onMediaControl` | `#E6000000` | DERIVED | the role: same in every theme |
+| `mediaControlOutline` | `#FFD6DBE1` | DERIVED | the role: same in every theme |
+| `onMedia` | `#FFFFFFFF` | DERIVED | the role: same in every theme |
+| `progressTrack` | `#FF2A303A` | DERIVED | §12: tracks → divider |
+| `textAnswerLetter` | `#FFA3ACB9` | DERIVED | §5: greys fold into textSecondary |
+| `juniorCard` | `#FF1A2235` | PROPOSED | §11 |
+| `juniorCardBorder` | `#FF2E3A5C` | PROPOSED | §11 |
+| `juniorMapSky` | `#FF2A4A73` | PROPOSED | §11 dusk sky |
+| `calendarNeutral` | `#FF20252E` | PROPOSED | §11 #20252E |
+| `calendarLesson` | `#FF1A2A47` | PROPOSED | §11 #1A2A47 |
+| `calendarMissed` | `#FF3A1F22` | PROPOSED | §11 |
+| `juniorMutedFill` | `#FF20252E` | UNRESOLVED | §11 "nodes at full strength" is open; surfaceMuted stands in (the light value left the certificate panel's text illegible) |
+| `juniorHeaderRule` | `#FF2A303A` | DERIVED | a header rule; every other is divider |
+| `onJuniorMapSky` | `#FFFFFFFF` | DERIVED | white reads on the dusk sky |
+| `scheduleBand` | `#FF1F4FC9` | PROPOSED | §12 #1F4FC9 |
+| `scheduleHeld` | `#FF1A2A47` | PROPOSED | §12 #1A2A47 |
+| `scheduleHeldInk` | `#FFA3ACB9` | PROPOSED | §12 #A3ACB9 |
+| `teacherTitle` | `#FFECEFF3` | DERIVED | §3 folds #0B1230 into textPrimary |
+| `teacherNameInk` | `#FFECEFF3` | DERIVED | §12: name → textPrimary |
+| `teacherRoleInk` | `#FFA3ACB9` | DERIVED | §12: role → textSecondary |
+| `teacherDetailInk` | `#FFA3ACB9` | DERIVED | §12: Teacher greys → textSecondary |
+| `teacherCaptionInk` | `#FFA3ACB9` | DERIVED | §12: caption ink → textSecondary |
+| `teacherSheetRule` | `#FF2A303A` | DERIVED | a rule → divider |
+| `dangerOutline` | `#FFC2453F` | DERIVED | §4.5 error outline |
+| `avatarPlaceholder` | `#FF20252E` | UNRESOLVED | no value; surfaceMuted stands in |
+| `avatarPlaceholderInk` | `#FF6E7682` | UNRESOLVED | no value; textInactive stands in |
+
+### Measured contrast of the candidate (WCAG 2.x)
+
+Measured from the values above. `app_palette_dark_test.dart` holds each figure to two decimals.
+
+| Pair | Ratio |
+|---|---|
+| `textPrimary` on `surface` / `pageBackground` / `surfaceElevated` | 14.35 / 16.27 / 12.66 |
+| `textTitle` on `surface` | 15.42 |
+| `textSecondary` on `surface` / `surfaceElevated` | 7.22 / 6.37 |
+| `accentText` on `surface` / `accentSubtle` | 6.14 / 5.32 |
+| `errorInk`/`errorFill` · `error`/`surface` | 6.31 · 6.52 |
+| `successInk`/`successFill` · `warningInk`/`warningFill` · `infoInk`/`infoFill` | 7.51 · 7.98 · 6.79 |
+| `scheduleHeldInk`/`scheduleHeld` · `onPrimary`/`scheduleBand` | 6.25 · 6.95 |
+| `textPrimary`/`juniorCard` · `onJuniorMapSky`/`juniorMapSky` · `onMedia`/`videoSurface` | 13.75 · 9.03 · 18.58 |
+| **Below 4.5:1 for text:** `onPrimary` on `primary` / `accent` | **4.48 / 4.32**. The same as light; the brand blues are unchanged |
+| **Below 4.5:1 for text:** `textInactive` on `surface` | **3.61**. Deliberately quiet (§4.2) |
+| **Below 4.5:1 for text:** `disabledInk` on `disabled` | **3.35**. `disabled` is UNRESOLVED |
+| `accent` (non-text) on `surface` | 3.83 (≥ 3:1 for non-text) |
+
+`border` and `divider` hairlines measure 1.63 and 1.25 on `surface`. They are decorative separators, as in light (1.18), not control boundaries.
+
+### Still to decide before Phase 10 ships it
+
+- **Every value** (§17), including the Teacher band's deeper `#1F4FC9` (§12) and the dusk `juniorMapSky` (§11).
+- **The 11 UNRESOLVED roles** above. Most were added in Phases 5–8, after this proposal was written.
+- **Junior map:** the scenery dim (black @ 25 %, §11) is not implemented. Whether nodes keep their light colours or take the candidate's is open. `juniorMutedFill` stands in as `surfaceMuted`'s value: its light value was tried and left the certificate panel's line illegible (light text on a near-white panel).
+- **SVG tinting:** no per-asset tint is applied. In dark, the black exercise icons and the coloured status glyphs still draw as authored (§7). The monochrome icons that go through `AppSvgIcon` (Profile rows, the bell) already follow `iconInk`. The wordmark follows `wordmark`.
+- **Plates and assets (§8):** bank logos, `how_ai_works.svg` and the certificate are not plated.
+- **Shadows:** `shadow`/`shadowSubtle` are transparent, but widgets that apply their own strength (`withValues(alpha: …)`, Phases 3–8) still draw a black lift in dark. Design must say whether that should vanish.
+- **The Mentor Feedback divider** still uses Material's default; in dark that is `AppTheme.dark`'s `outlineVariant`, not `divider` (Issue #268).
+- **Native launch screens** (Phase 11).

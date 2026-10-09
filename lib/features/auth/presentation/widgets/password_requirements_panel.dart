@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -40,10 +40,10 @@ class PasswordRequirementsPanel extends StatelessWidget {
 
   /// Red until the password is close, amber on the way, green when every rule
   /// passes — the three meter colours the reference uses.
-  Color get _meterColor {
-    if (!evaluated || strength == 0) return AppColors.error;
-    if (strength >= 1) return AppColors.success;
-    return strength >= 0.6 ? AppColors.warning : AppColors.error;
+  Color _meterColor(AppPalette palette) {
+    if (!evaluated || strength == 0) return palette.error;
+    if (strength >= 1) return palette.success;
+    return strength >= 0.6 ? palette.warning : palette.error;
   }
 
   @override
@@ -53,14 +53,19 @@ class PasswordRequirementsPanel extends StatelessWidget {
       children: [
         Text(
           ResetPasswordStrings.requirementsTitle,
-          style: AppTypography.cardTitle,
+          style: AppTypography.cardTitle.copyWith(
+            color: context.palette.textPrimary,
+          ),
         ),
         const SizedBox(height: 12),
         // The reference insets the meter 4pt inside the field column on each
         // side — a 353pt bar at x=20, against the fields' 361 at x=16.
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: _meterInset),
-          child: _StrengthBar(value: strength, color: _meterColor),
+          child: _StrengthBar(
+            value: strength,
+            color: _meterColor(context.palette),
+          ),
         ),
         const SizedBox(height: 12),
         for (final requirement in PasswordPolicy.all) ...[
@@ -93,9 +98,10 @@ class _StrengthBar extends StatelessWidget {
           height: AppDimens.strengthBarHeight,
           child: Stack(
             children: [
-              const ColoredBox(
-                color: AppColors.border,
-                child: SizedBox.expand(),
+              // The meter's unfilled track (`progressTrack`).
+              ColoredBox(
+                color: context.palette.progressTrack,
+                child: const SizedBox.expand(),
               ),
               // A sliver of colour even at zero, so the meter reads as a meter
               // rather than as an empty rule — the reference shows one.
@@ -132,13 +138,13 @@ class _RequirementRow extends StatelessWidget {
     final IconData icon;
 
     if (!evaluated) {
-      color = AppColors.textSecondary;
+      color = context.palette.textSecondary;
       icon = AppIcons.checkCircle;
     } else if (met) {
-      color = AppColors.success;
+      color = context.palette.success;
       icon = AppIcons.checkCircle;
     } else {
-      color = AppColors.error;
+      color = context.palette.error;
       icon = AppIcons.xCircle;
     }
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -48,21 +48,27 @@ class RememberMeCheckbox extends StatelessWidget {
                     width: AppDimens.checkboxSize,
                     height: AppDimens.checkboxSize,
                     decoration: BoxDecoration(
-                      color: value ? AppColors.blue : AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppDimens.checkboxRadius),
+                      color: value
+                          ? context.palette.primary
+                          : context.palette.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppDimens.checkboxRadius,
+                      ),
                       border: Border.all(
                         color: value
-                            ? AppColors.blue
-                            : (enabled ? AppColors.border : AppColors.disabled),
+                            ? context.palette.primary
+                            : (enabled
+                                  ? context.palette.border
+                                  : context.palette.disabled),
                         width: 1.5,
                       ),
                     ),
                     child: value
-                        ? const Center(
+                        ? Center(
                             child: Icon(
                               AppIcons.check,
                               size: 12,
-                              color: AppColors.onPrimary,
+                              color: context.palette.onPrimary,
                             ),
                           )
                         : null,
@@ -71,7 +77,9 @@ class RememberMeCheckbox extends StatelessWidget {
                   Text(
                     label,
                     style: AppTypography.checkboxLabel.copyWith(
-                      color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
+                      color: enabled
+                          ? context.palette.textPrimary
+                          : context.palette.textSecondary,
                     ),
                   ),
                 ],

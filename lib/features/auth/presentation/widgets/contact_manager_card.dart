@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -29,17 +29,22 @@ class ContactManagerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(AppDimens.cardRadius),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         child: Container(
           height: AppDimens.cardHeight,
-          padding: const EdgeInsets.symmetric(horizontal: AppDimens.cardPadding),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.cardPadding,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-            border: Border.all(color: AppColors.border, width: AppDimens.borderWidth),
+            border: Border.all(
+              color: context.palette.border,
+              width: AppDimens.borderWidth,
+            ),
           ),
           child: Row(
             children: [
@@ -50,14 +55,18 @@ class ContactManagerCard extends StatelessWidget {
                   children: [
                     Text(
                       supportingText,
-                      style: AppTypography.cardSupporting,
+                      style: AppTypography.cardSupporting.copyWith(
+                        color: context.palette.textSecondary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: AppDimens.cardLineGap),
                     Text(
                       title,
-                      style: AppTypography.cardTitle,
+                      style: AppTypography.cardTitle.copyWith(
+                        color: context.palette.textPrimary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -65,10 +74,10 @@ class ContactManagerCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Icon(
+              Icon(
                 AppIcons.caretRight,
                 size: AppDimens.caretSize,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ],
           ),

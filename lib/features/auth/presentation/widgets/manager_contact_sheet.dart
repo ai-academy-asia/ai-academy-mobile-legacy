@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -16,8 +17,9 @@ import '../manager_contact.dart';
 Future<Uri?> chooseManagerContact(BuildContext context) =>
     showModalBottomSheet<Uri>(
       context: context,
-      // Painted from the token, as the sign-out dialog paints its card.
-      backgroundColor: AppColors.surface,
+      // A sheet: `surfaceElevated`, as the app's other sheets and the
+      // sign-out dialog (Dark Mode Phases 5, 8 and 9).
+      backgroundColor: context.palette.surfaceElevated,
       showDragHandle: false,
       constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
       shape: const RoundedRectangleBorder(
@@ -99,16 +101,18 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
               ),
             ),
             const SizedBox(height: AppDimens.fieldGap),
-            const Text(
+            Text(
               LoginStrings.contactSheetTitle,
-              style: AppTypography.catalogTitle,
+              style: AppTypography.catalogTitle.copyWith(
+                color: context.palette.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppDimens.fieldGap),
             Text(
               LoginStrings.contactMessage,
               style: AppTypography.statLabel.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -156,7 +160,7 @@ class _ContactOption extends StatelessWidget {
       label: '$label, $value',
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         child: InkWell(
           onTap: onTap,
@@ -169,7 +173,7 @@ class _ContactOption extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppDimens.cardRadius),
               border: Border.all(
-                color: AppColors.border,
+                color: context.palette.border,
                 width: AppDimens.borderWidth,
               ),
             ),
@@ -188,14 +192,18 @@ class _ContactOption extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: AppTypography.cardHeading,
+                        style: AppTypography.cardHeading.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppDimens.cardLineGap),
                       Text(
                         value,
-                        style: AppTypography.statLabel,
+                        style: AppTypography.statLabel.copyWith(
+                          color: context.palette.textSecondary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -203,10 +211,10 @@ class _ContactOption extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppDimens.fieldGap),
-                const Icon(
+                Icon(
                   AppIcons.caretRight,
                   size: AppDimens.caretSize,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ],
             ),
@@ -226,10 +234,6 @@ class _IconTile extends StatelessWidget {
     required this.iconSize,
   });
 
-  /// [AppColors.blue] at 12%, the same tint the Home program card's
-  /// decoration draws its blue with.
-  static final Color fill = AppColors.blue.withValues(alpha: 0.12);
-
   final IconData icon;
   final double size;
   final double iconSize;
@@ -240,8 +244,13 @@ class _IconTile extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
-      child: Icon(icon, size: iconSize, color: AppColors.blue),
+      // `primary` at 12 %, the same tint the Home program card's decoration
+      // draws its blue with; the glyph in `primary`.
+      decoration: BoxDecoration(
+        color: context.palette.primary.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, size: iconSize, color: context.palette.primary),
     );
   }
 }

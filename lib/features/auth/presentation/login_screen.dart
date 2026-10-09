@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // The Figma frame's own page fill (#F9FAFB), which `surfaceSubtle`
         // already holds exactly — not `background` (#F4F5F7), which is a
         // slightly darker approximation. See this screen's own doc comment.
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         // The keyboard overlays the screen instead of shrinking it. In the
         // reference the form does not move when the keypad appears — it simply
         // covers the bottom card — and resizing would jerk that card up to meet
@@ -217,7 +217,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                 Text(
                                   LoginStrings.heading,
-                                  style: AppTypography.heading,
+                                  style: AppTypography.heading.copyWith(
+                                    color: context.palette.textPrimary,
+                                  ),
                                 ),
                                 const SizedBox(height: AppDimens.headingToForm),
 
@@ -346,7 +348,9 @@ class _LoginScreenState extends State<LoginScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 message,
-                style: AppTypography.fieldError,
+                style: AppTypography.fieldError.copyWith(
+                  color: context.palette.error,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -368,7 +372,9 @@ class _LoginScreenState extends State<LoginScreen> {
             // Hidden shows the closed eye, matching the reference.
             hidden ? AppIcons.eyeClosed : AppIcons.eye,
             size: 20,
-            color: enabled ? AppColors.textSecondary : AppColors.disabled,
+            color: enabled
+                ? context.palette.textSecondary
+                : context.palette.disabled,
           ),
         ),
       ),
