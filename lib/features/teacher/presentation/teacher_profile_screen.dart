@@ -5,6 +5,7 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_theme_controller.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -43,9 +44,14 @@ const double _nameToDetails = 3;
 ///
 /// Drawn from the same measured parts as the Adult Profile
 /// ([ProfileTitleBar], [ProfileCaption], [ProfileRow], …), which the two
-/// frames share at 1:1. The frame's differences: no Account section, no
-/// Light mode row and no edit control, and the hero carries the email and
-/// phone under the name.
+/// frames share at 1:1. The frame's differences: no Account section and no
+/// edit control, and the hero carries the email and phone under the name.
+///
+/// **Light mode** (Issue #284) is not in the frame: added at the product
+/// owner's request so a teacher is never left in a theme they cannot leave,
+/// in the Adult row's place and parts. It shows and writes the app's one
+/// [AppThemeController] preference — on is Light, off is Dark — exactly as
+/// the Adult row does (`PRODUCT DECISION`: design to confirm placement).
 ///
 /// **Real and working:**
 ///
@@ -80,11 +86,16 @@ class TeacherProfileScreen extends StatefulWidget {
     this.repository,
     this.authRepository,
     this.sessionStore,
+    this.themeController,
   });
 
   /// Defaults to the real `GET /auth/me` with the app-wide session. Injected
   /// in tests.
   final CurrentUserRepository? repository;
+
+  /// The app's one theme state, which the Light mode row shows and writes.
+  /// Defaults to [AppThemeController.instance]; injected in tests.
+  final AppThemeController? themeController;
 
   /// Where Log out revokes the session, and the session it clears — both
   /// default to the app's own (see [signOutToLogin]). Injected in tests.
@@ -154,6 +165,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   }
 
   Widget _buildBody() {
+    final theme = widget.themeController ?? AppThemeController.instance;
     // A `SingleChildScrollView`, as on the Adult Profile: a fixed, fully
     // known set of rows, laid out whole so one fling reaches the end.
     return SingleChildScrollView(
@@ -176,6 +188,18 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 trailing: ProfileLanguageToggle(
                   english: false,
                   onChanged: null,
+                ),
+              ),
+              ProfileRow(
+                icon: ProfileIcons.lightMode,
+                label: ProfileStrings.lightMode,
+                trailing: ListenableBuilder(
+                  listenable: theme,
+                  builder: (context, _) => ProfileSwitch(
+                    value: theme.lightModeOn,
+                    onChanged: theme.setLightMode,
+                    semanticLabel: ProfileStrings.lightMode,
+                  ),
                 ),
               ),
               ProfileRow(

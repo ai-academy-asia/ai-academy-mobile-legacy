@@ -385,7 +385,7 @@ See §13.
    - a "Light mode" switch (today, and contradictory: §9);
    - a "Dark mode" switch;
    - a System / Light / Dark selector.
-3. ~~**Scope by role.**~~ **Decided (Issue #252):** Adult, Junior and Teacher, one global state. Still open: the Junior and Teacher row's look, since no frame draws it (§9).
+3. ~~**Scope by role.**~~ **Decided (Issue #252):** Adult, Junior and Teacher, one global state. The Junior and Teacher rows were added in Issue #284, in the Adult row's place and from each frame's own parts. Design is still to confirm them, since no frame draws them (§9).
 4. **Junior world:** does the illustrated daytime map (sky, clouds, grass, coins) stay as-is, get a night variant, or get dimmed?
 5. **Documents and brand media:**
    - does the certificate stay light?
@@ -723,6 +723,8 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >   - the download glyph;
 >   - Junior Profile's row icons.
 > - **Still open:** see proposal §18, "Open after enabling".
+>
+> **Every role's Profile has the switch (Issue #284).** Junior and Teacher Profile gained the "Light mode" row: same wording, same semantics, same controller. All three read `AppThemeController.lightModeOn` and write `setLightMode`, so the Light/Dark mapping lives in one place. No role can be stuck in Dark. `junior_profile.png` and `teacher_profile.png` change only by the inserted 56 pt row; `profile.png` is unchanged.
 > - **Turning dark on later** is one change: approve §17, set `darkThemeApproved`, map Dark and System in `_modeFor`, relax the Phase 9 rules that change needs, and add the chosen control.
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.

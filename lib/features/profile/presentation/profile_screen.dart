@@ -242,15 +242,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 trailing: ListenableBuilder(
                   listenable: theme,
                   builder: (context, _) => ProfileSwitch(
-                    value: theme.preference == ThemePreference.light,
+                    value: theme.lightModeOn,
                     // On is Light, off is Dark; inert were Dark unavailable.
                     onChanged:
                         AppThemeController.isAvailable(ThemePreference.dark)
-                        ? (light) => theme.setPreference(
-                            light
-                                ? ThemePreference.light
-                                : ThemePreference.dark,
-                          )
+                        ? theme.setLightMode
                         : null,
                     semanticLabel: ProfileStrings.lightMode,
                   ),

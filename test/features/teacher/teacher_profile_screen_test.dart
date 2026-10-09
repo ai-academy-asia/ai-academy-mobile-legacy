@@ -141,6 +141,8 @@ void main() {
         for (final label in [
           ProfileStrings.appSettingsSection,
           ProfileStrings.language,
+          // Not in the frame: added for every role (Issue #284).
+          ProfileStrings.lightMode,
           ProfileStrings.changePassword,
           ProfileStrings.notificationSection,
           ProfileStrings.helpCenter,
@@ -158,7 +160,6 @@ void main() {
         ProfileStrings.eContract,
         ProfileStrings.certificate,
         ProfileStrings.transactionHistory,
-        ProfileStrings.lightMode,
         ProfileStrings.editProfile,
       ]) {
         expect(find.text(adultOnly), findsNothing, reason: adultOnly);
@@ -221,10 +222,15 @@ void main() {
     ) async {
       await pump(tester);
 
-      await tester.tap(find.byType(ProfileSwitch));
+      final notification = find.byWidgetPredicate(
+        (w) =>
+            w is ProfileSwitch &&
+            w.semanticLabel == ProfileStrings.notification,
+      );
+      await tester.tap(notification);
       await tester.pumpAndSettle();
 
-      final toggle = tester.widget<ProfileSwitch>(find.byType(ProfileSwitch));
+      final toggle = tester.widget<ProfileSwitch>(notification);
       expect(toggle.value, isFalse);
       expect(toggle.onChanged, isNull);
     });
