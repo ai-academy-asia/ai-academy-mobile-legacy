@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/junior_progress.dart';
 import '../junior_progress_strings.dart';
-import 'junior_home_palette.dart';
 
 // Measured off the Junior Learning Progress frame at 1:1.
 
@@ -94,8 +93,8 @@ class JuniorProgressCalendar extends StatelessWidget {
               textAlign: TextAlign.center,
               style: _weekdayStyle.copyWith(
                 color: c == selectedColumn
-                    ? JuniorPalette.accent
-                    : AppColors.textSecondary,
+                    ? context.palette.accentText
+                    : context.palette.textSecondary,
               ),
             ),
         ]),
@@ -137,10 +136,11 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       height: _cellHeight,
       decoration: BoxDecoration(
-        color: AppColors.surfaceSubtle,
+        color: palette.surfaceSubtle,
         borderRadius: BorderRadius.circular(_cellRadius),
       ),
       // In the foreground, so the outline takes no layout space and the
@@ -149,7 +149,7 @@ class _DayCell extends StatelessWidget {
           ? BoxDecoration(
               borderRadius: BorderRadius.circular(_cellRadius),
               border: Border.all(
-                color: JuniorPalette.accent,
+                color: palette.accent,
                 width: AppDimens.borderWidthEmphasis,
               ),
             )
@@ -167,7 +167,7 @@ class _DayCell extends StatelessWidget {
           Text(
             '$day',
             style: _dayStyle.copyWith(
-              color: selected ? JuniorPalette.accent : AppColors.textSecondary,
+              color: selected ? palette.accentText : palette.textSecondary,
             ),
           ),
         ],
@@ -185,7 +185,7 @@ class _DayCell extends StatelessWidget {
 /// are drawn here; see `JuniorProgressIcons` for where each SVG comes from.
 ///
 /// "Хичээлдээ суусан" is the one mark on a solid disc: the frame's white "A"
-/// on [JuniorPalette.accent], lifted by a faint shadow. In the calendar
+/// on `AppPalette.accent`, lifted by a faint shadow. In the calendar
 /// ([ringed]) the frame also rings it — a 1.5 blue outline, then 2 of white
 /// — so the 32 slot holds a 25 disc; the legend draws the plain disc.
 class JuniorDayMark extends StatelessWidget {
@@ -211,16 +211,19 @@ class JuniorDayMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // The day tints are the calendar's own roles. The marks' SVG and PNG
+    // glyphs are authored artwork and keep their colours.
     final mark = SizedBox.square(
       dimension: size,
       child: switch (status) {
-        null => const _Disc(color: JuniorPalette.dayNeutral),
-        JuniorDayStatus.lesson => const _Disc(
-          color: JuniorPalette.dayLesson,
+        null => _Disc(color: palette.calendarNeutral),
+        JuniorDayStatus.lesson => _Disc(
+          color: palette.calendarLesson,
           asset: JuniorProgressIcons.lessonDay,
         ),
         JuniorDayStatus.missed => _Disc(
-          color: JuniorPalette.dayMissed,
+          color: palette.calendarMissed,
           asset: JuniorProgressIcons.lessonMissed,
           ring: missedRing,
         ),
@@ -270,14 +273,16 @@ class _AttendedDisc extends StatelessWidget {
 
   final bool ringed;
 
-  /// The faint lift the frame draws around the mark, ringed or not.
-  static const BoxShadow _lift = BoxShadow(
-    color: Color(0x1F000000),
-    blurRadius: 1.5,
-  );
-
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // The faint lift the frame draws around the mark, ringed or not: black
+    // @ 0x1F, exactly as before — `shadowSubtle`'s hue at the mark's own
+    // strength.
+    final lift = BoxShadow(
+      color: palette.shadowSubtle.withAlpha(0x1F),
+      blurRadius: 1.5,
+    );
     // A PNG, drawn into the frame's 16 x 15 glyph box and contained there —
     // see `JuniorProgressIcons.lessonAttended` for why it is not an SVG.
     const glyph = Center(
@@ -289,14 +294,11 @@ class _AttendedDisc extends StatelessWidget {
         filterQuality: FilterQuality.medium,
       ),
     );
-    const disc = BoxDecoration(
-      color: JuniorPalette.accent,
-      shape: BoxShape.circle,
-    );
+    final disc = BoxDecoration(color: palette.accent, shape: BoxShape.circle);
 
     if (!ringed) {
       return DecoratedBox(
-        decoration: disc.copyWith(boxShadow: const [_lift]),
+        decoration: disc.copyWith(boxShadow: [lift]),
         child: glyph,
       );
     }
@@ -305,15 +307,15 @@ class _AttendedDisc extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         shape: BoxShape.circle,
         border: Border.all(
-          color: JuniorPalette.accent,
+          color: palette.accent,
           width: AppDimens.borderWidthEmphasis,
         ),
-        boxShadow: const [_lift],
+        boxShadow: [lift],
       ),
-      child: const DecoratedBox(decoration: disc, child: glyph),
+      child: DecoratedBox(decoration: disc, child: glyph),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_palette.dart';
+
 import '../../domain/junior_learning_map.dart';
 import 'junior_certificate_card.dart';
 import 'junior_course_progress_card.dart';
@@ -119,6 +121,8 @@ class JuniorLearningMapView extends StatelessWidget {
                     child: CustomPaint(
                       painter: JuniorMapPathPainter(
                         scale: scale,
+                        travelled: context.palette.accent,
+                        untravelled: context.palette.outline,
                         connectors: JuniorMapGeometry.route([
                           for (final node in nodes)
                             map.stateOf(node) == JuniorNodeState.completed,

@@ -9,7 +9,7 @@ import 'package:aia_mobile/features/course_learning/presentation/widgets/course_
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_strings.dart';
-import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_home_palette.dart';
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
@@ -277,7 +277,7 @@ void main() {
     expect(nav.items[1].onTap, isNotNull);
     expect(
       tester.widget<Text>(find.text(JuniorHomeStrings.navProfile)).style!.color,
-      JuniorPalette.accent,
+      AppPalette.light.accentText,
     );
   });
 

@@ -43,8 +43,8 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
 
-**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268; the Quiz roles in Phase 6c, #270).** `AppPalette` has 81 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
-- The feature palettes (`HomePalette`, `JuniorPalette`, `PaymentFlowPalette`, `TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`) and the private constants that used to repeat a literal now **alias** those constants.
+**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268; the Quiz roles in Phase 6c, #270; the Junior roles in Phase 7, #272).** `AppPalette` has 85 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
+- The feature palettes (`HomePalette`, `PaymentFlowPalette`, `TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`) and the private constants that used to repeat a literal now **alias** those constants. `JuniorPalette` was retired in Phase 7 (Issue #272), once Junior read the roles.
 - `color_literal_consolidation_test.dart` fails if a role's value reappears as a literal anywhere else in `lib/`.
 - New code reads `context.palette`; the aliases exist only until Phases 3–8 move their call sites.
 
@@ -53,7 +53,7 @@ The app-wide theme mode is `AppThemeController.instance`, one state for Adult, J
 | Grounds | `pageBackground` `#F4F5F7` · `surfaceSubtle` `#F9FAFB` · `surface` / `surfaceElevated` `#FFFFFF` · `surfaceMuted` `#EFF0F3` · `surfaceTile` `#F5F5F5` |
 | Text | `textPrimary` black 90 % · `textSecondary` black 50 % · `textTitle` `#191919` · `textStrong` `#1A1A1A` · `textSupporting` `#7D7D7E` · `textMuted` `#808080` · `textInactive` `#B2B2B2` · `textLocked` `#B5B5B5` |
 | Lines | `border` `#E4E6EF` (fields, outlined buttons, the bottom card, Course and Cohort card edges) · `borderFocused` black 90 % · `divider` `#EAEDF0` · `outline` `#D6DBE1` (cards, pills) · `outlineSubtle` `#E5E7EB` |
-| Brand | `primary` `#296CFF` · `onPrimary` · `primaryDepth` `#004FED` · `accent` / `accentText` `#2970FF` · `accentSubtle` `#E5F4FF` · `linkInk` `#1501A6` · `wordmark` `#14053D` (navy) |
+| Brand | `primary` `#296CFF` · `onPrimary` · `primaryDepth` `#004FED` · `accent` / `accentText` `#2970FF` · `accentSubtle` `#E5F4FF` · `accentSubtleOutline` `#BDE3FF` (the outline of an `accentSubtle` pill — the attendance summary badge) · `linkInk` `#1501A6` · `wordmark` `#14053D` (navy) |
 | Icons | `iconInk` `#000000`: the monochrome SVGs' own ink, applied by `AppSvgIcon` only when it differs from the asset's |
 | Controls | `disabled` `#C9CBDA` · `disabledInk` `#AEAFB0` · `neutralDepth` `#E0E0E0` · `subtleDepth` black 4 % |
 | Status | `error` `#E5484D` · `errorInk` `#DC3412` · `errorFill` `#FFF5F5` · `errorOutline` `#EF4444` · `success` `#22A06B` · `successInk` `#009951` · `successFill` `#EBFFEE` · `successOutline` `#14AE5C` · `successLabel` `#14AE5C` (a status pill's label drawn in its outline green; text, so its own role) · `successFillStrong` `#CCEBDC` · `warning` `#F0A22E` · `warningFill` `#FFFAE5` · `warningOutline` `#EBA611` · `warningInk` `#DD940E` (amber as text — the quiz result's score) · `infoInk` `#0D99FF` · `infoFill` `#E5F4FF` |
@@ -61,7 +61,7 @@ The app-wide theme mode is `AppThemeController.instance`, one state for Adult, J
 | Adult | `accentOutline` `#155EEF` (Payment's next installment) · `timelineConnector` `#BAC5FF` · `textFaint` black 30 % · `textDeep` `#101828` (bank names) · `textStatLabel` `#726D6D` · `attendanceGradientStart` `#175FEF` / `attendanceGradientEnd` `#518BFF` · `surfaceTinted` `#F8FAFF` (cohort card) · `scrim` black 58 % (scanner) |
 | Learning Flow | `learningHeroTint` `#E8F3FF` (Course Module List's header wash) · `surfaceLocked` `#EFEFEF` (a locked module's tile) · `cardDepth` `#EAEDF0` (the flat band under a lifted card, an unanswered quiz option included) · `outlineFaint` `#EAEDF0` (that card's edge, the certification panel's, Exercise Detail's tab card and the quiz feedback card) · `textAnswerLetter` `#8A8A8A` (a quiz option's A/B/C/D) |
 | Exercise Detail | `videoSurface` `#080F35` (the video header, dark in every theme) · `mediaControl` white (its back and play discs) · `onMediaControl` black 90 % (the glyph on a disc) · `mediaControlOutline` `#D6DBE1` (the back disc's ring) · `onMedia` white (text and its pill on the video) · `progressTrack` `#E4E6EF` (an upload/download ring's and bar's track) |
-| Junior | `juniorCard` `#EFF4FF` · `juniorCardBorder` `#D1D3F5` · `juniorMapSky` `#BFD9F8` · `calendarNeutral` `#F2F2F3` · `calendarLesson` `#E5F4FF` · `calendarMissed` `#FFE7E7` |
+| Junior | `juniorCard` `#EFF4FF` · `juniorCardBorder` `#D1D3F5` · `juniorMapSky` `#BFD9F8` · `calendarNeutral` `#F2F2F3` · `calendarLesson` `#E5F4FF` · `calendarMissed` `#FFE7E7` · `juniorMutedFill` `#EAEDF0` (a map element not yet reached: a locked node, the certificate panel) · `juniorHeaderRule` `#E4E6EF` (Junior Home's header rule) · `onJuniorMapSky` white (a glyph on the sky: the map's spinner) |
 | Teacher | `scheduleBand` `#2970FF` · `scheduleHeld` `#EFF4FF` · `scheduleHeldInk` `#787A80` |
 
 Some roles share a light value but stay separate roles, because their meaning (and proposed dark value) differs:
@@ -72,7 +72,9 @@ Some roles share a light value but stay separate roles, because their meaning (a
 - `divider` / `cardDepth` / `outlineFaint` — a rule, a band and an edge;
 - `surface` / `mediaControl` / `onMedia` / `onPrimary` (white) and `textPrimary` / `onMediaControl` — the video's controls and text stay as they are on the always-dark video, whatever the page does;
 - `border` / `progressTrack` — a field's edge and a transfer's track;
-- `outline` / `mediaControlOutline` — a page outline and the ring of a control on the always-dark video.
+- `outline` / `mediaControlOutline` — a page outline and the ring of a control on the always-dark video;
+- `divider` / `juniorMutedFill`, `border` / `juniorHeaderRule`, `surface` / `onJuniorMapSky` — a rule and a fill, an edge and a rule, a surface and a glyph on the sky;
+- `accentSubtle` / `calendarLesson` — the summary pill's fill and a calendar day's tint.
 
 Different light values are never merged.
 

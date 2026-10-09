@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -10,7 +9,6 @@ import '../../../core/theme/app_palette.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../home/presentation/widgets/contract_banner.dart';
 import '../../home/presentation/widgets/home_header.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/domain/home_dashboard.dart';
 import '../data/api_junior_progress_repository.dart';
@@ -21,7 +19,6 @@ import 'junior_progress_controller.dart';
 import 'junior_progress_strings.dart';
 import 'widgets/attendance_panel_parts.dart';
 import 'widgets/junior_bottom_nav.dart';
-import 'widgets/junior_home_palette.dart';
 import 'widgets/junior_progress_calendar.dart';
 
 // Measured off the Junior Learning Progress frame at 1:1 (393 wide, a 44pt
@@ -123,7 +120,7 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         // The page grey under the header; the header paints its own white.
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? const JuniorBottomNav(current: StudentTab.progress)
             : null,
@@ -133,7 +130,7 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
             // White behind the status bar as well as the header, as the
             // frame draws it; the page grey starts under the rule.
             ColoredBox(
-              color: AppColors.surface,
+              color: context.palette.surface,
               child: SafeArea(
                 bottom: false,
                 child: _constrained(const HomeHeader()),
@@ -141,7 +138,7 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
             ),
             Container(
               height: AppDimens.borderWidth,
-              color: HomePalette.headerRule,
+              color: context.palette.divider,
             ),
             Expanded(
               child: ListenableBuilder(
@@ -229,12 +226,15 @@ class _PaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // Adult's payment card language: a `surface` card in an `outline` edge,
+    // the money glyph on a `surfaceSubtle` tile.
     return Container(
       padding: const EdgeInsets.all(12 - AppDimens.borderWidth),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(color: HomePalette.border),
+        border: Border.all(color: palette.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -247,14 +247,14 @@ class _PaymentCard extends StatelessWidget {
                 height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: HomePalette.iconTileFill,
+                  color: palette.surfaceSubtle,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: HomePalette.border),
+                  border: Border.all(color: palette.outline),
                 ),
-                child: const Icon(
+                child: Icon(
                   AppIcons.money,
                   size: 24,
-                  color: JuniorPalette.accent,
+                  color: palette.accentText,
                 ),
               ),
               const SizedBox(width: 16),
@@ -262,14 +262,16 @@ class _PaymentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       JuniorProgressStrings.paymentTitle,
-                      style: attendanceLabelStyle,
+                      style: attendanceLabelStyle.copyWith(
+                        color: palette.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       JuniorProgressStrings.showParent,
-                      style: _bodyStyle.copyWith(color: HomePalette.statLabel),
+                      style: _bodyStyle.copyWith(color: palette.textStatLabel),
                     ),
                     const SizedBox(height: 4),
                     // Overdue takes the adult card's own wording and red ink —
@@ -281,8 +283,8 @@ class _PaymentCard extends StatelessWidget {
                       },
                       style: _statusStyle.copyWith(
                         color: payment.isOverdue
-                            ? HomePalette.overdueInk
-                            : JuniorPalette.accent,
+                            ? palette.errorInk
+                            : palette.accentText,
                       ),
                     ),
                   ],
@@ -310,24 +312,27 @@ class _PayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const radius = BorderRadius.all(Radius.circular(18));
+    final palette = context.palette;
     return Semantics(
       button: true,
       label: JuniorProgressStrings.payAction,
       excludeSemantics: true,
       child: Material(
-        color: JuniorPalette.accent,
+        color: palette.accent,
         borderRadius: radius,
         child: InkWell(
           onTap: onPressed,
           borderRadius: radius,
-          splashColor: Colors.white24,
-          highlightColor: Colors.white10,
-          child: const SizedBox(
+          // `Colors.white24` / `white10`, as tints of [AppPalette.onPrimary]
+          // — `AppButton`'s own ripple.
+          splashColor: palette.onPrimary.withAlpha(0x3D),
+          highlightColor: palette.onPrimary.withAlpha(0x1A),
+          child: SizedBox(
             height: 36,
             child: Center(
               child: Text(
                 JuniorProgressStrings.payAction,
-                style: _payStyle,
+                style: _payStyle.copyWith(color: palette.onPrimary),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -366,10 +371,14 @@ class _ProgressPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // A panel's faint edge (`outlineFaint`), not the rule inside it.
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(color: JuniorPalette.mutedFill, width: _panelBorder),
+        border: Border.all(
+          color: context.palette.outlineFaint,
+          width: _panelBorder,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -473,9 +482,12 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(color: JuniorPalette.mutedFill, width: _panelBorder),
+        border: Border.all(
+          color: context.palette.outlineFaint,
+          width: _panelBorder,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,7 +495,9 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: attendanceCardTitleStyle,
+            style: attendanceCardTitleStyle.copyWith(
+              color: context.palette.textPrimary,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -504,13 +518,13 @@ class _Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: JuniorPalette.accent,
+          color: context.palette.accent,
         ),
       ),
     );
@@ -542,7 +556,7 @@ class _StateMessage extends StatelessWidget {
             Text(
               message,
               style: AppTypography.cardSupporting.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -568,7 +582,7 @@ class _PanelRule extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: AppDimens.borderWidth,
-      color: JuniorPalette.mutedFill,
+      color: context.palette.divider,
     );
   }
 }
@@ -576,14 +590,14 @@ class _PanelRule extends StatelessWidget {
 // --- Type ------------------------------------------------------------------
 //
 // Sizes read off the frame's cap heights (Manrope's cap height is 0.72 em).
+// None bakes a colour: each use supplies the palette's (Issue #272).
 
-/// "3 хоног дутуу". 14 bold, blue.
+/// "3 хоног дутуу". 14 bold; blue (`accentText`), or `errorInk` overdue.
 const TextStyle _statusStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w700,
-  color: JuniorPalette.accent,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -596,12 +610,11 @@ const TextStyle _bodyStyle = TextStyle(
   leadingDistribution: TextLeadingDistribution.even,
 );
 
-/// "Төлбөр төлөх". 14 semibold, white.
+/// "Төлбөр төлөх". 14 semibold, `onPrimary`.
 const TextStyle _payStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 14,
   height: 20 / 16,
   fontWeight: FontWeight.w600,
-  color: AppColors.onPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );

@@ -192,10 +192,13 @@ class _HeaderCard extends StatelessWidget {
       decoration: _cardDecoration(context),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               HomeStrings.attendanceLabel,
-              style: attendanceCardTitleStyle,
+              // The shared style no longer bakes its colour (Issue #272).
+              style: attendanceCardTitleStyle.copyWith(
+                color: context.palette.textPrimary,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

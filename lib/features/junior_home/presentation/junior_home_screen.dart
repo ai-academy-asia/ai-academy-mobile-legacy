@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -19,7 +18,6 @@ import '../domain/junior_learning_map.dart';
 import 'junior_home_controller.dart';
 import 'junior_home_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
-import 'widgets/junior_home_palette.dart';
 import 'widgets/junior_learning_map_view.dart';
 
 /// Home for a student in kids mode — the Figma "Junior Home" frame.
@@ -96,7 +94,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
       child: Scaffold(
         // White, so the status-bar inset above the header reads as part of
         // the header rather than as the top of the blue map.
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         bottomNavigationBar: widget.showBottomNav
             ? const JuniorBottomNav(current: StudentTab.home)
             : null,
@@ -109,10 +107,15 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
               // indicator, so the map stays on screen until the new one
               // arrives.
               HomeHeader(onLogoTap: _controller.load),
-              Container(height: AppDimens.borderWidth, color: AppColors.border),
+              // A step darker than every other header rule (`divider`):
+              // its own role, kept as shipped (Issue #272).
+              Container(
+                height: AppDimens.borderWidth,
+                color: context.palette.juniorHeaderRule,
+              ),
               Expanded(
                 child: ColoredBox(
-                  color: JuniorPalette.mapField,
+                  color: context.palette.juniorMapSky,
                   child: ListenableBuilder(
                     listenable: _controller,
                     builder: (context, _) => _buildBody(),
@@ -207,11 +210,14 @@ class _MapLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: context.palette.onJuniorMapSky,
+        ),
       ),
     );
   }
@@ -247,7 +253,7 @@ class _MapMessage extends StatelessWidget {
             Text(
               message,
               style: AppTypography.cardSupporting.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
