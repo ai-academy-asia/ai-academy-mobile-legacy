@@ -439,14 +439,14 @@ This fits the audit's phases (§15 there). **No step starts before §17 approval
 ## 17. What still requires human or design approval
 
 Before any dark value enters code:
-- [ ] **Every dark value in §4, §11 and §12:** approve, or replace with Figma values, then mark **APPROVED** here.
+- [x] **Every dark value in §4, §11 and §12:** approve, or replace with Figma values, then mark **APPROVED** here. *Accepted for release as the candidate on 2026-10-09, at the product owner's request after reviewing it on a physical iPhone (Issue #282). The roles keep their PROPOSED / DERIVED / UNRESOLVED labels, and the items under "Open after enabling" (§18) remain open. This is not an accessibility sign-off.*
 - [ ] **The new roles in §3:** names and scope.
 - [ ] **Each asset decision in §8:** keep, plate, dim or re-export. This includes the Junior map (§11).
 - [ ] **Component treatments in §6** that change shape language: no shadows, decoration opacity.
 - [ ] **The decisions in §16.**
 - [ ] **Ideally, Figma frames** for at least one screen per role (Adult Home, Junior Home, Teacher Schedule) plus Profile, so implementation is checked against a frame, not this text.
 
-Until then, light mode is the only shipped theme. Since Phase 9 (Issue #276) the candidate `AppTheme.dark` exists in code, and since Phase 10 (Issue #278) the user's theme preference is saved and restored. Nothing reaches the candidate: `AppThemeController.darkThemeApproved` is false, so only Light can be chosen and every preference resolves to `ThemeMode.light`. A test fails if that constant is turned on while the first box above is unchecked.
+Since Issue #282 users can choose Dark with Adult Profile's "Light mode" switch. The candidate `AppTheme.dark` (Phase 9, Issue #276) is what they get, through the preference saved and restored since Phase 10 (Issue #278). `AppThemeController.darkThemeApproved` mirrors the first box above, and a test fails if the two disagree.
 
 ---
 
@@ -582,14 +582,15 @@ Light mode has the same issue today: `border` `#E4E6EF` measures 1.25:1 on white
 
 `divider` (1.25:1 on `surface`, as light's 1.18) is a different case. It is a rule between rows, a decorative separator that identifies no control, and is judged separately from the edges above.
 
-### Still to decide before Phase 10 ships it
+### Open after enabling (Issue #282)
 
 - **Every value** (§17), including the Teacher band's deeper `#1F4FC9` (§12) and the dusk `juniorMapSky` (§11).
 - **The 11 UNRESOLVED roles** above. Most were added in Phases 5–8, after this proposal was written.
 - **Field and button edge contrast:** `border`/`outline` at 1.63:1 on `surface`, below the 3:1 non-text guideline for control boundaries (light: 1.25 / 1.39 on white). Design must choose a stronger edge for fields and outlined buttons, another way to identify them, or record a decision. Not compliant as proposed.
 - **Junior map:** the scenery dim (black @ 25 %, §11) is not implemented. Whether nodes keep their light colours or take the candidate's is open. `juniorMutedFill` stands in as `surfaceMuted`'s value: its light value was tried and left the certificate panel's line illegible (light text on a near-white panel).
-- **SVG tinting:** no per-asset tint is applied. In dark, the black exercise icons and the coloured status glyphs still draw as authored (§7). The monochrome icons that go through `AppSvgIcon` (Profile rows, the bell) already follow `iconInk`. The wordmark follows `wordmark`.
+- **SVG tinting:** the monochrome icons that go through `AppSvgIcon` follow `iconInk`: Profile rows (Adult, Teacher and, since #282, Junior), the bell, and since #282 the course-material file and download glyphs. The wordmark follows `wordmark`. Multi-colour artwork and the coloured status glyphs draw as authored (§7). The faint lock on locked modules and lessons is legible but quiet; design to confirm.
+- **Theme rows on Junior and Teacher Profile:** there are none, because there are no frames (PRODUCT DECISION). The preference is device-wide, so a Junior or Teacher who signs in after Dark was chosen sees Dark and can't switch it from their own Profile.
 - **Plates and assets (§8):** bank logos, `how_ai_works.svg` and the certificate are not plated.
 - **Shadows:** `shadow`/`shadowSubtle` are transparent, but widgets that apply their own strength (`withValues(alpha: …)`, Phases 3–8) still draw a black lift in dark. Design must say whether that should vanish.
 - **The Mentor Feedback divider** still uses Material's default; in dark that is `AppTheme.dark`'s `outlineVariant`, not `divider` (Issue #268).
-- **Native launch screens** (Phase 11).
+- **Native launch screens** (Phase 11): iOS `LaunchScreen.storyboard` is white, and Android's is white (or the system background on API 21+). They draw before Dart runs, so a saved Dark shows a brief native white before the first Flutter frame, which is already dark.

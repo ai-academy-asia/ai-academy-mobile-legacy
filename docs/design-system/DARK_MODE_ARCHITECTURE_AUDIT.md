@@ -712,7 +712,17 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >   - the control type (§16.1: a switch, or System/Light/Dark);
 >   - Junior and Teacher theme rows: there are no frames, and they would change those goldens;
 >   - copy explaining that Dark is not yet available.
-> - **Debug-only device preview (Issue #280):** `flutter run --dart-define=AIA_DARK_PREVIEW=true` draws the candidate, for review before §17. It works only under `kDebugMode`, is never persisted, and leaves `darkThemeApproved` false. The Phase 9 rule against naming `ThemeMode.dark` allows exactly one line: the preview constant in `app_theme_controller.dart`. A separate guard pins that preview to `kDebugMode` plus the define.
+> - **Debug-only device preview (Issue #280):** removed in #282, which replaces it with the user's toggle.
+>
+> **Dark enabled for users (Issue #282).** The product owner asked for Dark to be enabled after reviewing the candidate on a physical iPhone; §17's first box records it.
+> - `darkThemeApproved = true`. Dark can be chosen; System cannot yet (§16.1), and a stored `system` reads as Light.
+> - `_modeFor` is the only line in `lib/` that names `ThemeMode.dark`. The Phase 9 rules now allow exactly that line. `ThemeMode.system`, `setMode`, a mode-taking controller and direct dark theme references stay banned.
+> - Adult Profile's switch is live: on is Light, off is Dark. It applies at once, is saved, is restored before the first frame, and survives sign-out.
+> - Fixed for dark: three untinted black SVGs were nearly invisible on dark grounds. They now go through `AppSvgIcon`, untinted (pixel-identical) in light:
+>   - the course-material file glyph;
+>   - the download glyph;
+>   - Junior Profile's row icons.
+> - **Still open:** see proposal §18, "Open after enabling".
 > - **Turning dark on later** is one change: approve §17, set `darkThemeApproved`, map Dark and System in `_modeFor`, relax the Phase 9 rules that change needs, and add the chosen control.
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.

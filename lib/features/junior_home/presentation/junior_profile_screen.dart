@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../shared/widgets/app_svg_icon.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -424,7 +424,9 @@ class _RowIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(asset, width: _rowIcon, height: _rowIcon);
+    // Through AppSvgIcon so the black glyphs follow `iconInk` in dark
+    // (Issue #282); untinted, as before, in light.
+    return AppSvgIcon(asset, size: _rowIcon);
   }
 }
 

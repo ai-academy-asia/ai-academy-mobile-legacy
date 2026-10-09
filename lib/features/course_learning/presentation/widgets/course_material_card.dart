@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/app_svg_icon.dart';
 import '../../domain/course_exercise.dart';
 
 /// One row in the Course materials tab: file icon, name and size, a download
@@ -80,10 +80,11 @@ class CourseMaterialCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: SvgPicture.asset(
+            // Black glyphs: AppSvgIcon tints them to `iconInk` in dark
+            // (Issue #282) and leaves them untinted in light.
+            child: const AppSvgIcon(
               'assets/images/course_learning/exercise_file.svg',
-              width: _glyphSize,
-              height: _glyphSize,
+              size: _glyphSize,
             ),
           ),
           const SizedBox(width: 16),
@@ -200,8 +201,9 @@ class _DownloadButtonState extends State<_DownloadButton> {
                       strokeWidth: 2,
                       color: palette.primary,
                     )
-                  : SvgPicture.asset(
+                  : const AppSvgIcon(
                       'assets/images/course_learning/exercise_download.svg',
+                      size: _glyphSize,
                     ),
             ),
           ),

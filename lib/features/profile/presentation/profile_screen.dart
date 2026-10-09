@@ -57,11 +57,10 @@ const double _editGlyph = 20;
 ///
 /// **Light mode shows the app's one theme preference** (Phase 10, Issue
 /// #278): `AppThemeController.preference`, saved and restored for every
-/// role, never a copy kept here. It is on for [ThemePreference.light]. Its
-/// switch writes the preference only when the other choice is available:
-/// while the candidate dark palette is unapproved
-/// (`AppThemeController.darkThemeApproved`) Dark cannot be chosen, so the
-/// row stays inert, as Teacher's inert switches do, and draws as before.
+/// role, never a copy kept here. It is on for [ThemePreference.light]; off
+/// chooses [ThemePreference.dark] (Issue #282), which the whole app takes at
+/// once and the next launch restores. Were Dark unavailable
+/// (`AppThemeController.darkThemeApproved`), the switch would be inert.
 ///
 /// Log out signs out for real through [signOutToLogin]: it revokes the
 /// session server-side when it can, always clears it locally, and lands on
@@ -244,8 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   listenable: theme,
                   builder: (context, _) => ProfileSwitch(
                     value: theme.preference == ThemePreference.light,
-                    // Off would choose Dark — not available until the
-                    // dark values are approved, so the switch is inert.
+                    // On is Light, off is Dark; inert were Dark unavailable.
                     onChanged:
                         AppThemeController.isAvailable(ThemePreference.dark)
                         ? (light) => theme.setPreference(
