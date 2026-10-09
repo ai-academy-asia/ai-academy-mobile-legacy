@@ -72,6 +72,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.warning,
     required this.warningFill,
     required this.warningOutline,
+    required this.warningInk,
     required this.infoInk,
     required this.infoFill,
     required this.barrier,
@@ -97,6 +98,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.mediaControlOutline,
     required this.onMedia,
     required this.progressTrack,
+    required this.textAnswerLetter,
     required this.juniorCard,
     required this.juniorCardBorder,
     required this.juniorMapSky,
@@ -155,6 +157,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     warning: AppColors.warning,
     warningFill: AppColors.warningFill,
     warningOutline: AppColors.warningOutline,
+    warningInk: AppColors.warningInk,
     infoInk: AppColors.infoInk,
     infoFill: AppColors.infoFill,
     barrier: AppColors.barrier,
@@ -180,6 +183,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     mediaControlOutline: AppColors.mediaControlOutline,
     onMedia: AppColors.onMedia,
     progressTrack: AppColors.progressTrack,
+    textAnswerLetter: AppColors.textAnswerLetter,
     juniorCard: AppColors.juniorCard,
     juniorCardBorder: AppColors.juniorCardBorder,
     juniorMapSky: AppColors.juniorMapSky,
@@ -335,7 +339,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// The stronger green tile — payment success, a submitted assignment.
   final Color successFillStrong;
 
-  /// A partial state; the quiz score.
+  /// A partial state; the quiz preview card's score.
   final Color warning;
 
   /// The pale amber behind the contract banner.
@@ -343,6 +347,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   /// The contract banner's outline.
   final Color warningOutline;
+
+  /// Amber as text — the quiz result's score. Not [warning], a fill (and
+  /// the preview card's score) a step lighter.
+  final Color warningInk;
 
   /// The "Finished" / live blue, as ink and outline.
   final Color infoInk;
@@ -402,15 +410,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// A locked module's icon tile — the flat grey behind its padlock.
   final Color surfaceLocked;
 
-  /// The flat 3D band under a lifted Learning Flow card (module and lesson
-  /// cards). It must stay a step *below* the card in every theme, so it is
+  /// The flat 3D band under a lifted Learning Flow card (module, lesson and
+  /// unanswered quiz-answer cards). It must stay a step *below* the card in every theme, so it is
   /// not [divider], which only shares its light value.
   final Color cardDepth;
 
   /// The faint edge of those lifted cards, of Course Module List's
-  /// certification panel and of Exercise Detail's tab card — lighter than
-  /// [outlineSubtle]. An edge, so not [divider] (a rule) or [cardDepth] (a
-  /// band), which share its light value.
+  /// certification panel, Exercise Detail's tab card and the quiz feedback
+  /// card — lighter than [outlineSubtle]. An edge, so not [divider] (a rule)
+  /// or [cardDepth] (a band), which share its light value.
   final Color outlineFaint;
 
   /// Exercise Detail's video header: a persistent dark media surface, dark
@@ -438,6 +446,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// [border] (a field's edge), which only shares its light value; not
   /// [outline] or [divider], the other tracks' values.
   final Color progressTrack;
+
+  // --- Quiz ------------------------------------------------------------------
+
+  /// The A/B/C/D letter of a quiz answer, grey in every state. Close in
+  /// meaning to [textMuted] (an enumerator), but a lighter `#8A8A8A`.
+  final Color textAnswerLetter;
 
   // --- Junior ----------------------------------------------------------------
 
@@ -517,6 +531,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? warning,
     Color? warningFill,
     Color? warningOutline,
+    Color? warningInk,
     Color? infoInk,
     Color? infoFill,
     Color? barrier,
@@ -542,6 +557,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? mediaControlOutline,
     Color? onMedia,
     Color? progressTrack,
+    Color? textAnswerLetter,
     Color? juniorCard,
     Color? juniorCardBorder,
     Color? juniorMapSky,
@@ -597,6 +613,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     warning: warning ?? this.warning,
     warningFill: warningFill ?? this.warningFill,
     warningOutline: warningOutline ?? this.warningOutline,
+    warningInk: warningInk ?? this.warningInk,
     infoInk: infoInk ?? this.infoInk,
     infoFill: infoFill ?? this.infoFill,
     barrier: barrier ?? this.barrier,
@@ -623,6 +640,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     mediaControlOutline: mediaControlOutline ?? this.mediaControlOutline,
     onMedia: onMedia ?? this.onMedia,
     progressTrack: progressTrack ?? this.progressTrack,
+    textAnswerLetter: textAnswerLetter ?? this.textAnswerLetter,
     juniorCard: juniorCard ?? this.juniorCard,
     juniorCardBorder: juniorCardBorder ?? this.juniorCardBorder,
     juniorMapSky: juniorMapSky ?? this.juniorMapSky,
@@ -684,6 +702,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       warning: mix(warning, other.warning),
       warningFill: mix(warningFill, other.warningFill),
       warningOutline: mix(warningOutline, other.warningOutline),
+      warningInk: mix(warningInk, other.warningInk),
       infoInk: mix(infoInk, other.infoInk),
       infoFill: mix(infoFill, other.infoFill),
       barrier: mix(barrier, other.barrier),
@@ -715,6 +734,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       mediaControlOutline: mix(mediaControlOutline, other.mediaControlOutline),
       onMedia: mix(onMedia, other.onMedia),
       progressTrack: mix(progressTrack, other.progressTrack),
+      textAnswerLetter: mix(textAnswerLetter, other.textAnswerLetter),
       juniorCard: mix(juniorCard, other.juniorCard),
       juniorCardBorder: mix(juniorCardBorder, other.juniorCardBorder),
       juniorMapSky: mix(juniorMapSky, other.juniorMapSky),

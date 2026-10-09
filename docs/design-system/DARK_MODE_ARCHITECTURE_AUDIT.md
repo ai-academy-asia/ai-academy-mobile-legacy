@@ -600,13 +600,32 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >   - The disabled submit pill is Phase 5's muted set.
 >   - Fields and cards use `outline`; the tab card edge is `outlineFaint`; Note and Mentor cards use `outlineSubtle`; the rule under the tabs is `divider`.
 >   - Shadows use the role's hue at each control's own strength, as in Phase 3.
-> - **New roles:** `videoSurface`, `mediaControl`, `onMediaControl`, `onMedia`, `mediaControlOutline` and `progressTrack`, each pinned to its shipped light value, with no dark value. That makes 79 roles. (`mediaControlOutline` was added from the PR #269 review.) `exercisePrimaryColor` is retired. `exerciseBorderColor` stays only for the two Quiz widgets that import it.
+> - **New roles:** `videoSurface`, `mediaControl`, `onMediaControl`, `onMedia`, `mediaControlOutline` and `progressTrack`, each pinned to its shipped light value, with no dark value. That makes 79 roles. (`mediaControlOutline` was added from the PR #269 review.) `exercisePrimaryColor` is retired. `exerciseBorderColor` stays only for the two Quiz widgets that import it (retired in 6c).
 > - **Kept, and flagged as a `PRODUCT DECISION`:** the Assignment tab's section rule sets no colour, so it draws Material's `outlineVariant` (`#C5C6D0`), not `divider`. The authored SVG glyphs (play, file, download, upload, resubmit) are not tinted.
 > - **Guards:**
 >   - `exercise_detail_palette_scope_test.dart` catches direct reads, colour-baking styles, and any `Divider` or progress indicator left on Material's default.
 >   - `exercise_detail_theme_test.dart` proves each role split under a sentinel palette.
 > - **Goldens:** all unchanged.
 > - **Next:** 6c (Quiz).
+>
+> **Phase 6c done (Issue #270).** The Quiz reads colours only through `context.palette`. With it, the whole Learning Flow (shared by Adult and Junior) is on the palette.
+> - **Scope:** `CourseQuizScreen`, `CourseQuizResultScreen`, `QuizAnswerCard`, `QuizFeedbackCard`, `QuizProgressHeader`, `QuizResultQuestionRow`, and `QuizPreviewCard` (drawn on Exercise Detail).
+> - **Mapped by meaning, not hex:**
+>   - An unanswered option's edge is `outlineFaint` and its band `cardDepth` (not `divider`). A picked option's edge is `successOutline` or `errorOutline`.
+>   - The feedback card's titles are `successInk` and `errorInk`, not the outlines. The correct answer is `textStrong` and the explanation `textMuted`.
+>   - The progress bar is `accent` on the `divider` track.
+>   - The close button is a page control, like `CourseLearningBackButton`: `surface`, `outline`, `textPrimary`, not the video's media roles.
+>   - The result list is a `border`-edged card with `divider` rules.
+> - **New roles:** `warningInk` (`#DD940E`, the result score; the proposal already counts it in the warning family) and `textAnswerLetter` (`#8A8A8A`). Each is pinned to its shipped light value, with no dark value. That makes 81 roles.
+> - **Retired:** `exerciseBorderColor`. Nothing reads it now; the 6b guard still bans the name.
+> - **`PRODUCT DECISION`s:**
+>   - The preview card's score is `warning` (`#F0A22E`) and the result screen's is `warningInk` (`#DD940E`): two ambers for one idea.
+>   - `textAnswerLetter` might fold into `textMuted` (`#808080`).
+> - **Guards:**
+>   - `quiz_palette_scope_test.dart`: direct reads, colour-baking styles and Material defaults, with no exceptions.
+>   - `quiz_theme_test.dart`: each role split under a sentinel palette.
+> - **Goldens:** all unchanged.
+> - **Next:** Phase 7 (Junior).
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 

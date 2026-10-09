@@ -2,42 +2,34 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Dark Mode Phase 6b (Issue #268): Exercise Detail — the screen, its video
-/// header, tabs, Note / Course materials / Assignment content and their
-/// widgets — reads its colours only through `context.palette`, so an
-/// approved `AppPalette.dark` reaches it without editing these files again.
-/// The flow is shared by Adult and Junior.
+/// Dark Mode Phase 6c (Issue #270): the Quiz — its screen, result screen,
+/// answer and feedback cards, progress header, result rows and the preview
+/// card Exercise Detail draws — reads its colours only through
+/// `context.palette`, so an approved `AppPalette.dark` reaches it without
+/// editing these files again. The flow is shared by Adult and Junior.
 ///
-/// Three checks over this scope:
+/// The same three checks as `exercise_detail_palette_scope_test.dart`, over
+/// this scope, with no exceptions:
 ///
 ///  * **No direct colour reads** — `AppColors.`, a feature palette, the
-///    `exerciseBorderColor` alias (retired in Phase 6c, Issue #270), a colour
-///    literal, a `Colors.` constant or a Material theme colour.
+///    retired `exerciseBorderColor` alias, a colour literal, a `Colors.`
+///    constant or a Material theme colour.
 ///  * **No colour hidden in a shared text style.** Every use of a
 ///    colour-baking `AppTypography` style supplies the palette's colour with
 ///    `.copyWith(… color: …)`, and no file-level style bakes one.
 ///  * **No widget left on Material's default colour.** A `Divider` or
 ///    progress indicator given no colour draws one derived from the
 ///    `ColorScheme`, not a palette role.
-///
-/// Quiz (`QuizPreviewCard` included) is Phase 6c; Module List and Lesson
-/// List are 6a (`learning_entry_palette_scope_test.dart`).
 void main() {
-  /// The Phase 6b files, under `lib/features/course_learning/presentation/`.
+  /// The Phase 6c files, under `lib/features/course_learning/presentation/`.
   const scope = [
-    'course_exercise_detail_screen.dart',
-    'widgets/exercise_video_header.dart',
-    'widgets/exercise_tabs.dart',
-    'widgets/exercise_info_section.dart',
-    'widgets/exercise_text_field.dart',
-    'widgets/exercise_submit_button.dart',
-    'widgets/course_materials_tab.dart',
-    'widgets/course_material_card.dart',
-    'widgets/note_tab.dart',
-    'widgets/mentor_feedback_card.dart',
-    'widgets/assignment_tab.dart',
-    'widgets/assignment_upload_dropzone.dart',
-    'widgets/assignment_attachment_card.dart',
+    'course_quiz_screen.dart',
+    'course_quiz_result_screen.dart',
+    'widgets/quiz_answer_card.dart',
+    'widgets/quiz_feedback_card.dart',
+    'widgets/quiz_preview_card.dart',
+    'widgets/quiz_progress_header.dart',
+    'widgets/quiz_result_question_row.dart',
   ];
 
   final legacy = RegExp(
@@ -78,7 +70,7 @@ void main() {
     return source.substring(match.end, i);
   }
 
-  test('the Phase 6b scope reads colours only via context.palette', () {
+  test('the Phase 6c scope reads colours only via context.palette', () {
     final offenders = <String>[];
     for (final MapEntry(key: file, value: source) in sources().entries) {
       final lines = source.split('\n');
@@ -91,7 +83,7 @@ void main() {
     expect(offenders, isEmpty, reason: offenders.join('\n'));
   });
 
-  test('no Phase 6b use of a colour-baking text style keeps its colour', () {
+  test('no Phase 6c use of a colour-baking text style keeps its colour', () {
     final typography = File(
       'lib/core/theme/app_typography.dart',
     ).readAsStringSync();
@@ -166,16 +158,7 @@ void main() {
     expect(offenders, isEmpty, reason: offenders.join('\n'));
   });
 
-  test('no Phase 6b divider or progress indicator falls back to Material', () {
-    /// Allowed on purpose — each says why.
-    bool allowed(String file, String call) =>
-        // The section rule above Mentor Feedback has always drawn Material's
-        // `outlineVariant` (`#C5C6D0`), not `AppPalette.divider`
-        // (`#EAEDF0`). Giving it the role would change pixels, so whether it
-        // should is a PRODUCT DECISION (Issue #268). Exactly this call.
-        file == 'widgets/assignment_tab.dart' &&
-        call == 'const Divider(height: 1)';
-
+  test('no Phase 6c divider or progress indicator falls back to Material', () {
     final offenders = <String>[];
     for (final MapEntry(key: file, value: source) in sources().entries) {
       for (final m in RegExp(
@@ -183,9 +166,7 @@ void main() {
         r'|LinearProgressIndicator)\(',
       ).allMatches(source)) {
         final args = callArguments(source, m);
-        final call = source.substring(m.start, m.end + args.length);
         if (args.contains(RegExp(r'\bcolor:'))) continue;
-        if (allowed(file, call)) continue;
         offenders.add(
           '$file:${lineOf(source, m.start)}: ${m.group(1)} sets no colour',
         );

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_quiz.dart';
 import '../course_learning_strings.dart';
 import 'exercise_submit_button.dart';
-import 'exercise_text_field.dart' show exerciseBorderColor;
 
 /// The Quiz preview/result card on Exercise Detail — a separate bordered
 /// card below the Assignment/Course materials/Note tab card, not one more
@@ -40,15 +39,18 @@ class QuizPreviewCard extends StatelessWidget {
     if (quiz == null) return const SizedBox.shrink();
 
     final result = quiz.lastResult;
+    final palette = context.palette;
 
+    // The same bordered-card language as Exercise Detail's material and
+    // attachment cards: `surface` on an `outline` edge.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: exerciseBorderColor,
+          color: palette.outline,
           width: AppDimens.borderWidth,
         ),
       ),
@@ -58,10 +60,17 @@ class QuizPreviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(moduleCaption, style: AppTypography.catalogSectionLabel),
+              Text(
+                moduleCaption,
+                style: AppTypography.catalogSectionLabel.copyWith(
+                  color: palette.textSecondary,
+                ),
+              ),
               Text(
                 CourseLearningStrings.quizQuestionCount(quiz.questionCount),
-                style: AppTypography.catalogSectionLabel,
+                style: AppTypography.catalogSectionLabel.copyWith(
+                  color: palette.textSecondary,
+                ),
               ),
             ],
           ),
@@ -71,6 +80,7 @@ class QuizPreviewCard extends StatelessWidget {
             style: AppTypography.cardHeading.copyWith(
               fontSize: 16,
               fontWeight: FontWeight.w700,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -87,14 +97,18 @@ class QuizPreviewCard extends StatelessWidget {
                 children: [
                   Text(
                     CourseLearningStrings.yourScoreLabel,
-                    style: AppTypography.cardSupporting,
+                    style: AppTypography.cardSupporting.copyWith(
+                      color: palette.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${result.percent}%',
+                    // `warning`, as this score always was — the result
+                    // screen's darker score is `warningInk`.
                     style: AppTypography.heading.copyWith(
                       fontSize: 28,
-                      color: AppColors.warning,
+                      color: palette.warning,
                     ),
                   ),
                 ],

@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 
 enum QuizAnswerState { normal, selectedCorrect, selectedWrong }
 
 /// Sampled off the Quiz frames at 1:1. An unanswered row is outlined in
-/// [_border] and carries a flat band of the same colour beneath it, the same
-/// depth idiom the Course Learning cards use; a row the student has picked
-/// swaps the outline for its state colour and drops the band.
-const Color _border = AppColors.divider;
-const Color _correct = AppColors.successOutline;
-const Color _wrong = AppColors.errorOutline;
-const Color _letterInk = Color(0xFF8A8A8A);
-const Color _labelInk = AppColors.textStrong;
+/// `AppPalette.outlineFaint` and carries a flat `cardDepth` band beneath it
+/// — one grey in light mode, an edge and a band — the same depth idiom the
+/// Course Learning cards use; a row the student has picked swaps the outline
+/// for its state's (`successOutline` / `errorOutline`) and drops the band.
 const double _depthOffset = 4;
 const double _letterToLabel = 23;
 const double _stateIconBox = 24;
@@ -55,22 +51,23 @@ class QuizAnswerCard extends StatelessWidget {
   /// longer responds to taps.
   final VoidCallback? onTap;
 
-  Color get _color => switch (state) {
-    QuizAnswerState.normal => _border,
-    QuizAnswerState.selectedCorrect => _correct,
-    QuizAnswerState.selectedWrong => _wrong,
+  Color _edge(AppPalette palette) => switch (state) {
+    QuizAnswerState.normal => palette.outlineFaint,
+    QuizAnswerState.selectedCorrect => palette.successOutline,
+    QuizAnswerState.selectedWrong => palette.errorOutline,
   };
 
   bool get _answered => state != QuizAnswerState.normal;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       selected: state != QuizAnswerState.normal,
       label: label,
       child: Material(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -87,17 +84,20 @@ class QuizAnswerCard extends StatelessWidget {
               // below is a zero-blur shadow, which paints the card's whole
               // silhouette shifted down, so without an opaque background on
               // this same decoration it covers the card itself.
-              color: AppColors.surface,
+              color: palette.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _color, width: AppDimens.borderWidth),
+              border: Border.all(
+                color: _edge(palette),
+                width: AppDimens.borderWidth,
+              ),
               // Only the unanswered rows sit on a band; the frames draw the
               // picked one flat against the page.
               boxShadow: _answered
                   ? null
-                  : const [
+                  : [
                       BoxShadow(
-                        color: _border,
-                        offset: Offset(0, _depthOffset),
+                        color: palette.cardDepth,
+                        offset: const Offset(0, _depthOffset),
                       ),
                     ],
             ),
@@ -121,7 +121,7 @@ class QuizAnswerCard extends StatelessWidget {
                           // The letter stays grey in every state — the frames
                           // do not tint it with the answer's own colour.
                           style: AppTypography.cardHeading.copyWith(
-                            color: _letterInk,
+                            color: palette.textAnswerLetter,
                           ),
                         ),
                         const SizedBox(width: _letterToLabel),
@@ -129,7 +129,7 @@ class QuizAnswerCard extends StatelessWidget {
                           child: Text(
                             label,
                             style: AppTypography.settingsRowLabel.copyWith(
-                              color: _labelInk,
+                              color: palette.textStrong,
                             ),
                           ),
                         ),
