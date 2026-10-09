@@ -27,30 +27,44 @@ enum ThemePreference {
   }
 }
 
-/// Where the preference is kept. An interface, so tests can fail it.
+/// Where each account's preference is kept (Issue #286). An interface, so
+/// tests can fail it.
 abstract interface class ThemePreferencePersistence {
-  Future<String?> read();
+  /// [account]'s stored preference, or null when it never chose.
+  Future<String?> read(String account);
 
-  Future<void> write(String value);
+  Future<void> write(String account, String value);
+
+  /// Deletes the device-level value Issues #278–#285 stored, which belongs
+  /// to no known account.
+  Future<void> deleteLegacy();
 }
 
 /// The preference in the platform's secure storage — the dependency the
 /// session already uses (`SecureSessionPersistence`), so nothing is added.
 ///
-/// Under its own [key]: sign-out deletes only the session's key, so the
-/// theme survives it.
+/// One key per account, [keyFor] its `GET /auth/me` `id`: an account never
+/// reads another's choice. Sign-out deletes only the session's key, so each
+/// account's choice survives it.
 class SecureThemePreferencePersistence implements ThemePreferencePersistence {
   SecureThemePreferencePersistence({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
-  /// The one key the preference is stored under.
-  static const String key = 'aia.theme.preference';
+  /// `aia.theme.preference.<account>`.
+  static String keyFor(String account) => '$legacyKey.$account';
+
+  /// The one device-wide key used before Issue #286. Deleted, never read.
+  static const String legacyKey = 'aia.theme.preference';
 
   final FlutterSecureStorage _storage;
 
   @override
-  Future<String?> read() => _storage.read(key: key);
+  Future<String?> read(String account) => _storage.read(key: keyFor(account));
 
   @override
-  Future<void> write(String value) => _storage.write(key: key, value: value);
+  Future<void> write(String account, String value) =>
+      _storage.write(key: keyFor(account), value: value);
+
+  @override
+  Future<void> deleteLegacy() => _storage.delete(key: legacyKey);
 }

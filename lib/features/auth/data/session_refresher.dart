@@ -118,6 +118,8 @@ class SessionRefresher {
             ? session.userType
             : renewed.userType,
       ),
+      // The same account, renewed: it stays identified (Issue #286).
+      renewal: true,
     );
     return true;
   }

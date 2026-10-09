@@ -42,7 +42,11 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher. It is **Light by default, or Dark by the user's choice** (Issue #282). `AppTheme.dark` (with `AppPalette.dark`, Phase 9, Issue #276) is wired as `MaterialApp.darkTheme`, with each role labelled PROPOSED, DERIVED or UNRESOLVED (`DARK_MODE_DESIGN_PROPOSAL.md` §18). Every role's Profile has a "Light mode" switch (Adult since Issue #282; Junior and Teacher since Issue #284). All three set the one `ThemePreference`, through `AppThemeController.lightModeOn` and `setLightMode`: on is Light, off is Dark. The change applies to the whole app at once, every role, route, dialog and sheet included.
 
-The preference is saved under `aia.theme.preference` (Phase 10, Issue #278) and restored before the first Flutter frame. It survives sign-out. System is not offered yet (§16.1), and a stored `system` reads as Light. Every widget reads colour from `context.palette`. A monochrome black SVG goes through `AppSvgIcon`, so it follows `iconInk` in dark and stays untinted in light.
+The preference belongs to the **signed-in account**, not the device (Issue #286). It is saved under `aia.theme.preference.<id>`, where `<id>` is `GET /auth/me`'s `id` (`DATA_AND_API.md`). `followAccountTheme` keeps `AppThemeController` on the session's account:
+- signed out, or signed in but not yet identified → Light;
+- identified → that account's own choice, or Light.
+
+A persisted session carries its account, so the choice is restored before the first Flutter frame. Sign-out deletes no account's choice. The device-wide `aia.theme.preference` key of #278–#285 is deleted unread on launch, since it can't be attributed to an account. System is not offered yet (§16.1), and a stored `system` reads as Light. Every widget reads colour from `context.palette`. A monochrome black SVG goes through `AppSvgIcon`, so it follows `iconInk` in dark and stays untinted in light.
 
 The debug-only `AIA_DARK_PREVIEW` define (Issue #280) has been removed; the Profile switch replaces it.
 

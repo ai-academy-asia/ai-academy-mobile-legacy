@@ -725,6 +725,12 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - **Still open:** see proposal §18, "Open after enabling".
 >
 > **Every role's Profile has the switch (Issue #284).** Junior and Teacher Profile gained the "Light mode" row: same wording, same semantics, same controller. All three read `AppThemeController.lightModeOn` and write `setLightMode`, so the Light/Dark mapping lives in one place. No role can be stuck in Dark. `junior_profile.png` and `teacher_profile.png` change only by the inserted 56 pt row; `profile.png` is unchanged.
+>
+> **Per-account preference (Issue #286).** The device-wide key let one account's Dark carry over to the next account on the device. Now:
+> - The preference is kept per signed-in account under `aia.theme.preference.<GET /auth/me id>`.
+> - `AppThemeController.activateAccount` follows `AuthSessionStore.userId` (`followAccountTheme`). It is Light at once on any account change, then applies that account's choice. A read or write from an earlier account can never apply to the current one.
+> - The legacy device-wide key is deleted unread.
+> - Details: `DESIGN_SYSTEM.md` and `DATA_AND_API.md`.
 > - **Turning dark on later** is one change: approve §17, set `darkThemeApproved`, map Dark and System in `_modeFor`, relax the Phase 9 rules that change needs, and add the chosen control.
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.

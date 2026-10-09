@@ -11,9 +11,11 @@ import 'theme_preference.dart';
 /// every route of every role draws in the same theme.
 ///
 /// **The user's choice** (Phase 10, Issue #278) is a [ThemePreference],
-/// persisted by [restore]'s [ThemePreferencePersistence] and restored by
-/// `main()` before `runApp`, so the first frame is already in it. Profile
-/// writes it with [setPreference]. Screens never keep a copy.
+/// **one per signed-in account** (Issue #286): [activateAccount] applies the
+/// account's own saved choice, Light when it has none, and
+/// [setPreference] saves under that account. `main()` restores it before
+/// `runApp`, so the first frame is already in it. Every role's Profile
+/// writes it. Screens never keep a copy.
 ///
 /// **Light and Dark** (Issue #282): `MaterialApp` carries `AppTheme.dark`
 /// (Issue #276), enabled for users since §17 of
@@ -43,12 +45,32 @@ class AppThemeController extends ChangeNotifier {
   ThemeMode _mode;
   ThemePreference _preference = ThemePreference.light;
   ThemePreferencePersistence? _persistence;
+  String? _account;
+
+  /// Bumped by every account change and every choice, so a read begun before
+  /// either can never apply (Issue #286).
+  int _generation = 0;
+
+  /// The account's read while it is in flight; null once applied, so a
+  /// settled controller never hands out a future made in another zone.
+  Future<void>? _activation;
+  Object? _activationToken;
+
+  /// Writes, in the order the choices were made.
+  Future<void> _writes = Future.value();
 
   /// The mode `MaterialApp` is given.
   ThemeMode get mode => _mode;
 
   /// The user's choice, as the Profile row shows it.
   ThemePreference get preference => _preference;
+
+  /// Whose preference this is: the signed-in account's `GET /auth/me` `id`,
+  /// or null when signed out or not yet identified (Issue #286).
+  String? get account => _account;
+
+  /// Completes once the current [account]'s saved preference is applied.
+  Future<void> get ready => _activation ?? Future.value();
 
   /// What every role's Profile "Light mode" switch shows (Issue #284): on
   /// for [ThemePreference.light], off for Dark.
@@ -58,36 +80,76 @@ class AppThemeController extends ChangeNotifier {
   Future<bool> setLightMode(bool on) =>
       setPreference(on ? ThemePreference.light : ThemePreference.dark);
 
-  /// Reads the saved preference from [persistence], which later choices are
-  /// written to. Called by `main()` before `runApp`.
+  /// Keeps choices in [persistence] from now on. Called by `main()` before
+  /// `runApp`.
   ///
-  /// Never throws and never blocks startup: no saved value, a value this
-  /// build does not know, one not [isAvailable], or a storage error all
-  /// leave [ThemePreference.light]. A stored value is not overwritten by
-  /// reading it.
-  Future<void> restore(ThemePreferencePersistence persistence) async {
+  /// Deletes the device-wide value stored before Issue #286, unread: it
+  /// belongs to whichever account chose last, so carrying it to any account
+  /// could hand one account's choice to another. Never throws.
+  Future<void> attach(ThemePreferencePersistence persistence) async {
     _persistence = persistence;
-    ThemePreference? stored;
     try {
-      stored = ThemePreference.parse(await persistence.read());
+      await persistence.deleteLegacy();
     } on Object {
-      stored = null;
+      // Left behind, and never read: harmless.
     }
-    _apply(
-      stored != null && isAvailable(stored) ? stored : ThemePreference.light,
-    );
   }
 
-  /// Chooses [preference] for the whole app and saves it. Returns false, and
-  /// changes nothing, when it is not [isAvailable]. A failed write keeps the
-  /// choice for this run.
+  /// Switches to [account]'s own preference (Issue #286) — the signed-in
+  /// account, or null when there is none. Kept in step with the session by
+  /// `followAccountTheme`.
+  ///
+  /// Light at once, so another account's choice is never shown as this
+  /// one's, then [account]'s saved choice once read. No saved value, one
+  /// this build does not know or does not offer, or a storage error all
+  /// leave Light; nothing is written or deleted. A read that finishes after
+  /// another account change, or after a choice, is dropped.
+  Future<void> activateAccount(String? account) {
+    if (account == _account) return ready;
+    _account = account;
+    final generation = ++_generation;
+    _apply(ThemePreference.light);
+    final persistence = _persistence;
+    if (account == null || persistence == null) {
+      _activation = null;
+      return ready;
+    }
+    final token = _activationToken = Object();
+    return _activation = () async {
+      ThemePreference? stored;
+      try {
+        stored = ThemePreference.parse(await persistence.read(account));
+      } on Object {
+        stored = null;
+      }
+      if (identical(_activationToken, token)) {
+        _activation = null;
+        _activationToken = null;
+      }
+      if (generation != _generation) return;
+      if (stored != null && isAvailable(stored)) _apply(stored);
+    }();
+  }
+
+  /// Chooses [preference] for the whole app and saves it as the current
+  /// [account]'s. Returns false, and changes nothing, when it is not
+  /// [isAvailable]. With no identified account the choice holds for this
+  /// session only — it has no account to be kept under. A failed write keeps
+  /// the choice in memory.
   Future<bool> setPreference(ThemePreference preference) async {
     if (!isAvailable(preference)) return false;
+    _generation++;
     _apply(preference);
-    try {
-      await _persistence?.write(preference.storedName);
-    } on Object {
-      // Kept in memory; the next launch falls back to the last saved value.
+    final account = _account;
+    final persistence = _persistence;
+    if (account != null && persistence != null) {
+      // Bound to the account that chose: a write still queued when another
+      // account signs in lands under the chooser's key, never the new one's.
+      final write = _writes.then(
+        (_) => persistence.write(account, preference.storedName),
+      );
+      _writes = write.then((_) {}, onError: (Object _) {});
+      await _writes;
     }
     return true;
   }
@@ -101,8 +163,8 @@ class AppThemeController extends ChangeNotifier {
   }
 
   /// The one place a preference becomes a mode. Only an available
-  /// preference reaches it ([restore], [setPreference]); anything else is
-  /// light.
+  /// preference reaches it ([activateAccount], [setPreference]); anything
+  /// else is light.
   static ThemeMode _modeFor(ThemePreference preference) =>
       preference == ThemePreference.dark && darkThemeApproved
       ? ThemeMode.dark

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_controller.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../auth/data/http_current_user_repository.dart';
@@ -188,6 +189,8 @@ class _SplashScreenState extends State<SplashScreen>
           widget.currentUserRepository ??
           HttpCurrentUserRepository(sessionStore: store);
       final user = await repository.getCurrentUser();
+      // The account it identified, in its own theme before Home (Issue #286).
+      await AppThemeController.instance.ready;
       return (
         homeRoute: homeRouteFor(user.userType),
         mustChangePassword: user.mustChangePassword,
