@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:ui' show Tristate;
 
+import 'package:aia_mobile/core/theme/app_theme_controller.dart';
+import 'package:aia_mobile/core/theme/theme_preference.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
@@ -63,6 +65,7 @@ void main() {
     Size size = const Size(393, 852),
     FakeCurrentUserRepository? repository,
     ThemeData? theme,
+    AppThemeController? themeController,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -79,6 +82,7 @@ void main() {
                   CurrentUserFailureKind.sessionExpired,
                 ),
               ),
+          themeController: themeController,
         ),
       ),
     );
@@ -445,16 +449,28 @@ void main() {
         expect(toggle.onChanged, isNull);
       });
 
-      testWidgets('follows the app theme, keeping no copy of its own', (
-        tester,
-      ) async {
-        // A dark *brightness* only — no dark colours exist or are invented.
-        await pumpProfile(
-          tester,
-          theme: AppTheme.light.copyWith(brightness: Brightness.dark),
-        );
+      testWidgets('shows the one saved preference (Issue #278): even a '
+          'stored Dark shows Light while the dark values are unapproved, and '
+          'a tap writes nothing', (tester) async {
+        final storage = _MemoryThemeStorage('dark');
+        final controller = AppThemeController();
+        await controller.restore(storage);
+        await pumpProfile(tester, themeController: controller);
 
-        expect(toggled(tester, ProfileStrings.lightMode), isFalse);
+        expect(controller.preference, ThemePreference.light);
+        expect(toggled(tester, ProfileStrings.lightMode), isTrue);
+
+        await tester.tap(
+          find.byWidgetPredicate(
+            (w) =>
+                w is ProfileSwitch &&
+                w.semanticLabel == ProfileStrings.lightMode,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(toggled(tester, ProfileStrings.lightMode), isTrue);
+        expect(storage.writes, isEmpty);
+        expect(controller.mode, ThemeMode.light);
       });
     });
   });
@@ -657,3 +673,20 @@ const List<String> _inventedValues = [
   '1/2',
   'Version 1.2.4 (2025)',
 ];
+
+/// A [ThemePreferencePersistence] in memory, recording what is written.
+class _MemoryThemeStorage implements ThemePreferencePersistence {
+  _MemoryThemeStorage(this.value);
+
+  String? value;
+  final List<String> writes = [];
+
+  @override
+  Future<String?> read() async => value;
+
+  @override
+  Future<void> write(String value) async {
+    writes.add(value);
+    this.value = value;
+  }
+}

@@ -446,7 +446,7 @@ Before any dark value enters code:
 - [ ] **The decisions in §16.**
 - [ ] **Ideally, Figma frames** for at least one screen per role (Adult Home, Junior Home, Teacher Schedule) plus Profile, so implementation is checked against a frame, not this text.
 
-Until then, light mode is the only shipped theme. Since Phase 9 (Issue #276) the candidate `AppTheme.dark` exists in code, but nothing reaches it: `AppThemeController` stays `ThemeMode.light`, and no screen, switch or system setting changes that until Phase 10.
+Until then, light mode is the only shipped theme. Since Phase 9 (Issue #276) the candidate `AppTheme.dark` exists in code, and since Phase 10 (Issue #278) the user's theme preference is saved and restored. Nothing reaches the candidate: `AppThemeController.darkThemeApproved` is false, so only Light can be chosen and every preference resolves to `ThemeMode.light`. A test fails if that constant is turned on while the first box above is unchecked.
 
 ---
 

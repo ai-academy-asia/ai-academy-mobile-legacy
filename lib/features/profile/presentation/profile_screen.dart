@@ -5,6 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_theme_controller.dart';
+import '../../../core/theme/theme_preference.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -53,13 +55,13 @@ const double _editGlyph = 20;
 /// is no locale mechanism and no notification-preference endpoint in the app
 /// to hand them to.
 ///
-/// **Light mode shows the app's real theme, and is inert** (Issue #252). It
-/// reads the active theme's brightness — set by the one app-wide
-/// `AppThemeController`, never a copy kept here — so it reads on in today's
-/// light app, and ignores taps, as Teacher's inert switches do: no dark
-/// palette exists to switch to. A working control here, on Junior and on
-/// Teacher, all writing that one controller, is Dark Mode Phase 10
-/// (`DARK_MODE_ARCHITECTURE_AUDIT.md` §9).
+/// **Light mode shows the app's one theme preference** (Phase 10, Issue
+/// #278): `AppThemeController.preference`, saved and restored for every
+/// role, never a copy kept here. It is on for [ThemePreference.light]. Its
+/// switch writes the preference only when the other choice is available:
+/// while the candidate dark palette is unapproved
+/// (`AppThemeController.darkThemeApproved`) Dark cannot be chosen, so the
+/// row stays inert, as Teacher's inert switches do, and draws as before.
 ///
 /// Log out signs out for real through [signOutToLogin]: it revokes the
 /// session server-side when it can, always clears it locally, and lands on
@@ -90,6 +92,7 @@ class ProfileScreen extends StatefulWidget {
     this.showBottomNav = true,
     this.certificateRepository,
     this.courseLearningRepository,
+    this.themeController,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -108,6 +111,10 @@ class ProfileScreen extends StatefulWidget {
   /// Whether this screen draws the adult tab bar itself. False inside
   /// `AdultStudentShell`, which owns the one persistent bar (Issue #237).
   final bool showBottomNav;
+
+  /// The app's one theme state, which the Light mode row shows and writes.
+  /// Defaults to [AppThemeController.instance]; injected in tests.
+  final AppThemeController? themeController;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -173,6 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildBody() {
+    final theme = widget.themeController ?? AppThemeController.instance;
     // A `SingleChildScrollView` rather than a `ListView`: the rows are a
     // fixed, fully-known set, and a lazily-built sliver only *estimates* its
     // scroll extent from the children it has laid out so far — which made a
@@ -232,10 +240,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ProfileRow(
                 icon: ProfileIcons.lightMode,
                 label: ProfileStrings.lightMode,
-                trailing: ProfileSwitch(
-                  value: Theme.of(context).brightness == Brightness.light,
-                  onChanged: null,
-                  semanticLabel: ProfileStrings.lightMode,
+                trailing: ListenableBuilder(
+                  listenable: theme,
+                  builder: (context, _) => ProfileSwitch(
+                    value: theme.preference == ThemePreference.light,
+                    // Off would choose Dark — not available until the
+                    // dark values are approved, so the switch is inert.
+                    onChanged:
+                        AppThemeController.isAvailable(ThemePreference.dark)
+                        ? (light) => theme.setPreference(
+                            light
+                                ? ThemePreference.light
+                                : ThemePreference.dark,
+                          )
+                        : null,
+                    semanticLabel: ProfileStrings.lightMode,
+                  ),
                 ),
               ),
               ProfileRow(

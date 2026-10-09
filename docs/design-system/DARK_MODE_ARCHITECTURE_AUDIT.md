@@ -702,6 +702,18 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >   - native launch screens (Phase 11).
 > - **Next:** design approval (§17), then Phase 10 (the switch and persistence).
 >
+> **Phase 10 done (Issue #278): the preference and its persistence, dark still gated.** The proposal's §17 records no approval, so nothing here reaches the candidate.
+> - **One preference:** `ThemePreference` (light / dark / system) on the one `AppThemeController`, for every role, Login and Splash. There is no per-role state.
+> - **Persistence:** under its own `flutter_secure_storage` key, `aia.theme.preference` (an existing dependency). `main()` calls `restore()` before `runApp`, so the first frame is drawn in it. No saved value, an unknown value, one not yet available, or a storage error all give light; nothing throws or blocks startup. Sign-out deletes only the session's key, so the preference survives it.
+> - **The gate:** `AppThemeController.darkThemeApproved = false`. Only Light can be chosen (`setPreference` refuses Dark and System), and every preference resolves to `ThemeMode.light`, a stored Dark or System included (`_modeFor`). A test ties the constant to the §17 checkbox. Phase 9's production rules are unchanged: no `setMode`, no `ThemeMode.dark`/`.system`, no mode-taking controller, no direct dark theme in `lib/`.
+> - **UI:** Adult Profile's "Light mode" switch (the Figma control) now shows the one saved preference instead of the theme's brightness. It is interactive only for available choices, so it stays inert while gated and draws as before.
+> - **`PRODUCT DECISION`s:**
+>   - approving the dark values (§17);
+>   - the control type (§16.1: a switch, or System/Light/Dark);
+>   - Junior and Teacher theme rows: there are no frames, and they would change those goldens;
+>   - copy explaining that Dark is not yet available.
+> - **Turning dark on later** is one change: approve §17, set `darkThemeApproved`, map Dark and System in `_modeFor`, relax the Phase 9 rules that change needs, and add the chosen control.
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 
