@@ -339,7 +339,6 @@ void main() {
           ProfileIcons.certificate,
           ProfileIcons.transactionHistory,
           ProfileIcons.language,
-          ProfileIcons.lightMode,
           ProfileIcons.changePassword,
           ProfileIcons.notification,
           ProfileIcons.helpCenter,

@@ -1,5 +1,6 @@
 import 'dart:ui' show Tristate;
 
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/theme/app_theme_controller.dart';
@@ -68,6 +69,37 @@ void main() {
 
   for (final role in roles.keys) {
     group(role, () {
+      testWidgets('the row leads with the Phosphor moon (Issue #288), in '
+          'iconInk at the SVG icons\' 90% — visible in Light and in Dark', (
+        tester,
+      ) async {
+        for (final (stored, palette) in [
+          ('light', AppPalette.light),
+          ('dark', AppPalette.dark),
+        ]) {
+          final theme = await themeFor(MemoryThemeStorage({'9': stored}));
+          await pumpRole(tester, role, theme);
+          final moon = tester.widget<Icon>(
+            find.descendant(
+              of: find
+                  .ancestor(
+                    of: find.text(ProfileStrings.darkMode),
+                    matching: find.byType(Row),
+                  )
+                  .first,
+              matching: find.byType(Icon),
+            ),
+          );
+          expect(moon.icon, AppIcons.moon, reason: stored);
+          expect(moon.size, 20, reason: stored);
+          expect(
+            moon.color,
+            palette.iconInk.withValues(alpha: 0.9),
+            reason: stored,
+          );
+        }
+      });
+
       testWidgets('shows the saved preference: Dark reads on, Light off', (
         tester,
       ) async {

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../auth/data/http_current_user_repository.dart';
@@ -191,7 +192,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 ),
               ),
               ProfileRow(
-                icon: ProfileIcons.lightMode,
+                glyph: AppIcons.moon,
                 label: ProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,

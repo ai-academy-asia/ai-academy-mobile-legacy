@@ -165,21 +165,44 @@ class ProfileGroup extends StatelessWidget {
   }
 }
 
+/// A row's leading icon drawn from the Phosphor font (`AppIcons`) — for a row
+/// whose icon was not exported, such as "Dark mode"'s moon (Issue #288).
+///
+/// Matched to the exported SVGs beside it, which are Phosphor too: the same
+/// [_rowIcon] box, and `iconInk` at their authored 90% stroke opacity — so it
+/// reads like its neighbours in Light and follows `iconInk` in Dark.
+class ProfileGlyph extends StatelessWidget {
+  const ProfileGlyph(this.glyph, {super.key});
+
+  final IconData glyph;
+
+  @override
+  Widget build(BuildContext context) => Icon(
+    glyph,
+    size: _rowIcon,
+    color: context.palette.iconInk.withValues(alpha: 0.9),
+  );
+}
+
 /// One row: icon, label, and an optional trailing control. No chevron — the
 /// frames draw none on any row, including the ones that will eventually open
 /// a screen of their own.
 class ProfileRow extends StatelessWidget {
   const ProfileRow({
-    required this.icon,
     required this.label,
+    this.icon,
+    this.glyph,
     super.key,
     this.trailing,
     this.onTap,
     this.height = ProfileMetrics.rowHeight,
-  });
+  }) : assert((icon == null) != (glyph == null), 'one of icon or glyph');
 
   /// Path to the row's exported SVG — see [ProfileIcons].
-  final String icon;
+  final String? icon;
+
+  /// A Phosphor glyph instead, for a row with no exported SVG ([ProfileGlyph]).
+  final IconData? glyph;
 
   final String label;
 
@@ -202,7 +225,10 @@ class ProfileRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            AppSvgIcon(icon, size: _rowIcon),
+            if (icon case final icon?)
+              AppSvgIcon(icon, size: _rowIcon)
+            else
+              ProfileGlyph(glyph!),
             const SizedBox(width: _iconToLabel),
             Expanded(
               child: Text(

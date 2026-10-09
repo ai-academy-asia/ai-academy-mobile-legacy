@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../shared/widgets/app_svg_icon.dart';
@@ -20,6 +21,7 @@ import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../profile/presentation/profile_controller.dart';
 import '../../profile/presentation/profile_strings.dart';
+import '../../profile/presentation/widgets/profile_parts.dart';
 import 'junior_profile_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
 
@@ -284,7 +286,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                 ),
               ),
               _Row(
-                icon: const _RowIcon(ProfileIcons.lightMode),
+                icon: const _RowIcon.glyph(AppIcons.moon),
                 label: JuniorProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,
@@ -441,17 +443,22 @@ class _Group extends StatelessWidget {
   }
 }
 
-/// A row's leading icon: one of the exported SVGs.
+/// A row's leading icon: one of the exported SVGs, or — for "Dark mode"'s
+/// moon, which was not exported — the adult rows' [ProfileGlyph] (Issue #288).
 class _RowIcon extends StatelessWidget {
-  const _RowIcon(this.asset);
+  const _RowIcon(String this.asset) : glyph = null;
 
-  final String asset;
+  const _RowIcon.glyph(IconData this.glyph) : asset = null;
+
+  final String? asset;
+  final IconData? glyph;
 
   @override
   Widget build(BuildContext context) {
     // Through AppSvgIcon so the black glyphs follow `iconInk` in dark
     // (Issue #282); untinted, as before, in light.
-    return AppSvgIcon(asset, size: _rowIcon);
+    if (asset case final asset?) return AppSvgIcon(asset, size: _rowIcon);
+    return ProfileGlyph(glyph!);
   }
 }
 

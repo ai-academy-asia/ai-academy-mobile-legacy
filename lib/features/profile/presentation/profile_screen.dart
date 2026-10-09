@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../core/theme/theme_preference.dart';
@@ -237,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               ProfileRow(
-                icon: ProfileIcons.lightMode,
+                glyph: AppIcons.moon,
                 label: ProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,
