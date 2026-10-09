@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/junior_learning_map.dart';
-import 'junior_home_palette.dart';
 import 'junior_map_geometry.dart';
 import 'junior_progress_ring.dart';
 
@@ -29,11 +28,14 @@ class JuniorCourseProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: JuniorPalette.cardFill,
+        color: context.palette.juniorCard,
         borderRadius: BorderRadius.circular(
           JuniorMapGeometry.courseCardRadius * scale,
         ),
-        border: Border.all(color: JuniorPalette.cardBorder, width: 1 * scale),
+        border: Border.all(
+          color: context.palette.juniorCardBorder,
+          width: 1 * scale,
+        ),
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(
@@ -56,7 +58,7 @@ class JuniorCourseProgressCard extends StatelessWidget {
                 style: AppTypography.heading.copyWith(
                   fontSize: 18 * scale,
                   height: 26 / 18,
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ),

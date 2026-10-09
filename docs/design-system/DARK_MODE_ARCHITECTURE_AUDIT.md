@@ -627,6 +627,35 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - **Goldens:** all unchanged.
 > - **Next:** Phase 7 (Junior).
 >
+> **Phase 7 done (Issue #272).** Junior reads colours only through `context.palette`.
+> - **Scope:** everything under `junior_home/presentation`:
+>   - Home and its map (nodes, route, ring, course card, certificate panel, sky);
+>   - Learning Progress (payment card, panels, calendar, summary pills, legend);
+>   - Profile, mirroring Phase 3's `profile_parts`.
+>
+>   The bottom bar is the shared `AppBottomNav` (Phase 3).
+> - **Shared with Adult:** `attendance_panel_parts` and the calendar are also drawn by Adult's attendance screen. Their two public styles baked a colour Adult inherited, which Phase 5's guard could not see. They are colour-free now, and the one Adult call site supplies `textPrimary`.
+> - **Mapped by meaning, not hex:**
+>   - The summary pill is `accentSubtle` (pale blue behind blue ink), not the calendar's `calendarLesson`. Its outline is the new `accentSubtleOutline`.
+>   - Blue text and glyphs are `accentText`, blue fills `accent`.
+>   - A panel's edge is `outlineFaint` and the rule inside it `divider`.
+>   - Map nodes are completed `juniorCard` in `accent`, current `surface` in `outline`, locked `juniorMutedFill` in `outline`, each on a band of its own outline.
+>   - The route and ring run `accent` on `outline`.
+>   - The pay pill is `accent` with `onPrimary` and `AppButton`'s ripple.
+>   - Shadows use the role's hue at each element's own strength.
+> - **New roles:** `accentSubtleOutline` (`#BDE3FF`), `juniorMutedFill` (`#EAEDF0`), `juniorHeaderRule` (`#E4E6EF`) and `onJuniorMapSky` (white). Each is pinned to its shipped light value, with no dark value. That makes 85 roles. `JuniorPalette` is retired.
+> - **Kept as authored:** the map's artwork (backdrop, islands, clouds, coins, node glyphs), the calendar's marks, and the orange `junior.svg` track glyph.
+> - **`PRODUCT DECISION`s:**
+>   - Proposal §11 keeps "nodes, the progress ring and the current-lesson marker at full strength": undimmed, or keeping their light colours? If the latter, nodes need map-only roles.
+>   - `juniorHeaderRule` (`#E4E6EF`) is the only header rule that isn't `divider`.
+>   - Adult's attendance card edge and Certificate's card edge (Phase 5) read `divider` where Junior's matching panels now read `outlineFaint`.
+> - **Coverage:** five goldens captured from the unmigrated code first (`junior_state_*`): Home loading and failure, Progress loading and failure, and an overdue payment.
+> - **Guards:**
+>   - `junior_palette_scope_test.dart` scans the whole folder, with no exceptions.
+>   - `junior_theme_test.dart` proves the role splits under a sentinel palette.
+> - **Goldens:** all unchanged.
+> - **Next:** Phase 8 (Teacher).
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/junior_learning_map.dart';
-import 'junior_home_palette.dart';
 import 'junior_map_geometry.dart';
 
 /// The panel at the foot of the map: the "Junior" pill, the certificate
@@ -29,17 +28,20 @@ class JuniorCertificateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // The map's not-yet-reached grey (`juniorMutedFill`) in the `outline`,
+    // as a locked node is drawn.
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: JuniorMapGeometry.certificatePadding * scale,
         vertical: JuniorMapGeometry.certificateVerticalPadding * scale,
       ),
       decoration: BoxDecoration(
-        color: JuniorPalette.mutedFill,
+        color: palette.juniorMutedFill,
         borderRadius: BorderRadius.circular(
           JuniorMapGeometry.certificateRadius * scale,
         ),
-        border: Border.all(color: JuniorPalette.muted, width: 1 * scale),
+        border: Border.all(color: palette.outline, width: 1 * scale),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -57,7 +59,7 @@ class JuniorCertificateCard extends StatelessWidget {
             style: AppTypography.heading.copyWith(
               fontSize: 18 * scale,
               height: 1.1,
-              color: JuniorPalette.accent,
+              color: palette.accentText,
             ),
           ),
           SizedBox(height: 21.2 * scale),
@@ -67,7 +69,7 @@ class JuniorCertificateCard extends StatelessWidget {
             style: AppTypography.heading.copyWith(
               fontSize: 18 * scale,
               height: 1.1,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
         ],
@@ -87,16 +89,19 @@ class _TrackPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       height: JuniorMapGeometry.certificatePillHeight * scale,
       decoration: BoxDecoration(
-        color: JuniorPalette.pillFill,
+        color: palette.surfaceSubtle,
         borderRadius: BorderRadius.circular(8 * scale),
-        border: Border.all(color: JuniorPalette.muted, width: 1 * scale),
+        border: Border.all(color: palette.outline, width: 1 * scale),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Junior's track glyph, in its authored orange: role identity,
+          // kept as drawn (proposal §11).
           SvgPicture.asset(
             'assets/icons/junior.svg',
             width: 14 * scale,
@@ -108,7 +113,7 @@ class _TrackPill extends StatelessWidget {
             style: AppTypography.heading.copyWith(
               fontSize: 14 * scale,
               height: 1.1,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
         ],

@@ -11,7 +11,7 @@ import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_progress_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_progress_strings.dart';
-import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_home_palette.dart';
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_progress_calendar.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:flutter/material.dart';
@@ -139,7 +139,7 @@ void main() {
       );
 
       final status = tester.widget<Text>(find.text('12 хоног дутуу'));
-      expect(status.style!.color, JuniorPalette.accent);
+      expect(status.style!.color, AppPalette.light.accentText);
     });
 
     testWidgets('no attendance: the card keeps its title, no badge', (
@@ -391,7 +391,7 @@ void main() {
               ),
             ),
           )
-          .where((t) => t.style?.color == JuniorPalette.accent)
+          .where((t) => t.style?.color == AppPalette.light.accentText)
           .length;
 
       expect(calendar().selectedDay, 1);
@@ -486,14 +486,17 @@ void main() {
 
       Color labelColour(String text) =>
           tester.widget<Text>(find.text(text)).style!.color!;
-      expect(labelColour(JuniorHomeStrings.navProgress), JuniorPalette.accent);
+      expect(
+        labelColour(JuniorHomeStrings.navProgress),
+        AppPalette.light.accentText,
+      );
       expect(
         labelColour(JuniorHomeStrings.navHome),
-        isNot(JuniorPalette.accent),
+        isNot(AppPalette.light.accentText),
       );
       expect(
         labelColour(JuniorHomeStrings.navProfile),
-        isNot(JuniorPalette.accent),
+        isNot(AppPalette.light.accentText),
       );
     });
   });
@@ -550,10 +553,10 @@ void main() {
           .widget<Text>(find.descendant(of: grid, matching: find.text(text)))
           .style!
           .color!;
-      expect(colourOf('7'), JuniorPalette.accent);
+      expect(colourOf('7'), AppPalette.light.accentText);
       expect(colourOf('8'), AppColors.textSecondary);
       // 7 August 2026 is a Friday.
-      expect(colourOf('F'), JuniorPalette.accent);
+      expect(colourOf('F'), AppPalette.light.accentText);
       expect(colourOf('W'), AppColors.textSecondary);
     });
 
@@ -628,7 +631,8 @@ void main() {
           .whereType<BoxDecoration>();
       expect(
         discs.any(
-          (d) => d.color == JuniorPalette.accent && d.shape == BoxShape.circle,
+          (d) =>
+              d.color == AppPalette.light.accent && d.shape == BoxShape.circle,
         ),
         isTrue,
       );

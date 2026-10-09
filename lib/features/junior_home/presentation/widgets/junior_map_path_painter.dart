@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'junior_home_palette.dart';
 import 'junior_map_geometry.dart';
 
 /// Draws the route between the nodes.
@@ -21,10 +20,22 @@ import 'junior_map_geometry.dart';
 /// (`JuniorMapGeometry.route`), so no line runs past their last node
 /// (Issue #202).
 class JuniorMapPathPainter extends CustomPainter {
-  const JuniorMapPathPainter({required this.scale, required this.connectors});
+  const JuniorMapPathPainter({
+    required this.scale,
+    required this.connectors,
+    required this.travelled,
+    required this.untravelled,
+  });
 
   final double scale;
   final List<JuniorConnector> connectors;
+
+  /// The route already walked — `AppPalette.accent`, as a progress fill.
+  final Color travelled;
+
+  /// The route still ahead — `outline`, a progress track. Passed in: a
+  /// painter has no context.
+  final Color untravelled;
 
   static const double _circularWeight = math.sqrt2 / 2;
 
@@ -36,7 +47,7 @@ class JuniorMapPathPainter extends CustomPainter {
         ..strokeWidth = JuniorMapGeometry.connectorStroke * scale
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..color = connector.active ? JuniorPalette.accent : JuniorPalette.muted;
+        ..color = connector.active ? travelled : untravelled;
       canvas.drawPath(_elbow(connector), paint);
     }
   }
@@ -70,5 +81,8 @@ class JuniorMapPathPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(JuniorMapPathPainter old) =>
-      old.scale != scale || !listEquals(old.connectors, connectors);
+      old.scale != scale ||
+      old.travelled != travelled ||
+      old.untravelled != untravelled ||
+      !listEquals(old.connectors, connectors);
 }

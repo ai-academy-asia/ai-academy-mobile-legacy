@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -18,12 +17,10 @@ import '../../course_learning/domain/course_learning_repository.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
-import '../../home/presentation/widgets/home_palette.dart';
 import '../../profile/presentation/profile_controller.dart';
 import '../../profile/presentation/profile_strings.dart';
 import 'junior_profile_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
-import 'widgets/junior_home_palette.dart';
 
 // Measured off the Junior Profile frame at 1:1 (393 wide, a 44pt status-bar
 // inset).
@@ -164,7 +161,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? const JuniorBottomNav(current: StudentTab.profile)
             : null,
@@ -174,21 +171,23 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
             // White behind the status bar as well as the title, as the frame
             // draws it.
             ColoredBox(
-              color: AppColors.surface,
+              color: context.palette.surface,
               child: SafeArea(
                 bottom: false,
                 child: _constrained(
-                  const SizedBox(
+                  SizedBox(
                     height: _headerHeight,
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: AppDimens.screenPadding,
                       ),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           JuniorProfileStrings.heading,
-                          style: _headingStyle,
+                          style: _headingStyle.copyWith(
+                            color: context.palette.textPrimary,
+                          ),
                         ),
                       ),
                     ),
@@ -342,14 +341,14 @@ class _Hero extends StatelessWidget {
             width: _avatarSize,
             height: _avatarSize,
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
+              color: context.palette.surfaceMuted,
               shape: BoxShape.circle,
-              border: Border.all(color: HomePalette.border),
+              border: Border.all(color: context.palette.outline),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.person,
               size: 36,
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
             ),
           ),
           const SizedBox(width: 8),
@@ -360,7 +359,9 @@ class _Hero extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: _nameStyle,
+                  style: _nameStyle.copyWith(
+                    color: context.palette.textPrimary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -390,7 +391,10 @@ class _Caption extends StatelessWidget {
           AppDimens.screenPadding,
           0,
         ),
-        child: Text(label, style: _captionStyle),
+        child: Text(
+          label,
+          style: _captionStyle.copyWith(color: context.palette.textSecondary),
+        ),
       ),
     );
   }
@@ -459,7 +463,9 @@ class _Row extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: _rowLabelStyle,
+                style: _rowLabelStyle.copyWith(
+                  color: context.palette.textPrimary,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -502,7 +508,7 @@ class _LanguageToggle extends StatelessWidget {
       height: _toggleHeight,
       padding: const EdgeInsets.all(_toggleInset),
       decoration: BoxDecoration(
-        color: JuniorPalette.accent,
+        color: context.palette.accent,
         borderRadius: BorderRadius.circular(_toggleRadius),
       ),
       child: Row(
@@ -548,13 +554,17 @@ class _Segment extends StatelessWidget {
           width: selected ? _capsuleWidth : _otherSegmentWidth,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppColors.surface : Colors.transparent,
+            color: selected ? context.palette.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(_capsuleRadius),
           ),
+          // "MN" on the white half is a deep indigo (`linkInk`), not the
+          // capsule's blue; the other half is `onPrimary`.
           child: Text(
             label,
             style: _segmentStyle.copyWith(
-              color: selected ? _segmentInk : AppColors.onPrimary,
+              color: selected
+                  ? context.palette.linkInk
+                  : context.palette.onPrimary,
             ),
           ),
         ),
@@ -578,6 +588,7 @@ class _Switch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       toggled: value,
       label: semanticLabel,
@@ -591,20 +602,20 @@ class _Switch extends StatelessWidget {
           padding: const EdgeInsets.all(2),
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: value ? JuniorPalette.accent : JuniorPalette.muted,
+            color: value ? palette.accent : palette.outline,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Container(
             width: 20,
             height: 20,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
+            decoration: BoxDecoration(
+              color: palette.surface,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
+                  color: palette.shadow,
                   blurRadius: 2,
-                  offset: Offset(0, 1),
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
@@ -629,18 +640,23 @@ class _LogOutButton extends StatelessWidget {
       label: JuniorProfileStrings.logOut,
       excludeSemantics: true,
       child: Material(
-        color: AppColors.surface,
-        shape: const RoundedRectangleBorder(
+        color: context.palette.surface,
+        shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: BorderSide(color: HomePalette.border),
+          side: BorderSide(color: context.palette.outline),
         ),
         child: InkWell(
           onTap: onPressed,
           customBorder: const RoundedRectangleBorder(borderRadius: radius),
-          child: const SizedBox(
+          child: SizedBox(
             height: AppDimens.buttonHeight,
             child: Center(
-              child: Text(JuniorProfileStrings.logOut, style: _logOutStyle),
+              child: Text(
+                JuniorProfileStrings.logOut,
+                style: _logOutStyle.copyWith(
+                  color: context.palette.textPrimary,
+                ),
+              ),
             ),
           ),
         ),
@@ -656,26 +672,22 @@ class _Rule extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: AppDimens.borderWidth,
-      color: JuniorPalette.mutedFill,
+      color: context.palette.divider,
     );
   }
 }
 
-// --- Colour and type ---------------------------------------------------------
+// --- Type --------------------------------------------------------------------
 //
 // Sampled and measured off the frame at 1:1; sizes from cap heights (Manrope's
-// cap height is 0.72 em).
-
-/// "MN" on the white half of the language control — a deep indigo, not the
-/// capsule's blue.
-const Color _segmentInk = AppColors.linkInk;
+// cap height is 0.72 em). None bakes a colour: each use supplies the palette's
+// (Issue #272), the same roles Adult's `profile_parts` draws.
 
 const TextStyle _headingStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 24,
   height: 32 / 24,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -684,7 +696,6 @@ const TextStyle _nameStyle = TextStyle(
   fontSize: 18,
   height: 24 / 18,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -693,7 +704,6 @@ const TextStyle _captionStyle = TextStyle(
   fontSize: 12,
   height: 16 / 12,
   fontWeight: FontWeight.w700,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -702,7 +712,6 @@ const TextStyle _rowLabelStyle = TextStyle(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w400,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -719,6 +728,5 @@ const TextStyle _logOutStyle = TextStyle(
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );

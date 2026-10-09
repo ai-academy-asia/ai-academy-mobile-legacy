@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../home/domain/home_dashboard.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
 import '../../domain/junior_progress.dart';
 import '../junior_progress_strings.dart';
-import 'junior_home_palette.dart';
 import 'junior_progress_calendar.dart';
 
 // The attendance panel's parts, shared by the Junior "Сурлагын явц" screen
@@ -19,7 +17,9 @@ import 'junior_progress_calendar.dart';
 /// The legend's discs, smaller than the calendar's.
 const double _legendDisc = 24;
 
-/// A `x/y · z%` (or `z%`) figure as a blue pill — the frame's summary badge.
+/// A `x/y · z%` (or `z%`) figure as a blue pill — the frame's summary badge:
+/// `AppPalette.accentText` on an `accentSubtle` fill, ringed in
+/// `accentSubtleOutline`.
 class AttendancePill extends StatelessWidget {
   const AttendancePill(this.label, {super.key});
 
@@ -31,11 +31,15 @@ class AttendancePill extends StatelessWidget {
       // Sized by its label: 2 + a 20 line + 2 is the frame's 24.
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: JuniorPalette.dayLesson,
+        color: context.palette.accentSubtle,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: JuniorPalette.badgeOutline),
+        border: Border.all(color: context.palette.accentSubtleOutline),
       ),
-      child: Text(label, style: _badgeStyle, maxLines: 1),
+      child: Text(
+        label,
+        style: _badgeStyle.copyWith(color: context.palette.accentText),
+        maxLines: 1,
+      ),
     );
   }
 }
@@ -51,14 +55,16 @@ class AttendanceNextLesson extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           JuniorProgressStrings.nextLesson,
-          style: attendanceLabelStyle,
+          style: attendanceLabelStyle.copyWith(
+            color: context.palette.textPrimary,
+          ),
         ),
         const SizedBox(height: 3),
         Text(
           JuniorProgressStrings.nextLessonTime(lesson.startsAt, lesson.endsAt),
-          style: _timeStyle,
+          style: _timeStyle.copyWith(color: context.palette.accentText),
         ),
       ],
     );
@@ -98,11 +104,13 @@ class AttendanceMonthHeader extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 4),
           // 19 inks the frame's 7 x 14 caret.
           // No frame draws a disabled arrow: the muted ink the app's
-          // disabled pills use.
+          // disabled pills use (`disabledInk`).
           child: Icon(
             icon,
             size: 19,
-            color: onTap == null ? HomePalette.mutedInk : AppColors.textPrimary,
+            color: onTap == null
+                ? context.palette.disabledInk
+                : context.palette.textPrimary,
           ),
         ),
       ),
@@ -113,7 +121,7 @@ class AttendanceMonthHeader extends StatelessWidget {
         Expanded(
           child: Text(
             JuniorProgressStrings.monthLabel(month),
-            style: _monthStyle,
+            style: _monthStyle.copyWith(color: context.palette.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -149,7 +157,14 @@ class AttendanceLegend extends StatelessWidget {
         children: [
           JuniorDayMark(status: status, size: _legendDisc),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: _legendLabelStyle)),
+          Expanded(
+            child: Text(
+              label,
+              style: _legendLabelStyle.copyWith(
+                color: context.palette.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -157,12 +172,17 @@ class AttendanceLegend extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           JuniorProgressStrings.legendTitle,
-          style: attendanceLabelStyle,
+          style: attendanceLabelStyle.copyWith(
+            color: context.palette.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
-        const Text(JuniorProgressStrings.legendHint, style: _hintStyle),
+        Text(
+          JuniorProgressStrings.legendHint,
+          style: _hintStyle.copyWith(color: context.palette.textSecondary),
+        ),
         const SizedBox(height: 7),
         row(JuniorDayStatus.lesson, JuniorProgressStrings.lessonDay),
         row(JuniorDayStatus.missed, missedLabel),
@@ -175,25 +195,26 @@ class AttendanceLegend extends StatelessWidget {
 // --- Type ------------------------------------------------------------------
 //
 // Sizes read off the frame's cap heights (Manrope's cap height is 0.72 em).
+// None bakes a colour: each use supplies the palette's (Dark Mode Phase 7,
+// Issue #272) — the two public styles are also drawn by Adult attendance.
 
-/// The summary cards' titles — "Хичээлийн ирц", "Шалгалтын дүн". 16 bold.
+/// The summary cards' titles — "Хичээлийн ирц", "Шалгалтын дүн". 16 bold,
+/// `textPrimary` at use.
 const TextStyle attendanceCardTitleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 16,
   height: 24 / 16,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
 /// The smaller titles — "Дараанийн төлөлт:", "Дараагийн хичээл:",
-/// "Тайлбар:". 14 semibold.
+/// "Тайлбар:". 14 semibold, `textPrimary` at use.
 const TextStyle attendanceLabelStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w600,
-  color: AppColors.textPrimary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -203,7 +224,6 @@ const TextStyle _badgeStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w500,
-  color: JuniorPalette.accent,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -213,7 +233,6 @@ const TextStyle _timeStyle = TextStyle(
   fontSize: 15,
   height: 22 / 15,
   fontWeight: FontWeight.w400,
-  color: JuniorPalette.accent,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -223,7 +242,6 @@ const TextStyle _monthStyle = TextStyle(
   fontSize: 14,
   height: 22 / 14,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -233,7 +251,6 @@ const TextStyle _hintStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );
 
@@ -243,6 +260,5 @@ const TextStyle _legendLabelStyle = TextStyle(
   fontSize: 14,
   height: 20 / 14,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
   leadingDistribution: TextLeadingDistribution.even,
 );

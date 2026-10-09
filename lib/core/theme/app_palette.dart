@@ -18,11 +18,12 @@ import 'app_colors.dart';
 ///
 /// Roles that mean different things stay separate even where they share a
 /// light value ([accentSubtle], [infoFill], [calendarLesson]; [juniorCard],
-/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint]; [surface],
-/// [mediaControl], [onMedia]; [textPrimary], [onMediaControl]; [border],
-/// [progressTrack]; [outline], [mediaControlOutline]), because their dark
-/// values may differ. Light values that differ are never merged ([border]
-/// vs [outline]; the text greys).
+/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint], [juniorMutedFill];
+/// [surface], [mediaControl], [onMedia], [onJuniorMapSky]; [textPrimary],
+/// [onMediaControl]; [border], [progressTrack], [juniorHeaderRule];
+/// [outline], [mediaControlOutline]), because their dark values may differ.
+/// Light values that differ are never merged ([border] vs [outline]; the
+/// text greys).
 /// `app_palette_test.dart` holds every role to its legacy constant.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -54,6 +55,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.accent,
     required this.accentText,
     required this.accentSubtle,
+    required this.accentSubtleOutline,
     required this.linkInk,
     required this.disabled,
     required this.disabledInk,
@@ -105,6 +107,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.calendarNeutral,
     required this.calendarLesson,
     required this.calendarMissed,
+    required this.juniorMutedFill,
+    required this.juniorHeaderRule,
+    required this.onJuniorMapSky,
     required this.scheduleBand,
     required this.scheduleHeld,
     required this.scheduleHeldInk,
@@ -139,6 +144,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accent: AppColors.accent,
     accentText: AppColors.accentText,
     accentSubtle: AppColors.accentSubtle,
+    accentSubtleOutline: AppColors.accentSubtleOutline,
     linkInk: AppColors.linkInk,
     disabled: AppColors.disabled,
     disabledInk: AppColors.disabledInk,
@@ -190,6 +196,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
     calendarNeutral: AppColors.calendarNeutral,
     calendarLesson: AppColors.calendarLesson,
     calendarMissed: AppColors.calendarMissed,
+    juniorMutedFill: AppColors.juniorMutedFill,
+    juniorHeaderRule: AppColors.juniorHeaderRule,
+    onJuniorMapSky: AppColors.onJuniorMapSky,
     scheduleBand: AppColors.scheduleBand,
     scheduleHeld: AppColors.scheduleHeld,
     scheduleHeldInk: AppColors.scheduleHeldInk,
@@ -285,8 +294,14 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Blue used as text or thin ink. Equals [accent] in light mode.
   final Color accentText;
 
-  /// The pale-blue fill behind [accent] ink.
+  /// The pale-blue fill behind [accent] ink — Junior's attendance summary
+  /// badge included.
   final Color accentSubtle;
+
+  /// The outline of an [accentSubtle] pill: the attendance summary badge
+  /// (Junior Learning Progress and Adult attendance). Not [accentOutline], a
+  /// deep blue marking the current item.
+  final Color accentSubtleOutline;
 
   /// A selected MN/EN segment's label; the Gradebook link (`#1501A6`).
   final Color linkInk;
@@ -455,7 +470,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   // --- Junior ----------------------------------------------------------------
 
-  /// Junior's pale-blue course and progress cards.
+  /// Junior's pale-blue course and progress cards, and a completed map
+  /// node's fill.
   final Color juniorCard;
 
   /// Their outline.
@@ -472,6 +488,23 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   /// A missed day.
   final Color calendarMissed;
+
+  /// The flat grey of a Junior map element not yet reached: a locked (or
+  /// closed check-in) node, and the certificate panel at the path's end. A
+  /// fill — so not [divider], [cardDepth] or [outlineFaint], which only
+  /// share its light value; not [surfaceLocked] (`#EFEFEF`), Course Learning's
+  /// locked tile.
+  final Color juniorMutedFill;
+
+  /// The rule under Junior Home's header (`#E4E6EF`). Every other header
+  /// rule, Junior Learning Progress's included, is [divider] (`#EAEDF0`);
+  /// whether this one should be too is a design decision (Issue #272). Not
+  /// [border], a field's edge that only shares its light value.
+  final Color juniorHeaderRule;
+
+  /// A glyph drawn straight on [juniorMapSky] — the map's loading spinner.
+  /// Not [onPrimary] (the sky is not a primary surface) or [surface].
+  final Color onJuniorMapSky;
 
   // --- Teacher ---------------------------------------------------------------
 
@@ -513,6 +546,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? accent,
     Color? accentText,
     Color? accentSubtle,
+    Color? accentSubtleOutline,
     Color? linkInk,
     Color? disabled,
     Color? disabledInk,
@@ -564,6 +598,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? calendarNeutral,
     Color? calendarLesson,
     Color? calendarMissed,
+    Color? juniorMutedFill,
+    Color? juniorHeaderRule,
+    Color? onJuniorMapSky,
     Color? scheduleBand,
     Color? scheduleHeld,
     Color? scheduleHeldInk,
@@ -595,6 +632,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accent: accent ?? this.accent,
     accentText: accentText ?? this.accentText,
     accentSubtle: accentSubtle ?? this.accentSubtle,
+    accentSubtleOutline: accentSubtleOutline ?? this.accentSubtleOutline,
     linkInk: linkInk ?? this.linkInk,
     disabled: disabled ?? this.disabled,
     disabledInk: disabledInk ?? this.disabledInk,
@@ -647,6 +685,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
     calendarNeutral: calendarNeutral ?? this.calendarNeutral,
     calendarLesson: calendarLesson ?? this.calendarLesson,
     calendarMissed: calendarMissed ?? this.calendarMissed,
+    juniorMutedFill: juniorMutedFill ?? this.juniorMutedFill,
+    juniorHeaderRule: juniorHeaderRule ?? this.juniorHeaderRule,
+    onJuniorMapSky: onJuniorMapSky ?? this.onJuniorMapSky,
     scheduleBand: scheduleBand ?? this.scheduleBand,
     scheduleHeld: scheduleHeld ?? this.scheduleHeld,
     scheduleHeldInk: scheduleHeldInk ?? this.scheduleHeldInk,
@@ -684,6 +725,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       accent: mix(accent, other.accent),
       accentText: mix(accentText, other.accentText),
       accentSubtle: mix(accentSubtle, other.accentSubtle),
+      accentSubtleOutline: mix(accentSubtleOutline, other.accentSubtleOutline),
       linkInk: mix(linkInk, other.linkInk),
       disabled: mix(disabled, other.disabled),
       disabledInk: mix(disabledInk, other.disabledInk),
@@ -741,6 +783,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
       calendarNeutral: mix(calendarNeutral, other.calendarNeutral),
       calendarLesson: mix(calendarLesson, other.calendarLesson),
       calendarMissed: mix(calendarMissed, other.calendarMissed),
+      juniorMutedFill: mix(juniorMutedFill, other.juniorMutedFill),
+      juniorHeaderRule: mix(juniorHeaderRule, other.juniorHeaderRule),
+      onJuniorMapSky: mix(onJuniorMapSky, other.onJuniorMapSky),
       scheduleBand: mix(scheduleBand, other.scheduleBand),
       scheduleHeld: mix(scheduleHeld, other.scheduleHeld),
       scheduleHeldInk: mix(scheduleHeldInk, other.scheduleHeldInk),

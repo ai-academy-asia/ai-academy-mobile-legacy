@@ -5,7 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'junior_home_palette.dart';
+import '../../../../core/theme/app_palette.dart';
 import 'junior_map_geometry.dart';
 
 /// The Junior map's scenery, behind the learning content ([content]).
@@ -225,7 +225,8 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
     ),
   );
 
-  /// The field, then the clouds under the zoom. The field is outside the
+  /// The field (`AppPalette.juniorMapSky`), then the clouds under the zoom.
+  /// The clouds, islands and coins are authored artwork, drawn as exported. The field is outside the
   /// zoom, so zooming out never shows an edge; the clip is outside it too,
   /// so zooming never draws past the box.
   Widget _sky() {
@@ -234,7 +235,7 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const ColoredBox(color: JuniorPalette.mapField),
+          ColoredBox(color: context.palette.juniorMapSky),
           ValueListenableBuilder<_Zoom>(
             valueListenable: _zoom,
             builder: (context, zoom, clouds) => Transform(

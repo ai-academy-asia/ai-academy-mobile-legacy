@@ -1,4 +1,4 @@
-import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_home_palette.dart';
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
@@ -177,14 +177,17 @@ void main() {
       // the two merge into one node.
       Color labelColour(String text) =>
           tester.widget<Text>(find.text(text)).style!.color!;
-      expect(labelColour(JuniorHomeStrings.navHome), JuniorPalette.accent);
+      expect(
+        labelColour(JuniorHomeStrings.navHome),
+        AppPalette.light.accentText,
+      );
       expect(
         labelColour(JuniorHomeStrings.navProgress),
-        isNot(JuniorPalette.accent),
+        isNot(AppPalette.light.accentText),
       );
       expect(
         labelColour(JuniorHomeStrings.navProfile),
-        isNot(JuniorPalette.accent),
+        isNot(AppPalette.light.accentText),
       );
 
       // The current tab's icon is the outline house's own Phosphor Fill, in
@@ -206,7 +209,7 @@ void main() {
       expect(homeIcon.bytesLoader.toString(), contains('nav_home_selected'));
       expect(
         homeIcon.colorFilter,
-        const ColorFilter.mode(JuniorPalette.accent, BlendMode.srcIn),
+        ColorFilter.mode(AppPalette.light.accentText, BlendMode.srcIn),
       );
     });
 

@@ -2,9 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import 'junior_home_palette.dart';
 
 /// The course card's "40%" dial.
 ///
@@ -41,14 +40,19 @@ class JuniorProgressRing extends StatelessWidget {
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _RingPainter(percent: percent, stroke: stroke),
+        painter: _RingPainter(
+          percent: percent,
+          stroke: stroke,
+          track: context.palette.outline,
+          progress: context.palette.accent,
+        ),
         child: Center(
           child: Text(
             '$percent%',
             style: AppTypography.heading.copyWith(
               fontSize: labelSize,
               height: 1,
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
         ),
@@ -58,40 +62,53 @@ class JuniorProgressRing extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.percent, required this.stroke});
+  const _RingPainter({
+    required this.percent,
+    required this.stroke,
+    required this.track,
+    required this.progress,
+  });
 
   final int percent;
   final double stroke;
+
+  /// The untravelled arc — `AppPalette.outline`, a progress track — and the
+  /// travelled one, `accent`. Passed in: a painter has no context.
+  final Color track;
+  final Color progress;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final arcRect = rect.deflate(stroke / 2);
 
-    final track = Paint()
+    final trackPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..color = JuniorPalette.muted;
-    canvas.drawArc(arcRect, 0, math.pi * 2, false, track);
+      ..color = track;
+    canvas.drawArc(arcRect, 0, math.pi * 2, false, trackPaint);
 
     final fraction = (percent / 100).clamp(0.0, 1.0);
     if (fraction == 0) return;
 
-    final progress = Paint()
+    final progressPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round
-      ..color = JuniorPalette.accent;
+      ..color = progress;
     canvas.drawArc(
       arcRect,
       -math.pi / 2,
       math.pi * 2 * fraction,
       false,
-      progress,
+      progressPaint,
     );
   }
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.percent != percent || old.stroke != stroke;
+      old.percent != percent ||
+      old.stroke != stroke ||
+      old.track != track ||
+      old.progress != progress;
 }

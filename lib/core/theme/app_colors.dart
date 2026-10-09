@@ -84,9 +84,9 @@ abstract final class AppColors {
   // --- Role values shared across features (Dark Mode Phase 2, Issue #256) --
   //
   // Each is the single light-mode source of one `AppPalette` role. The
-  // feature palettes (`HomePalette`, `JuniorPalette`, the Teacher and
-  // Payment palettes) and the private constants that used to repeat these
-  // literals now alias them, so a value is written once. Values are exactly
+  // feature palettes (`HomePalette`, the Teacher and Payment palettes; the
+  // Junior one is retired) and the private constants that used to repeat
+  // these literals now alias them, so a value is written once. Values are exactly
   // what shipped; roles that differ in meaning but share a light value (and
   // may not share a dark one — `DARK_MODE_DESIGN_PROPOSAL.md`) share a
   // private base here rather than a role.
@@ -108,6 +108,10 @@ abstract final class AppColors {
 
   /// The pale-blue fill behind [accent] ink.
   static const Color accentSubtle = _blueTint;
+
+  /// The outline of an [accentSubtle] pill — the attendance summary badge
+  /// (Dark Mode Phase 7, Issue #272).
+  static const Color accentSubtleOutline = Color(0xFFBDE3FF);
 
   /// The deep violet-blue of a selected MN/EN segment and the Gradebook link.
   static const Color linkInk = Color(0xFF1501A6);
@@ -285,6 +289,18 @@ abstract final class AppColors {
   static const Color calendarNeutral = Color(0xFFF2F2F3);
   static const Color calendarLesson = _blueTint;
   static const Color calendarMissed = Color(0xFFFFE7E7);
+
+  // Junior (Dark Mode Phase 7, Issue #272).
+
+  /// The flat grey of a map element not yet reached: a locked node, and the
+  /// certificate panel at the path's end.
+  static const Color juniorMutedFill = _lineGrey;
+
+  /// The rule under Junior Home's header — a step darker than [divider].
+  static const Color juniorHeaderRule = _fieldGrey;
+
+  /// A glyph drawn straight on [juniorMapSky]: the map's loading spinner.
+  static const Color onJuniorMapSky = _white;
 
   // Teacher.
   static const Color scheduleBand = accent;

@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../domain/junior_learning_map.dart';
 import '../junior_home_strings.dart';
-import 'junior_home_palette.dart';
 import 'junior_map_geometry.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 
 /// One 84 x 84 stop on the route.
 ///
@@ -61,7 +60,10 @@ class JuniorMapNodeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final closed = checkInOpen == false;
     final drawn = state ?? node.state;
-    final style = closed ? _NodeStyle.closedCheckIn : _NodeStyle.of(drawn);
+    final palette = context.palette;
+    final style = closed
+        ? _NodeStyle.closedCheckIn(palette)
+        : _NodeStyle.of(drawn, palette);
     final glyph = Image.asset(
       JuniorMapGeometry.sprite(style.glyph),
       width: JuniorMapGeometry.nodeGlyph * scale,
@@ -89,10 +91,19 @@ class JuniorMapNodeTile extends StatelessWidget {
               color: style.border,
               width: JuniorMapGeometry.nodeBorder * scale,
             ),
-            boxShadow: JuniorPalette.nodeDepth(
-              style.border,
-              JuniorMapGeometry.nodeDepth * scale,
-            ),
+            // The node's lift: not a blurred shadow but a flat band of the
+            // node's *own outline colour* — measured down the centre of all
+            // three states, the frame draws 9 of it below the node, 3 of
+            // border and 6 of band, with no gradient. A zero-blur shadow of
+            // the node's rounded square, offset down: the same depth idiom
+            // `CourseModuleCard` uses. The opaque fill on this same
+            // decoration keeps the band from covering the node.
+            boxShadow: [
+              BoxShadow(
+                color: style.border,
+                offset: Offset(0, JuniorMapGeometry.nodeDepth * scale),
+              ),
+            ],
           ),
           child: Center(
             child: closed
@@ -126,27 +137,31 @@ class _NodeStyle {
 
   /// The check-in node outside a lesson: the locked node's fill and outline
   /// round the QR mark.
-  static const _NodeStyle closedCheckIn = _NodeStyle(
-    fill: JuniorPalette.mutedFill,
-    border: JuniorPalette.muted,
+  static _NodeStyle closedCheckIn(AppPalette palette) => _NodeStyle(
+    fill: palette.juniorMutedFill,
+    border: palette.outline,
     glyph: 'node_current',
   );
 
-  static _NodeStyle of(JuniorNodeState state) => switch (state) {
-    JuniorNodeState.completed => const _NodeStyle(
-      fill: JuniorPalette.cardFill,
-      border: JuniorPalette.accent,
-      glyph: 'node_check',
-    ),
-    JuniorNodeState.current => const _NodeStyle(
-      fill: AppColors.surface,
-      border: JuniorPalette.muted,
-      glyph: 'node_current',
-    ),
-    JuniorNodeState.locked => const _NodeStyle(
-      fill: JuniorPalette.mutedFill,
-      border: JuniorPalette.muted,
-      glyph: 'node_lock',
-    ),
-  };
+  /// Completed: the course card's pale blue (`juniorCard`) in the accent.
+  /// Current: a `surface` node in the `outline` grey. Locked: the map's
+  /// not-yet-reached grey (`juniorMutedFill`). The glyphs are authored.
+  static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
+      switch (state) {
+        JuniorNodeState.completed => _NodeStyle(
+          fill: palette.juniorCard,
+          border: palette.accent,
+          glyph: 'node_check',
+        ),
+        JuniorNodeState.current => _NodeStyle(
+          fill: palette.surface,
+          border: palette.outline,
+          glyph: 'node_current',
+        ),
+        JuniorNodeState.locked => _NodeStyle(
+          fill: palette.juniorMutedFill,
+          border: palette.outline,
+          glyph: 'node_lock',
+        ),
+      };
 }

@@ -2,7 +2,6 @@ import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/home/presentation/payment_flow/payment_flow_widgets.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_palette.dart';
-import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_home_palette.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/gradebook_widgets.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_pill_button.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_week_grid.dart';
@@ -46,6 +45,10 @@ void main() {
       'accent': (light.accent, const Color(0xFF2970FF)),
       'accentText': (light.accentText, const Color(0xFF2970FF)),
       'accentSubtle': (light.accentSubtle, const Color(0xFFE5F4FF)),
+      'accentSubtleOutline': (
+        light.accentSubtleOutline,
+        const Color(0xFFBDE3FF),
+      ),
       'linkInk': (light.linkInk, const Color(0xFF1501A6)),
       'disabled': (light.disabled, const Color(0xFFC9CBDA)),
       'disabledInk': (light.disabledInk, const Color(0xFFAEAFB0)),
@@ -100,6 +103,9 @@ void main() {
       'calendarNeutral': (light.calendarNeutral, const Color(0xFFF2F2F3)),
       'calendarLesson': (light.calendarLesson, const Color(0xFFE5F4FF)),
       'calendarMissed': (light.calendarMissed, const Color(0xFFFFE7E7)),
+      'juniorMutedFill': (light.juniorMutedFill, const Color(0xFFEAEDF0)),
+      'juniorHeaderRule': (light.juniorHeaderRule, const Color(0xFFE4E6EF)),
+      'onJuniorMapSky': (light.onJuniorMapSky, const Color(0xFFFFFFFF)),
       'scheduleBand': (light.scheduleBand, const Color(0xFF2970FF)),
       'scheduleHeld': (light.scheduleHeld, const Color(0xFFEFF4FF)),
       'scheduleHeldInk': (light.scheduleHeldInk, const Color(0xFF787A80)),
@@ -143,28 +149,6 @@ void main() {
       'HomePalette.secondaryDepth': (
         HomePalette.secondaryDepth,
         light.subtleDepth,
-      ),
-      'JuniorPalette.mapField': (JuniorPalette.mapField, light.juniorMapSky),
-      'JuniorPalette.accent': (JuniorPalette.accent, light.accent),
-      'JuniorPalette.cardFill': (JuniorPalette.cardFill, light.juniorCard),
-      'JuniorPalette.cardBorder': (
-        JuniorPalette.cardBorder,
-        light.juniorCardBorder,
-      ),
-      'JuniorPalette.muted': (JuniorPalette.muted, light.outline),
-      'JuniorPalette.mutedFill': (JuniorPalette.mutedFill, light.divider),
-      'JuniorPalette.pillFill': (JuniorPalette.pillFill, light.surfaceSubtle),
-      'JuniorPalette.dayNeutral': (
-        JuniorPalette.dayNeutral,
-        light.calendarNeutral,
-      ),
-      'JuniorPalette.dayLesson': (
-        JuniorPalette.dayLesson,
-        light.calendarLesson,
-      ),
-      'JuniorPalette.dayMissed': (
-        JuniorPalette.dayMissed,
-        light.calendarMissed,
       ),
       'PaymentFlowPalette.barrier': (PaymentFlowPalette.barrier, light.barrier),
       'PaymentFlowPalette.handle': (
