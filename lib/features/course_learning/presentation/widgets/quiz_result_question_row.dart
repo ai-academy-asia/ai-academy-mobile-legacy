@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
@@ -35,13 +36,20 @@ class QuizResultQuestionRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 20,
-              child: Text('$number', style: AppTypography.cardSupporting),
+              child: Text(
+                '$number',
+                style: AppTypography.cardSupporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 CourseLearningStrings.quizResultQuestionLabel,
-                style: AppTypography.settingsRowLabel,
+                style: AppTypography.settingsRowLabel.copyWith(
+                  color: context.palette.textPrimary,
+                ),
               ),
             ),
             // The design's own state glyphs — the same two assets the quiz

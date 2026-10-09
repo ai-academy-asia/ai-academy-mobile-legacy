@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
 /// Shown under the answer list once the student has picked one: a green
 /// "correct" title, or a red "wrong" title with the correct letter spelled
 /// out, either way followed by the question's own explanation.
-/// Sampled off the Quiz frames at 1:1: a 24-padded card outlined in
-/// [_border], its heading in the state's own green/red and its body grey.
+/// Sampled off the Quiz frames at 1:1: a 24-padded card with an
+/// `AppPalette.outlineFaint` edge, its heading in the state's own ink
+/// (`successInk` / `errorInk`), the correct answer in `textStrong` and the
+/// explanation in `textMuted`.
 const double _padding = 24;
 const double _titleToAnswer = 6;
 
@@ -18,11 +20,6 @@ const double _titleToAnswer = 6;
 /// sharing one gap.
 const double _titleToExplanation = 4;
 const double _answerToExplanation = 12;
-const Color _border = AppColors.divider;
-const Color _correctInk = AppColors.successInk;
-const Color _wrongInk = AppColors.errorInk;
-const Color _answerInk = AppColors.textStrong;
-const Color _bodyInk = AppColors.textMuted;
 
 class QuizFeedbackCard extends StatelessWidget {
   const QuizFeedbackCard({
@@ -40,15 +37,19 @@ class QuizFeedbackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = correct ? _correctInk : _wrongInk;
+    final palette = context.palette;
+    final color = correct ? palette.successInk : palette.errorInk;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(_padding),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border, width: AppDimens.borderWidth),
+        border: Border.all(
+          color: palette.outlineFaint,
+          width: AppDimens.borderWidth,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +64,9 @@ class QuizFeedbackCard extends StatelessWidget {
             const SizedBox(height: _titleToAnswer),
             Text(
               CourseLearningStrings.quizCorrectAnswerIs(correctLetter),
-              style: AppTypography.settingsRowLabel.copyWith(color: _answerInk),
+              style: AppTypography.settingsRowLabel.copyWith(
+                color: palette.textStrong,
+              ),
             ),
             const SizedBox(height: _answerToExplanation),
           ] else
@@ -71,7 +74,7 @@ class QuizFeedbackCard extends StatelessWidget {
           Text(
             explanation,
             style: AppTypography.settingsRowLabel.copyWith(
-              color: _bodyInk,
+              color: palette.textMuted,
               height: 20 / 14,
             ),
           ),

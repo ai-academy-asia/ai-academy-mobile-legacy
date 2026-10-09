@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../domain/course_quiz.dart';
 import 'course_learning_strings.dart';
@@ -17,9 +17,8 @@ import 'widgets/quiz_result_question_row.dart';
 /// refreshed `last_result`.
 /// Sampled off the Quiz result frame at 1:1. The title fits one line there;
 /// at the 22 this used it wrapped to two and pulled the whole column up.
-const Color _page = AppColors.surfaceSubtle;
-const Color _titleInk = AppColors.textTitle;
-const Color _scoreInk = Color(0xFFDD940E);
+/// The page is `AppPalette.surfaceSubtle`, the title `textTitle` and the
+/// score amber ink (`warningInk`).
 const double _titleSize = 18;
 
 /// The reference opens the column well below the safe area — there is no
@@ -31,9 +30,9 @@ const double _scoreToSummary = 20;
 const double _summaryToList = 12;
 
 /// Sampled off the Quiz result frame at 1:1: the CTA runs the full content
-/// column, and the row dividers are lighter than [AppColors.border].
+/// column. The list card's edge is `AppPalette.border`, and the rules
+/// between its rows the lighter `divider`.
 const double _ctaWidth = 361;
-const Color _rowDivider = AppColors.divider;
 
 class CourseQuizResultScreen extends StatelessWidget {
   const CourseQuizResultScreen({
@@ -51,9 +50,10 @@ class CourseQuizResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final questions = result.questions;
+    final palette = context.palette;
 
     return Scaffold(
-      backgroundColor: _page,
+      backgroundColor: palette.surfaceSubtle,
       body: SafeArea(
         child: Column(
           children: [
@@ -72,7 +72,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: AppTypography.heading.copyWith(
                         fontSize: _titleSize,
-                        color: _titleInk,
+                        color: palette.textTitle,
                       ),
                     ),
                     const SizedBox(height: _titleToScoreLabel),
@@ -81,6 +81,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: AppTypography.cardSupporting.copyWith(
                         fontSize: 14,
+                        color: palette.textSecondary,
                       ),
                     ),
                     const SizedBox(height: _scoreLabelToScore),
@@ -89,7 +90,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: AppTypography.heading.copyWith(
                         fontSize: 32,
-                        color: _scoreInk,
+                        color: palette.warningInk,
                       ),
                     ),
                     const SizedBox(height: _scoreToSummary),
@@ -103,7 +104,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                           result.correct,
                         ),
                         style: AppTypography.settingsRowLabel.copyWith(
-                          color: AppColors.textSecondary,
+                          color: palette.textSecondary,
                         ),
                       ),
                     ),
@@ -111,10 +112,10 @@ class CourseQuizResultScreen extends StatelessWidget {
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: palette.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.border,
+                          color: palette.border,
                           width: AppDimens.borderWidth,
                         ),
                       ),
@@ -123,7 +124,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                         children: [
                           for (final (i, question) in questions.indexed) ...[
                             if (i != 0)
-                              const Divider(height: 1, color: _rowDivider),
+                              Divider(height: 1, color: palette.divider),
                             QuizResultQuestionRow(
                               number: i + 1,
                               correct: question.correct,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
@@ -43,11 +43,10 @@ import 'widgets/quiz_progress_header.dart';
 /// `_ErrorView`). An answer in flight leaves the options inert until the
 /// server replies; a failed answer or finish shows its copy in
 /// [AppTypography.fieldError], as the Note and Assignment tabs do.
-/// Sampled off the Quiz frames at 1:1. The page is a shade lighter than the
-/// app-wide [AppColors.background], and the CTA runs the full content column
-/// rather than the 329 the Exercise frames inset it to.
-const Color _page = AppColors.surfaceSubtle;
-const Color _titleInk = AppColors.textTitle;
+/// Sampled off the Quiz frames at 1:1. The page (`AppPalette.surfaceSubtle`)
+/// is a shade lighter than the app-wide `pageBackground`, the question in
+/// `textTitle`, and the CTA runs the full content column rather than the 329
+/// the Exercise frames inset it to.
 const double _titleSize = 18;
 const double _titleToOptions = 15;
 
@@ -114,7 +113,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _page,
+      backgroundColor: context.palette.surfaceSubtle,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -159,7 +158,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
                   question.prompt,
                   style: AppTypography.heading.copyWith(
                     fontSize: _titleSize,
-                    color: _titleInk,
+                    color: context.palette.textTitle,
                   ),
                 ),
                 const SizedBox(height: _titleToOptions),
@@ -182,7 +181,12 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
                 ],
                 if (answerError != null) ...[
                   const SizedBox(height: _toError),
-                  Text(answerError, style: AppTypography.fieldError),
+                  Text(
+                    answerError,
+                    style: AppTypography.fieldError.copyWith(
+                      color: context.palette.error,
+                    ),
+                  ),
                 ],
                 if (answer != null) ...[
                   const SizedBox(height: _optionsToFeedback),
@@ -203,7 +207,9 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
             ),
             child: Text(
               finishError,
-              style: AppTypography.fieldError,
+              style: AppTypography.fieldError.copyWith(
+                color: context.palette.error,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -242,10 +248,10 @@ class _StartingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        CourseLearningBackButton(),
+        const CourseLearningBackButton(),
         Expanded(
           child: Center(
             child: SizedBox(
@@ -253,7 +259,7 @@ class _StartingView extends StatelessWidget {
               height: 28,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                color: AppColors.blue,
+                color: context.palette.primary,
               ),
             ),
           ),
@@ -286,7 +292,9 @@ class _StartFailedView extends StatelessWidget {
                 children: [
                   Text(
                     message,
-                    style: AppTypography.cardSupporting,
+                    style: AppTypography.cardSupporting.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),

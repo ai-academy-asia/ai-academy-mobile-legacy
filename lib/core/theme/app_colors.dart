@@ -189,6 +189,11 @@ abstract final class AppColors {
   static const Color warningFill = Color(0xFFFFFAE5);
   static const Color warningOutline = Color(0xFFEBA611);
 
+  /// Amber as text — the quiz result's score (Dark Mode Phase 6c, Issue
+  /// #270). Darker than [warning], which is a fill and the preview card's
+  /// score.
+  static const Color warningInk = Color(0xFFDD940E);
+
   /// The "Finished" / live blue, as ink and outline.
   static const Color infoInk = Color(0xFF0D99FF);
   static const Color infoFill = _blueTint;
@@ -267,6 +272,11 @@ abstract final class AppColors {
 
   /// The unfilled track of an upload/download ring and bar.
   static const Color progressTrack = _fieldGrey;
+
+  // Quiz (Dark Mode Phase 6c, Issue #270).
+
+  /// The A/B/C/D letter of a quiz answer.
+  static const Color textAnswerLetter = Color(0xFF8A8A8A);
 
   // Junior.
   static const Color juniorCard = _blueWash;

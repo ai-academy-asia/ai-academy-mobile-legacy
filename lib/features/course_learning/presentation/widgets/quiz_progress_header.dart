@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
-import 'exercise_text_field.dart' show exerciseBorderColor;
 
 /// `CourseQuizScreen`'s own header: a 40 x 40 close button, a progress bar
 /// tracking how many of the quiz's questions have been reached, and the
 /// "current/total" counter.
-/// Sampled off the Quiz frames at 1:1.
-const Color _progressFill = AppColors.accent;
-const Color _progressTrack = AppColors.divider;
-const Color _counterInk = AppColors.textTitle;
+// Sampled off the Quiz frames at 1:1: an `AppPalette.accent` bar on the
+// light `divider` track, the counter in `textTitle`.
 
 class QuizProgressHeader extends StatelessWidget {
   const QuizProgressHeader({
@@ -42,8 +39,8 @@ class QuizProgressHeader extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: total == 0 ? 0 : current / total,
                   minHeight: 8,
-                  color: _progressFill,
-                  backgroundColor: _progressTrack,
+                  color: context.palette.accent,
+                  backgroundColor: context.palette.divider,
                 ),
               ),
             ),
@@ -52,7 +49,7 @@ class QuizProgressHeader extends StatelessWidget {
               CourseLearningStrings.quizProgressCounter(current, total),
               style: AppTypography.cardHeading.copyWith(
                 fontSize: 13,
-                color: _counterInk,
+                color: context.palette.textTitle,
               ),
             ),
           ],
@@ -69,21 +66,26 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    // `CourseLearningBackButton`'s page control: a `surface` disc in an
+    // `outline` ring, its glyph `textPrimary`.
     return Semantics(
       button: true,
       label: 'Close',
       child: Material(
-        color: AppColors.surface,
-        shape: const CircleBorder(side: BorderSide(color: exerciseBorderColor)),
-        shadowColor: Colors.black.withValues(alpha: 0.1),
+        color: palette.surface,
+        shape: CircleBorder(side: BorderSide(color: palette.outline)),
+        // Black @ 10 %, exactly as before: `shadowSubtle`'s hue at this
+        // control's own strength, as `CourseLearningBackButton` does.
+        shadowColor: palette.shadowSubtle.withValues(alpha: 0.1),
         elevation: 2,
         child: InkWell(
           onTap: onTap,
           customBorder: const CircleBorder(),
-          child: const SizedBox(
+          child: SizedBox(
             width: 40,
             height: 40,
-            child: Icon(Icons.close, size: 20, color: AppColors.textPrimary),
+            child: Icon(Icons.close, size: 20, color: palette.textPrimary),
           ),
         ),
       ),

@@ -1,17 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-
-/// The reference's border colour for every field/card on this screen — a
-/// cooler, lighter grey than [AppColors.border]: `AppPalette.outline`.
-///
-/// Exercise Detail reads `context.palette.outline` now (Dark Mode Phase 6b,
-/// Issue #268). This alias stays only for the Quiz widgets that still import
-/// it (`QuizPreviewCard`, `QuizProgressHeader`) until Quiz migrates (6c).
-const Color exerciseBorderColor = AppColors.outline;
 
 /// One bordered input box on the Exercise Detail screen — the link field, the
 /// assignment description, and the note textarea all use this, sized to each
