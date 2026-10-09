@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
@@ -12,7 +12,7 @@ import '../course_learning_strings.dart';
 /// reserved for a future issue (see `CourseExerciseDetailScreen`'s own doc
 /// comment). The Assignment tab now passes a real [onPressed] for its
 /// "Submit"/"Resubmit" states, which fills the pill with
-/// [AppColors.blue] instead — the same primary-pill treatment
+/// the screen's blue instead — the same primary-pill treatment
 /// `CourseModuleListScreen`'s "Continue learning" button already uses, not a
 /// new one invented for this. Not `AppButton`: that widget has no
 /// disabled-with-shadow treatment (its disabled state is flat), and is fixed
@@ -21,13 +21,10 @@ import '../course_learning_strings.dart';
 /// mean widening its contract for a state and a width it has never needed
 /// elsewhere.
 /// Sampled off the reference frames at 1:1. Every primary CTA measures
-/// 329 x 44 with a 4pt band of [AppColors.primaryDepth] under it; the
-/// disabled pill is the same shape in [_mutedFill] with a [_mutedBorder]
-/// outline and the grey band.
-const Color _fill = AppColors.accent;
-const Color _mutedFill = AppColors.surfaceSubtle;
-const Color _mutedBorder = AppColors.divider;
-const Color _mutedInk = AppColors.disabledInk;
+/// 329 x 44: an `AppPalette.accent` fill and `onPrimary` label on a 4pt
+/// `primaryDepth` band. The disabled pill is the same shape in the muted
+/// set Phase 5 fixed for `HomePillButton` — `surfaceSubtle` fill, `divider`
+/// outline, `disabledInk` label, `neutralDepth` band.
 const double _depthOffset = 4;
 const double _defaultWidth = 329;
 
@@ -68,6 +65,7 @@ class ExerciseSubmitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       enabled: _enabled,
@@ -82,22 +80,20 @@ class ExerciseSubmitButton extends StatelessWidget {
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: _filled ? _fill : _mutedFill,
+              color: _filled ? palette.accent : palette.surfaceSubtle,
               borderRadius: BorderRadius.circular(22),
               // The disabled pill is outlined in the frames; the filled one
               // is not.
               border: _filled
                   ? null
-                  : Border.all(color: _mutedBorder, width: 1),
+                  : Border.all(color: palette.divider, width: 1),
               // A flat band, not a glow: beside the button's edge the
               // reference is plain page, and below it is four rows of one
               // colour. Same treatment `CourseModuleCard` and the module
               // list's "Continue learning" already use.
               boxShadow: [
                 BoxShadow(
-                  color: _filled
-                      ? AppColors.primaryDepth
-                      : AppColors.mutedDepth,
+                  color: _filled ? palette.primaryDepth : palette.neutralDepth,
                   offset: const Offset(0, _depthOffset),
                 ),
               ],
@@ -108,7 +104,7 @@ class ExerciseSubmitButton extends StatelessWidget {
                 fontFamily: AppTypography.fontFamily,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: _filled ? AppColors.onPrimary : _mutedInk,
+                color: _filled ? palette.onPrimary : palette.disabledInk,
               ),
             ),
           ),

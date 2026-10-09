@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import 'course_material_card.dart';
@@ -44,7 +45,7 @@ class CourseMaterialsTab extends StatelessWidget {
           children: [
             for (var i = 0; i < materials.length; i++) ...[
               if (i != 0) const SizedBox(height: 12),
-              _row(materials[i]),
+              _row(context, materials[i]),
             ],
           ],
         ),
@@ -52,7 +53,7 @@ class CourseMaterialsTab extends StatelessWidget {
     );
   }
 
-  Widget _row(CourseExerciseMaterial material) {
+  Widget _row(BuildContext context, CourseExerciseMaterial material) {
     final onDownload = this.onDownload;
     if (onDownload == null) return CourseMaterialCard(material: material);
 
@@ -72,7 +73,12 @@ class CourseMaterialsTab extends StatelessWidget {
           // Held to the card's width, so the line starts at its edge.
           SizedBox(
             width: 329,
-            child: Text(error, style: AppTypography.fieldError),
+            child: Text(
+              error,
+              style: AppTypography.fieldError.copyWith(
+                color: context.palette.error,
+              ),
+            ),
           ),
         ],
       ],

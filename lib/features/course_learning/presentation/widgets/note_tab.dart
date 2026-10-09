@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
@@ -33,7 +33,6 @@ const double _avatarRadius = 20;
 const double _avatarToMessage = 18;
 const double _messageToTimestamp = 18;
 const double _cardToEdit = 17;
-const Color _cardBorder = AppColors.outlineSubtle;
 const double _fieldToError = 8;
 
 class NoteTab extends StatefulWidget {
@@ -142,7 +141,12 @@ class _NoteTabState extends State<NoteTab> {
                   const SizedBox(height: _fieldToError),
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(errorMessage, style: AppTypography.fieldError),
+                    child: Text(
+                      errorMessage,
+                      style: AppTypography.fieldError.copyWith(
+                        color: context.palette.error,
+                      ),
+                    ),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -177,13 +181,20 @@ class _ExistingNoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(_cardPadding),
+      // The Note card's own outline (`outlineSubtle`), lighter than the
+      // field outlines; the avatar is the `primary` disc with `onPrimary`
+      // initials.
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _cardBorder, width: AppDimens.borderWidth),
+        border: Border.all(
+          color: palette.outlineSubtle,
+          width: AppDimens.borderWidth,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,11 +203,11 @@ class _ExistingNoteCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: _avatarRadius,
-                backgroundColor: AppColors.blue,
+                backgroundColor: palette.primary,
                 child: Text(
                   note.authorInitials,
                   style: AppTypography.buttonLabel.copyWith(
-                    color: AppColors.onPrimary,
+                    color: palette.onPrimary,
                     fontSize: 13,
                   ),
                 ),
@@ -206,8 +217,18 @@ class _ExistingNoteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(note.authorName, style: AppTypography.cardHeading),
-                  Text(note.authorLabel, style: AppTypography.cardSupporting),
+                  Text(
+                    note.authorName,
+                    style: AppTypography.cardHeading.copyWith(
+                      color: palette.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    note.authorLabel,
+                    style: AppTypography.cardSupporting.copyWith(
+                      color: palette.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -216,11 +237,16 @@ class _ExistingNoteCard extends StatelessWidget {
           Text(
             note.message,
             style: AppTypography.settingsRowLabel.copyWith(
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: _messageToTimestamp),
-          Text(note.timestampLabel, style: AppTypography.cardSupporting),
+          Text(
+            note.timestampLabel,
+            style: AppTypography.cardSupporting.copyWith(
+              color: palette.textSecondary,
+            ),
+          ),
         ],
       ),
     );

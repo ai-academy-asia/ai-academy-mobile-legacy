@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../../domain/file_size_label.dart';
@@ -15,17 +15,15 @@ import 'exercise_text_field.dart';
 import 'mentor_feedback_card.dart';
 
 /// The success card's green tile, measured off the reference at 1:1. The
-/// fill is a flat sampled colour, not [AppColors.success] at an alpha —
-/// solving for one gives a different figure per channel, so the frame's own
-/// value is used.
+/// fill is a flat sampled colour (`AppPalette.successFillStrong`), not
+/// `success` at an alpha — solving for one gives a different figure per
+/// channel, so the frame's own value is used.
 const double _successTileWidth = 44;
 const double _successTileHeight = 30;
-const Color _successTileFill = AppColors.successFillStrong;
 
 /// The pair of ticks spans the tile almost edge to edge in the reference, in
-/// a deeper green than [AppColors.success].
+/// a deeper green than `success` (`successInk`).
 const double _successCheckSize = 32;
-const Color _successCheckInk = AppColors.successInk;
 
 /// Negative, so the pair reaches the tile's edges: two centred glyphs pull
 /// their ink *inward* as they grow, so a bigger size alone narrows the pair.
@@ -36,7 +34,6 @@ const String _resubmitIconAsset =
     'assets/images/course_learning/exercise_resubmit.svg';
 const double _resubmitIconBox = 24;
 const double _resubmitLabelSize = 16;
-const Color _resubmitBorder = AppColors.outline;
 
 /// The submitted card's own rhythm, measured off the reference at 1:1:
 /// divider -> tile 31, tile -> message 41, message -> button 34. The gaps
@@ -387,7 +384,12 @@ class _AssignmentTabState extends State<AssignmentTab> {
         const SizedBox(height: _fieldToError),
         SizedBox(
           width: double.infinity,
-          child: Text(message, style: AppTypography.fieldError),
+          child: Text(
+            message,
+            style: AppTypography.fieldError.copyWith(
+              color: context.palette.error,
+            ),
+          ),
         ),
       ],
       const SizedBox(height: 18),
@@ -443,7 +445,9 @@ class _AssignmentTabState extends State<AssignmentTab> {
                 width: double.infinity,
                 child: Text(
                   widget.errorMessage!,
-                  style: AppTypography.fieldError,
+                  style: AppTypography.fieldError.copyWith(
+                    color: context.palette.error,
+                  ),
                 ),
               ),
             ],
@@ -456,6 +460,11 @@ class _AssignmentTabState extends State<AssignmentTab> {
             ),
           ],
           const SizedBox(height: 24),
+          // No colour: the rule draws the theme's own Material default
+          // (`ColorScheme.outlineVariant`, `#C5C6D0` in light), not
+          // `AppPalette.divider` (`#EAEDF0`). Moving it would change pixels,
+          // so whether it should read `divider` is a design decision
+          // (Issue #268).
           const Divider(height: 1),
           MentorFeedbackCard(feedback: _latestFeedback),
         ],
@@ -475,6 +484,7 @@ class _AssignmentSuccessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Column(
       children: [
         // The submitted state sits lower under the tabs than the editable
@@ -487,10 +497,10 @@ class _AssignmentSuccessCard extends StatelessWidget {
           width: _successTileWidth,
           height: _successTileHeight,
           decoration: BoxDecoration(
-            color: _successTileFill,
+            color: palette.successFillStrong,
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Stack(
+          child: Stack(
             alignment: Alignment.center,
             children: [
               Positioned(
@@ -498,7 +508,7 @@ class _AssignmentSuccessCard extends StatelessWidget {
                 child: Icon(
                   AppIcons.check,
                   size: _successCheckSize,
-                  color: _successCheckInk,
+                  color: palette.successInk,
                 ),
               ),
               Positioned(
@@ -506,7 +516,7 @@ class _AssignmentSuccessCard extends StatelessWidget {
                 child: Icon(
                   AppIcons.check,
                   size: _successCheckSize,
-                  color: _successCheckInk,
+                  color: palette.successInk,
                 ),
               ),
             ],
@@ -515,7 +525,10 @@ class _AssignmentSuccessCard extends StatelessWidget {
         const SizedBox(height: _tileToMessage),
         Text(
           CourseLearningStrings.assignmentSubmittedSuccess,
-          style: AppTypography.cardSupporting.copyWith(fontSize: 14),
+          style: AppTypography.cardSupporting.copyWith(
+            fontSize: 14,
+            color: palette.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: _messageToResubmit),
@@ -535,12 +548,13 @@ class _ResubmitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       enabled: onTap != null,
       label: CourseLearningStrings.resubmit,
       child: Material(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
           onTap: onTap,
@@ -552,7 +566,7 @@ class _ResubmitButton extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: _resubmitBorder,
+                color: palette.outline,
                 width: AppDimens.borderWidth,
               ),
             ),
@@ -564,7 +578,7 @@ class _ResubmitButton extends StatelessWidget {
                 // half a stroke past its path coordinates and lands on the
                 // reference's ~19 x 18 without being scaled to it. The asset
                 // carries its own ink (black at 90%, the same as
-                // [AppColors.textPrimary]), so it is not tinted.
+                // `AppPalette.textPrimary`), so it is not tinted.
                 SvgPicture.asset(
                   _resubmitIconAsset,
                   width: _resubmitIconBox,
@@ -574,7 +588,7 @@ class _ResubmitButton extends StatelessWidget {
                 Text(
                   CourseLearningStrings.resubmit,
                   style: AppTypography.buttonLabel.copyWith(
-                    color: AppColors.textPrimary,
+                    color: palette.textPrimary,
                     fontSize: _resubmitLabelSize,
                   ),
                 ),

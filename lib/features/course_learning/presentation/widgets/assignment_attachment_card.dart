@@ -2,18 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
 import 'assignment_upload_dropzone.dart';
-import 'exercise_text_field.dart' show exerciseBorderColor;
 
 /// The completed file row's leading tile, sampled at 1:1 — the same flat grey
-/// square `CourseMaterialCard` uses, with the tick in the primary ink.
+/// square (`AppPalette.surfaceTile`) `CourseMaterialCard` uses, with the tick
+/// in the primary ink.
 const double _completeTileSize = 32;
-const Color _completeTileFill = AppColors.surfaceTile;
 
 enum _DownloadStage { idle, downloading, complete }
 
@@ -206,15 +205,16 @@ class _AttachmentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       width: 329,
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: exerciseBorderColor,
+          color: palette.outline,
           width: AppDimens.borderWidth,
         ),
       ),
@@ -229,12 +229,20 @@ class _AttachmentRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: AppTypography.cardHeading.copyWith(fontSize: 14),
+                  style: AppTypography.cardHeading.copyWith(
+                    fontSize: 14,
+                    color: palette.textPrimary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: AppTypography.cardSupporting),
+                Text(
+                  subtitle,
+                  style: AppTypography.cardSupporting.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -255,6 +263,7 @@ class _CompleteRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return _AttachmentRow(
       // The reference sets the tick on the same flat grey tile the course
       // material rows use, in the primary ink — not a green tile with a green
@@ -264,17 +273,17 @@ class _CompleteRow extends StatelessWidget {
         height: _completeTileSize,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _completeTileFill,
+          color: palette.surfaceTile,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.check, size: 18, color: AppColors.textPrimary),
+        child: Icon(Icons.check, size: 18, color: palette.textPrimary),
       ),
       title: CourseLearningStrings.attachmentComplete,
       subtitle: subtitle,
       trailing: _CircleIconButton(
         label: CourseLearningStrings.removeAttachment,
         onTap: onRemove,
-        child: const Icon(Icons.close, size: 20, color: AppColors.textPrimary),
+        child: Icon(Icons.close, size: 20, color: palette.textPrimary),
       ),
     );
   }
@@ -299,9 +308,10 @@ class _CircleIconButton extends StatelessWidget {
       button: true,
       label: label,
       child: Material(
-        color: AppColors.surface,
-        shape: const CircleBorder(side: BorderSide(color: exerciseBorderColor)),
-        shadowColor: Colors.black.withValues(alpha: 0.06),
+        color: context.palette.surface,
+        shape: CircleBorder(side: BorderSide(color: context.palette.outline)),
+        // Black @ 6 %: `shadowSubtle`'s hue at this control's own strength.
+        shadowColor: context.palette.shadowSubtle.withValues(alpha: 0.06),
         elevation: 1,
         child: InkWell(
           onTap: onTap,
@@ -349,14 +359,15 @@ class _DownloadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       width: 329,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: exerciseBorderColor,
+          color: palette.outline,
           width: AppDimens.borderWidth,
         ),
       ),
@@ -365,7 +376,10 @@ class _DownloadingCard extends StatelessWidget {
         children: [
           Text(
             heading,
-            style: AppTypography.cardHeading.copyWith(fontSize: 13),
+            style: AppTypography.cardHeading.copyWith(
+              fontSize: 13,
+              color: palette.textPrimary,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -376,8 +390,10 @@ class _DownloadingCard extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 2.5,
-                  color: AppColors.blue,
-                  backgroundColor: AppColors.border,
+                  // The ring and the bar below run in the spinner blue
+                  // (`primary`) on the `progressTrack`.
+                  color: palette.primary,
+                  backgroundColor: palette.progressTrack,
                 ),
               ),
               const SizedBox(width: 12),
@@ -388,10 +404,18 @@ class _DownloadingCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: AppTypography.cardHeading.copyWith(fontSize: 14),
+                      style: AppTypography.cardHeading.copyWith(
+                        fontSize: 14,
+                        color: palette.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 2),
-                    Text(amountLabel, style: AppTypography.cardSupporting),
+                    Text(
+                      amountLabel,
+                      style: AppTypography.cardSupporting.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -405,8 +429,8 @@ class _DownloadingCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              color: AppColors.blue,
-              backgroundColor: AppColors.border,
+              color: palette.primary,
+              backgroundColor: palette.progressTrack,
             ),
           ),
         ],
@@ -423,11 +447,12 @@ class _CancelButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       label: label,
       child: Material(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onTap,
@@ -439,13 +464,16 @@ class _CancelButton extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: exerciseBorderColor,
+                color: palette.outline,
                 width: AppDimens.borderWidth,
               ),
             ),
             child: Text(
               label,
-              style: AppTypography.cardHeading.copyWith(fontSize: 13),
+              style: AppTypography.cardHeading.copyWith(
+                fontSize: 13,
+                color: palette.textPrimary,
+              ),
             ),
           ),
         ),

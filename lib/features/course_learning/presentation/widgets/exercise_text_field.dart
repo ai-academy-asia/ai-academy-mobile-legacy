@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 
 /// The reference's border colour for every field/card on this screen — a
-/// cooler, lighter grey than [AppColors.border]. Nothing in the shared
-/// palette matches it; see the same constant's note in
-/// `CourseLearningBackButton`.
+/// cooler, lighter grey than [AppColors.border]: `AppPalette.outline`.
+///
+/// Exercise Detail reads `context.palette.outline` now (Dark Mode Phase 6b,
+/// Issue #268). This alias stays only for the Quiz widgets that still import
+/// it (`QuizPreviewCard`, `QuizProgressHeader`) until Quiz migrates (6c).
 const Color exerciseBorderColor = AppColors.outline;
 
 /// One bordered input box on the Exercise Detail screen — the link field, the
@@ -62,6 +65,7 @@ class ExerciseTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = floatingLabel;
+    final palette = context.palette;
 
     // Not `expands: true`: that code path is what triggers a real Flutter
     // framework semantics bug in this SDK build the moment a field using it
@@ -79,41 +83,45 @@ class ExerciseTextField extends StatelessWidget {
         enabled: enabled,
         maxLines: multiline ? 6 : 1,
         textAlignVertical: TextAlignVertical.top,
-        style: AppTypography.fieldValue.copyWith(fontSize: _valueSize),
-        cursorColor: AppColors.borderFocused,
+        style: AppTypography.fieldValue.copyWith(
+          fontSize: _valueSize,
+          color: palette.textPrimary,
+        ),
+        cursorColor: palette.borderFocused,
         decoration: InputDecoration(
           hintText: placeholder,
           hintStyle: AppTypography.fieldPlaceholder.copyWith(
             fontSize: _valueSize,
+            color: palette.textSecondary,
           ),
           labelText: label,
           labelStyle: AppTypography.fieldPlaceholder.copyWith(
             fontSize: _valueSize,
+            color: palette.textSecondary,
           ),
           floatingLabelStyle: AppTypography.fieldFloatingLabel.copyWith(
             fontSize: _labelSize,
-            color: AppColors.textSecondary,
+            color: palette.textSecondary,
           ),
           floatingLabelBehavior: label == null
               ? FloatingLabelBehavior.never
               : FloatingLabelBehavior.always,
           filled: true,
-          fillColor: AppColors.surface,
+          fillColor: palette.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
           ),
-          border: _border(),
-          enabledBorder: _border(),
-          focusedBorder: _border(color: AppColors.borderFocused),
+          border: _border(palette.outline),
+          enabledBorder: _border(palette.outline),
+          focusedBorder: _border(palette.borderFocused),
         ),
       ),
     );
   }
 
-  OutlineInputBorder _border({Color color = exerciseBorderColor}) =>
-      OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
-        borderSide: BorderSide(color: color, width: AppDimens.borderWidth),
-      );
+  OutlineInputBorder _border(Color color) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
+    borderSide: BorderSide(color: color, width: AppDimens.borderWidth),
+  );
 }

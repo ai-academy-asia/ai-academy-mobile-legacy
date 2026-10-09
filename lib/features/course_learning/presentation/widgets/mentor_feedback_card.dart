@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
@@ -19,9 +19,8 @@ import '../course_learning_strings.dart';
 const double _headingSize = 18;
 
 /// The feedback card's own outline and its avatar, measured at 1:1 — the
-/// outline is lighter than the field outlines (`exerciseBorderColor`) and the
-/// avatar is 40 across, not 36.
-const Color _cardBorder = AppColors.outlineSubtle;
+/// outline (`AppPalette.outlineSubtle`) is lighter than the field outlines
+/// (`outline`) and the avatar is 40 across, not 36.
 const double _avatarRadius = 20;
 
 /// The feedback card's own inner rhythm, measured off `Exercise - 14` at 1:1:
@@ -41,12 +40,11 @@ const double _dividerToHeading = 16;
 /// One style for both states. The reference draws this heading dark in every
 /// frame that shows real feedback and in three of the four empty ones, so the
 /// empty state is not a lighter variant — it used to be, which is why the two
-/// branches had drifted apart.
+/// branches had drifted apart. Coloured at use (`textPrimary`).
 final TextStyle _heading = AppTypography.cardHeading.copyWith(
   fontSize: _headingSize,
   height: 26 / _headingSize,
   fontWeight: FontWeight.w700,
-  color: AppColors.textPrimary,
 );
 const double _bodySize = 14;
 
@@ -71,13 +69,17 @@ class MentorFeedbackCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: _dividerToHeading),
-            Text(CourseLearningStrings.mentorFeedbackTitle, style: _heading),
+            Text(
+              CourseLearningStrings.mentorFeedbackTitle,
+              style: _heading.copyWith(color: context.palette.textPrimary),
+            ),
             const SizedBox(height: 9),
             Text(
               CourseLearningStrings.noFeedbackYet,
               style: AppTypography.cardSupporting.copyWith(
                 fontSize: _bodySize,
                 height: 20 / _bodySize,
+                color: context.palette.textSecondary,
               ),
             ),
           ],
@@ -96,20 +98,24 @@ class _PopulatedMentorFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: _dividerToHeading),
-        Text(CourseLearningStrings.mentorFeedbackTitle, style: _heading),
+        Text(
+          CourseLearningStrings.mentorFeedbackTitle,
+          style: _heading.copyWith(color: palette.textPrimary),
+        ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(_cardPadding),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: palette.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _cardBorder,
+              color: palette.outlineSubtle,
               width: AppDimens.borderWidth,
             ),
           ),
@@ -120,11 +126,11 @@ class _PopulatedMentorFeedback extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: _avatarRadius,
-                    backgroundColor: AppColors.blue,
+                    backgroundColor: palette.primary,
                     child: Text(
                       feedback.mentorInitials,
                       style: AppTypography.buttonLabel.copyWith(
-                        color: AppColors.onPrimary,
+                        color: palette.onPrimary,
                         fontSize: 13,
                       ),
                     ),
@@ -137,11 +143,15 @@ class _PopulatedMentorFeedback extends StatelessWidget {
                       children: [
                         Text(
                           feedback.mentorName,
-                          style: AppTypography.cardHeading,
+                          style: AppTypography.cardHeading.copyWith(
+                            color: palette.textPrimary,
+                          ),
                         ),
                         Text(
                           feedback.mentorRole,
-                          style: AppTypography.cardSupporting,
+                          style: AppTypography.cardSupporting.copyWith(
+                            color: palette.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -152,13 +162,15 @@ class _PopulatedMentorFeedback extends StatelessWidget {
               Text(
                 feedback.message,
                 style: AppTypography.settingsRowLabel.copyWith(
-                  color: AppColors.textPrimary,
+                  color: palette.textPrimary,
                 ),
               ),
               const SizedBox(height: _messageToTimestamp),
               Text(
                 feedback.timestampLabel,
-                style: AppTypography.cardSupporting,
+                style: AppTypography.cardSupporting.copyWith(
+                  color: palette.textSecondary,
+                ),
               ),
             ],
           ),

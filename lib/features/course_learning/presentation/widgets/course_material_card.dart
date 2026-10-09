@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
-import 'exercise_text_field.dart' show exerciseBorderColor;
 
 /// One row in the Course materials tab: file icon, name and size, a download
 /// button.
@@ -24,12 +23,12 @@ import 'exercise_text_field.dart' show exerciseBorderColor;
 /// the file glyph and the download button, with no size line (a link has
 /// none). Tapping it opens the link — see
 /// `CourseExerciseDetailController.downloadMaterial`.
-/// Solved from the reference frame at 1:1 — the glyph sits on a 32 tile and
-/// the row's two lines are a size apart, both lighter than the shared
-/// `cardHeading`/`cardSupporting` this screen inherits them from.
+/// Solved from the reference frame at 1:1 — the glyph sits on a 32 tile
+/// (`AppPalette.surfaceTile`) and the row's two lines are a size apart, both
+/// lighter than the shared `cardHeading`/`cardSupporting` this screen
+/// inherits them from.
 const double _tileSize = 32;
 const double _glyphSize = 20;
-const Color _tileFill = AppColors.surfaceTile;
 const double _titleSize = 14;
 const double _sizeLabelSize = 13;
 
@@ -56,15 +55,16 @@ class CourseMaterialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       width: 329,
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: exerciseBorderColor,
+          color: palette.outline,
           width: AppDimens.borderWidth,
         ),
       ),
@@ -76,7 +76,7 @@ class CourseMaterialCard extends StatelessWidget {
             width: _tileSize,
             height: _tileSize,
             decoration: BoxDecoration(
-              color: _tileFill,
+              color: palette.surfaceTile,
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
@@ -97,6 +97,7 @@ class CourseMaterialCard extends StatelessWidget {
                   style: AppTypography.cardHeading.copyWith(
                     fontSize: _titleSize,
                     fontWeight: FontWeight.w500,
+                    color: palette.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -106,6 +107,7 @@ class CourseMaterialCard extends StatelessWidget {
                   material.sizeLabel,
                   style: AppTypography.cardSupporting.copyWith(
                     fontSize: _sizeLabelSize,
+                    color: palette.textSecondary,
                   ),
                 ),
               ],
@@ -151,6 +153,7 @@ class _DownloadButtonState extends State<_DownloadButton> {
     final controlled = onDownload != null;
     final downloaded = controlled ? widget.downloaded : _downloaded;
     final downloading = controlled && widget.downloading && !downloaded;
+    final palette = context.palette;
 
     final VoidCallback? onTap;
     if (downloaded || downloading) {
@@ -169,15 +172,18 @@ class _DownloadButtonState extends State<_DownloadButton> {
           ? 'Downloading'
           : 'Download',
       child: Material(
+        // Downloaded: the `success` green, as ring and glyph and as a 12 %
+        // wash of the same green — a tint of the role, so it follows it.
         color: downloaded
-            ? AppColors.success.withValues(alpha: 0.12)
-            : AppColors.surface,
+            ? palette.success.withValues(alpha: 0.12)
+            : palette.surface,
         shape: CircleBorder(
           side: BorderSide(
-            color: downloaded ? AppColors.success : exerciseBorderColor,
+            color: downloaded ? palette.success : palette.outline,
           ),
         ),
-        shadowColor: Colors.black.withValues(alpha: 0.06),
+        // Black @ 6 %: `shadowSubtle`'s hue at this control's own strength.
+        shadowColor: palette.shadowSubtle.withValues(alpha: 0.06),
         elevation: 1,
         child: InkWell(
           onTap: onTap,
@@ -188,15 +194,11 @@ class _DownloadButtonState extends State<_DownloadButton> {
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: downloaded
-                  ? const Icon(
-                      AppIcons.check,
-                      size: 20,
-                      color: AppColors.success,
-                    )
+                  ? Icon(AppIcons.check, size: 20, color: palette.success)
                   : downloading
-                  ? const CircularProgressIndicator(
+                  ? CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.blue,
+                      color: palette.primary,
                     )
                   : SvgPicture.asset(
                       'assets/images/course_learning/exercise_download.svg',

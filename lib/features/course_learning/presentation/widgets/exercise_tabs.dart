@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
@@ -10,15 +10,12 @@ import '../course_learning_strings.dart';
 /// Junior.
 enum ExerciseTab { note, materials, assignment }
 
-/// The reference's own primary blue for this screen — close to, but not
-/// identical to, [AppColors.blue] (`#296CFF` vs. this screen's `#2970FF`).
-/// Kept as its own local constant rather than silently treated as the same
-/// colour: the two were evidently sampled from two different Figma captures,
-/// and only this screen's own reference confirms this exact value.
-const Color exercisePrimaryColor = AppColors.accent;
-
 /// The Note / Course materials / Assignment tab header — 49 tall, a thin
 /// divider underneath, and the active tab's own blue underline.
+///
+/// The reference's blue here is `#2970FF` (`AppPalette.accent`), not Login's
+/// `#296CFF` (`primary`). The active label is text (`accentText`) and its
+/// underline a fill (`accent`): one blue in light mode, two roles.
 ///
 /// Plain tappable labels in a `Row`, not a segmented control: the reference
 /// draws left-aligned text with an underline under the active one, not the
@@ -70,7 +67,7 @@ class ExerciseTabs extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1, color: AppColors.divider),
+        Divider(height: 1, color: context.palette.divider),
       ],
     );
   }
@@ -122,8 +119,8 @@ class _TabLabel extends StatelessWidget {
                             ? FontWeight.w700
                             : FontWeight.w500,
                         color: selected
-                            ? exercisePrimaryColor
-                            : AppColors.textPrimary,
+                            ? context.palette.accentText
+                            : context.palette.textPrimary,
                       ),
                     ),
                   ),
@@ -131,7 +128,7 @@ class _TabLabel extends StatelessWidget {
                 Container(
                   height: 2,
                   width: double.infinity,
-                  color: selected ? exercisePrimaryColor : Colors.transparent,
+                  color: selected ? context.palette.accent : Colors.transparent,
                 ),
               ],
             ),

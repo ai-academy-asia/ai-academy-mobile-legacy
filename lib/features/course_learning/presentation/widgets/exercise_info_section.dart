@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
@@ -16,12 +16,12 @@ const double _titleSize = 18;
 const double _bodySize = 14;
 const double _readMoreSize = 14;
 
+/// Coloured at use (`textSecondary`), so the theme decides the ink.
 const TextStyle _bodyStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: _bodySize,
   height: 20 / _bodySize,
   fontWeight: FontWeight.w400,
-  color: AppColors.textSecondary,
 );
 
 /// Modules caption, title, the collapsible description, and — once expanded —
@@ -46,6 +46,8 @@ class ExerciseInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final bodyStyle = _bodyStyle.copyWith(color: palette.textSecondary);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -54,6 +56,7 @@ class ExerciseInfoSection extends StatelessWidget {
           style: AppTypography.catalogSectionLabel.copyWith(
             fontSize: _captionSize,
             height: 16 / _captionSize,
+            color: palette.textSecondary,
           ),
         ),
         const SizedBox(height: 4),
@@ -62,24 +65,30 @@ class ExerciseInfoSection extends StatelessWidget {
           style: AppTypography.heading.copyWith(
             fontSize: _titleSize,
             height: 26 / _titleSize,
+            color: palette.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           exercise.summary,
-          style: _bodyStyle,
+          style: bodyStyle,
           maxLines: expanded ? null : 3,
           overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
         ),
         if (expanded)
           for (final section in exercise.extraSections) ...[
             const SizedBox(height: 16),
-            Text(section.title, style: AppTypography.cardHeading),
+            Text(
+              section.title,
+              style: AppTypography.cardHeading.copyWith(
+                color: palette.textPrimary,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(section.body, style: _bodyStyle),
+            Text(section.body, style: bodyStyle),
             for (final bullet in section.bullets) ...[
               const SizedBox(height: 12),
-              Text('•  $bullet', style: _bodyStyle),
+              Text('•  $bullet', style: bodyStyle),
             ],
           ],
         _ReadMoreRow(expanded: expanded, onTap: onToggle),
@@ -115,12 +124,13 @@ class _ReadMoreRow extends StatelessWidget {
                 style: AppTypography.cardHeading.copyWith(
                   fontSize: _readMoreSize,
                   decoration: TextDecoration.underline,
+                  color: context.palette.textPrimary,
                 ),
               ),
               Icon(
                 expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                 size: 20,
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
             ],
           ),
