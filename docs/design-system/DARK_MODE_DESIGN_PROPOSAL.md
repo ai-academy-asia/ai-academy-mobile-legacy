@@ -386,7 +386,7 @@ Junior has the strongest visual identity, so it is the highest-risk role.
 3. **Payment method and bank sheets:** logo plates (§8).
 4. **Splash and Home header:** wordmark tint (§7).
 5. **Teacher Schedule:** deepened band, grid, held fills, light status bar kept (§12).
-6. **Exercise Detail:** the dark video header on a dark page needs a hairline (§6); `exercise_play` tint.
+6. **Exercise Detail:** the dark video header on a dark page needs a hairline (§6). `exercise_play` keeps its authored colour, since it sits on the white `mediaControl` play disc (§7).
 7. **Program and Cohort cards:** decoration opacity (§6).
 8. **Attendance scanner:** already dark (camera + scrim). Verify only.
 9. **Profile (×3):** the theme row and inert controls; segment ink `#1501A6` → `accentText`.
@@ -576,12 +576,17 @@ Measured from the values above. `app_palette_dark_test.dart` holds each figure t
 | **Below 4.5:1 for text:** `disabledInk` on `disabled` | **3.35**. `disabled` is UNRESOLVED |
 | `accent` (non-text) on `surface` | 3.83 (≥ 3:1 for non-text) |
 
-`border` and `divider` hairlines measure 1.63 and 1.25 on `surface`. They are decorative separators, as in light (1.18), not control boundaries.
+**Field and button edges are below the 3:1 non-text guideline, and are not declared compliant.** `border` and `outline` (both `#3A424E` in the candidate) measure **1.63:1** on `surface`. They are more than hairlines: `border` is the resting edge of a field and an outlined button, and `outline` is the edge of Exercise Detail's fields. WCAG 1.4.11 asks 3:1 for a boundary needed to identify a control, so this is an **unresolved design and accessibility decision** (below).
+
+Light mode has the same issue today: `border` `#E4E6EF` measures 1.25:1 on white and `outline` `#D6DBE1` 1.39:1. That is context, not an exemption.
+
+`divider` (1.25:1 on `surface`, as light's 1.18) is a different case. It is a rule between rows, a decorative separator that identifies no control, and is judged separately from the edges above.
 
 ### Still to decide before Phase 10 ships it
 
 - **Every value** (§17), including the Teacher band's deeper `#1F4FC9` (§12) and the dusk `juniorMapSky` (§11).
 - **The 11 UNRESOLVED roles** above. Most were added in Phases 5–8, after this proposal was written.
+- **Field and button edge contrast:** `border`/`outline` at 1.63:1 on `surface`, below the 3:1 non-text guideline for control boundaries (light: 1.25 / 1.39 on white). Design must choose a stronger edge for fields and outlined buttons, another way to identify them, or record a decision. Not compliant as proposed.
 - **Junior map:** the scenery dim (black @ 25 %, §11) is not implemented. Whether nodes keep their light colours or take the candidate's is open. `juniorMutedFill` stands in as `surfaceMuted`'s value: its light value was tried and left the certificate panel's line illegible (light text on a near-white panel).
 - **SVG tinting:** no per-asset tint is applied. In dark, the black exercise icons and the coloured status glyphs still draw as authored (§7). The monochrome icons that go through `AppSvgIcon` (Profile rows, the bell) already follow `iconInk`. The wordmark follows `wordmark`.
 - **Plates and assets (§8):** bank logos, `how_ai_works.svg` and the certificate are not plated.

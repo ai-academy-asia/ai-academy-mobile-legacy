@@ -278,18 +278,74 @@ void main() {
     );
   });
 
-  test('the candidate is unreachable: the default stays light and nothing '
-      'in lib/ sets a mode (Phase 10)', () {
-    expect(AppThemeController().mode, ThemeMode.light);
-    expect(AppThemeController.instance.mode, ThemeMode.light);
-    final setters = [
+  group('the candidate is unreachable from production code (Phase 10)', () {
+    test('the default mode is light', () {
+      expect(AppThemeController().mode, ThemeMode.light);
+      expect(AppThemeController.instance.mode, ThemeMode.light);
+    });
+
+    /// Every non-comment line of `lib/`, as `path:line: text`.
+    List<(String, int, String)> libLines() => [
       for (final file in Directory('lib').listSync(recursive: true))
         if (file is File && file.path.endsWith('.dart'))
-          for (final line in file.readAsLinesSync())
-            if (line.contains('setMode(') && !line.contains('void setMode('))
-              '${file.path}: ${line.trim()}',
+          for (final (i, line) in file.readAsLinesSync().indexed)
+            if (!line.trimLeft().startsWith('//')) (file.path, i + 1, line),
     ];
-    expect(setters, isEmpty, reason: setters.join('\n'));
+
+    /// The lines of `lib/` matching [pattern], less the [allowed] ones.
+    List<String> offenders(
+      RegExp pattern,
+      bool Function(String path, String line) allowed,
+    ) => [
+      for (final (path, number, line) in libLines())
+        if (pattern.hasMatch(line) && !allowed(path, line.trim()))
+          '$path:$number: ${line.trim()}',
+    ];
+
+    const controller = 'lib/core/theme/app_theme_controller.dart';
+
+    test(
+      'nothing refers to setMode but its declaration — no call, no '
+      'tear-off such as `onChanged: AppThemeController.instance.setMode`',
+      () {
+        final found = offenders(
+          RegExp(r'\bsetMode\b'),
+          (path, line) =>
+              path == controller && line == 'void setMode(ThemeMode mode) {',
+        );
+        expect(found, isEmpty, reason: found.join('\n'));
+      },
+    );
+
+    test('nothing names ThemeMode.dark or ThemeMode.system', () {
+      final found = offenders(
+        RegExp(r'\bThemeMode\.(dark|system)\b'),
+        (_, _) => false,
+      );
+      expect(found, isEmpty, reason: found.join('\n'));
+    });
+
+    test('no AppThemeController is built with a mode — only the light '
+        'default (its own declaration excepted)', () {
+      final found = offenders(
+        RegExp(r'\bAppThemeController\(\s*[^)\s]'),
+        (path, line) =>
+            path == controller &&
+            line == 'AppThemeController([this._mode = ThemeMode.light]);',
+      );
+      expect(found, isEmpty, reason: found.join('\n'));
+    });
+
+    test('AppTheme.dark / AppPalette.dark appear only in lib/core/theme/ '
+        'and in app.dart\'s darkTheme registration', () {
+      final found = offenders(
+        RegExp(r'\b(AppTheme|AppPalette)\.dark\b'),
+        (path, line) =>
+            path.startsWith('lib/core/theme/') ||
+            (path == 'lib/app.dart' && line == 'darkTheme: AppTheme.dark,'),
+      );
+      expect(found, isEmpty, reason: found.join('\n'));
+    });
   });
 
   group('measured contrast (WCAG 2.x) of the candidate', () {
