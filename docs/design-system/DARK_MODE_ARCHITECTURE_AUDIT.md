@@ -712,6 +712,7 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >   - the control type (§16.1: a switch, or System/Light/Dark);
 >   - Junior and Teacher theme rows: there are no frames, and they would change those goldens;
 >   - copy explaining that Dark is not yet available.
+> - **Debug-only device preview (Issue #280):** `flutter run --dart-define=AIA_DARK_PREVIEW=true` draws the candidate, for review before §17. It works only under `kDebugMode`, is never persisted, and leaves `darkThemeApproved` false. The Phase 9 rule against naming `ThemeMode.dark` allows exactly one line: the preview constant in `app_theme_controller.dart`. A separate guard pins that preview to `kDebugMode` plus the define.
 > - **Turning dark on later** is one change: approve §17, set `darkThemeApproved`, map Dark and System in `_modeFor`, relax the Phase 9 rules that change needs, and add the chosen control.
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.

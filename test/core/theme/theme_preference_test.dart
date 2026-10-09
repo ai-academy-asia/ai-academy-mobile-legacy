@@ -172,6 +172,59 @@ void main() {
     );
   });
 
+  group('debug-only dark preview (Issue #280)', () {
+    test('allowed only in a debug build that asks for it', () {
+      for (final debugBuild in [true, false]) {
+        for (final requested in [true, false]) {
+          expect(
+            AppThemeController.darkPreviewAllowed(
+              debugBuild: debugBuild,
+              requested: requested,
+            ),
+            debugBuild && requested,
+            reason: 'debug=$debugBuild requested=$requested',
+          );
+        }
+      }
+    });
+
+    test('previewing draws dark whatever is saved or chosen, and never '
+        'writes the preference', () async {
+      for (final stored in [null, 'light', 'dark', 'system', 'x']) {
+        final storage = _Memory(stored);
+        final controller = AppThemeController();
+        await controller.restore(storage, darkPreview: true);
+        expect(controller.mode, ThemeMode.dark, reason: '$stored');
+        expect(controller.preference, ThemePreference.light);
+        await controller.setPreference(ThemePreference.light);
+        expect(controller.mode, ThemeMode.dark, reason: '$stored');
+        expect(storage.value, isNot('dark'));
+      }
+    });
+
+    test('not previewing: as before, light', () async {
+      final controller = AppThemeController();
+      await controller.restore(_Memory('dark'), darkPreview: false);
+      expect(controller.mode, ThemeMode.light);
+    });
+
+    testWidgets('the whole app follows: the first frame is the candidate', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      addTearDown(tester.view.reset);
+      final controller = AppThemeController();
+      await tester.runAsync(
+        () => controller.restore(_Memory(null), darkPreview: true),
+      );
+      await tester.pumpWidget(AiAcademyApp(themeController: controller));
+      final context = tester.element(find.byType(Navigator).first);
+      expect(Theme.of(context).brightness, Brightness.dark);
+      expect(context.palette, same(AppPalette.dark));
+    });
+  });
+
   group('startup', () {
     Future<void> pumpRestored(WidgetTester tester, String? stored) async {
       tester.view.devicePixelRatio = 3;

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'theme_preference.dart';
@@ -20,7 +21,8 @@ import 'theme_preference.dart';
 /// (`DARK_MODE_DESIGN_PROPOSAL.md` §17). Until [darkThemeApproved] is true,
 /// only [ThemePreference.light] can be chosen, and every preference — a
 /// stored one included — resolves to [ThemeMode.light]. Nothing in `lib/`
-/// calls [setMode] or names another mode (`app_palette_dark_test.dart`).
+/// calls [setMode] or names another mode (`app_palette_dark_test.dart`),
+/// except the debug-only [darkPreviewEnabled] review tool.
 class AppThemeController extends ChangeNotifier {
   AppThemeController([this._mode = ThemeMode.light]);
 
@@ -38,9 +40,32 @@ class AppThemeController extends ChangeNotifier {
   static bool isAvailable(ThemePreference preference) =>
       preference == ThemePreference.light || darkThemeApproved;
 
+  /// Developer-only preview of the unapproved candidate (Issue #280):
+  /// `flutter run --dart-define=AIA_DARK_PREVIEW=true` draws the whole app
+  /// in `AppTheme.dark` for design review on a device.
+  ///
+  /// Debug builds only — [kDebugMode] is a compile-time false in profile and
+  /// release, so the define is ignored there. Never persisted: the saved
+  /// [preference] is untouched, and a run without the define is light.
+  static final bool darkPreviewEnabled = darkPreviewAllowed(
+    debugBuild: kDebugMode,
+    requested: const bool.fromEnvironment('AIA_DARK_PREVIEW'),
+  );
+
+  /// Whether the preview may run: only when asked for, in a debug build.
+  static bool darkPreviewAllowed({
+    required bool debugBuild,
+    required bool requested,
+  }) => debugBuild && requested;
+
+  /// The preview's mode — the one place `lib/` names it, allowed by the
+  /// Phase 9 rules only here.
+  static const ThemeMode _previewMode = ThemeMode.dark;
+
   ThemeMode _mode;
   ThemePreference _preference = ThemePreference.light;
   ThemePreferencePersistence? _persistence;
+  bool _previewing = false;
 
   /// The mode `MaterialApp` is given.
   ThemeMode get mode => _mode;
@@ -55,8 +80,14 @@ class AppThemeController extends ChangeNotifier {
   /// build does not know, one not [isAvailable], or a storage error all
   /// leave [ThemePreference.light]. A stored value is not overwritten by
   /// reading it.
-  Future<void> restore(ThemePreferencePersistence persistence) async {
+  ///
+  /// [darkPreview] defaults to [darkPreviewEnabled]; tests pass it.
+  Future<void> restore(
+    ThemePreferencePersistence persistence, {
+    bool? darkPreview,
+  }) async {
     _persistence = persistence;
+    _previewing = darkPreview ?? darkPreviewEnabled;
     ThemePreference? stored;
     try {
       stored = ThemePreference.parse(await persistence.read());
@@ -91,9 +122,10 @@ class AppThemeController extends ChangeNotifier {
   }
 
   /// The one place a preference becomes a mode. While [darkThemeApproved] is
-  /// false there is only one answer; the approval change adds Dark and
-  /// System here.
-  static ThemeMode _modeFor(ThemePreference preference) => ThemeMode.light;
+  /// false there is only one answer, bar the debug preview; the approval
+  /// change adds Dark and System here.
+  ThemeMode _modeFor(ThemePreference preference) =>
+      _previewing ? _previewMode : ThemeMode.light;
 
   /// Changes the mode for the whole app. Setting the current mode does
   /// nothing.
