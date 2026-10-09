@@ -18,8 +18,9 @@ import 'app_colors.dart';
 ///
 /// Roles that mean different things stay separate even where they share a
 /// light value ([accentSubtle], [infoFill], [calendarLesson]; [juniorCard],
-/// [scheduleHeld]), because their dark values may differ. Light values that
-/// differ are never merged ([border] vs [outline]; the text greys).
+/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint]), because their
+/// dark values may differ. Light values that differ are never merged
+/// ([border] vs [outline]; the text greys).
 /// `app_palette_test.dart` holds every role to its legacy constant.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -84,6 +85,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.attendanceGradientEnd,
     required this.surfaceTinted,
     required this.scrim,
+    required this.learningHeroTint,
+    required this.surfaceLocked,
+    required this.cardDepth,
+    required this.outlineFaint,
     required this.juniorCard,
     required this.juniorCardBorder,
     required this.juniorMapSky,
@@ -157,6 +162,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     attendanceGradientEnd: AppColors.attendanceGradientEnd,
     surfaceTinted: AppColors.surfaceTinted,
     scrim: AppColors.scrim,
+    learningHeroTint: AppColors.learningHeroTint,
+    surfaceLocked: AppColors.surfaceLocked,
+    cardDepth: AppColors.cardDepth,
+    outlineFaint: AppColors.outlineFaint,
     juniorCard: AppColors.juniorCard,
     juniorCardBorder: AppColors.juniorCardBorder,
     juniorMapSky: AppColors.juniorMapSky,
@@ -369,6 +378,25 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Over camera video — the attendance scanner's scrim.
   final Color scrim;
 
+  // --- Learning Flow (shared by Adult and Junior) ----------------------------
+
+  /// The pale-blue wash at the top of Course Module List, clearing to the
+  /// page. Not [accentSubtle] (`#E5F4FF`), a fill behind blue ink.
+  final Color learningHeroTint;
+
+  /// A locked module's icon tile — the flat grey behind its padlock.
+  final Color surfaceLocked;
+
+  /// The flat 3D band under a lifted Learning Flow card (module and lesson
+  /// cards). It must stay a step *below* the card in every theme, so it is
+  /// not [divider], which only shares its light value.
+  final Color cardDepth;
+
+  /// The faint edge of those lifted cards and of Course Module List's
+  /// certification panel — lighter than [outlineSubtle]. An edge, so not
+  /// [divider] (a rule) or [cardDepth] (a band), which share its light value.
+  final Color outlineFaint;
+
   // --- Junior ----------------------------------------------------------------
 
   /// Junior's pale-blue course and progress cards.
@@ -462,6 +490,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? attendanceGradientEnd,
     Color? surfaceTinted,
     Color? scrim,
+    Color? learningHeroTint,
+    Color? surfaceLocked,
+    Color? cardDepth,
+    Color? outlineFaint,
     Color? juniorCard,
     Color? juniorCardBorder,
     Color? juniorMapSky,
@@ -533,6 +565,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     attendanceGradientEnd: attendanceGradientEnd ?? this.attendanceGradientEnd,
     surfaceTinted: surfaceTinted ?? this.surfaceTinted,
     scrim: scrim ?? this.scrim,
+    learningHeroTint: learningHeroTint ?? this.learningHeroTint,
+    surfaceLocked: surfaceLocked ?? this.surfaceLocked,
+    cardDepth: cardDepth ?? this.cardDepth,
+    outlineFaint: outlineFaint ?? this.outlineFaint,
     juniorCard: juniorCard ?? this.juniorCard,
     juniorCardBorder: juniorCardBorder ?? this.juniorCardBorder,
     juniorMapSky: juniorMapSky ?? this.juniorMapSky,
@@ -615,6 +651,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       ),
       surfaceTinted: mix(surfaceTinted, other.surfaceTinted),
       scrim: mix(scrim, other.scrim),
+      learningHeroTint: mix(learningHeroTint, other.learningHeroTint),
+      surfaceLocked: mix(surfaceLocked, other.surfaceLocked),
+      cardDepth: mix(cardDepth, other.cardDepth),
+      outlineFaint: mix(outlineFaint, other.outlineFaint),
       juniorCard: mix(juniorCard, other.juniorCard),
       juniorCardBorder: mix(juniorCardBorder, other.juniorCardBorder),
       juniorMapSky: mix(juniorMapSky, other.juniorMapSky),

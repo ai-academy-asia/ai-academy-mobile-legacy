@@ -115,7 +115,12 @@ abstract final class AppColors {
   static const Color surfaceTile = Color(0xFFF5F5F5);
 
   /// The light rule between rows, under headers and as a progress track.
-  static const Color divider = Color(0xFFEAEDF0);
+  static const Color divider = _lineGrey;
+
+  /// The light grey shared by [divider], [cardDepth] and [outlineFaint].
+  /// They only share a light value: a rule, a band and an edge differ in
+  /// dark mode.
+  static const Color _lineGrey = Color(0xFFEAEDF0);
 
   /// The outline of cards, pills, the back button's ring and progress
   /// tracks — darker than [divider], and not [border] (`#E4E6EF`, fields).
@@ -224,6 +229,20 @@ abstract final class AppColors {
 
   /// Over camera video — the attendance scanner.
   static const Color scrim = Color(0x94000000);
+
+  // Learning Flow (Dark Mode Phase 6a, Issue #266).
+
+  /// The pale-blue wash at the top of Course Module List.
+  static const Color learningHeroTint = Color(0xFFE8F3FF);
+
+  /// A locked module's icon tile.
+  static const Color surfaceLocked = Color(0xFFEFEFEF);
+
+  /// The flat 3D band under a lifted Learning Flow card.
+  static const Color cardDepth = _lineGrey;
+
+  /// The faint edge of a lifted Learning Flow card.
+  static const Color outlineFaint = _lineGrey;
 
   // Junior.
   static const Color juniorCard = _blueWash;

@@ -43,7 +43,7 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
 
-**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262).** `AppPalette` has 69 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
+**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266).** `AppPalette` has 73 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
 - The feature palettes (`HomePalette`, `JuniorPalette`, `PaymentFlowPalette`, `TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`) and the private constants that used to repeat a literal now **alias** those constants.
 - `color_literal_consolidation_test.dart` fails if a role's value reappears as a literal anywhere else in `lib/`.
 - New code reads `context.palette`; the aliases exist only until Phases 3–8 move their call sites.
@@ -59,6 +59,7 @@ The app-wide theme mode is `AppThemeController.instance`, one state for Adult, J
 | Status | `error` `#E5484D` · `errorInk` `#DC3412` · `errorFill` `#FFF5F5` · `errorOutline` `#EF4444` · `success` `#22A06B` · `successInk` `#009951` · `successFill` `#EBFFEE` · `successOutline` `#14AE5C` · `successLabel` `#14AE5C` (a status pill's label drawn in its outline green; text, so its own role) · `successFillStrong` `#CCEBDC` · `warning` `#F0A22E` · `warningFill` `#FFFAE5` · `warningOutline` `#EBA611` · `infoInk` `#0D99FF` · `infoFill` `#E5F4FF` |
 | Overlays | `barrier` black 60 % · `sheetHandle` `#DBDBDC` · `shadow` black 10 % · `shadowSubtle` black 8 % |
 | Adult | `accentOutline` `#155EEF` (Payment's next installment) · `timelineConnector` `#BAC5FF` · `textFaint` black 30 % · `textDeep` `#101828` (bank names) · `textStatLabel` `#726D6D` · `attendanceGradientStart` `#175FEF` / `attendanceGradientEnd` `#518BFF` · `surfaceTinted` `#F8FAFF` (cohort card) · `scrim` black 58 % (scanner) |
+| Learning Flow | `learningHeroTint` `#E8F3FF` (Course Module List's header wash) · `surfaceLocked` `#EFEFEF` (a locked module's tile) · `cardDepth` `#EAEDF0` (the flat band under a lifted card) · `outlineFaint` `#EAEDF0` (that card's edge, and the certification panel's) |
 | Junior | `juniorCard` `#EFF4FF` · `juniorCardBorder` `#D1D3F5` · `juniorMapSky` `#BFD9F8` · `calendarNeutral` `#F2F2F3` · `calendarLesson` `#E5F4FF` · `calendarMissed` `#FFE7E7` |
 | Teacher | `scheduleBand` `#2970FF` · `scheduleHeld` `#EFF4FF` · `scheduleHeldInk` `#787A80` |
 
@@ -66,7 +67,8 @@ Some roles share a light value but stay separate roles, because their meaning (a
 - `accentSubtle` / `infoFill` / `calendarLesson`;
 - `juniorCard` / `scheduleHeld`;
 - `accent` / `accentText` / `scheduleBand`;
-- `surface` / `surfaceElevated`.
+- `surface` / `surfaceElevated`;
+- `divider` / `cardDepth` / `outlineFaint` — a rule, a band and an edge.
 
 Different light values are never merged.
 

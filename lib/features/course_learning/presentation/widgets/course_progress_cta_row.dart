@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
@@ -45,8 +45,8 @@ class CourseProgressCtaRow extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percent / 100,
               minHeight: _barHeight,
-              backgroundColor: _progressTrack,
-              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+              backgroundColor: context.palette.outline,
+              valueColor: AlwaysStoppedAnimation<Color>(context.palette.accent),
             ),
           ),
         ),
@@ -56,7 +56,7 @@ class CourseProgressCtaRow extends StatelessWidget {
           style: AppTypography.catalogSectionValue.copyWith(
             fontSize: 14,
             height: 20 / 14,
-            color: _primaryInk,
+            color: context.palette.textTitle,
           ),
         ),
         const SizedBox(width: _percentToButton),
@@ -88,28 +88,34 @@ class ContinueLearningButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       label: CourseLearningStrings.continueLearning,
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(_ctaRadius),
-          boxShadow: const [
-            BoxShadow(color: _ctaDepth, offset: Offset(0, _ctaDepthOffset)),
+          boxShadow: [
+            BoxShadow(
+              color: palette.primaryDepth,
+              offset: const Offset(0, _ctaDepthOffset),
+            ),
           ],
         ),
         child: Material(
-          color: _accent,
+          color: palette.accent,
           borderRadius: BorderRadius.circular(_ctaRadius),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(_ctaRadius),
-            splashColor: Colors.white24,
-            highlightColor: Colors.white10,
+            // `Colors.white24` / `white10`, as tints of [AppPalette.onPrimary]
+            // — `AppButton`'s own ripple.
+            splashColor: palette.onPrimary.withAlpha(0x3D),
+            highlightColor: palette.onPrimary.withAlpha(0x1A),
             child: SizedBox(
               width: width,
               height: _ctaHeight,
-              child: const Center(
+              child: Center(
                 child: Text(
                   CourseLearningStrings.continueLearning,
                   style: TextStyle(
@@ -117,7 +123,7 @@ class ContinueLearningButton extends StatelessWidget {
                     fontSize: 14,
                     height: 20 / 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.onPrimary,
+                    color: palette.onPrimary,
                   ),
                 ),
               ),
@@ -129,19 +135,17 @@ class ContinueLearningButton extends StatelessWidget {
   }
 }
 
-/// Measured off the Module List frame at 1:1.
-const Color _primaryInk = AppColors.textTitle;
-const Color _progressTrack = AppColors.outline;
-const Color _accent = AppColors.accent;
+/// Measured off the Module List frame at 1:1: an `AppPalette.accent` bar on
+/// an `outline` track, the label in `textTitle`.
 const double _barHeight = 8;
 const double _barToPercent = 13;
 const double _percentToButton = 31;
 const double _ctaHeight = 40;
 const double _ctaRadius = 20;
 
-/// The button's depth: a flat darker-blue band under it, the same idiom the
-/// module cards use. Sampled at 1:1 — the reference has *no* blur around the
-/// button at all (the pixel beside its edge is pure white), so this is a
-/// zero-blur shadow of the button's own shape, not a glow.
-const Color _ctaDepth = AppColors.primaryDepth;
+/// The button's depth: a flat darker-blue band under it
+/// (`AppPalette.primaryDepth`), the same idiom the module cards use. Sampled
+/// at 1:1 — the reference has *no* blur around the button at all (the pixel
+/// beside its edge is pure white), so this is a zero-blur shadow of the
+/// button's own shape, not a glow.
 const double _ctaDepthOffset = 4;

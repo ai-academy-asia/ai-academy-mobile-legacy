@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_dimens.dart';
-import '../../../home/presentation/widgets/home_palette.dart';
+import '../../../../core/theme/app_palette.dart';
 
 /// The certificate artwork, framed by the exported gradient background — two
 /// flat images layered, not redrawn with Flutter text/shapes. Drawn by
@@ -27,7 +27,8 @@ import '../../../home/presentation/widgets/home_palette.dart';
 /// The two frames inset the artwork differently: Module List's by 6, the
 /// Certificate frame's by 12 — exactly the 305 x 201 `certificate.png` is
 /// exported at inside the 329 x 225 background — with a 1pt
-/// [HomePalette.border] outline round the whole. [inset] and [outlined]
+/// [AppPalette.outline] round the whole. Only that frame follows the theme:
+/// the certificate is a document, drawn as exported. [inset] and [outlined]
 /// carry that difference; the defaults are Module List's.
 class CertificatePreview extends StatelessWidget {
   const CertificatePreview({super.key, this.inset = 6, this.outlined = false});
@@ -73,7 +74,7 @@ class CertificatePreview extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
         border: Border.all(
-          color: HomePalette.border,
+          color: context.palette.outline,
           width: AppDimens.borderWidth,
         ),
       ),

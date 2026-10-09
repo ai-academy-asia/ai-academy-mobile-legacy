@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -28,17 +27,9 @@ import 'widgets/course_module_card.dart';
 /// course_module_list_screenshot_test.dart` captures the screen at that exact
 /// frame so these can be re-checked against the PNG.
 
-/// The page, and the wash behind the hero: a light blue that clears to the
-/// page colour 75 down from the top of the safe area.
-const Color _page = AppColors.surface;
-const Color _heroTint = Color(0xFFE8F3FF);
+/// The wash behind the hero (`AppPalette.learningHeroTint`) clears to the
+/// page colour (`surface`) 75 down from the top of the safe area.
 const double _heroTintHeight = 75;
-
-/// Outlines, the band under each module card, and the connector between them.
-const Color _border = AppColors.divider;
-const Color _primaryInk = AppColors.textTitle;
-const Color _secondaryInk = AppColors.textSupporting;
-const Color _certificationFill = AppColors.surfaceSubtle;
 
 /// The illustration's box. Larger than the 86 x 75 the frame measures because
 /// `how_ai_works.svg` carries roughly 9% of empty margin inside its own
@@ -129,7 +120,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        backgroundColor: _page,
+        backgroundColor: context.palette.surface,
         // The reference's wash is a fixed 75pt band at the top of the safe
         // area, not a fraction of the page: as a gradient over the whole body
         // it stretched with the viewport and tinted a third of a tall screen.
@@ -138,7 +129,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-              const Positioned(
+              Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
@@ -148,7 +139,10 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [_heroTint, _page],
+                      colors: [
+                        context.palette.learningHeroTint,
+                        context.palette.surface,
+                      ],
                     ),
                   ),
                 ),
@@ -199,13 +193,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -239,7 +233,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -388,7 +384,7 @@ class _Hero extends StatelessWidget {
                 style: AppTypography.heading.copyWith(
                   fontSize: 18,
                   height: 26 / 18,
-                  color: _primaryInk,
+                  color: context.palette.textTitle,
                 ),
               ),
               const SizedBox(height: 8),
@@ -397,7 +393,7 @@ class _Hero extends StatelessWidget {
                 style: AppTypography.statLabel.copyWith(
                   fontSize: 12,
                   height: 18 / 12,
-                  color: _secondaryInk,
+                  color: context.palette.textSupporting,
                 ),
               ),
             ],
@@ -518,14 +514,14 @@ class _ModuleConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SizedBox(
       height: _moduleGap,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: SizedBox(
           width: _connectorWidth,
           height: _connectorHeight,
-          child: ColoredBox(color: _border),
+          child: ColoredBox(color: context.palette.divider),
         ),
       ),
     );
@@ -553,9 +549,12 @@ class _CertificationSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.cardPadding),
       decoration: BoxDecoration(
-        color: _certificationFill,
+        color: context.palette.surfaceSubtle,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(color: _border, width: AppDimens.borderWidth),
+        border: Border.all(
+          color: context.palette.outlineFaint,
+          width: AppDimens.borderWidth,
+        ),
         // No shadow: unlike the module cards, the reference draws nothing
         // below this panel's bottom edge — the row under it is plain page.
       ),
@@ -574,7 +573,7 @@ class _CertificationSection extends StatelessWidget {
                       style: AppTypography.catalogSectionLabel.copyWith(
                         fontSize: 12,
                         height: 16 / 12,
-                        color: _secondaryInk,
+                        color: context.palette.textSupporting,
                       ),
                     ),
                     // The label's and heading's line boxes sit all but flush
@@ -586,7 +585,7 @@ class _CertificationSection extends StatelessWidget {
                       style: AppTypography.catalogTitle.copyWith(
                         fontSize: 18,
                         height: 26 / 18,
-                        color: _primaryInk,
+                        color: context.palette.textTitle,
                       ),
                     ),
                   ],

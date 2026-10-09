@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/lesson.dart';
 
@@ -23,21 +23,10 @@ const double _titleSize = 14;
 const double _titleLineHeight = 20;
 const FontWeight _titleWeight = FontWeight.w800;
 
-/// The reference's card outline and the flat band under it, the same
-/// `#EAEDF0` and 4pt `CourseModuleCard` measures off the Course Detail
-/// reference. Kept as this file's own copy rather than extracted: those
-/// constants are private to Course Detail's card, and this change leaves
-/// that screen untouched.
-const Color _border = AppColors.divider;
+/// The reference's card outline (`AppPalette.outlineFaint`) and the flat
+/// 4pt band under it (`cardDepth`), as `CourseModuleCard` draws them. Kept as
+/// this file's own offset rather than extracted: that card's is private.
 const double _liftOffset = 4;
-
-/// Sampled off the reference: the number's grey and the title's ink. The
-/// duration and the locked ink are `CourseModuleCard`'s own, since the
-/// reference draws neither on a lesson card.
-const Color _numberInk = AppColors.textMuted;
-const Color _titleInk = AppColors.textStrong;
-const Color _secondaryInk = AppColors.textSupporting;
-const Color _lockedInk = AppColors.textLocked;
 
 /// Course Detail's own completed badge and padlock — the same assets
 /// `CourseModuleCard` draws, at their native sizes.
@@ -81,16 +70,21 @@ class LessonListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locked = lesson.locked;
+    // Sampled off the reference: the number's grey (`textMuted`) and the
+    // title's ink (`textStrong`). The duration (`textSupporting`) and the
+    // locked ink (`textLocked`) are `CourseModuleCard`'s own, since the
+    // reference draws neither on a lesson card.
+    final palette = context.palette;
     final lineStyle = TextStyle(
       fontFamily: AppTypography.fontFamily,
       fontSize: 16,
       height: 22 / 16,
       leadingDistribution: TextLeadingDistribution.even,
-      color: locked ? _lockedInk : _titleInk,
+      color: locked ? palette.textLocked : palette.textStrong,
     );
 
     return Material(
-      color: AppColors.surface,
+      color: palette.surface,
       borderRadius: BorderRadius.circular(_radius),
       child: InkWell(
         onTap: onTap,
@@ -102,11 +96,14 @@ class LessonListItem extends StatelessWidget {
             // Repeated here, as on `CourseModuleCard`: the band is a
             // zero-blur shadow of the whole card, so the card needs its own
             // opaque fill on top of it.
-            color: AppColors.surface,
+            color: palette.surface,
             borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: _border),
-            boxShadow: const [
-              BoxShadow(color: _border, offset: Offset(0, _liftOffset)),
+            border: Border.all(color: palette.outlineFaint),
+            boxShadow: [
+              BoxShadow(
+                color: palette.cardDepth,
+                offset: const Offset(0, _liftOffset),
+              ),
             ],
           ),
           child: Row(
@@ -125,7 +122,9 @@ class LessonListItem extends StatelessWidget {
                         lesson.order.toString().padLeft(2, '0'),
                         style: lineStyle.copyWith(
                           fontWeight: FontWeight.w400,
-                          color: locked ? _lockedInk : _numberInk,
+                          color: locked
+                              ? palette.textLocked
+                              : palette.textMuted,
                         ),
                       ),
                     ),
@@ -150,7 +149,7 @@ class LessonListItem extends StatelessWidget {
                             style: AppTypography.cardSupporting.copyWith(
                               fontSize: 12,
                               height: 16 / 12,
-                              color: _secondaryInk,
+                              color: palette.textSupporting,
                             ),
                           ),
                         ],

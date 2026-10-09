@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
@@ -102,7 +101,7 @@ class _LessonListScreenState extends State<LessonListScreen> {
       // No `SafeArea`: the hero runs up under the status bar, as the
       // reference draws it, and places its own back control at the inset.
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.palette.pageBackground,
         body: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) => Align(
@@ -163,11 +162,10 @@ const double _heroTintOpacity = 0.24;
 /// The reference's space from the header block to the first card.
 const double _headerToCards = 28;
 
-/// The card outline's grey, and the rule between cards: `CourseModuleCard`'s
-/// and Course Detail's `#EAEDF0`, 2 wide, filling the 16 gap below the
-/// card's own 4pt band. Kept as this file's own copy rather than extracted
-/// from Course Detail, whose constants are private to that screen.
-const Color _connectorColor = AppColors.divider;
+/// The rule between cards (`AppPalette.divider`): Course Detail's, 2 wide,
+/// filling the 16 gap below the card's own 4pt band. Kept as this file's own
+/// copy rather than extracted from Course Detail, whose constants are
+/// private to that screen.
 const double _cardGap = 16;
 const double _connectorWidth = 2;
 const double _connectorHeight = 12;
@@ -203,6 +201,7 @@ class _ModuleHeader extends StatelessWidget {
                 style: AppTypography.catalogSectionLabel.copyWith(
                   fontSize: 12,
                   height: 16 / 12,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -211,6 +210,7 @@ class _ModuleHeader extends StatelessWidget {
                 style: AppTypography.heading.copyWith(
                   fontSize: 18,
                   height: 26 / 18,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],
@@ -240,7 +240,7 @@ class _ModuleHero extends StatelessWidget {
         // white card — not over the grey page.
         color: Color.alphaBlend(
           visuals.accentColor.withValues(alpha: _heroTintOpacity),
-          AppColors.surface,
+          context.palette.surface,
         ),
         child: Stack(
           children: [
@@ -295,13 +295,13 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 28,
         height: 28,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: AppColors.blue,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -333,7 +333,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting,
+              style: AppTypography.cardSupporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -416,14 +418,14 @@ class _LessonConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SizedBox(
       height: _cardGap,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: SizedBox(
           width: _connectorWidth,
           height: _connectorHeight,
-          child: ColoredBox(color: _connectorColor),
+          child: ColoredBox(color: context.palette.divider),
         ),
       ),
     );
@@ -439,12 +441,16 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: AppDimens.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
         child: Text(
           CourseLearningStrings.lessonsEmpty,
-          style: AppTypography.cardSupporting,
+          style: AppTypography.cardSupporting.copyWith(
+            color: context.palette.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
       ),

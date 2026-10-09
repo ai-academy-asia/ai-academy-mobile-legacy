@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_module.dart';
 import '../course_learning_strings.dart';
@@ -42,18 +42,14 @@ const double _tileInset = 12;
 const double _tileToText = 12;
 
 /// The reference draws the card's depth as a *solid* band under it, not a
-/// blur: four rows of flat [_border] below the bottom edge, then white. A
-/// blurred shadow reads as a different material entirely.
+/// blur: four rows of flat `AppPalette.cardDepth` below the bottom edge, then
+/// white. A blurred shadow reads as a different material entirely.
+///
+/// Sampled off the reference at 1:1, the card's edge (`outlineFaint`), the
+/// band and the connector between cards (`divider`) are one grey in light
+/// mode, but three roles: an edge, a band and a rule. The app-wide
+/// `AppPalette.border` (#E4E6EF) is a different, warmer grey.
 const double _liftOffset = 4;
-
-/// Sampled off the reference at 1:1. [_border] is the card outline, the band
-/// beneath it and the connector; the app-wide [AppColors.border] (#E4E6EF) is
-/// a different, warmer grey used by other screens.
-const Color _border = AppColors.divider;
-const Color _titleInk = AppColors.textTitle;
-const Color _lockedTitleInk = AppColors.textLocked;
-const Color _secondaryInk = AppColors.textSupporting;
-const Color _lockedTile = Color(0xFFEFEFEF);
 
 /// How strongly a module's own accent tints its icon tile. Solved from the
 /// reference rather than guessed: module 2's #FFC640 over white at this alpha
@@ -74,8 +70,9 @@ const double _tileTintOpacity = 0.24;
 ///    regardless of topic, which is what the reference draws.
 ///
 /// The card keeps the app's white surface and [AppDimens.homeCardRadius], but
-/// its outline, ink and the band beneath it are this reference's own values
-/// rather than the shared tokens — see the constants above.
+/// its outline, ink and the band beneath it are this reference's own roles
+/// (`outlineFaint`, `cardDepth`, the opaque text greys) — see above. The
+/// tile's tint is the module's authored accent, not a theme colour.
 class CourseModuleCard extends StatelessWidget {
   const CourseModuleCard({required this.module, super.key, this.onTap});
 
@@ -87,9 +84,10 @@ class CourseModuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locked = module.locked;
+    final palette = context.palette;
 
     return Material(
-      color: AppColors.surface,
+      color: palette.surface,
       borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
       // No `elevation`: Material's own elevation shadow is a blur, and the
       // reference's depth is a flat band — painted on the `Container` below.
@@ -104,11 +102,17 @@ class CourseModuleCard extends StatelessWidget {
             // the band below is a zero-blur shadow, which paints the card's
             // whole silhouette shifted down, so without an opaque background
             // on this same decoration it would cover the card itself.
-            color: AppColors.surface,
+            color: palette.surface,
             borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-            border: Border.all(color: _border, width: AppDimens.borderWidth),
-            boxShadow: const [
-              BoxShadow(color: _border, offset: Offset(0, _liftOffset)),
+            border: Border.all(
+              color: palette.outlineFaint,
+              width: AppDimens.borderWidth,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: palette.cardDepth,
+                offset: const Offset(0, _liftOffset),
+              ),
             ],
           ),
           child: Row(
@@ -126,7 +130,7 @@ class CourseModuleCard extends StatelessWidget {
                       style: AppTypography.catalogSectionLabel.copyWith(
                         fontSize: 12,
                         height: 16 / 12,
-                        color: _secondaryInk,
+                        color: palette.textSupporting,
                       ),
                     ),
                     // The caption's and title's line boxes sit flush in the
@@ -138,7 +142,7 @@ class CourseModuleCard extends StatelessWidget {
                         fontSize: 14,
                         height: 20 / 14,
                         fontWeight: FontWeight.w700,
-                        color: locked ? _lockedTitleInk : _titleInk,
+                        color: locked ? palette.textLocked : palette.textTitle,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -149,7 +153,7 @@ class CourseModuleCard extends StatelessWidget {
                       style: AppTypography.cardSupporting.copyWith(
                         fontSize: 12,
                         height: 16 / 12,
-                        color: _secondaryInk,
+                        color: palette.textSupporting,
                       ),
                     ),
                   ],
@@ -179,7 +183,7 @@ class _ModuleIcon extends StatelessWidget {
         width: _iconSlot,
         height: _iconSlot,
         decoration: BoxDecoration(
-          color: _lockedTile,
+          color: context.palette.surfaceLocked,
           borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
         ),
         child: Center(
