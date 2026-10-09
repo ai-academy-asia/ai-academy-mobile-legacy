@@ -12,6 +12,7 @@ import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../course_learning/presentation/lesson_list_screen.dart';
 import '../../home/presentation/widgets/home_header.dart';
+import '../../notifications/presentation/notification_center.dart';
 import '../data/api_junior_home_repository.dart';
 import '../domain/junior_home_repository.dart';
 import '../domain/junior_learning_map.dart';
@@ -48,10 +49,16 @@ class JuniorHomeScreen extends StatefulWidget {
     this.courseLearningRepository,
     this.clock,
     this.showBottomNav = true,
+    this.notifications,
   });
 
   /// Defaults to the real API. Injected in tests.
   final JuniorHomeRepository? repository;
+
+  /// The unread count the header's bell shows, refreshed with the screen's
+  /// own data (Issue #291). Defaults to [NotificationCenter.instance];
+  /// injected in tests.
+  final NotificationCenter? notifications;
 
   /// What the course screens a node opens load through — the real API by
   /// default (those screens' own). Injected in tests.
@@ -72,6 +79,15 @@ class JuniorHomeScreen extends StatefulWidget {
 
 class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   late final JuniorHomeController _controller;
+
+  NotificationCenter get _notifications =>
+      widget.notifications ?? NotificationCenter.instance;
+
+  /// The map and the bell's unread count together (Issue #291): a refresh
+  /// the student asks for should not leave the badge stale.
+  Future<void> _refresh() async {
+    await Future.wait([_controller.load(), _notifications.load()]);
+  }
 
   @override
   void initState() {
@@ -105,8 +121,11 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
               // The logo reloads the map through the screen's own load and
               // retry path (Issue #221). Junior Home has no refresh
               // indicator, so the map stays on screen until the new one
-              // arrives.
-              HomeHeader(onLogoTap: _controller.load),
+              // arrives. The bell's count refreshes with it (Issue #291).
+              HomeHeader(
+                onLogoTap: _refresh,
+                notifications: widget.notifications,
+              ),
               // A step darker than every other header rule (`divider`):
               // its own role, kept as shipped (Issue #272).
               Container(

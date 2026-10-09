@@ -9,11 +9,13 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dar
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_card.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../cohorts/fake_cohort_repository.dart';
 import 'fake_teacher_home_repository.dart';
+import '../notifications/fake_notification_repository.dart';
 
 /// A class meeting on Tuesdays, in the reference's figures.
 TeacherClass sampleClass({
@@ -55,11 +57,16 @@ void main() {
     WidgetTester tester,
     FakeTeacherHomeRepository repository, {
     bool settle = true,
+    NotificationCenter? notifications,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: TeacherHomeScreen(repository: repository, clock: tuesday),
+        home: TeacherHomeScreen(
+          repository: repository,
+          clock: tuesday,
+          notifications: notifications,
+        ),
       ),
     );
     if (settle) await tester.pumpAndSettle();
@@ -181,6 +188,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.callCount, 2);
+  });
+
+  testWidgets('pull to refresh refreshes the bell\'s unread count too '
+      '(Issue #291)', (tester) async {
+    final notifications = FakeNotificationRepository();
+    final center = NotificationCenter(repository: notifications);
+    await pumpScreen(
+      tester,
+      FakeTeacherHomeRepository(classes: [sampleClass()]),
+      notifications: center,
+    );
+    expect(notifications.feedCalls, 1);
+
+    notifications.notifications = [sampleNotification()];
+    await tester.fling(
+      find.byType(TeacherClassCard),
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(notifications.feedCalls, 2);
+    expect(center.unreadCount, 1);
   });
 
   testWidgets('a tap on the header logo refreshes', (tester) async {

@@ -346,6 +346,55 @@ void main() {
       expect(find.byType(NotificationScreen), findsOneWidget);
     });
 
+    testWidgets('returning to the foreground refreshes the bell (Issue '
+        '#291): a notification sent meanwhile shows its dot', (tester) async {
+      repository.notifications = [
+        sampleNotification(id: 1, readAt: DateTime.utc(2026, 10, 2)),
+      ];
+      await pumpHeader(tester);
+      expect(repository.feedCalls, 1);
+      expect(find.byKey(HomeHeader.unreadBadgeKey), findsNothing);
+
+      // Backgrounded; a notification arrives; back to the foreground.
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pump();
+      expect(repository.feedCalls, 1, reason: 'no request while away');
+      repository.notifications = [
+        sampleNotification(id: 2),
+        ...repository.notifications,
+      ];
+      for (final state in [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+
+      expect(repository.feedCalls, 2);
+      expect(center.unreadCount, 1);
+      expect(find.byKey(HomeHeader.unreadBadgeKey), findsOneWidget);
+    });
+
+    testWidgets('a bell that is gone no longer refreshes on resume', (
+      tester,
+    ) async {
+      await pumpHeader(tester);
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      final before = repository.feedCalls;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(repository.feedCalls, before);
+    });
+
     testWidgets('no unread, no dot', (tester) async {
       repository.notifications = [
         sampleNotification(id: 1, readAt: DateTime.utc(2026, 10, 2)),

@@ -124,7 +124,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // UI-only state. Deliberately not persisted and not read by anything else —
   // see the class doc above.
   bool _english = false;
-  bool _notifications = false;
 
   late final ProfileController _profile;
 
@@ -273,8 +272,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: ProfileIcons.notification,
                 label: ProfileStrings.notification,
                 trailing: ProfileSwitch(
-                  value: _notifications,
-                  onChanged: (value) => setState(() => _notifications = value),
+                  // No preference endpoint exists (`BACKEND GAP`, Issue
+                  // #291): off and inert, as on Teacher Profile, rather
+                  // than a switch that changes nothing.
+                  value: false,
+                  onChanged: null,
                   semanticLabel: ProfileStrings.notification,
                 ),
               ),

@@ -15,6 +15,8 @@ import 'package:aia_mobile/features/home/presentation/widgets/payment_card.dart'
 import 'package:aia_mobile/features/home/presentation/widgets/program_card.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
+import 'package:aia_mobile/features/home/presentation/widgets/home_header.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +24,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_home_dashboard_repository.dart';
+import '../notifications/fake_notification_repository.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
 /// without it, text is measured in the fallback font.
@@ -60,6 +63,7 @@ void main() {
     Size size = const Size(393, 852),
     Map<String, WidgetBuilder> routes = const {},
     bool showPaymentPreview = true,
+    NotificationCenter? notifications,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -72,6 +76,7 @@ void main() {
           repository: repository,
           clock: () => now ?? beforeLesson,
           showPaymentPreview: showPaymentPreview,
+          notifications: notifications,
         ),
         routes: routes,
       ),
@@ -684,6 +689,27 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.callCount, 2);
+    });
+
+    testWidgets('pull to refresh refreshes the bell\'s unread count too '
+        '(Issue #291)', (tester) async {
+      final notifications = FakeNotificationRepository();
+      final center = NotificationCenter(repository: notifications);
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(dashboard: scheduledDashboard()),
+        notifications: center,
+      );
+      expect(notifications.feedCalls, 1);
+      expect(find.byKey(HomeHeader.unreadBadgeKey), findsNothing);
+
+      notifications.notifications = [sampleNotification()];
+      await tester.fling(find.byType(ProgramCard), const Offset(0, 300), 1000);
+      await tester.pumpAndSettle();
+
+      expect(notifications.feedCalls, 2);
+      expect(center.unreadCount, 1);
+      expect(find.byKey(HomeHeader.unreadBadgeKey), findsOneWidget);
     });
   });
 
