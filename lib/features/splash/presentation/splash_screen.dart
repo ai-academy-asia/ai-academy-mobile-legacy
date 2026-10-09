@@ -249,7 +249,7 @@ class _SplashScreenState extends State<SplashScreen>
         navigationBar: context.palette.surfaceSubtle,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         body: SafeArea(
           child: Center(
             child: AnimatedBuilder(
@@ -343,6 +343,13 @@ class _Wordmark extends StatelessWidget {
         SplashAssets.wordmark,
         height: _LogoMark.lockupHeight,
         semanticsLabel: SplashStrings.wordmarkSemanticsLabel,
+        // As the Home header draws it: tinted only when the theme's
+        // `wordmark` role is another colour — a same-colour tint still moves
+        // edge pixels — so light mode draws it as authored and a dark theme
+        // recolours the navy, which is invisible on a dark ground.
+        colorFilter: context.palette.wordmark == AppColors.wordmark
+            ? null
+            : ColorFilter.mode(context.palette.wordmark, BlendMode.srcIn),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -48,7 +48,7 @@ class _SignOutConfirmationDialogState extends State<SignOutConfirmationDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surfaceElevated,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
         horizontal: AppDimens.screenPadding,
@@ -66,15 +66,19 @@ class _SignOutConfirmationDialogState extends State<SignOutConfirmationDialog> {
             children: [
               // A card's heading over its supporting line — the existing
               // styles for exactly that pairing.
-              const Text(
+              Text(
                 SignOutStrings.title,
-                style: AppTypography.cardHeading,
+                style: AppTypography.cardHeading.copyWith(
+                  color: context.palette.textPrimary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppDimens.titleToSupporting),
-              const Text(
+              Text(
                 SignOutStrings.message,
-                style: AppTypography.statLabel,
+                style: AppTypography.statLabel.copyWith(
+                  color: context.palette.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppDimens.headingToForm),

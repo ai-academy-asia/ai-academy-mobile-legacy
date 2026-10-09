@@ -678,6 +678,30 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - **Goldens:** all unchanged.
 > - **Next:** Phase 9 (dark values, once the proposal is approved).
 >
+> **Phase 9 done (Issue #276): a gated candidate, not approved values.** By the product owner's decision, the proposal's values are in code but unreachable.
+> - **`AppPalette.dark`** covers all 94 roles. Each is labelled 48 PROPOSED, 35 DERIVED (from a rule the proposal states) or 11 UNRESOLVED (a stand-in, named). Every value is written once (`_Dark`); "unchanged" values read the light constant.
+> - **`AppTheme.dark`:** `Brightness.dark`, a `ColorScheme` with `primary` = `accent` and `surface` = `surfaceElevated`, and an `accentText` @ 30 % selection (proposal §5, §6, §9).
+> - **Wiring:** it is `MaterialApp.darkTheme`. `AppThemeController` stays `ThemeMode.light` and nothing in `lib/` calls `setMode`; a test fails otherwise. Users see no change. The Phase 10 switch, persistence and system-follow are untouched.
+> - **Gap closed:** `auth/` (Login, Reset Password, the manager contact sheet, the sign-out dialog) and `splash/` were never migrated, and the candidate showed Login light. They read the palette now (sheets and dialogs `surfaceElevated`; the strength meter's track `progressTrack`), pixel-identical in light. The Splash wordmark is tinted like Home's, only when the role differs from the authored navy.
+> - **Proof:**
+>   - `app_palette_dark_test.dart` pins every value and status, checks code ↔ §18 table and `AppTheme.dark`, and holds **measured** contrast.
+>   - Its unreachability rules fail on any `setMode` reference but its declaration (tear-offs included), any `ThemeMode.dark`/`.system`, an `AppThemeController` built with a mode, or `AppTheme.dark`/`AppPalette.dark` outside `lib/core/theme/` and `app.dart`'s `darkTheme:`. All four were checked by planting.
+>   - `dark_mode_candidate_test.dart` covers propagation (Login, Splash, Adult Home, Module List, Exercise, Quiz, Junior Home, Teacher Schedule and its sheet, Notifications), status bars, and 9 `*_dark.png` goldens for design review.
+>   - `auth_splash_palette_scope_test.dart` guards the newly migrated folders.
+> - **Corrected:** the proposal's `exercise_play` row (it sits on the white `mediaControl` disc; keep it as authored).
+> - **Open, documented in proposal §18:**
+>   - every value (§17);
+>   - the 11 UNRESOLVED roles;
+>   - the Junior map dim (its sky art stays light in the candidate);
+>   - per-asset SVG tinting;
+>   - logo and illustration plates;
+>   - widgets that set their own shadow strength;
+>   - the Mentor Feedback divider (Material default);
+>   - white on the brand blues at 4.48 / 4.32:1;
+>   - field and outlined-button edges (`border`/`outline`) at 1.63:1, below the 3:1 non-text guideline (light is also low: 1.25 / 1.39). Not declared compliant;
+>   - native launch screens (Phase 11).
+> - **Next:** design approval (§17), then Phase 10 (the switch and persistence).
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 

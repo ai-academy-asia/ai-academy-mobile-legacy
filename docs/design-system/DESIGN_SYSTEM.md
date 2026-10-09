@@ -37,11 +37,10 @@ The most important rule in this document. Every visual value belongs to exactly 
 `lib/core/theme/app_colors.dart`. Brand colours were sampled from the logo export; neutrals are the design's.
 
 **Reading colours: `context.palette` (Issue #252).** `AppPalette` (`lib/core/theme/app_palette.dart`) names colours by role (`surface`, `textPrimary`, `divider`, `accent`, …). It is a `ThemeExtension` on `AppTheme.light`, and its light values *are* the constants below and in `HomePalette` (held equal by `test/core/theme/app_palette_test.dart`).
-- **New and migrated widgets** read `context.palette`, not `AppColors` / `HomePalette` / a literal.
-- **Pilot:** Notifications is migrated.
-- **Everything else** moves feature by feature (`DARK_MODE_ARCHITECTURE_AUDIT.md` §15).
+- **Every screen** reads `context.palette`, not `AppColors` / `HomePalette` / a literal. That covers Adult, Junior, Teacher, the Learning Flow, Login and Splash (Phases 1–9). Per-feature guards in `test/core/theme/*_palette_scope_test.dart` keep it that way.
+- **New widgets** do the same.
 
-The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
+The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher. It is **light**: `AppTheme.dark` (with `AppPalette.dark`) exists since Phase 9 (Issue #276) as a **candidate**, built from the proposal's unapproved values and labelled role by role (PROPOSED / DERIVED / UNRESOLVED, `DARK_MODE_DESIGN_PROPOSAL.md` §18). It is wired as `MaterialApp.darkTheme`, but nothing sets a mode that reaches it until Phase 10.
 
 **Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268; the Quiz roles in Phase 6c, #270; the Junior roles in Phase 7, #272; the Teacher roles in Phase 8, #274).** `AppPalette` has 94 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
 - The feature palettes (`HomePalette`, `PaymentFlowPalette`) and the private constants that used to repeat a literal now **alias** those constants. `JuniorPalette` was retired in Phase 7 (Issue #272) and the Teacher palettes (`TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`, `TeacherHomeColors`) in Phase 8 (Issue #274), once each role read the roles.

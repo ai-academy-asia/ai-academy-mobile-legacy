@@ -9,12 +9,14 @@ import 'app_colors.dart';
 /// `DARK_MODE_DESIGN_PROPOSAL.md` §3).
 ///
 /// A [ThemeExtension], so the active theme decides the values and a widget
-/// reads them with `context.palette` instead of a `const` class. Today there
-/// is only [light]: every role reads its single light source in
-/// [AppColors], the same constant the feature palettes now alias, so a
-/// widget moved onto a role draws exactly what it drew before. A dark
-/// palette is not defined here and must not be until the proposal's values
-/// are approved (proposal §17).
+/// reads them with `context.palette` instead of a `const` class. [light] is
+/// today's app: every role reads its single light source in [AppColors],
+/// the same constant the feature palettes now alias, so a widget moved onto
+/// a role draws exactly what it drew before.
+///
+/// [dark] is a **candidate, not approved** (Dark Mode Phase 9, Issue #276):
+/// the proposal's values, unreachable until they are approved (proposal
+/// §17) and a Phase 10 switch exists. See [dark].
 ///
 /// Roles that mean different things stay separate even where they share a
 /// light value ([accentSubtle], [infoFill], [calendarLesson]; [juniorCard],
@@ -222,6 +224,210 @@ class AppPalette extends ThemeExtension<AppPalette> {
     dangerOutline: AppColors.dangerOutline,
     avatarPlaceholder: AppColors.avatarPlaceholder,
     avatarPlaceholderInk: AppColors.avatarPlaceholderInk,
+  );
+
+  /// The **candidate** dark palette (Dark Mode Phase 9, Issue #276). **Not
+  /// approved design** — `DARK_MODE_DESIGN_PROPOSAL.md` §17 is unchecked —
+  /// and unreachable: `AppTheme.dark` carries it, but `AppThemeController`
+  /// stays [ThemeMode.light] and nothing sets another mode until Phase 10.
+  ///
+  /// Each role says where its value comes from:
+  ///  * **PROPOSED** — the value in the proposal's tables (§4, §11, §12);
+  ///  * **DERIVED** — follows a rule the proposal states (a fold, "unchanged",
+  ///    "no shadow"), or the role's own documented "same in every theme";
+  ///  * **UNRESOLVED** — the proposal gives nothing: a stand-in, named in the
+  ///    comment, until design decides.
+  ///
+  /// `app_palette_dark_test.dart` pins every value and its status.
+  static const AppPalette dark = AppPalette(
+    // PROPOSED: §4.1
+    pageBackground: _Dark.page,
+    // PROPOSED: §4.1
+    surfaceSubtle: _Dark.surfaceSubtle,
+    // PROPOSED: §4.1
+    surface: _Dark.surface,
+    // PROPOSED: §4.1
+    surfaceElevated: _Dark.elevated,
+    // PROPOSED: §4.1
+    surfaceMuted: _Dark.muted,
+    // DERIVED: §3 lists icon tiles under surfaceSubtle
+    surfaceTile: _Dark.surfaceSubtle,
+    // PROPOSED: §4.2
+    textPrimary: _Dark.ink,
+    // PROPOSED: §4.2
+    textSecondary: _Dark.secondary,
+    // PROPOSED: §4.2
+    textTitle: _Dark.title,
+    // DERIVED: §3 folds #1A1A1A into textPrimary
+    textStrong: _Dark.ink,
+    // DERIVED: §3 folds #7D7D7E into textSecondary
+    textSupporting: _Dark.secondary,
+    // DERIVED: §3 folds #808080 into textSecondary
+    textMuted: _Dark.secondary,
+    // PROPOSED: §4.2
+    textInactive: _Dark.inactive,
+    // DERIVED: §3: locked lesson ink is textInactive
+    textLocked: _Dark.inactive,
+    // DERIVED: §7: iconInk as textPrimary
+    iconInk: _Dark.ink,
+    // DERIVED: §7: tint the wordmark with textTitle
+    wordmark: _Dark.title,
+    // PROPOSED: §4.3
+    border: _Dark.border,
+    // PROPOSED: §4.3
+    borderFocused: _Dark.ink,
+    // PROPOSED: §4.3
+    divider: _Dark.divider,
+    // DERIVED: §4.3: border covers #D6DBE1
+    outline: _Dark.border,
+    // DERIVED: §12: the bar track #E5E7EB → divider
+    outlineSubtle: _Dark.divider,
+    // PROPOSED: §4.4 unchanged
+    primary: AppColors.blue,
+    // PROPOSED: §4.4 unchanged
+    onPrimary: AppColors.onPrimary,
+    // PROPOSED: §4.4
+    primaryDepth: _Dark.primaryDepth,
+    // PROPOSED: §4.4 unchanged
+    accent: AppColors.accent,
+    // PROPOSED: §4.4
+    accentText: _Dark.accentText,
+    // PROPOSED: §4.4
+    accentSubtle: _Dark.accentSubtle,
+    // UNRESOLVED: no value; the info outline of the same pale-blue family
+    accentSubtleOutline: _Dark.infoOutline,
+    // DERIVED: §3: #1501A6 → accentText (pending §16.5)
+    linkInk: _Dark.accentText,
+    // UNRESOLVED: §4.2 gives only disabledInk; surfaceMuted ("set back") stands in
+    disabled: _Dark.muted,
+    // PROPOSED: §4.2
+    disabledInk: _Dark.inactive,
+    // PROPOSED: §4.4
+    neutralDepth: _Dark.depth,
+    // DERIVED: §3: neutralDepth folds secondaryDepth
+    subtleDepth: _Dark.depth,
+    // PROPOSED: §4.5 error as field text
+    error: _Dark.errorInk,
+    // PROPOSED: §4.5
+    errorInk: _Dark.errorInk,
+    // PROPOSED: §4.5
+    errorFill: _Dark.errorFill,
+    // PROPOSED: §4.5
+    errorOutline: _Dark.errorOutline,
+    // DERIVED: §4.5 success ink
+    success: _Dark.successInk,
+    // PROPOSED: §4.5
+    successInk: _Dark.successInk,
+    // PROPOSED: §4.5
+    successFill: _Dark.successFill,
+    // PROPOSED: §4.5
+    successOutline: _Dark.successOutline,
+    // DERIVED: text: the §4.5 success ink, as #262 required
+    successLabel: _Dark.successInk,
+    // UNRESOLVED: no value; the §4.5 success fill stands in
+    successFillStrong: _Dark.successFill,
+    // DERIVED: §4.5 warning ink (partial state, preview score)
+    warning: _Dark.warningInk,
+    // PROPOSED: §4.5
+    warningFill: _Dark.warningFill,
+    // PROPOSED: §4.5
+    warningOutline: _Dark.warningOutline,
+    // PROPOSED: §4.5 (#DD940E is in its ink set)
+    warningInk: _Dark.warningInk,
+    // PROPOSED: §4.5
+    infoInk: _Dark.infoInk,
+    // PROPOSED: §4.5
+    infoFill: _Dark.infoFill,
+    // PROPOSED: §4.6 black @ 70 %
+    barrier: _Dark.barrier,
+    // PROPOSED: §4.6
+    sheetHandle: _Dark.handle,
+    // PROPOSED: §4.6 no shadow
+    shadow: _Dark.none,
+    // DERIVED: §4.6: shadows vanish on dark
+    shadowSubtle: _Dark.none,
+    // UNRESOLVED: no value; the unchanged accent blue stands in
+    accentOutline: AppColors.accent,
+    // UNRESOLVED: no value; the border line stands in
+    timelineConnector: _Dark.border,
+    // DERIVED: §5: greys fold into textInactive
+    textFaint: _Dark.inactive,
+    // DERIVED: §3 folds #101828 into textPrimary
+    textDeep: _Dark.ink,
+    // DERIVED: §3 folds statLabel into textSecondary
+    textStatLabel: _Dark.secondary,
+    // PROPOSED: §6 unchanged
+    attendanceGradientStart: AppColors.attendanceGradientStart,
+    // PROPOSED: §6 unchanged
+    attendanceGradientEnd: AppColors.attendanceGradientEnd,
+    // DERIVED: §6: cards → surface
+    surfaceTinted: _Dark.surface,
+    // PROPOSED: §4.6 unchanged
+    scrim: AppColors.scrim,
+    // UNRESOLVED: no value; the blue-tinted accentSubtle stands in
+    learningHeroTint: _Dark.accentSubtle,
+    // UNRESOLVED: no value; surfaceMuted ("set back") stands in
+    surfaceLocked: _Dark.muted,
+    // DERIVED: §4.4: depth darker than the page
+    cardDepth: _Dark.depth,
+    // UNRESOLVED: no value; the quieter divider line stands in
+    outlineFaint: _Dark.divider,
+    // PROPOSED: §6 video header unchanged
+    videoSurface: AppColors.videoSurface,
+    // DERIVED: the role: same in every theme
+    mediaControl: AppColors.mediaControl,
+    // DERIVED: the role: same in every theme
+    onMediaControl: AppColors.onMediaControl,
+    // DERIVED: the role: same in every theme
+    mediaControlOutline: AppColors.mediaControlOutline,
+    // DERIVED: the role: same in every theme
+    onMedia: AppColors.onMedia,
+    // DERIVED: §12: tracks → divider
+    progressTrack: _Dark.divider,
+    // DERIVED: §5: greys fold into textSecondary
+    textAnswerLetter: _Dark.secondary,
+    // PROPOSED: §11
+    juniorCard: _Dark.juniorCard,
+    // PROPOSED: §11
+    juniorCardBorder: _Dark.juniorCardBorder,
+    // PROPOSED: §11 dusk sky
+    juniorMapSky: _Dark.sky,
+    // PROPOSED: §11 #20252E
+    calendarNeutral: _Dark.muted,
+    // PROPOSED: §11 #1A2A47
+    calendarLesson: _Dark.accentSubtle,
+    // PROPOSED: §11
+    calendarMissed: _Dark.calendarMissed,
+    // UNRESOLVED: §11 nodes are open; surfaceMuted stands in (see §18)
+    juniorMutedFill: _Dark.muted,
+    // DERIVED: a header rule; every other is divider
+    juniorHeaderRule: _Dark.divider,
+    // DERIVED: white reads on the dusk sky
+    onJuniorMapSky: AppColors.onJuniorMapSky,
+    // PROPOSED: §12 #1F4FC9
+    scheduleBand: _Dark.band,
+    // PROPOSED: §12 #1A2A47
+    scheduleHeld: _Dark.accentSubtle,
+    // PROPOSED: §12 #A3ACB9
+    scheduleHeldInk: _Dark.secondary,
+    // DERIVED: §3 folds #0B1230 into textPrimary
+    teacherTitle: _Dark.ink,
+    // DERIVED: §12: name → textPrimary
+    teacherNameInk: _Dark.ink,
+    // DERIVED: §12: role → textSecondary
+    teacherRoleInk: _Dark.secondary,
+    // DERIVED: §12: Teacher greys → textSecondary
+    teacherDetailInk: _Dark.secondary,
+    // DERIVED: §12: caption ink → textSecondary
+    teacherCaptionInk: _Dark.secondary,
+    // DERIVED: a rule → divider
+    teacherSheetRule: _Dark.divider,
+    // DERIVED: §4.5 error outline
+    dangerOutline: _Dark.errorOutline,
+    // UNRESOLVED: no value; surfaceMuted stands in
+    avatarPlaceholder: _Dark.muted,
+    // UNRESOLVED: no value; textInactive stands in
+    avatarPlaceholderInk: _Dark.inactive,
   );
 
   // --- Grounds ---------------------------------------------------------------
@@ -885,4 +1091,46 @@ extension AppPaletteContext on BuildContext {
   /// a migrated widget never draws differently for want of a theme.
   AppPalette get palette =>
       Theme.of(this).extension<AppPalette>() ?? AppPalette.light;
+}
+
+/// The candidate dark values (Issue #276), each written once. PROPOSED in
+/// `DARK_MODE_DESIGN_PROPOSAL.md` §4, §11 and §12 — **not approved**. A dark
+/// value equal to its light one is not repeated here: [AppPalette.dark]
+/// reads the light constant, which is what "unchanged" means.
+abstract final class _Dark {
+  static const Color page = Color(0xFF0F1217);
+  static const Color surfaceSubtle = Color(0xFF14181E);
+  static const Color surface = Color(0xFF1A1F27);
+  static const Color elevated = Color(0xFF232934);
+  static const Color muted = Color(0xFF20252E);
+  static const Color ink = Color(0xFFECEFF3);
+  static const Color title = Color(0xFFF5F7FA);
+  static const Color secondary = Color(0xFFA3ACB9);
+  static const Color inactive = Color(0xFF6E7682);
+  static const Color divider = Color(0xFF2A303A);
+  static const Color border = Color(0xFF3A424E);
+  static const Color primaryDepth = Color(0xFF1D4FC4);
+  static const Color accentText = Color(0xFF6E9BFF);
+  static const Color accentSubtle = Color(0xFF1A2A47);
+  static const Color depth = Color(0xFF0B0E12);
+  static const Color errorInk = Color(0xFFFF7A70);
+  static const Color errorFill = Color(0xFF341A1C);
+  static const Color errorOutline = Color(0xFFC2453F);
+  static const Color successInk = Color(0xFF45D18C);
+  static const Color successFill = Color(0xFF0F2E20);
+  static const Color successOutline = Color(0xFF2E8F5E);
+  static const Color warningInk = Color(0xFFF5B547);
+  static const Color warningFill = Color(0xFF33280F);
+  static const Color warningOutline = Color(0xFFA87A1E);
+  static const Color infoInk = Color(0xFF5CB8FF);
+  static const Color infoFill = Color(0xFF132A42);
+  static const Color infoOutline = Color(0xFF2A78B8);
+  static const Color barrier = Color(0xB3000000);
+  static const Color none = Color(0x00000000);
+  static const Color handle = Color(0xFF4A525E);
+  static const Color juniorCard = Color(0xFF1A2235);
+  static const Color juniorCardBorder = Color(0xFF2E3A5C);
+  static const Color sky = Color(0xFF2A4A73);
+  static const Color calendarMissed = Color(0xFF3A1F22);
+  static const Color band = Color(0xFF1F4FC9);
 }

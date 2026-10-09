@@ -108,7 +108,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       child: Scaffold(
         // The reference's own page fill (#F9FAFB), which `surfaceSubtle` holds
         // exactly — same correction the login screen carries.
-        backgroundColor: AppColors.surfaceSubtle,
+        backgroundColor: context.palette.surfaceSubtle,
         // Same as login: the keyboard overlays rather than resizing, and the
         // scroll padding below keeps every field reachable regardless.
         resizeToAvoidBottomInset: false,
@@ -159,14 +159,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                                 Text(
                                   ResetPasswordStrings.title,
-                                  style: AppTypography.heading,
+                                  style: AppTypography.heading.copyWith(
+                                    color: context.palette.textPrimary,
+                                  ),
                                 ),
                                 const SizedBox(
                                   height: AppDimens.titleToSupporting,
                                 ),
                                 Text(
                                   ResetPasswordStrings.supporting,
-                                  style: AppTypography.cardSupporting,
+                                  style: AppTypography.cardSupporting.copyWith(
+                                    color: context.palette.textSecondary,
+                                  ),
                                 ),
                                 const SizedBox(height: AppDimens.headingToForm),
 
@@ -299,7 +303,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         alignment: Alignment.centerLeft,
         child: Text(
           message,
-          style: AppTypography.fieldError,
+          style: AppTypography.fieldError.copyWith(
+            color: context.palette.error,
+          ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -325,7 +331,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           child: Icon(
             hidden ? AppIcons.eyeClosed : AppIcons.eye,
             size: 20,
-            color: enabled ? AppColors.textSecondary : AppColors.disabled,
+            color: enabled
+                ? context.palette.textSecondary
+                : context.palette.disabled,
           ),
         ),
       ),

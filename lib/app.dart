@@ -39,8 +39,9 @@ class AiAcademyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = themeController ?? AppThemeController.instance;
     // Above the whole navigator, so Adult, Junior and Teacher — and Login
-    // and Splash — all draw in the same theme. No `darkTheme` yet: every
-    // mode resolves to light until approved dark values exist.
+    // and Splash — all draw in the same theme. `darkTheme` is the
+    // candidate (Issue #276), unreachable: the controller stays light and
+    // nothing sets another mode until Phase 10.
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) => _app(controller.mode),
@@ -53,6 +54,7 @@ class AiAcademyApp extends StatelessWidget {
       title: 'AI academy Asia',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       themeMode: themeMode,
       initialRoute: '/',
       routes: {
