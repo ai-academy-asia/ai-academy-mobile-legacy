@@ -1,5 +1,6 @@
 import 'dart:ui' show Tristate;
 
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/theme/app_theme_controller.dart';
@@ -15,7 +16,8 @@ import '../../support/screenshot.dart';
 import '../../support/theme_storage.dart';
 import 'fake_current_user_repository.dart';
 
-/// Every role's Profile has a working "Light mode" switch (Issue #284), and
+/// Every role's Profile has a working "Dark mode" switch (Issues #284, #288):
+/// on is Dark, off is Light — and
 /// all three show and write the one `AppThemeController` — the signed-in
 /// account's own preference (Issue #286) — so no role can be left in a theme
 /// it cannot leave.
@@ -56,10 +58,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder lightSwitch() => find.bySemanticsLabel(ProfileStrings.lightMode).last;
+  Finder darkSwitch() => find.bySemanticsLabel(ProfileStrings.darkMode).last;
 
   bool on(WidgetTester tester) =>
-      tester.getSemantics(lightSwitch()).flagsCollection.isToggled ==
+      tester.getSemantics(darkSwitch()).flagsCollection.isToggled ==
       Tristate.isTrue;
 
   Brightness brightness(WidgetTester tester) =>
@@ -67,10 +69,41 @@ void main() {
 
   for (final role in roles.keys) {
     group(role, () {
-      testWidgets('shows the saved preference: Dark reads off, Light on', (
+      testWidgets('the row leads with the Phosphor moon (Issue #288), in '
+          'iconInk at the SVG icons\' 90% — visible in Light and in Dark', (
         tester,
       ) async {
-        for (final (stored, expected) in [('dark', false), ('light', true)]) {
+        for (final (stored, palette) in [
+          ('light', AppPalette.light),
+          ('dark', AppPalette.dark),
+        ]) {
+          final theme = await themeFor(MemoryThemeStorage({'9': stored}));
+          await pumpRole(tester, role, theme);
+          final moon = tester.widget<Icon>(
+            find.descendant(
+              of: find
+                  .ancestor(
+                    of: find.text(ProfileStrings.darkMode),
+                    matching: find.byType(Row),
+                  )
+                  .first,
+              matching: find.byType(Icon),
+            ),
+          );
+          expect(moon.icon, AppIcons.moon, reason: stored);
+          expect(moon.size, 20, reason: stored);
+          expect(
+            moon.color,
+            palette.iconInk.withValues(alpha: 0.9),
+            reason: stored,
+          );
+        }
+      });
+
+      testWidgets('shows the saved preference: Dark reads on, Light off', (
+        tester,
+      ) async {
+        for (final (stored, expected) in [('dark', true), ('light', false)]) {
           final theme = await themeFor(MemoryThemeStorage({'9': stored}));
           await pumpRole(tester, role, theme);
           expect(on(tester), expected, reason: stored);
@@ -88,15 +121,19 @@ void main() {
           same(AppPalette.dark),
         );
 
-        await tester.tap(lightSwitch());
+        expect(on(tester), isTrue, reason: 'Dark mode on means Dark');
+
+        // Off: Light.
+        await tester.tap(darkSwitch());
         await tester.pumpAndSettle();
-        expect(on(tester), isTrue);
+        expect(on(tester), isFalse);
         expect(theme.preference, ThemePreference.light);
         expect(brightness(tester), Brightness.light);
 
-        await tester.tap(lightSwitch());
+        // On: Dark.
+        await tester.tap(darkSwitch());
         await tester.pumpAndSettle();
-        expect(on(tester), isFalse);
+        expect(on(tester), isTrue);
         expect(theme.preference, ThemePreference.dark);
         expect(brightness(tester), Brightness.dark);
         expect(storage.writes, ['9=light', '9=dark']);
@@ -111,22 +148,23 @@ void main() {
     // Teacher C (account 31) chooses Dark.
     final theme = await themeFor(storage, account: '31');
     await pumpRole(tester, 'Teacher', theme);
-    await tester.tap(lightSwitch());
+    await tester.tap(darkSwitch());
     await tester.pumpAndSettle();
+    expect(on(tester), isTrue);
     expect(storage.values, {'31': 'dark'});
 
     // Junior B (12), then Adult A (9), sign in on the same device: Light.
     for (final (role, account) in [('Junior', '12'), ('Adult', '9')]) {
       await theme.activateAccount(account);
       await pumpRole(tester, role, theme);
-      expect(on(tester), isTrue, reason: role);
+      expect(on(tester), isFalse, reason: role);
       expect(brightness(tester), Brightness.light, reason: role);
     }
 
     // Teacher C again: their own Dark.
     await theme.activateAccount('31');
     await pumpRole(tester, 'Teacher', theme);
-    expect(on(tester), isFalse);
+    expect(on(tester), isTrue);
     expect(brightness(tester), Brightness.dark);
   });
 }

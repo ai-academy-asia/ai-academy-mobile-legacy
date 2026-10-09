@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../shared/widgets/app_svg_icon.dart';
@@ -20,6 +21,7 @@ import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../profile/presentation/profile_controller.dart';
 import '../../profile/presentation/profile_strings.dart';
+import '../../profile/presentation/widgets/profile_parts.dart';
 import 'junior_profile_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
 
@@ -68,11 +70,11 @@ const double _iconToLabel = 9;
 /// "1/2" counter on E-Contract, its own MN/EN control and switch, rows
 /// without a chevron on a grey page, and a full-width log-out pill.
 ///
-/// **Light mode** (Issue #284) is not in the frame: added at the product
+/// **Dark mode** (Issues #284, #288) is not in the frame: added at the product
 /// owner's request so a junior is never left in a theme they cannot leave,
 /// in the Adult row's place, from this frame's own row and switch. It shows
-/// and writes the app's one [AppThemeController] preference — on is Light,
-/// off is Dark — exactly as the Adult row does (`PRODUCT DECISION`: design
+/// and writes the app's one [AppThemeController] preference — on is Dark,
+/// off is Light — exactly as the Adult row does (`PRODUCT DECISION`: design
 /// to confirm placement).
 ///
 /// **Reuse.** The name loads from `GET /auth/me` through the adult Profile's
@@ -123,7 +125,7 @@ class JuniorProfileScreen extends StatefulWidget {
   final CertificateListRepository? certificateRepository;
   final CourseLearningRepository? courseLearningRepository;
 
-  /// The app's one theme state, which the Light mode row shows and writes.
+  /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
@@ -284,14 +286,14 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                 ),
               ),
               _Row(
-                icon: const _RowIcon(ProfileIcons.lightMode),
-                label: JuniorProfileStrings.lightMode,
+                icon: const _RowIcon.glyph(AppIcons.moon),
+                label: JuniorProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,
                   builder: (context, _) => _Switch(
-                    value: theme.lightModeOn,
-                    onChanged: theme.setLightMode,
-                    semanticLabel: JuniorProfileStrings.lightMode,
+                    value: theme.darkModeOn,
+                    onChanged: theme.setDarkMode,
+                    semanticLabel: JuniorProfileStrings.darkMode,
                   ),
                 ),
               ),
@@ -441,17 +443,22 @@ class _Group extends StatelessWidget {
   }
 }
 
-/// A row's leading icon: one of the exported SVGs.
+/// A row's leading icon: one of the exported SVGs, or — for "Dark mode"'s
+/// moon, which was not exported — the adult rows' [ProfileGlyph] (Issue #288).
 class _RowIcon extends StatelessWidget {
-  const _RowIcon(this.asset);
+  const _RowIcon(String this.asset) : glyph = null;
 
-  final String asset;
+  const _RowIcon.glyph(IconData this.glyph) : asset = null;
+
+  final String? asset;
+  final IconData? glyph;
 
   @override
   Widget build(BuildContext context) {
     // Through AppSvgIcon so the black glyphs follow `iconInk` in dark
     // (Issue #282); untinted, as before, in light.
-    return AppSvgIcon(asset, size: _rowIcon);
+    if (asset case final asset?) return AppSvgIcon(asset, size: _rowIcon);
+    return ProfileGlyph(glyph!);
   }
 }
 

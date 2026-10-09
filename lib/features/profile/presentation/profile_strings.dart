@@ -33,7 +33,7 @@ abstract final class ProfileStrings {
   static const String language = 'Хэл / Language';
   static const String languageMn = 'MN';
   static const String languageEn = 'EN';
-  static const String lightMode = 'Light mode';
+  static const String darkMode = 'Dark mode';
   static const String changePassword = 'Change password';
 
   // --- Notification -------------------------------------------------------
@@ -92,7 +92,6 @@ abstract final class ProfileIcons {
   static const String certificate = '$_dir/certificate.svg';
   static const String transactionHistory = '$_dir/transaction_history.svg';
   static const String language = '$_dir/language.svg';
-  static const String lightMode = '$_dir/light_mode.svg';
   static const String changePassword = '$_dir/change_password.svg';
   static const String notification = '$_dir/notification.svg';
   static const String helpCenter = '$_dir/help_center.svg';

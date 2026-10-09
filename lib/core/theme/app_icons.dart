@@ -126,4 +126,10 @@ abstract final class AppIcons {
   /// "ChatCircleDots", confirmed by rendering `0xe16c` from the bundled font
   /// among its chat-bubble neighbours.
   static const IconData chatCircleDots = IconData(0xe16c, fontFamily: _family);
+
+  /// The Profile "Dark mode" row (Issue #288) — Phosphor "Moon", `0xe330` in
+  /// the same `@phosphor-icons/web` 2.1.1 "Regular" stylesheet, rendered from
+  /// this bundled font to confirm it draws the crescent. The exported Profile
+  /// SVGs are Phosphor too, but no moon was exported.
+  static const IconData moon = IconData(0xe330, fontFamily: _family);
 }

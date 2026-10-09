@@ -20,7 +20,7 @@ import 'theme_preference.dart';
 /// **Light and Dark** (Issue #282): `MaterialApp` carries `AppTheme.dark`
 /// (Issue #276), enabled for users since §17 of
 /// `DARK_MODE_DESIGN_PROPOSAL.md` records it ([darkThemeApproved]). Profile's
-/// "Light mode" switch chooses between the two. [ThemePreference.system] is
+/// "Dark mode" switch chooses between the two. [ThemePreference.system] is
 /// not offered (the control type is open, §16.1) and resolves to light.
 /// Nothing in `lib/` calls [setMode]; [_modeFor] is the one place a mode
 /// other than light is named (`app_palette_dark_test.dart`).
@@ -72,13 +72,13 @@ class AppThemeController extends ChangeNotifier {
   /// Completes once the current [account]'s saved preference is applied.
   Future<void> get ready => _activation ?? Future.value();
 
-  /// What every role's Profile "Light mode" switch shows (Issue #284): on
-  /// for [ThemePreference.light], off for Dark.
-  bool get lightModeOn => _preference == ThemePreference.light;
+  /// What every role's Profile "Dark mode" switch shows (Issues #284,
+  /// #288): on for [ThemePreference.dark], off for Light.
+  bool get darkModeOn => _preference == ThemePreference.dark;
 
-  /// The switch's write: on chooses Light, off chooses Dark.
-  Future<bool> setLightMode(bool on) =>
-      setPreference(on ? ThemePreference.light : ThemePreference.dark);
+  /// The switch's write: on chooses Dark, off chooses Light.
+  Future<bool> setDarkMode(bool on) =>
+      setPreference(on ? ThemePreference.dark : ThemePreference.light);
 
   /// Keeps choices in [persistence] from now on. Called by `main()` before
   /// `runApp`.

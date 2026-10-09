@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../auth/data/http_current_user_repository.dart';
@@ -47,10 +48,10 @@ const double _nameToDetails = 3;
 /// frames share at 1:1. The frame's differences: no Account section and no
 /// edit control, and the hero carries the email and phone under the name.
 ///
-/// **Light mode** (Issue #284) is not in the frame: added at the product
+/// **Dark mode** (Issues #284, #288) is not in the frame: added at the product
 /// owner's request so a teacher is never left in a theme they cannot leave,
 /// in the Adult row's place and parts. It shows and writes the app's one
-/// [AppThemeController] preference — on is Light, off is Dark — exactly as
+/// [AppThemeController] preference — on is Dark, off is Light — exactly as
 /// the Adult row does (`PRODUCT DECISION`: design to confirm placement).
 ///
 /// **Real and working:**
@@ -93,7 +94,7 @@ class TeacherProfileScreen extends StatefulWidget {
   /// in tests.
   final CurrentUserRepository? repository;
 
-  /// The app's one theme state, which the Light mode row shows and writes.
+  /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
@@ -191,14 +192,14 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 ),
               ),
               ProfileRow(
-                icon: ProfileIcons.lightMode,
-                label: ProfileStrings.lightMode,
+                glyph: AppIcons.moon,
+                label: ProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,
                   builder: (context, _) => ProfileSwitch(
-                    value: theme.lightModeOn,
-                    onChanged: theme.setLightMode,
-                    semanticLabel: ProfileStrings.lightMode,
+                    value: theme.darkModeOn,
+                    onChanged: theme.setDarkMode,
+                    semanticLabel: ProfileStrings.darkMode,
                   ),
                 ),
               ),
