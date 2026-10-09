@@ -68,11 +68,11 @@ const double _iconToLabel = 9;
 /// "1/2" counter on E-Contract, its own MN/EN control and switch, rows
 /// without a chevron on a grey page, and a full-width log-out pill.
 ///
-/// **Light mode** (Issue #284) is not in the frame: added at the product
+/// **Dark mode** (Issues #284, #288) is not in the frame: added at the product
 /// owner's request so a junior is never left in a theme they cannot leave,
 /// in the Adult row's place, from this frame's own row and switch. It shows
-/// and writes the app's one [AppThemeController] preference — on is Light,
-/// off is Dark — exactly as the Adult row does (`PRODUCT DECISION`: design
+/// and writes the app's one [AppThemeController] preference — on is Dark,
+/// off is Light — exactly as the Adult row does (`PRODUCT DECISION`: design
 /// to confirm placement).
 ///
 /// **Reuse.** The name loads from `GET /auth/me` through the adult Profile's
@@ -123,7 +123,7 @@ class JuniorProfileScreen extends StatefulWidget {
   final CertificateListRepository? certificateRepository;
   final CourseLearningRepository? courseLearningRepository;
 
-  /// The app's one theme state, which the Light mode row shows and writes.
+  /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
@@ -285,13 +285,13 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
               ),
               _Row(
                 icon: const _RowIcon(ProfileIcons.lightMode),
-                label: JuniorProfileStrings.lightMode,
+                label: JuniorProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,
                   builder: (context, _) => _Switch(
-                    value: theme.lightModeOn,
-                    onChanged: theme.setLightMode,
-                    semanticLabel: JuniorProfileStrings.lightMode,
+                    value: theme.darkModeOn,
+                    onChanged: theme.setDarkMode,
+                    semanticLabel: JuniorProfileStrings.darkMode,
                   ),
                 ),
               ),

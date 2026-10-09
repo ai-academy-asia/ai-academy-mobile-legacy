@@ -142,7 +142,7 @@ void main() {
           ProfileStrings.appSettingsSection,
           ProfileStrings.language,
           // Not in the frame: added for every role (Issue #284).
-          ProfileStrings.lightMode,
+          ProfileStrings.darkMode,
           ProfileStrings.changePassword,
           ProfileStrings.notificationSection,
           ProfileStrings.helpCenter,

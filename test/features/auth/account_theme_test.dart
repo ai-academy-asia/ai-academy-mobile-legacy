@@ -97,7 +97,7 @@ void main() {
 
   test('Adult A chooses Dark → signs out → Junior B signs in: Light', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     expect(theme.mode, ThemeMode.dark);
     expect(themes.values, {'9': 'dark'});
 
@@ -106,13 +106,13 @@ void main() {
     await signIn('token-B');
     expect(theme.account, '12');
     expect(theme.mode, ThemeMode.light);
-    expect(theme.lightModeOn, isTrue);
+    expect(theme.darkModeOn, isFalse);
   });
 
   test('Junior B chooses Light → signs out → Teacher C signs in: Light, its '
       'default', () async {
     await signIn('token-B');
-    await theme.setLightMode(true);
+    await theme.setDarkMode(false);
     signOut();
     await signIn('token-C');
     expect(theme.mode, ThemeMode.light);
@@ -121,7 +121,7 @@ void main() {
 
   test('Adult A returns, after B and C: A\'s own Dark', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     for (final other in ['token-B', 'token-C']) {
       signOut();
       await signIn(other);
@@ -130,20 +130,26 @@ void main() {
     signOut();
     await signIn('token-A');
     expect(theme.mode, ThemeMode.dark);
-    expect(theme.lightModeOn, isFalse);
+    expect(theme.darkModeOn, isTrue);
   });
 
   test('each account switches and keeps its own choice', () async {
-    final chosen = {'token-A': false, 'token-B': true, 'token-C': false};
-    for (final MapEntry(key: token, value: light) in chosen.entries) {
+    // Dark mode on for A and C, off for B.
+    final chosen = {'token-A': true, 'token-B': false, 'token-C': true};
+    for (final MapEntry(key: token, value: dark) in chosen.entries) {
       await signIn(token);
-      await theme.setLightMode(light);
+      await theme.setDarkMode(dark);
       signOut();
     }
     expect(themes.values, {'9': 'dark', '12': 'light', '31': 'dark'});
-    for (final MapEntry(key: token, value: light) in chosen.entries) {
+    for (final MapEntry(key: token, value: dark) in chosen.entries) {
       await signIn(token);
-      expect(theme.lightModeOn, light, reason: token);
+      expect(theme.darkModeOn, dark, reason: token);
+      expect(
+        theme.mode,
+        dark ? ThemeMode.dark : ThemeMode.light,
+        reason: token,
+      );
       signOut();
     }
   });
@@ -151,7 +157,7 @@ void main() {
   test('the same account signing out and in again gets its choice back, '
       'and sign-out deletes nothing', () async {
     await signIn('token-C');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     signOut();
     expect(themes.values, {'31': 'dark'});
     await signIn('token-C');
@@ -161,7 +167,7 @@ void main() {
   test('a restart restores the signed-in account\'s choice before the first '
       'frame — no /auth/me needed', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     await store.flush();
 
     await launch();
@@ -171,7 +177,7 @@ void main() {
 
   test('a restart signed out is Light, whoever chose Dark last', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     signOut();
     await store.flush();
 
@@ -182,7 +188,7 @@ void main() {
 
   test('a renewal is the same account: its theme stays', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     store.save(
       const AuthSession(accessToken: 'token-A2', refreshToken: 'r'),
       renewal: true,
@@ -195,7 +201,7 @@ void main() {
   test('any clear — a rejected token, a failed renewal — is Light, and the '
       'account\'s choice is kept', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     store.clear(); // as a 401 or `SessionRefresher` does
     expect(theme.mode, ThemeMode.light);
     expect(themes.values, {'9': 'dark'});
@@ -204,7 +210,7 @@ void main() {
   test('between sign-in and /auth/me the account is unknown: Light, never '
       'the previous account\'s Dark', () async {
     await signIn('token-A');
-    await theme.setLightMode(false);
+    await theme.setDarkMode(true);
     signOut();
 
     gates['token-B'] = Completer<void>();

@@ -731,6 +731,8 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - `AppThemeController.activateAccount` follows `AuthSessionStore.userId` (`followAccountTheme`). It is Light at once on any account change, then applies that account's choice. A read or write from an earlier account can never apply to the current one.
 > - The legacy device-wide key is deleted unread.
 > - Details: `DESIGN_SYSTEM.md` and `DATA_AND_API.md`.
+>
+> **"Dark mode" switch (Issue #288).** The row is renamed from "Light mode" on all three Profiles, in both the visible and the screen-reader label. On is now Dark and off is Light, which resolves the §9 wording conflict. `AppThemeController.darkModeOn` and `setDarkMode` replace `lightModeOn` and `setLightMode`. Storage, keys, stored values and per-account isolation are unchanged. The three Profile goldens change only in that row's label and switch. The sun glyph stays; a dark-mode icon is a design call.
 > - **Turning dark on later** is one change: approve §17, set `darkThemeApproved`, map Dark and System in `_modeFor`, relax the Phase 9 rules that change needs, and add the chosen control.
 >
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.

@@ -421,7 +421,7 @@ This fits the audit's phases (§15 there). **No step starts before §17 approval
 ## 16. Open product and design decisions
 
 1. **The control and the default.**
-   - The control: a "Light mode" switch (today), a "Dark mode" switch, or a System / Light / Dark selector.
+   - The control: a "Dark mode" switch (today, since Issue #288; formerly "Light mode") or a System / Light / Dark selector. The row still uses the "light mode" sun glyph, since no dark-mode asset exists.
    - The default: follow the device, or light.
    - The *recommendation* is System / Light / Dark, defaulting to System. It's the platform norm, and the only option that fits all three roles with one label.
 2. **Junior map:** dim the daytime art (proposed), commission a night variant, or keep it bright.
@@ -446,7 +446,7 @@ Before any dark value enters code:
 - [ ] **The decisions in §16.**
 - [ ] **Ideally, Figma frames** for at least one screen per role (Adult Home, Junior Home, Teacher Schedule) plus Profile, so implementation is checked against a frame, not this text.
 
-Since Issue #282 users can choose Dark with the Profile "Light mode" switch: Adult's first, then Junior's and Teacher's since Issue #284. The candidate `AppTheme.dark` (Phase 9, Issue #276) is what they get, through the preference saved and restored since Phase 10 (Issue #278). `AppThemeController.darkThemeApproved` mirrors the first box above, and a test fails if the two disagree.
+Since Issue #282 users can choose Dark with the Profile theme switch, labelled "Dark mode" since Issue #288: Adult's first, then Junior's and Teacher's since Issue #284. The candidate `AppTheme.dark` (Phase 9, Issue #276) is what they get, through the preference saved and restored since Phase 10 (Issue #278). `AppThemeController.darkThemeApproved` mirrors the first box above, and a test fails if the two disagree.
 
 ---
 

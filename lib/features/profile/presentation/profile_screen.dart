@@ -44,7 +44,7 @@ const double _editGlyph = 20;
 ///
 /// **Not the Junior Profile.** `JuniorProfileScreen` is its own screen for
 /// the "Kids - Profile" frame; this one keeps the adult frame's differences —
-/// the edit control, the Light mode row and
+/// the edit control, the Dark mode row and
 /// no "Payment receipt" — while sharing its measured parts (the header,
 /// avatar, caption bands, rows, MN/EN control, switch and log-out pill).
 ///
@@ -55,11 +55,11 @@ const double _editGlyph = 20;
 /// is no locale mechanism and no notification-preference endpoint in the app
 /// to hand them to.
 ///
-/// **Light mode shows the app's one theme preference** (Phase 10, Issue
-/// #278): `AppThemeController.preference`, saved and restored for every
-/// role, never a copy kept here. It is on for [ThemePreference.light]; off
-/// chooses [ThemePreference.dark] (Issue #282), which the whole app takes at
-/// once and the next launch restores. Were Dark unavailable
+/// **Dark mode shows the app's one theme preference** (Phase 10, Issue
+/// #278): `AppThemeController.preference`, the signed-in account's own,
+/// never a copy kept here. It is on for [ThemePreference.dark] and off for
+/// [ThemePreference.light] (Issues #282, #288); the whole app takes a change
+/// at once and the account's next sign-in restores it. Were Dark unavailable
 /// (`AppThemeController.darkThemeApproved`), the switch would be inert.
 ///
 /// Log out signs out for real through [signOutToLogin]: it revokes the
@@ -111,7 +111,7 @@ class ProfileScreen extends StatefulWidget {
   /// `AdultStudentShell`, which owns the one persistent bar (Issue #237).
   final bool showBottomNav;
 
-  /// The app's one theme state, which the Light mode row shows and writes.
+  /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
@@ -238,17 +238,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ProfileRow(
                 icon: ProfileIcons.lightMode,
-                label: ProfileStrings.lightMode,
+                label: ProfileStrings.darkMode,
                 trailing: ListenableBuilder(
                   listenable: theme,
                   builder: (context, _) => ProfileSwitch(
-                    value: theme.lightModeOn,
-                    // On is Light, off is Dark; inert were Dark unavailable.
+                    value: theme.darkModeOn,
+                    // On is Dark, off is Light; inert were Dark unavailable.
                     onChanged:
                         AppThemeController.isAvailable(ThemePreference.dark)
-                        ? theme.setLightMode
+                        ? theme.setDarkMode
                         : null,
-                    semanticLabel: ProfileStrings.lightMode,
+                    semanticLabel: ProfileStrings.darkMode,
                   ),
                 ),
               ),

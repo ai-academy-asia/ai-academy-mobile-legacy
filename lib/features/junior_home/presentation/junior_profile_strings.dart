@@ -20,7 +20,7 @@ abstract final class JuniorProfileStrings {
   static const String languageEn = 'EN';
   static const String changePassword = 'Change password';
 
-  static const String lightMode = 'Light mode';
+  static const String darkMode = 'Dark mode';
   static const String notificationSection = 'Notification';
   static const String notification = 'Notification';
 

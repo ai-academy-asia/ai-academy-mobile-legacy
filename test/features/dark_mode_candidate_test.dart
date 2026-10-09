@@ -30,7 +30,7 @@ import 'teacher/fake_teacher_schedule_repository.dart';
 import 'teacher/teacher_home_screen_test.dart' show sampleClass;
 
 /// Dark Mode Phase 9 (Issue #276): the dark theme, which users choose with
-/// Profile's "Light mode" switch since Issue #282.
+/// Profile's "Dark mode" switch (Issues #282, #288).
 ///
 /// Two things, for screens of every role (Login, Adult Home, Course
 /// Learning, Quiz, Junior Home, Teacher Schedule and its sheet,

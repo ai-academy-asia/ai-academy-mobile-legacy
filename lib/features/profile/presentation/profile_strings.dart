@@ -33,7 +33,7 @@ abstract final class ProfileStrings {
   static const String language = 'Хэл / Language';
   static const String languageMn = 'MN';
   static const String languageEn = 'EN';
-  static const String lightMode = 'Light mode';
+  static const String darkMode = 'Dark mode';
   static const String changePassword = 'Change password';
 
   // --- Notification -------------------------------------------------------
