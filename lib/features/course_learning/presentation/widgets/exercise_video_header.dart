@@ -13,15 +13,15 @@ import '../course_learning_strings.dart';
 /// actions.
 ///
 /// Everything on it reads the media roles, not the page's: the video stays
-/// dark in every theme, so its discs (`mediaControl`), their glyphs
-/// (`onMediaControl`) and its text (`onMedia`) must not follow the page's
-/// surface and text.
+/// dark in every theme, so its discs (`mediaControl`), the back disc's ring
+/// (`mediaControlOutline`), their glyphs (`onMediaControl`) and its text
+/// (`onMedia`) must not follow the page's surface, outline and text.
 
 /// 393 x 196: back button, "Live Classroom Recording" badge, a centred play
 /// button, and the duration in the bottom-right corner.
 ///
 /// The back button here is a second copy of `CourseLearningBackButton`'s
-/// visual (white circle, `outline` ring, soft shadow), not
+/// visual (white circle, grey ring, soft shadow), not
 /// that widget reused directly: `CourseLearningBackButton` lays itself out as
 /// a standalone row above the page (`Padding` + `Align`, vertically centred
 /// in whatever space it is given), whereas here it has to sit at a fixed
@@ -142,7 +142,9 @@ class _VideoBackButton extends StatelessWidget {
       label: 'Back',
       child: Material(
         color: palette.mediaControl,
-        shape: CircleBorder(side: BorderSide(color: palette.outline)),
+        shape: CircleBorder(
+          side: BorderSide(color: palette.mediaControlOutline),
+        ),
         // Black @ 20 %, exactly as before: `shadowSubtle`'s hue at this
         // control's own strength, as `CourseLearningBackButton` does.
         shadowColor: palette.shadowSubtle.withValues(alpha: 0.2),

@@ -43,7 +43,7 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
 
-**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268).** `AppPalette` has 78 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
+**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268).** `AppPalette` has 79 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
 - The feature palettes (`HomePalette`, `JuniorPalette`, `PaymentFlowPalette`, `TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`) and the private constants that used to repeat a literal now **alias** those constants.
 - `color_literal_consolidation_test.dart` fails if a role's value reappears as a literal anywhere else in `lib/`.
 - New code reads `context.palette`; the aliases exist only until Phases 3–8 move their call sites.
@@ -60,7 +60,7 @@ The app-wide theme mode is `AppThemeController.instance`, one state for Adult, J
 | Overlays | `barrier` black 60 % · `sheetHandle` `#DBDBDC` · `shadow` black 10 % · `shadowSubtle` black 8 % |
 | Adult | `accentOutline` `#155EEF` (Payment's next installment) · `timelineConnector` `#BAC5FF` · `textFaint` black 30 % · `textDeep` `#101828` (bank names) · `textStatLabel` `#726D6D` · `attendanceGradientStart` `#175FEF` / `attendanceGradientEnd` `#518BFF` · `surfaceTinted` `#F8FAFF` (cohort card) · `scrim` black 58 % (scanner) |
 | Learning Flow | `learningHeroTint` `#E8F3FF` (Course Module List's header wash) · `surfaceLocked` `#EFEFEF` (a locked module's tile) · `cardDepth` `#EAEDF0` (the flat band under a lifted card) · `outlineFaint` `#EAEDF0` (that card's edge, the certification panel's and Exercise Detail's tab card) |
-| Exercise Detail | `videoSurface` `#080F35` (the video header, dark in every theme) · `mediaControl` white (its back and play discs) · `onMediaControl` black 90 % (the glyph on a disc) · `onMedia` white (text and its pill on the video) · `progressTrack` `#E4E6EF` (an upload/download ring's and bar's track) |
+| Exercise Detail | `videoSurface` `#080F35` (the video header, dark in every theme) · `mediaControl` white (its back and play discs) · `onMediaControl` black 90 % (the glyph on a disc) · `mediaControlOutline` `#D6DBE1` (the back disc's ring) · `onMedia` white (text and its pill on the video) · `progressTrack` `#E4E6EF` (an upload/download ring's and bar's track) |
 | Junior | `juniorCard` `#EFF4FF` · `juniorCardBorder` `#D1D3F5` · `juniorMapSky` `#BFD9F8` · `calendarNeutral` `#F2F2F3` · `calendarLesson` `#E5F4FF` · `calendarMissed` `#FFE7E7` |
 | Teacher | `scheduleBand` `#2970FF` · `scheduleHeld` `#EFF4FF` · `scheduleHeldInk` `#787A80` |
 
@@ -71,7 +71,8 @@ Some roles share a light value but stay separate roles, because their meaning (a
 - `surface` / `surfaceElevated`;
 - `divider` / `cardDepth` / `outlineFaint` — a rule, a band and an edge;
 - `surface` / `mediaControl` / `onMedia` / `onPrimary` (white) and `textPrimary` / `onMediaControl` — the video's controls and text stay as they are on the always-dark video, whatever the page does;
-- `border` / `progressTrack` — a field's edge and a transfer's track.
+- `border` / `progressTrack` — a field's edge and a transfer's track;
+- `outline` / `mediaControlOutline` — a page outline and the ring of a control on the always-dark video.
 
 Different light values are never merged.
 

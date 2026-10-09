@@ -20,8 +20,9 @@ import 'app_colors.dart';
 /// light value ([accentSubtle], [infoFill], [calendarLesson]; [juniorCard],
 /// [scheduleHeld]; [divider], [cardDepth], [outlineFaint]; [surface],
 /// [mediaControl], [onMedia]; [textPrimary], [onMediaControl]; [border],
-/// [progressTrack]), because their dark values may differ. Light values that differ are never merged
-/// ([border] vs [outline]; the text greys).
+/// [progressTrack]; [outline], [mediaControlOutline]), because their dark
+/// values may differ. Light values that differ are never merged ([border]
+/// vs [outline]; the text greys).
 /// `app_palette_test.dart` holds every role to its legacy constant.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -93,6 +94,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.videoSurface,
     required this.mediaControl,
     required this.onMediaControl,
+    required this.mediaControlOutline,
     required this.onMedia,
     required this.progressTrack,
     required this.juniorCard,
@@ -175,6 +177,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     videoSurface: AppColors.videoSurface,
     mediaControl: AppColors.mediaControl,
     onMediaControl: AppColors.onMediaControl,
+    mediaControlOutline: AppColors.mediaControlOutline,
     onMedia: AppColors.onMedia,
     progressTrack: AppColors.progressTrack,
     juniorCard: AppColors.juniorCard,
@@ -422,6 +425,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// light text would vanish on the white disc.
   final Color onMediaControl;
 
+  /// The ring around a [mediaControl] disc — the video's back control. Not
+  /// [outline], a page role that only shares its light value: the disc and
+  /// the video it sits on stay the same in every theme, so its ring must too.
+  final Color mediaControlOutline;
+
   /// Text on [videoSurface], and its translucent pill. Not [onPrimary]: the
   /// video is not a primary-blue surface.
   final Color onMedia;
@@ -531,6 +539,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? videoSurface,
     Color? mediaControl,
     Color? onMediaControl,
+    Color? mediaControlOutline,
     Color? onMedia,
     Color? progressTrack,
     Color? juniorCard,
@@ -611,6 +620,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     videoSurface: videoSurface ?? this.videoSurface,
     mediaControl: mediaControl ?? this.mediaControl,
     onMediaControl: onMediaControl ?? this.onMediaControl,
+    mediaControlOutline: mediaControlOutline ?? this.mediaControlOutline,
     onMedia: onMedia ?? this.onMedia,
     progressTrack: progressTrack ?? this.progressTrack,
     juniorCard: juniorCard ?? this.juniorCard,
@@ -702,6 +712,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       videoSurface: mix(videoSurface, other.videoSurface),
       mediaControl: mix(mediaControl, other.mediaControl),
       onMediaControl: mix(onMediaControl, other.onMediaControl),
+      mediaControlOutline: mix(mediaControlOutline, other.mediaControlOutline),
       onMedia: mix(onMedia, other.onMedia),
       progressTrack: mix(progressTrack, other.progressTrack),
       juniorCard: mix(juniorCard, other.juniorCard),

@@ -94,6 +94,7 @@ abstract final class AppColors {
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _ink90 = Color(0xE6000000);
   static const Color _fieldGrey = Color(0xFFE4E6EF);
+  static const Color _outlineGrey = Color(0xFFD6DBE1);
   static const Color _blueTint = Color(0xFFE5F4FF);
   static const Color _blueWash = Color(0xFFEFF4FF);
 
@@ -127,7 +128,7 @@ abstract final class AppColors {
 
   /// The outline of cards, pills, the back button's ring and progress
   /// tracks — darker than [divider], and not [border] (`#E4E6EF`, fields).
-  static const Color outline = Color(0xFFD6DBE1);
+  static const Color outline = _outlineGrey;
 
   /// The outline of the Note and Mentor Feedback cards; Teacher's bar track.
   static const Color outlineSubtle = Color(0xFFE5E7EB);
@@ -257,6 +258,9 @@ abstract final class AppColors {
 
   /// The glyph on a [mediaControl] disc (black @ 90 %).
   static const Color onMediaControl = _ink90;
+
+  /// The ring around a [mediaControl] disc — the video's back control.
+  static const Color mediaControlOutline = _outlineGrey;
 
   /// Text, and its translucent pill, on [videoSurface].
   static const Color onMedia = _white;

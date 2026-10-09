@@ -594,13 +594,13 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > **Phase 6b done (Issue #268).** Exercise Detail reads colours only through `context.palette`.
 > - **Scope:** the screen, plus the video header, tabs, info section, text field, submit button, Course materials (tab and card), Note, Mentor Feedback, Assignment, the upload drop area and the attachment and upload cards. `ExerciseSubmitButton` is also drawn by Quiz, so the Quiz goldens guard it too.
 > - **Mapped by meaning, not hex:**
->   - The video header uses media roles. Its discs are `mediaControl`, not `surface`; the glyph on a disc is `onMediaControl`, not `textPrimary`; text and the pill are `onMedia`, not `onPrimary`.
+>   - The video header uses media roles. Its discs are `mediaControl`, not `surface`; the back disc's ring is `mediaControlOutline`, not `outline`; the glyph on a disc is `onMediaControl`, not `textPrimary`; text and the pill are `onMedia`, not `onPrimary`.
 >   - The active tab's label is `accentText` and its underline `accent`.
 >   - The upload and download ring and bar run `primary` on `progressTrack`, not `border`.
 >   - The disabled submit pill is Phase 5's muted set.
 >   - Fields and cards use `outline`; the tab card edge is `outlineFaint`; Note and Mentor cards use `outlineSubtle`; the rule under the tabs is `divider`.
 >   - Shadows use the role's hue at each control's own strength, as in Phase 3.
-> - **New roles:** `videoSurface`, `mediaControl`, `onMediaControl`, `onMedia` and `progressTrack`, each pinned to its shipped light value, with no dark value. That makes 78 roles. `exercisePrimaryColor` is retired. `exerciseBorderColor` stays only for the two Quiz widgets that import it.
+> - **New roles:** `videoSurface`, `mediaControl`, `onMediaControl`, `onMedia`, `mediaControlOutline` and `progressTrack`, each pinned to its shipped light value, with no dark value. That makes 79 roles. (`mediaControlOutline` was added from the PR #269 review.) `exercisePrimaryColor` is retired. `exerciseBorderColor` stays only for the two Quiz widgets that import it.
 > - **Kept, and flagged as a `PRODUCT DECISION`:** the Assignment tab's section rule sets no colour, so it draws Material's `outlineVariant` (`#C5C6D0`), not `divider`. The authored SVG glyphs (play, file, download, upload, resubmit) are not tinted.
 > - **Guards:**
 >   - `exercise_detail_palette_scope_test.dart` catches direct reads, colour-baking styles, and any `Divider` or progress indicator left on Material's default.

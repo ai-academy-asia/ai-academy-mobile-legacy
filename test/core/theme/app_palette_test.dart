@@ -86,6 +86,10 @@ void main() {
       'videoSurface': (light.videoSurface, const Color(0xFF080F35)),
       'mediaControl': (light.mediaControl, const Color(0xFFFFFFFF)),
       'onMediaControl': (light.onMediaControl, const Color(0xE6000000)),
+      'mediaControlOutline': (
+        light.mediaControlOutline,
+        const Color(0xFFD6DBE1),
+      ),
       'onMedia': (light.onMedia, const Color(0xFFFFFFFF)),
       'progressTrack': (light.progressTrack, const Color(0xFFE4E6EF)),
       'juniorCard': (light.juniorCard, const Color(0xFFEFF4FF)),

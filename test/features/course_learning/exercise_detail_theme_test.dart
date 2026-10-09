@@ -25,8 +25,8 @@ import 'fake_course_learning_repository.dart';
 /// Pumped under a palette whose roles are unmistakable sentinels — not a
 /// dark palette, which is not approved. The pairs that share a light value
 /// but not a meaning get distinct sentinels, so each must be read where it
-/// belongs: the video's media roles against `surface`, `textPrimary` and
-/// `onPrimary`; the tab's `accentText` label against its `accent`
+/// belongs: the video's media roles against `surface`, `outline`,
+/// `textPrimary` and `onPrimary`; the tab's `accentText` label against its `accent`
 /// underline; the transfer's `progressTrack` against `border` and
 /// `outline`. Light mode itself is held pixel-identical by the goldens.
 void main() {
@@ -58,6 +58,7 @@ void main() {
   const success = Color(0xFF171717);
   const error = Color(0xFF181818);
   const borderFocused = Color(0xFF191919);
+  const mediaControlOutline = Color(0xFF1A1A1A);
 
   final sentinel = AppPalette.light.copyWith(
     surface: surface,
@@ -85,6 +86,7 @@ void main() {
     success: success,
     error: error,
     borderFocused: borderFocused,
+    mediaControlOutline: mediaControlOutline,
   );
 
   Future<void> pump(WidgetTester tester, Widget home) async {
@@ -123,7 +125,9 @@ void main() {
 
   group('ExerciseVideoHeader: media roles, not page roles', () {
     testWidgets('videoSurface ground, onMedia text and pill, mediaControl '
-        'discs, onMediaControl glyph', (tester) async {
+        'discs, mediaControlOutline ring, onMediaControl glyph', (
+      tester,
+    ) async {
       await pump(
         tester,
         const Scaffold(
@@ -149,6 +153,17 @@ void main() {
       ).where((m) => m.shape is CircleBorder).toList();
       expect(discs, hasLength(2));
       expect(discs.map((m) => m.color), everyElement(mediaControl));
+
+      // Only the back disc is ringed, and its ring is the media control's
+      // own, not the page's `outline`.
+      final rings = [
+        for (final disc in discs)
+          if ((disc.shape! as CircleBorder).side case final side
+              when side.style != BorderStyle.none)
+            side.color,
+      ];
+      expect(rings, [mediaControlOutline]);
+      expect(rings, isNot(contains(outline)));
       expect(
         tester.widget<Icon>(find.byIcon(Icons.arrow_back)).color,
         onMediaControl,
