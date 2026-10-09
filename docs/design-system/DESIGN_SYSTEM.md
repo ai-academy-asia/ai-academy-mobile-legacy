@@ -22,13 +22,13 @@ The most important rule in this document. Every visual value belongs to exactly 
 | Tier | Lives in | Example |
 |---|---|---|
 | **Global token** | `lib/core/theme/` | `AppColors.blue`, `AppDimens.screenPadding`, `AppTypography.heading` |
-| **Screen/feature-local token** | a `const` at the top of that feature's file | `exerciseBorderColor` (`#D6DBE1`), `exercisePrimaryColor` (`#2970FF`) in `course_learning` |
+| **Screen/feature-local token** | a `const` at the top of that feature's file | `exerciseBorderColor` (`#D6DBE1`) in `course_learning`, kept only for Quiz until it migrates |
 | **Screen-specific exception** | inline, with a comment saying why | the 164.5 × 40 "Continue learning" button on Module List |
 
 **A value is only promoted to a global token when more than one screen genuinely shares it** *and* Figma confirms it is one value, not a coincidence. Two existing screen-local tokens exist precisely because that test was not met:
 
-- `exercisePrimaryColor = #2970FF` vs `AppColors.blue = #296CFF` — close but **not identical**, evidently sampled from two different Figma captures. Kept separate rather than silently treated as the same colour.
-- `exerciseBorderColor = #D6DBE1` vs `AppColors.border = #E4E6EF` — a cooler, lighter grey with no match in the shared palette.
+- Exercise Detail's blue, `#2970FF`, vs `AppColors.blue = #296CFF` — close but **not identical**, evidently sampled from two different Figma captures. Kept separate rather than silently treated as the same colour: it is `AppPalette.accent` / `accentText`, not `primary` (Phase 6b, Issue #268, retired its old local alias `exercisePrimaryColor`).
+- `exerciseBorderColor = #D6DBE1` vs `AppColors.border = #E4E6EF` — a cooler, lighter grey, which is `AppPalette.outline`; Exercise Detail reads the role.
 
 **Do not "clean these up" by merging them into `AppColors`** without Figma confirming they are the same token.
 
@@ -43,7 +43,7 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 The app-wide theme mode is `AppThemeController.instance`, one state for Adult, Junior and Teacher, light only until approved dark values exist.
 
-**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266).** `AppPalette` has 73 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
+**Roles (Phase 2, Issue #256; `iconInk` and `wordmark` in Phase 3, #258; the Adult roles in Phase 5, #262; the Learning Flow roles in Phase 6a, #266; the Exercise Detail roles in Phase 6b, #268).** `AppPalette` has 79 roles. Each role's light value is written **once**, as a role-named constant in `AppColors`.
 - The feature palettes (`HomePalette`, `JuniorPalette`, `PaymentFlowPalette`, `TeacherScheduleColors`, `GradebookColors`, `TeacherPillColors`) and the private constants that used to repeat a literal now **alias** those constants.
 - `color_literal_consolidation_test.dart` fails if a role's value reappears as a literal anywhere else in `lib/`.
 - New code reads `context.palette`; the aliases exist only until Phases 3–8 move their call sites.
@@ -59,7 +59,8 @@ The app-wide theme mode is `AppThemeController.instance`, one state for Adult, J
 | Status | `error` `#E5484D` · `errorInk` `#DC3412` · `errorFill` `#FFF5F5` · `errorOutline` `#EF4444` · `success` `#22A06B` · `successInk` `#009951` · `successFill` `#EBFFEE` · `successOutline` `#14AE5C` · `successLabel` `#14AE5C` (a status pill's label drawn in its outline green; text, so its own role) · `successFillStrong` `#CCEBDC` · `warning` `#F0A22E` · `warningFill` `#FFFAE5` · `warningOutline` `#EBA611` · `infoInk` `#0D99FF` · `infoFill` `#E5F4FF` |
 | Overlays | `barrier` black 60 % · `sheetHandle` `#DBDBDC` · `shadow` black 10 % · `shadowSubtle` black 8 % |
 | Adult | `accentOutline` `#155EEF` (Payment's next installment) · `timelineConnector` `#BAC5FF` · `textFaint` black 30 % · `textDeep` `#101828` (bank names) · `textStatLabel` `#726D6D` · `attendanceGradientStart` `#175FEF` / `attendanceGradientEnd` `#518BFF` · `surfaceTinted` `#F8FAFF` (cohort card) · `scrim` black 58 % (scanner) |
-| Learning Flow | `learningHeroTint` `#E8F3FF` (Course Module List's header wash) · `surfaceLocked` `#EFEFEF` (a locked module's tile) · `cardDepth` `#EAEDF0` (the flat band under a lifted card) · `outlineFaint` `#EAEDF0` (that card's edge, and the certification panel's) |
+| Learning Flow | `learningHeroTint` `#E8F3FF` (Course Module List's header wash) · `surfaceLocked` `#EFEFEF` (a locked module's tile) · `cardDepth` `#EAEDF0` (the flat band under a lifted card) · `outlineFaint` `#EAEDF0` (that card's edge, the certification panel's and Exercise Detail's tab card) |
+| Exercise Detail | `videoSurface` `#080F35` (the video header, dark in every theme) · `mediaControl` white (its back and play discs) · `onMediaControl` black 90 % (the glyph on a disc) · `mediaControlOutline` `#D6DBE1` (the back disc's ring) · `onMedia` white (text and its pill on the video) · `progressTrack` `#E4E6EF` (an upload/download ring's and bar's track) |
 | Junior | `juniorCard` `#EFF4FF` · `juniorCardBorder` `#D1D3F5` · `juniorMapSky` `#BFD9F8` · `calendarNeutral` `#F2F2F3` · `calendarLesson` `#E5F4FF` · `calendarMissed` `#FFE7E7` |
 | Teacher | `scheduleBand` `#2970FF` · `scheduleHeld` `#EFF4FF` · `scheduleHeldInk` `#787A80` |
 
@@ -68,11 +69,14 @@ Some roles share a light value but stay separate roles, because their meaning (a
 - `juniorCard` / `scheduleHeld`;
 - `accent` / `accentText` / `scheduleBand`;
 - `surface` / `surfaceElevated`;
-- `divider` / `cardDepth` / `outlineFaint` — a rule, a band and an edge.
+- `divider` / `cardDepth` / `outlineFaint` — a rule, a band and an edge;
+- `surface` / `mediaControl` / `onMedia` / `onPrimary` (white) and `textPrimary` / `onMediaControl` — the video's controls and text stay as they are on the always-dark video, whatever the page does;
+- `border` / `progressTrack` — a field's edge and a transfer's track;
+- `outline` / `mediaControlOutline` — a page outline and the ring of a control on the always-dark video.
 
 Different light values are never merged.
 
-Single-use colours (e.g. the Exercise video header `#080F35`, the quiz score `#DD940E`, `statLabel` `#726D6D`, the attendance gradient) stay local until their screen migrates.
+Single-use colours (e.g. the quiz score `#DD940E`, `statLabel` `#726D6D`, the attendance gradient) stay local until their screen migrates.
 
 | Token | Value | Role |
 |---|---|---|

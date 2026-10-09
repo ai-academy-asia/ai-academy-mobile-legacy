@@ -37,7 +37,7 @@ abstract final class AppColors {
   static const Color background = Color(0xFFF4F5F7);
 
   /// Fields, buttons and the bottom card sit on this.
-  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surface = _white;
 
   /// Fill of a field that is not accepting input.
   static const Color surfaceMuted = Color(0xFFEFF0F3);
@@ -47,16 +47,16 @@ abstract final class AppColors {
   static const Color surfaceSubtle = Color(0xFFF9FAFB);
 
   /// Resting border of a field, the secondary button and the bottom card.
-  static const Color border = Color(0xFFE4E6EF);
+  static const Color border = _fieldGrey;
 
   /// Border, label and cursor of the field currently being typed into.
   ///
   /// Dark, not blue. Blue is the primary action's colour and nothing else —
   /// a blue focus ring is a Material habit, and the design does not use it.
-  static const Color borderFocused = Color(0xE6000000);
+  static const Color borderFocused = _ink90;
 
   /// Headings, field values, the card title — rgba(0, 0, 0, 0.9).
-  static const Color textPrimary = Color(0xE6000000);
+  static const Color textPrimary = _ink90;
 
   /// Placeholders, resting labels, the card's supporting line and the chevron —
   /// rgba(0, 0, 0, 0.5).
@@ -79,7 +79,7 @@ abstract final class AppColors {
   static const Color disabled = Color(0xFFC9CBDA);
 
   /// Foreground on filled buttons.
-  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onPrimary = _white;
 
   // --- Role values shared across features (Dark Mode Phase 2, Issue #256) --
   //
@@ -91,6 +91,10 @@ abstract final class AppColors {
   // may not share a dark one — `DARK_MODE_DESIGN_PROPOSAL.md`) share a
   // private base here rather than a role.
 
+  static const Color _white = Color(0xFFFFFFFF);
+  static const Color _ink90 = Color(0xE6000000);
+  static const Color _fieldGrey = Color(0xFFE4E6EF);
+  static const Color _outlineGrey = Color(0xFFD6DBE1);
   static const Color _blueTint = Color(0xFFE5F4FF);
   static const Color _blueWash = Color(0xFFEFF4FF);
 
@@ -124,7 +128,7 @@ abstract final class AppColors {
 
   /// The outline of cards, pills, the back button's ring and progress
   /// tracks — darker than [divider], and not [border] (`#E4E6EF`, fields).
-  static const Color outline = Color(0xFFD6DBE1);
+  static const Color outline = _outlineGrey;
 
   /// The outline of the Note and Mentor Feedback cards; Teacher's bar track.
   static const Color outlineSubtle = Color(0xFFE5E7EB);
@@ -243,6 +247,26 @@ abstract final class AppColors {
 
   /// The faint edge of a lifted Learning Flow card.
   static const Color outlineFaint = _lineGrey;
+
+  // Exercise Detail (Dark Mode Phase 6b, Issue #268).
+
+  /// The persistent dark navy of the video header, dark in every theme.
+  static const Color videoSurface = Color(0xFF080F35);
+
+  /// The white discs of the video's back and play controls.
+  static const Color mediaControl = _white;
+
+  /// The glyph on a [mediaControl] disc (black @ 90 %).
+  static const Color onMediaControl = _ink90;
+
+  /// The ring around a [mediaControl] disc — the video's back control.
+  static const Color mediaControlOutline = _outlineGrey;
+
+  /// Text, and its translucent pill, on [videoSurface].
+  static const Color onMedia = _white;
+
+  /// The unfilled track of an upload/download ring and bar.
+  static const Color progressTrack = _fieldGrey;
 
   // Junior.
   static const Color juniorCard = _blueWash;

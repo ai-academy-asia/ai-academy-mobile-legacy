@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
-import 'exercise_text_field.dart' show exerciseBorderColor;
 
-/// The reference's dark navy video placeholder — no thumbnail, no player,
-/// just the badge/play/duration chrome around it. There is no video asset or
-/// playback to wire up yet, so the play button is inert, same reasoning as
-/// `CourseModuleListScreen`'s own not-yet-wired actions.
-const Color _videoBackground = Color(0xFF080F35);
+/// The reference's dark navy video placeholder (`AppPalette.videoSurface`)
+/// — no thumbnail, no player, just the badge/play/duration chrome around it.
+/// There is no video asset or playback to wire up yet, so the play button is
+/// inert, same reasoning as `CourseModuleListScreen`'s own not-yet-wired
+/// actions.
+///
+/// Everything on it reads the media roles, not the page's: the video stays
+/// dark in every theme, so its discs (`mediaControl`), the back disc's ring
+/// (`mediaControlOutline`), their glyphs (`onMediaControl`) and its text
+/// (`onMedia`) must not follow the page's surface, outline and text.
 
 /// 393 x 196: back button, "Live Classroom Recording" badge, a centred play
 /// button, and the duration in the bottom-right corner.
 ///
 /// The back button here is a second copy of `CourseLearningBackButton`'s
-/// visual (white circle, [exerciseBorderColor] outline, soft shadow), not
+/// visual (white circle, grey ring, soft shadow), not
 /// that widget reused directly: `CourseLearningBackButton` lays itself out as
 /// a standalone row above the page (`Padding` + `Align`, vertically centred
 /// in whatever space it is given), whereas here it has to sit at a fixed
@@ -59,11 +63,12 @@ class ExerciseVideoHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    final palette = context.palette;
 
     return SizedBox(
       height: 196,
       child: ColoredBox(
-        color: _videoBackground,
+        color: palette.videoSurface,
         child: Stack(
           children: [
             if (hasVideo) ...[
@@ -82,7 +87,7 @@ class ExerciseVideoHeader extends StatelessWidget {
                 child: Text(
                   durationLabel,
                   style: AppTypography.buttonLabel.copyWith(
-                    color: AppColors.onPrimary,
+                    color: palette.onMedia,
                   ),
                 ),
               ),
@@ -111,15 +116,16 @@ class _RecordingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onMedia = context.palette.onMedia;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
+        color: onMedia.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: AppTypography.badgeLabel.copyWith(color: AppColors.onPrimary),
+        style: AppTypography.badgeLabel.copyWith(color: onMedia),
       ),
     );
   }
@@ -130,18 +136,23 @@ class _VideoBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       label: 'Back',
       child: Material(
-        color: AppColors.surface,
-        shape: const CircleBorder(side: BorderSide(color: exerciseBorderColor)),
-        shadowColor: Colors.black.withValues(alpha: 0.2),
+        color: palette.mediaControl,
+        shape: CircleBorder(
+          side: BorderSide(color: palette.mediaControlOutline),
+        ),
+        // Black @ 20 %, exactly as before: `shadowSubtle`'s hue at this
+        // control's own strength, as `CourseLearningBackButton` does.
+        shadowColor: palette.shadowSubtle.withValues(alpha: 0.2),
         elevation: 2,
         child: InkWell(
           onTap: () => Navigator.of(context).maybePop(),
           customBorder: const CircleBorder(),
-          child: const SizedBox(
+          child: SizedBox(
             width: 40,
             height: 40,
             // A full left arrow with a shaft, not `AppIcons.caretLeft`'s
@@ -149,7 +160,7 @@ class _VideoBackButton extends StatelessWidget {
             child: Icon(
               Icons.arrow_back,
               size: 20,
-              color: AppColors.textPrimary,
+              color: palette.onMediaControl,
             ),
           ),
         ),
@@ -167,9 +178,10 @@ class _PlayButton extends StatelessWidget {
       button: true,
       label: 'Play',
       child: Material(
-        color: AppColors.surface,
+        color: context.palette.mediaControl,
         shape: const CircleBorder(),
-        shadowColor: Colors.black.withValues(alpha: 0.3),
+        // Black @ 30 %: `shadow`'s hue at the play disc's own strength.
+        shadowColor: context.palette.shadow.withValues(alpha: 0.3),
         elevation: 4,
         child: InkWell(
           // Playback is not implemented — see the class doc above.
@@ -193,6 +205,8 @@ class _PlayIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The design's own glyph, in its authored colour: not tinted, since a
+    // same-colour tint still moves edge pixels (see `AppSvgIcon`).
     return SvgPicture.asset('assets/images/course_learning/exercise_play.svg');
   }
 }

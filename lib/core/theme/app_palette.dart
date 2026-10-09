@@ -18,9 +18,11 @@ import 'app_colors.dart';
 ///
 /// Roles that mean different things stay separate even where they share a
 /// light value ([accentSubtle], [infoFill], [calendarLesson]; [juniorCard],
-/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint]), because their
-/// dark values may differ. Light values that differ are never merged
-/// ([border] vs [outline]; the text greys).
+/// [scheduleHeld]; [divider], [cardDepth], [outlineFaint]; [surface],
+/// [mediaControl], [onMedia]; [textPrimary], [onMediaControl]; [border],
+/// [progressTrack]; [outline], [mediaControlOutline]), because their dark
+/// values may differ. Light values that differ are never merged ([border]
+/// vs [outline]; the text greys).
 /// `app_palette_test.dart` holds every role to its legacy constant.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -89,6 +91,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.surfaceLocked,
     required this.cardDepth,
     required this.outlineFaint,
+    required this.videoSurface,
+    required this.mediaControl,
+    required this.onMediaControl,
+    required this.mediaControlOutline,
+    required this.onMedia,
+    required this.progressTrack,
     required this.juniorCard,
     required this.juniorCardBorder,
     required this.juniorMapSky,
@@ -166,6 +174,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     surfaceLocked: AppColors.surfaceLocked,
     cardDepth: AppColors.cardDepth,
     outlineFaint: AppColors.outlineFaint,
+    videoSurface: AppColors.videoSurface,
+    mediaControl: AppColors.mediaControl,
+    onMediaControl: AppColors.onMediaControl,
+    mediaControlOutline: AppColors.mediaControlOutline,
+    onMedia: AppColors.onMedia,
+    progressTrack: AppColors.progressTrack,
     juniorCard: AppColors.juniorCard,
     juniorCardBorder: AppColors.juniorCardBorder,
     juniorMapSky: AppColors.juniorMapSky,
@@ -243,7 +257,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// The light rule between rows and under headers; light progress tracks.
   final Color divider;
 
-  /// Card, pill and back-button outlines; darker progress tracks (`#D6DBE1`).
+  /// Card, pill and back-button outlines, and Exercise Detail's field and
+  /// drop-area edges; darker progress tracks (`#D6DBE1`).
   final Color outline;
 
   /// Note and Mentor Feedback card outlines; Teacher's bar track.
@@ -392,10 +407,37 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// not [divider], which only shares its light value.
   final Color cardDepth;
 
-  /// The faint edge of those lifted cards and of Course Module List's
-  /// certification panel — lighter than [outlineSubtle]. An edge, so not
-  /// [divider] (a rule) or [cardDepth] (a band), which share its light value.
+  /// The faint edge of those lifted cards, of Course Module List's
+  /// certification panel and of Exercise Detail's tab card — lighter than
+  /// [outlineSubtle]. An edge, so not [divider] (a rule) or [cardDepth] (a
+  /// band), which share its light value.
   final Color outlineFaint;
+
+  /// Exercise Detail's video header: a persistent dark media surface, dark
+  /// in every theme — not a page or card surface.
+  final Color videoSurface;
+
+  /// The white discs of the video's back and play controls. Not [surface]:
+  /// a dark theme's surface would turn the discs dark on the dark video.
+  final Color mediaControl;
+
+  /// The glyph on a [mediaControl] disc. Not [textPrimary]: a dark theme's
+  /// light text would vanish on the white disc.
+  final Color onMediaControl;
+
+  /// The ring around a [mediaControl] disc — the video's back control. Not
+  /// [outline], a page role that only shares its light value: the disc and
+  /// the video it sits on stay the same in every theme, so its ring must too.
+  final Color mediaControlOutline;
+
+  /// Text on [videoSurface], and its translucent pill. Not [onPrimary]: the
+  /// video is not a primary-blue surface.
+  final Color onMedia;
+
+  /// The unfilled track of an upload or download ring and bar. Not
+  /// [border] (a field's edge), which only shares its light value; not
+  /// [outline] or [divider], the other tracks' values.
+  final Color progressTrack;
 
   // --- Junior ----------------------------------------------------------------
 
@@ -494,6 +536,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? surfaceLocked,
     Color? cardDepth,
     Color? outlineFaint,
+    Color? videoSurface,
+    Color? mediaControl,
+    Color? onMediaControl,
+    Color? mediaControlOutline,
+    Color? onMedia,
+    Color? progressTrack,
     Color? juniorCard,
     Color? juniorCardBorder,
     Color? juniorMapSky,
@@ -569,6 +617,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     surfaceLocked: surfaceLocked ?? this.surfaceLocked,
     cardDepth: cardDepth ?? this.cardDepth,
     outlineFaint: outlineFaint ?? this.outlineFaint,
+    videoSurface: videoSurface ?? this.videoSurface,
+    mediaControl: mediaControl ?? this.mediaControl,
+    onMediaControl: onMediaControl ?? this.onMediaControl,
+    mediaControlOutline: mediaControlOutline ?? this.mediaControlOutline,
+    onMedia: onMedia ?? this.onMedia,
+    progressTrack: progressTrack ?? this.progressTrack,
     juniorCard: juniorCard ?? this.juniorCard,
     juniorCardBorder: juniorCardBorder ?? this.juniorCardBorder,
     juniorMapSky: juniorMapSky ?? this.juniorMapSky,
@@ -655,6 +709,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
       surfaceLocked: mix(surfaceLocked, other.surfaceLocked),
       cardDepth: mix(cardDepth, other.cardDepth),
       outlineFaint: mix(outlineFaint, other.outlineFaint),
+      videoSurface: mix(videoSurface, other.videoSurface),
+      mediaControl: mix(mediaControl, other.mediaControl),
+      onMediaControl: mix(onMediaControl, other.onMediaControl),
+      mediaControlOutline: mix(mediaControlOutline, other.mediaControlOutline),
+      onMedia: mix(onMedia, other.onMedia),
+      progressTrack: mix(progressTrack, other.progressTrack),
       juniorCard: mix(juniorCard, other.juniorCard),
       juniorCardBorder: mix(juniorCardBorder, other.juniorCardBorder),
       juniorMapSky: mix(juniorMapSky, other.juniorMapSky),

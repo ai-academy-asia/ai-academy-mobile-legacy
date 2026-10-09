@@ -41,7 +41,7 @@ Equally: **do not widen a shared widget's contract for one screen.** That reason
 | `_ResubmitButton` | `course_learning/assignment_tab` | 329 × 44 pill | **Outlined**, with a leading refresh icon — an outlined action, deliberately not primary blue |
 | `_ContinueLearningButton` | `course_learning/module_list` | 164.5 × 40 pill | Sits *beside* a progress bar; blue shadow painted on a wrapping `DecoratedBox` |
 | `_CancelButton` | `course_learning/attachment_card` | 80 × 40 pill | White, bordered |
-| Circular icon button | several | 40 × 40 circle | White, `exerciseBorderColor` outline, soft shadow — back button, play, download, remove, quiz close |
+| Circular icon button | several | 40 × 40 circle | White, `outline` ring, soft shadow — back button, play, download, remove, quiz close. On the video the disc is `mediaControl`, its ring `mediaControlOutline` and its glyph `onMediaControl`, not `surface`/`outline`/`textPrimary` |
 
 **Loading ≠ disabled.** `AppButton` keeps its active colours while loading; only a genuinely unpressable button goes flat. A request in flight should not read as a dead control.
 

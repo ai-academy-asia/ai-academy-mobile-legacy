@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
@@ -9,7 +9,6 @@ import '../course_learning_strings.dart';
 /// content centred, with the accepted-types line under the label.
 const double _height = 125;
 const double _radius = 12;
-const Color _dashColor = AppColors.outline;
 const double _dashLength = 6;
 const double _dashGap = 5;
 
@@ -56,7 +55,7 @@ class AssignmentUploadDropzone extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: CustomPaint(
-          painter: const _DashedBorderPainter(),
+          painter: _DashedBorderPainter(color: context.palette.outline),
           child: SizedBox(
             height: _height,
             width: double.infinity,
@@ -74,7 +73,7 @@ class AssignmentUploadDropzone extends StatelessWidget {
                   style: AppTypography.cardHeading.copyWith(
                     fontSize: _labelSize,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: _labelToTypes),
@@ -82,6 +81,7 @@ class AssignmentUploadDropzone extends StatelessWidget {
                   CourseLearningStrings.uploadFileTypes,
                   style: AppTypography.cardSupporting.copyWith(
                     fontSize: _typesSize,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -97,7 +97,11 @@ class AssignmentUploadDropzone extends StatelessWidget {
 /// solid strokes, and the reference's drop area is dashed, so the outline is
 /// painted rather than declared.
 class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter();
+  const _DashedBorderPainter({required this.color});
+
+  /// The dashes' colour — `AppPalette.outline`, passed in: a painter has no
+  /// context.
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -106,7 +110,7 @@ class _DashedBorderPainter extends CustomPainter {
       const Radius.circular(_radius),
     );
     final paint = Paint()
-      ..color = _dashColor
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -124,5 +128,6 @@ class _DashedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DashedBorderPainter oldDelegate) => false;
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

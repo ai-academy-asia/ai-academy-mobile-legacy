@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
@@ -25,11 +24,9 @@ import 'widgets/exercise_video_header.dart';
 import 'widgets/note_tab.dart';
 import 'widgets/quiz_preview_card.dart';
 
-/// Sampled off the reference frames at 1:1. The page is a shade lighter than
-/// the app-wide [AppColors.background], and the tab card's outline is lighter
-/// than the field outlines inside it (`exerciseBorderColor`).
-const Color _page = AppColors.surfaceSubtle;
-const Color _cardBorder = AppColors.divider;
+// Sampled off the reference frames at 1:1. The page (`surfaceSubtle`) is a
+// shade lighter than the app-wide `pageBackground`, and the tab card's edge
+// (`outlineFaint`) is lighter than the field outlines inside it (`outline`).
 
 /// The Exercise Detail screen — one lesson's content, keyed by [lessonId]
 /// and loaded from `GET /me/lessons/{lesson_id}`.
@@ -180,7 +177,7 @@ class _CourseExerciseDetailScreenState
         navigationBar: context.palette.surfaceSubtle,
       ),
       child: Scaffold(
-        backgroundColor: _page,
+        backgroundColor: context.palette.surfaceSubtle,
         // The reference's video header starts below the status bar, not
         // under it — so the whole body is inset at the top. `bottom: false`
         // keeps the scroll running to the screen's edge.
@@ -202,14 +199,14 @@ class _CourseExerciseDetailScreenState
 
     final exercise = _controller.exercise;
     if (exercise == null) {
-      return const SafeArea(
+      return SafeArea(
         child: Center(
           child: SizedBox(
             width: 28,
             height: 28,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: AppColors.blue,
+              color: context.palette.primary,
             ),
           ),
         ),
@@ -345,10 +342,10 @@ class _ExerciseDetailBody extends StatelessWidget {
                     const SizedBox(height: 32),
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: context.palette.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: _cardBorder,
+                          color: context.palette.outlineFaint,
                           width: AppDimens.borderWidth,
                         ),
                       ),
@@ -530,7 +527,9 @@ class _ErrorView extends StatelessWidget {
                 children: [
                   Text(
                     message,
-                    style: AppTypography.cardSupporting,
+                    style: AppTypography.cardSupporting.copyWith(
+                      color: context.palette.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
