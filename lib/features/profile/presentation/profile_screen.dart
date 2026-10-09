@@ -18,6 +18,8 @@ import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../certificates/domain/certificate_list_repository.dart';
 import '../../certificates/presentation/certificate_screen.dart';
+import '../../contracts/domain/contract_repository.dart';
+import '../../contracts/presentation/contract_screen.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import 'profile_controller.dart';
@@ -49,12 +51,12 @@ const double _editGlyph = 20;
 /// no "Payment receipt" — while sharing its measured parts (the header,
 /// avatar, caption bands, rows, MN/EN control, switch and log-out pill).
 ///
-/// **Every row but the header, Certificate (Issue #155) and Change password
-/// is UI only.** E-Contract, Transaction history, edit profile, Help center,
-/// Term of Service and Privacy Policy have no destination yet, and the language
-/// and notification controls hold local state that nothing else reads — there
-/// is no locale mechanism and no notification-preference endpoint in the app
-/// to hand them to.
+/// **Every row but the header, E-Contract (Issue #294), Certificate (Issue
+/// #155) and Change password is UI only.** Transaction history, edit profile,
+/// Help center, Term of Service and Privacy Policy have no destination yet,
+/// and the language and notification controls hold local state that nothing
+/// else reads — there is no locale mechanism and no notification-preference
+/// endpoint in the app to hand them to.
 ///
 /// **Dark mode shows the app's one theme preference** (Phase 10, Issue
 /// #278): `AppThemeController.preference`, the signed-in account's own,
@@ -79,10 +81,11 @@ const double _editGlyph = 20;
 /// rather than showing anyone else's name. **No invented account data is
 /// drawn** (Issue #223): the frame's join date, the E-Contract status pill
 /// and its count, and the version line have no source — the confirmed
-/// `/auth/me` response carries no join date, no endpoint reports a contract,
-/// and the build's version is not read — so they are left off until one
-/// exists. No confirmed response carries an avatar URL either, so the avatar
-/// is a placeholder disc — the frame's photo is design content, not app data.
+/// `/auth/me` response carries no join date, no confirmed `/me/contracts`
+/// field reports a contract's status, and the build's version is not read —
+/// so they are left off until one exists. No confirmed response carries an
+/// avatar URL either, so the avatar is a placeholder disc — the frame's photo
+/// is design content, not app data.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
@@ -92,6 +95,7 @@ class ProfileScreen extends StatefulWidget {
     this.showBottomNav = true,
     this.certificateRepository,
     this.courseLearningRepository,
+    this.contractRepository,
     this.themeController,
   });
 
@@ -107,6 +111,10 @@ class ProfileScreen extends StatefulWidget {
   /// real API; injected in tests.
   final CertificateListRepository? certificateRepository;
   final CourseLearningRepository? courseLearningRepository;
+
+  /// What the E-Contract row's screen reads (Issue #294). Defaults to the
+  /// real API; injected in tests.
+  final ContractRepository? contractRepository;
 
   /// Whether this screen draws the adult tab bar itself. False inside
   /// `AdultStudentShell`, which owns the one persistent bar (Issue #237).
@@ -203,10 +211,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const ProfileCaption(ProfileStrings.accountSection),
           ProfileGroup(
             rows: [
-              // No contract status or count: no endpoint reports either.
-              const ProfileRow(
+              // The student's contracts (Issue #294). Still no status pill
+              // or count: no confirmed field reports either.
+              ProfileRow(
                 icon: ProfileIcons.eContract,
                 label: ProfileStrings.eContract,
+                onTap: () => ContractScreen.open(
+                  context,
+                  repository: widget.contractRepository,
+                ),
               ),
               // The student's certificates, one per course (Issue #155).
               ProfileRow(

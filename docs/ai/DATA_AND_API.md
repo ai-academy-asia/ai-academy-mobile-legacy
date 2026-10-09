@@ -66,7 +66,7 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 
 **Attendance check-in: endpoint/request confirmed, not called.** Postman (`Student/Attendance/Check in with teacher's QR`) and `mobile_api_v1_1.md` §8 confirm `POST /me/attendance/check-in` with the body `{"token": "<QR token>"}`, the token from the teacher's QR. Their notes say it records `present`, or `late` more than 15 minutes after the start, and is idempotent. Endpoint/request confirmed; response shape not yet verified (Postman holds no response). The app does not call it: the scanner submits nothing, and scanning needs a camera plugin (Issue #202). No backend sends a check-in window: the Junior Home check-in node's open window is the app's own rule from the `GET /cohorts` schedule (a lesson under way: `start_time` ≤ now < `end_time` on a meeting day inside `start_date`…`end_date`), the same rule as Adult Home's attendance action.
 
-**Not read, because not confirmed:** `/me/ledger` `installments` (the verified response had it empty). No endpoint reports an e-contract's signed state or an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no exam figure is worked out from assignment or quiz scores.
+**Not read, because not confirmed:** `/me/ledger` `installments` (the verified response had it empty). No confirmed field reports an e-contract's signed state (`GET /me/contracts` exists, but no item field beyond `id` is verified — §2), and no endpoint reports an exam/quiz result. These are `BACKEND GAP`s, and neither dashboard fills them in: no exam figure is worked out from assignment or quiz scores.
 
 ## 2. Verified to exist, but NOT consumed by the app
 
@@ -99,6 +99,11 @@ Student-facing endpoints confirmed by a request in the Postman collection (`post
 | GET | `/me/invoices` | Bearer; `?limit=` | not yet verified | not integrated |
 | GET | `/me/receipts` | Bearer | not yet verified (documented: eBarimt receipts, `is_temp_mode` = not yet filed) | not integrated |
 | GET | `/me/receipts/{receipt_id}` | Bearer | not yet verified | not integrated |
+| GET | `/me/contracts` | Bearer | **verified live** (developer's Postman call, Adult student, Issue #294): `{"contracts": []}` — only ever seen empty. The collection's test script reads `contracts[i].id`; no other item field (title, course, status, dates) has been seen or documented (`BACKEND GAP`) | **integrated** (Issue #294): `HttpContractRepository.getContracts` reads the envelope and each item's `id` (number or string); the E-Contract screen draws empty / "not shown yet" / error + retry |
+| GET | `/me/contracts/{contract_id}` | Bearer | not yet verified (Postman names it "form, rules, finance") | not integrated (`BACKEND GAP`) |
+| POST | `/me/contracts/{contract_id}/preview` | Bearer; `{"form": {last_name, first_name, register, phone, email, address, final_payment_date (`YYYY-MM-DD`), guardian_relation, guardian_last_name, guardian_first_name, guardian_register}}` (the guardian fields sent as `""` in the example) | not yet verified: an unsigned PDF, but bytes vs a JSON link is `UNKNOWN` | not integrated |
+| POST | `/me/contracts/{contract_id}/sign` | Bearer; the preview's `form`, plus `"agreed": true` and `"signature": "data:image/png;base64,…"` (a drawn signature) | not yet verified | **not called** — it signs a real contract; in-app vs web signing is a `PRODUCT DECISION` |
+| GET | `/me/contracts/{contract_id}/download` | Bearer | not yet verified: the signed PDF, but bytes vs a JSON link (certificates answer `{url, expires_at}`) is `UNKNOWN` | not integrated |
 
 `GET /me/ledger`, in the same Postman folder (`Student/Payments & receipts`), is consumed (§1). Its `installments` element is still an unverified shape (§9).
 
