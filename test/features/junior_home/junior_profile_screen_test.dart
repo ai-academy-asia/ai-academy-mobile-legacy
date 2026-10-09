@@ -74,9 +74,8 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    // The adult frame's light-mode row and edit control are not in the junior
-    // frame.
-    expect(find.text(ProfileStrings.lightMode), findsNothing);
+    // The adult frame's edit control is not in the junior frame. (Its Light
+    // mode row is, since Issue #284 — see role_theme_toggle_test.dart.)
     expect(find.text(ProfileStrings.editProfile), findsNothing);
 
     // Account runs E-Contract, Certificate, Transaction history, Payment

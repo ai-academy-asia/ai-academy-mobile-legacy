@@ -5,6 +5,7 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_theme_controller.dart';
 import '../../../shared/widgets/app_svg_icon.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
@@ -64,9 +65,15 @@ const double _iconToLabel = 9;
 /// Its own screen rather than the adult `ProfileScreen`-with-options: the
 /// frame differs from the adult one in nearly every band — a larger title and
 /// avatar, no edit control, a fourth Account row ("Payment receipt"), no
-/// "1/2" counter on E-Contract, no light-mode row, its own MN/EN control and
-/// switch, rows without a chevron on a grey page, and a full-width log-out
-/// pill.
+/// "1/2" counter on E-Contract, its own MN/EN control and switch, rows
+/// without a chevron on a grey page, and a full-width log-out pill.
+///
+/// **Light mode** (Issue #284) is not in the frame: added at the product
+/// owner's request so a junior is never left in a theme they cannot leave,
+/// in the Adult row's place, from this frame's own row and switch. It shows
+/// and writes the app's one [AppThemeController] preference — on is Light,
+/// off is Dark — exactly as the Adult row does (`PRODUCT DECISION`: design
+/// to confirm placement).
 ///
 /// **Reuse.** The name loads from `GET /auth/me` through the adult Profile's
 /// own [ProfileController] and `CurrentUserRepository`; while it loads or
@@ -95,6 +102,7 @@ class JuniorProfileScreen extends StatefulWidget {
     this.showBottomNav = true,
     this.certificateRepository,
     this.courseLearningRepository,
+    this.themeController,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -114,6 +122,10 @@ class JuniorProfileScreen extends StatefulWidget {
   /// injected in tests.
   final CertificateListRepository? certificateRepository;
   final CourseLearningRepository? courseLearningRepository;
+
+  /// The app's one theme state, which the Light mode row shows and writes.
+  /// Defaults to [AppThemeController.instance]; injected in tests.
+  final AppThemeController? themeController;
 
   @override
   State<JuniorProfileScreen> createState() => _JuniorProfileScreenState();
@@ -214,6 +226,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
   );
 
   Widget _buildBody() {
+    final theme = widget.themeController ?? AppThemeController.instance;
     // A `SingleChildScrollView`, for the reason the adult Profile gives: a
     // fixed, fully-known set of rows whose exact extent one fling must reach.
     return SingleChildScrollView(
@@ -268,6 +281,18 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                 trailing: _LanguageToggle(
                   english: _english,
                   onChanged: (value) => setState(() => _english = value),
+                ),
+              ),
+              _Row(
+                icon: const _RowIcon(ProfileIcons.lightMode),
+                label: JuniorProfileStrings.lightMode,
+                trailing: ListenableBuilder(
+                  listenable: theme,
+                  builder: (context, _) => _Switch(
+                    value: theme.lightModeOn,
+                    onChanged: theme.setLightMode,
+                    semanticLabel: JuniorProfileStrings.lightMode,
+                  ),
                 ),
               ),
               _Row(

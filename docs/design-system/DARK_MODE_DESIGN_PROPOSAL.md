@@ -446,7 +446,7 @@ Before any dark value enters code:
 - [ ] **The decisions in §16.**
 - [ ] **Ideally, Figma frames** for at least one screen per role (Adult Home, Junior Home, Teacher Schedule) plus Profile, so implementation is checked against a frame, not this text.
 
-Since Issue #282 users can choose Dark with Adult Profile's "Light mode" switch. The candidate `AppTheme.dark` (Phase 9, Issue #276) is what they get, through the preference saved and restored since Phase 10 (Issue #278). `AppThemeController.darkThemeApproved` mirrors the first box above, and a test fails if the two disagree.
+Since Issue #282 users can choose Dark with the Profile "Light mode" switch: Adult's first, then Junior's and Teacher's since Issue #284. The candidate `AppTheme.dark` (Phase 9, Issue #276) is what they get, through the preference saved and restored since Phase 10 (Issue #278). `AppThemeController.darkThemeApproved` mirrors the first box above, and a test fails if the two disagree.
 
 ---
 
@@ -589,7 +589,7 @@ Light mode has the same issue today: `border` `#E4E6EF` measures 1.25:1 on white
 - **Field and button edge contrast:** `border`/`outline` at 1.63:1 on `surface`, below the 3:1 non-text guideline for control boundaries (light: 1.25 / 1.39 on white). Design must choose a stronger edge for fields and outlined buttons, another way to identify them, or record a decision. Not compliant as proposed.
 - **Junior map:** the scenery dim (black @ 25 %, §11) is not implemented. Whether nodes keep their light colours or take the candidate's is open. `juniorMutedFill` stands in as `surfaceMuted`'s value: its light value was tried and left the certificate panel's line illegible (light text on a near-white panel).
 - **SVG tinting:** the monochrome icons that go through `AppSvgIcon` follow `iconInk`: Profile rows (Adult, Teacher and, since #282, Junior), the bell, and since #282 the course-material file and download glyphs. The wordmark follows `wordmark`. Multi-colour artwork and the coloured status glyphs draw as authored (§7). The faint lock on locked modules and lessons is legible but quiet; design to confirm.
-- **Theme rows on Junior and Teacher Profile:** there are none, because there are no frames (PRODUCT DECISION). The preference is device-wide, so a Junior or Teacher who signs in after Dark was chosen sees Dark and can't switch it from their own Profile.
+- **Theme rows on Junior and Teacher Profile:** added in Issue #284 at the product owner's request, so no role is left in a theme it can't leave. Neither frame draws the row. It sits where Adult's does (Language → Light mode → Change password) and uses each frame's own row and switch parts. PRODUCT DECISION: design to confirm the placement, or supply updated frames.
 - **Plates and assets (§8):** bank logos, `how_ai_works.svg` and the certificate are not plated.
 - **Shadows:** `shadow`/`shadowSubtle` are transparent, but widgets that apply their own strength (`withValues(alpha: …)`, Phases 3–8) still draw a black lift in dark. Design must say whether that should vanish.
 - **The Mentor Feedback divider** still uses Material's default; in dark that is `AppTheme.dark`'s `outlineVariant`, not `divider` (Issue #268).

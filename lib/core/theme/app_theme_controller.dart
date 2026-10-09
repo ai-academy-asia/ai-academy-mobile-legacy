@@ -50,6 +50,14 @@ class AppThemeController extends ChangeNotifier {
   /// The user's choice, as the Profile row shows it.
   ThemePreference get preference => _preference;
 
+  /// What every role's Profile "Light mode" switch shows (Issue #284): on
+  /// for [ThemePreference.light], off for Dark.
+  bool get lightModeOn => _preference == ThemePreference.light;
+
+  /// The switch's write: on chooses Light, off chooses Dark.
+  Future<bool> setLightMode(bool on) =>
+      setPreference(on ? ThemePreference.light : ThemePreference.dark);
+
   /// Reads the saved preference from [persistence], which later choices are
   /// written to. Called by `main()` before `runApp`.
   ///
