@@ -575,6 +575,22 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 > - **Goldens:** all unchanged.
 > - **`course_learning`** is shared by Adult and Junior and is Phase 6.
 >
+> **Phase 6a done (Issue #266).** The Learning Flow's entry screens read colours only through `context.palette`.
+> - **Scope:** Course Module List, Lesson List, `CourseModuleCard`, `LessonListItem`, and `CertificatePreview` and `CourseProgressCtaRow`, which Certificate also draws.
+> - **Mapped by meaning, not hex:**
+>   - A lifted card's edge is `outlineFaint` and the band under it is `cardDepth`. Only the connector rule between cards is `divider`. All three are `#EAEDF0` in light mode.
+>   - The progress track and the certificate frame use `outline`.
+>   - Spinners use `primary`.
+>   - Baked `AppTypography` colours are supplied at use.
+> - **New roles:** `learningHeroTint`, `surfaceLocked`, `cardDepth` and `outlineFaint`, each pinned to its shipped light value, with no dark value. That makes 73 roles.
+> - **Kept as authored:** the five module accents in `CourseModuleVisuals` are artwork colours (`PRODUCT DECISION`).
+> - **Follow-up:** Certificate's own card edge (Phase 5) still reads `divider` for the same panel edge. Moving it to `outlineFaint` is pixel-neutral, but it is outside this scope.
+> - **Guards:**
+>   - `learning_entry_palette_scope_test.dart` catches direct reads and colour-baking styles.
+>   - `learning_entry_theme_test.dart` proves each role under a sentinel palette.
+> - **Goldens:** all unchanged.
+> - **Next:** 6b (Exercise Detail, Materials/Notes/Assignment) and 6c (Quiz).
+>
 > **Design definition (Issue #254):** [DARK_MODE_DESIGN_PROPOSAL.md](DARK_MODE_DESIGN_PROPOSAL.md) proposes the dark semantic palette, the new roles Phase 2 should add, and per-role (Adult/Junior/Teacher) treatment. Every value is PROPOSED and awaits design approval, which gates Phase 9 only.
 
 
