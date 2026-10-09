@@ -9,6 +9,7 @@ import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
+import '../../notifications/presentation/notification_center.dart';
 import '../data/enrolled_home_dashboard_repository.dart';
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
@@ -54,10 +55,16 @@ class HomeScreen extends StatefulWidget {
     this.clock,
     this.showPaymentPreview = !kReleaseMode,
     this.showBottomNav = true,
+    this.notifications,
   });
 
   /// Defaults to the composition over the real API. Injected in tests.
   final HomeDashboardRepository? repository;
+
+  /// The unread count the header's bell shows, refreshed with the screen's
+  /// own data (Issue #291). Defaults to [NotificationCenter.instance];
+  /// injected in tests.
+  final NotificationCenter? notifications;
 
   /// Decides whether the next lesson is under way. Injected in tests so the
   /// live state does not depend on when the suite happens to run.
@@ -93,8 +100,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (indicator != null) {
       indicator.show();
     } else {
-      _controller.load();
+      _refresh();
     }
+  }
+
+  NotificationCenter get _notifications =>
+      widget.notifications ?? NotificationCenter.instance;
+
+  /// The screen's data and the bell's unread count together (Issue #291):
+  /// a refresh the student asks for should not leave the badge stale.
+  Future<void> _refresh() async {
+    await Future.wait([_controller.load(), _notifications.load()]);
   }
 
   @override
@@ -146,7 +162,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            HomeHeader(onLogoTap: _refreshFromLogo),
+                            HomeHeader(
+                              onLogoTap: _refreshFromLogo,
+                              notifications: widget.notifications,
+                            ),
                             Container(
                               height: AppDimens.borderWidth,
                               color: context.palette.divider,
@@ -181,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
       dashboard: dashboard,
       now: widget.clock?.call() ?? DateTime.now(),
       clock: widget.clock,
-      onRefresh: _controller.load,
+      onRefresh: _refresh,
       refreshIndicatorKey: _refreshIndicator,
       showPaymentPreview: widget.showPaymentPreview,
     );

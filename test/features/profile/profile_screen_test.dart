@@ -403,7 +403,8 @@ void main() {
             .isToggled ==
         Tristate.isTrue;
 
-    testWidgets('the notification switch starts off and flips on tap', (
+    testWidgets('the notification switch is off and inert, announced as '
+        'disabled — no preference endpoint exists (Issue #291)', (
       tester,
     ) async {
       await pumpProfile(tester);
@@ -411,7 +412,16 @@ void main() {
       expect(toggled(tester, ProfileStrings.notification), isFalse);
       await tester.tap(find.bySemanticsLabel(ProfileStrings.notification).last);
       await tester.pumpAndSettle();
-      expect(toggled(tester, ProfileStrings.notification), isTrue);
+      expect(toggled(tester, ProfileStrings.notification), isFalse);
+      expect(
+        tester
+            .getSemantics(
+              find.bySemanticsLabel(ProfileStrings.notification).last,
+            )
+            .flagsCollection
+            .isEnabled,
+        Tristate.isFalse,
+      );
     });
 
     group('dark mode (Issues #252, #288)', () {

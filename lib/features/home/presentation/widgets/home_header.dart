@@ -143,7 +143,9 @@ class _BrandLockup extends StatelessWidget {
 ///
 /// It asks for the count once per session when it first appears
 /// ([NotificationCenter.loadIfNeeded]), so every Home shows it without each
-/// screen loading notifications itself. No frame draws the bell's unread
+/// screen loading notifications itself, and asks again whenever the app
+/// returns to the foreground (Issue #291) — a notification sent while it was
+/// in the background would otherwise not show until the screen is opened. No frame draws the bell's unread
 /// state; the dot is the Notification frame's own 8pt row dot, in the same
 /// blue (a `PRODUCT DECISION`).
 class _NotificationButton extends StatefulWidget {
@@ -158,11 +160,25 @@ class _NotificationButton extends StatefulWidget {
   State<_NotificationButton> createState() => _NotificationButtonState();
 }
 
-class _NotificationButtonState extends State<_NotificationButton> {
+class _NotificationButtonState extends State<_NotificationButton>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.center.loadIfNeeded();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Single-flight: every mounted bell resuming at once is one request.
+    if (state == AppLifecycleState.resumed) widget.center.load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

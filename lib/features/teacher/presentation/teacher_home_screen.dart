@@ -7,6 +7,7 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/widgets/home_header.dart';
+import '../../notifications/presentation/notification_center.dart';
 import '../data/http_teacher_home_repository.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_home_repository.dart';
@@ -35,10 +36,16 @@ class TeacherHomeScreen extends StatefulWidget {
     this.repository,
     this.clock,
     this.showBottomNav = true,
+    this.notifications,
   });
 
   /// Defaults to the real API. Injected in tests.
   final TeacherHomeRepository? repository;
+
+  /// The unread count the header's bell shows, refreshed with the screen's
+  /// own data (Issue #291). Defaults to [NotificationCenter.instance];
+  /// injected in tests.
+  final NotificationCenter? notifications;
 
   /// Decides which day is "today". Injected in tests.
   final DateTime Function()? clock;
@@ -64,8 +71,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     if (indicator != null) {
       indicator.show();
     } else {
-      _controller.load();
+      _refresh();
     }
+  }
+
+  NotificationCenter get _notifications =>
+      widget.notifications ?? NotificationCenter.instance;
+
+  /// The screen's data and the bell's unread count together (Issue #291):
+  /// a refresh the student asks for should not leave the badge stale.
+  Future<void> _refresh() async {
+    await Future.wait([_controller.load(), _notifications.load()]);
   }
 
   @override
@@ -117,7 +133,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            HomeHeader(onLogoTap: _refreshFromLogo),
+                            HomeHeader(
+                              onLogoTap: _refreshFromLogo,
+                              notifications: widget.notifications,
+                            ),
                             Container(
                               height: AppDimens.borderWidth,
                               color: context.palette.divider,
@@ -148,7 +167,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
     return _ClassesView(
       classes: _controller.todaysClasses,
-      onRefresh: _controller.load,
+      onRefresh: _refresh,
       refreshIndicatorKey: _refreshIndicator,
     );
   }

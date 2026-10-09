@@ -136,7 +136,6 @@ class JuniorProfileScreen extends StatefulWidget {
 class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
   // UI-only state — see the class doc.
   bool _english = false;
-  bool _notifications = false;
 
   late final ProfileController _profile;
 
@@ -317,8 +316,11 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                 icon: const _RowIcon(ProfileIcons.notification),
                 label: JuniorProfileStrings.notification,
                 trailing: _Switch(
-                  value: _notifications,
-                  onChanged: (value) => setState(() => _notifications = value),
+                  // No preference endpoint exists (`BACKEND GAP`, Issue
+                  // #291): off and inert, as on Teacher Profile, rather
+                  // than a switch that changes nothing.
+                  value: false,
+                  onChanged: null,
                   semanticLabel: JuniorProfileStrings.notification,
                 ),
               ),
@@ -617,18 +619,23 @@ class _Switch extends StatelessWidget {
   });
 
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null draws the switch unchanged but inert, announced as disabled — as
+  /// the Adult `ProfileSwitch` does.
+  final ValueChanged<bool>? onChanged;
   final String semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final onChanged = this.onChanged;
     return Semantics(
       toggled: value,
+      enabled: onChanged == null ? false : null,
       label: semanticLabel,
       excludeSemantics: true,
       child: GestureDetector(
-        onTap: () => onChanged(!value),
+        onTap: onChanged == null ? null : () => onChanged(!value),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: 44,

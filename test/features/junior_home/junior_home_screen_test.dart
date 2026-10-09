@@ -14,12 +14,14 @@ import 'package:aia_mobile/features/attendance/presentation/attendance_scanner_s
 import 'package:aia_mobile/features/junior_home/data/sample_junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_map_geometry.dart';
 import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_map_path_painter.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
 import 'fake_junior_home_repository.dart';
+import '../notifications/fake_notification_repository.dart';
 
 /// Junior Home against the sample map it ships with.
 ///
@@ -37,6 +39,7 @@ void main() {
     FakeJuniorHomeRepository? repository,
     Size size = const Size(393, 852),
     DateTime? now,
+    NotificationCenter? notifications,
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
     useReducedMotion(tester);
@@ -49,6 +52,7 @@ void main() {
           // After the sample's lesson unless a test says otherwise, so the
           // check-in node never depends on the real clock.
           clock: () => now ?? DateTime(2026, 10, 6, 12),
+          notifications: notifications,
         ),
       ),
     );
@@ -563,6 +567,22 @@ void main() {
       expect(repository.calls, 2);
       expect(find.byType(JuniorHomeScreen), findsOneWidget);
       expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+
+    testWidgets('a tap refreshes the bell\'s unread count too (Issue #291)', (
+      tester,
+    ) async {
+      final notifications = FakeNotificationRepository();
+      final center = NotificationCenter(repository: notifications);
+      await pumpScreen(tester, notifications: center);
+      expect(notifications.feedCalls, 1);
+
+      notifications.notifications = [sampleNotification()];
+      await tester.tap(logo());
+      await tester.pumpAndSettle();
+
+      expect(notifications.feedCalls, 2);
+      expect(center.unreadCount, 1);
     });
 
     testWidgets('taps during a reload do not send more requests, and the map '

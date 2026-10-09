@@ -167,27 +167,24 @@ void main() {
       expect(selected('EN'), isTrue);
     });
 
-    testWidgets('the notification switch starts off and flips on tap', (
+    testWidgets('the notification switch is off and inert, announced as '
+        'disabled — no preference endpoint exists (Issue #291)', (
       tester,
     ) async {
       await pumpScreen(tester);
 
-      bool toggled() =>
-          tester
-              .getSemantics(
-                find.bySemanticsLabel(JuniorProfileStrings.notification).last,
-              )
-              .flagsCollection
-              .isToggled ==
-          Tristate.isTrue;
-      expect(toggled(), isFalse);
+      final label = find.bySemanticsLabel(JuniorProfileStrings.notification);
+      Tristate toggled() =>
+          tester.getSemantics(label.last).flagsCollection.isToggled;
+      Tristate enabled() =>
+          tester.getSemantics(label.last).flagsCollection.isEnabled;
+      expect(toggled(), isNot(Tristate.isTrue));
 
-      await tester.tap(
-        find.bySemanticsLabel(JuniorProfileStrings.notification).last,
-      );
+      await tester.tap(label.last);
       await tester.pumpAndSettle();
 
-      expect(toggled(), isTrue);
+      expect(toggled(), isNot(Tristate.isTrue));
+      expect(enabled(), Tristate.isFalse);
     });
 
     testWidgets('Change password opens the existing change-password screen', (
