@@ -9,6 +9,7 @@ import 'package:aia_mobile/features/contracts/domain/contract_repository.dart';
 import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_screen.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_strings.dart';
+import 'package:aia_mobile/features/contracts/presentation/widgets/contract_card.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_profile_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
@@ -61,7 +62,8 @@ class _FakeContracts implements ContractRepository {
   }) => throw UnimplementedError();
 }
 
-/// The E-Contract screen (Issue #294) and the two Profile rows that open it.
+/// The E-Contract screen's states (Issues #294, #312) and the two Profile
+/// rows that open it. The cards themselves: `contract_list_cards_test.dart`.
 void main() {
   Future<void> pumpScreen(WidgetTester tester, _FakeContracts repository) =>
       tester.pumpWidget(
@@ -92,8 +94,8 @@ void main() {
     expect(find.text(ContractStrings.retry), findsNothing);
   });
 
-  testWidgets('contracts that cannot be drawn show no invented title, status '
-      'or date', (tester) async {
+  testWidgets('a contract with nothing documented still gets a card, with no '
+      'invented title, status or action (Issue #312)', (tester) async {
     await pumpScreen(
       tester,
       _FakeContracts([
@@ -102,10 +104,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(ContractStrings.notShownYet), findsOneWidget);
+    expect(find.byType(ContractCard), findsOneWidget);
     expect(find.text(ContractStrings.empty), findsNothing);
     expect(find.text('12'), findsNothing);
-    expect(find.textContaining('Гэрээ байгуулаагүй'), findsNothing);
+    expect(find.text(ContractStrings.statusSigned), findsNothing);
+    expect(find.text(ContractStrings.statusPending), findsNothing);
+    expect(find.text(ContractStrings.download), findsNothing);
+    expect(find.text(ContractStrings.sign), findsNothing);
   });
 
   testWidgets('a failure shows its message, and retry loads again', (

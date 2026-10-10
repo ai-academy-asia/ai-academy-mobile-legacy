@@ -94,6 +94,12 @@ Practical consequence: **do not hardcode 361.** A widget that fills its parent s
 
 **Avatars are rendered as initials in a blue circle**, not images. No model carries an avatar URL; adding one is new UI, not a field swap.
 
+
+**Contract card (Issue #312).** `ContractCard` (`contracts/presentation/widgets`) is the Figma export `e-contract1.png`'s card, in the same family as Adult Home's `ProgramCard` summary. It reuses that card's wash (`HomeIcons.cardBackground`), `TrackBadge`, `HomeCapsule` and caption/title styles (12 over 18/700).
+- **Layout:** 16 in from the edge; the badge and pill row 24 below the top, with the pill scaled down rather than overflowing on phones narrower than the export. The action is a 44-tall white pill with an `outline` edge and a trailing download glyph or caret, 24 above the bottom. The glyph is always tinted with the label's ink, because the SVG's strokes are hard-coded black and would vanish on the dark button. The pill grows past 44 only for large accessibility text, and its label ellipsises rather than overflow (e.g. 2.0× at 320pt). Disabled, it goes flat (`disabled` edge, `disabledInk` label) and is announced as a disabled button.
+- **Pill colours:** pending is the export's exact `warningFill` / `warningInk`. The signed ink (`#007BE5`) and the pill edges (`#84CAFF`, `#FFE8A3`) have no exact role, so `infoInk`, `accentSubtleOutline` and `warningOutline` at 30% stand in.
+- **Export inconsistency:** the export draws the signed pill 24 tall and the pending one 32 tall; both use the 24-tall `HomeCapsule` here.
+
 ## 5. Navigation chrome
 
 - **`CertificatePreview`** and **`CourseProgressCtaRow`** / **`ContinueLearningButton`** (`course_learning/presentation/widgets`, Issue #155) — moved unchanged out of Course Module List and shared with the Certificate screen. The preview layers `certificate.png` inside `certificate_backround.png` at 329:225, `fieldRadius` corners; `inset` 6 (Module List) or 12 with `outlined` (`AppPalette.outline`, the Certificate frame). The row: an `Expanded` 8pt bar (`accent` on an `outline` track), 13, "N% complete" (14pt, `textTitle`), 31, then the 40pt `accent` pill with its 4pt `primaryDepth` band and `onPrimary` label, width passed in (148 in a 329-wide card) so it sits on x213.
