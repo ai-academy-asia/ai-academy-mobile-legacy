@@ -1,14 +1,14 @@
 /// Where the student stands on one course's certificate — §2.9
 /// `GET /me/courses/{course_slug}/certificate` (Issue #155).
 ///
-/// Only what the app draws is read: the `status`, and for an issued
-/// certificate its `cert_number` (the download key) and `issued_at` (the
-/// "Completed date"). The response's `requirements` list and `verify_url`
-/// are left unread — no design draws them — and eligibility is never
-/// computed here: the status is the server's (§4.2, still subject to
+/// Only what the app draws is read: the `status`, for an issued certificate
+/// its `cert_number` (the download key) and `issued_at` (the "Completed
+/// date"), and `has_file` (Issue #296). The response's `requirements` and
+/// `verify_url` are left unread — no design draws them — and eligibility is
+/// never computed here: the status is the server's (§4.2, still subject to
 /// product sign-off).
 class CourseCertificate {
-  const CourseCertificate({required this.status, this.issued});
+  const CourseCertificate({required this.status, this.issued, this.hasFile});
 
   final CertificateStatus status;
 
@@ -16,7 +16,20 @@ class CourseCertificate {
   /// [CertificateStatus.issued].
   final IssuedCertificate? issued;
 
+  /// `has_file` — whether the certificate's PDF has been uploaded. Issuing
+  /// and the upload are separate admin calls, so a certificate can be issued
+  /// before its file exists. `mobile_api_v1_1.md` says only that
+  /// "certificates carry `has_file`", not where, so it is read inside
+  /// `certificate` or at the top level. Null when neither carries a boolean:
+  /// unknown, and then nothing is assumed.
+  final bool? hasFile;
+
   bool get isIssued => status == CertificateStatus.issued;
+
+  /// Whether Download can be offered: issued with a number to ask for, and
+  /// not reported as missing its file. Only an explicit `has_file: false`
+  /// withholds it.
+  bool get canDownload => issued != null && hasFile != false;
 }
 
 /// The contract's three `status` values, and [unknown] for anything else —

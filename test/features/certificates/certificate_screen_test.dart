@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/certificates/domain/certificate_entry.dart';
 import 'package:aia_mobile/features/certificates/domain/certificate_list_repository.dart';
@@ -268,6 +269,65 @@ void main() {
         Uri.parse('https://files.example.test/cert/TEST-0001.pdf'),
       ]);
       expect(find.byType(SnackBar), findsNothing);
+    });
+
+    group('unavailable (Issue #296)', () {
+      CertificateEntry issued({String? certNumber, bool? hasFile}) =>
+          CertificateEntry(
+            cohortId: 9,
+            cohortName: 'C',
+            courseTitle: 'T',
+            courseSlug: 's',
+            certificate: CourseCertificate(
+              status: CertificateStatus.issued,
+              issued: certNumber == null
+                  ? null
+                  : IssuedCertificate(certNumber: certNumber),
+              hasFile: hasFile,
+            ),
+          );
+
+      Color labelColour(WidgetTester tester) => tester
+          .widget<Text>(find.text(CertificateStrings.download))
+          .style!
+          .color!;
+
+      for (final (name, entry) in [
+        ('has_file: false', issued(certNumber: 'TEST-9', hasFile: false)),
+        ('no cert_number', issued()),
+      ]) {
+        testWidgets('$name: Download is drawn disabled and asks for nothing', (
+          tester,
+        ) async {
+          await pump(tester, _Repo([entry]));
+
+          expect(labelColour(tester), AppPalette.light.disabledInk);
+          expect(
+            tester.getSemantics(downloadButton()),
+            matchesSemantics(isButton: true, hasEnabledState: true),
+          );
+
+          await tester.tap(downloadButton(), warnIfMissed: false);
+          await tester.pumpAndSettle();
+
+          expect(learning.certificateDownloadCalls, isEmpty);
+          expect(opened, isEmpty);
+          expect(find.byType(SnackBar), findsNothing);
+        });
+      }
+
+      testWidgets('has_file: true stays available', (tester) async {
+        await pump(
+          tester,
+          _Repo([issued(certNumber: 'TEST-0001', hasFile: true)]),
+        );
+
+        expect(labelColour(tester), AppPalette.light.textPrimary);
+        await tester.tap(downloadButton());
+        await tester.pumpAndSettle();
+
+        expect(learning.certificateDownloadCalls, ['TEST-0001']);
+      });
     });
 
     testWidgets('is busy while the link is fetched, and a second tap does '

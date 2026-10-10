@@ -4,6 +4,26 @@
 **Issue:** #155 (closed; implemented by PR #245) · **Type:** documentation only. No app or backend code changes.
 **Audience:** engineering manager and backend owner.
 
+## Update — Issue #296 (2026-10-10)
+
+The backend contract files (`course_learning_api_contract_v1.md`, `mobile_api_v1_1.md`) were since read **first-hand**, not through the second-hand records §2 describes. Doing so corrects three points below:
+
+- **G5 is answered by the contract.** §2.9 documents `requirements` as an **object keyed by requirement**, not a list:
+  - `lessons_completed {done, percent}`;
+  - `quizzes_passed {done, passed, required}`;
+  - `payment_cleared {done}`.
+
+  Further entries "can be added … without changing the shape — the client renders the list it gets." What is still missing is the **design** for showing it (Q8).
+- **G4 is partly answered by §0.** "An id that exists but belongs to another course/student answers **404**, not 403." Whether this applies to `cert_number`, which is not an integer id, still needs confirming.
+- **Download is "pre-signed, like §2.4".** §2.4's link is valid for **5 minutes** and needs no auth header (partly answers G6).
+
+**F2 is partly done** (Issue #296):
+- The app reads `has_file`, inside `certificate` first, then at the top level, since where it sits is still Q2.
+- On an explicit `false`, Download is drawn disabled and sends no request. An issued certificate with no `cert_number` gets the same treatment.
+- Still open: what `/download` answers with no file (G2) and a specific message for the student (design).
+
+Nothing here has been verified against the live API (G1 stands).
+
 ---
 
 ## 1. Summary
@@ -78,7 +98,7 @@ One card is drawn per enrolled cohort. A student with N cohorts costs 3 + up to 
 - Any other failure (401, network, 5xx, malformed body) fails the whole list with a Retry button, so an issued certificate is never hidden behind a "Continue learning" card.
 
 **Not read or drawn:**
-- `requirements`, `verify_url` and `has_file`. There is no design for them.
+- `requirements` and `verify_url`. There is no design for them. (`has_file` is read since Issue #296; see the update above.)
 
 **Shown as fixed artwork, not driven by status:**
 - the certificate preview image. It is the same bundled picture for everyone and carries a sample name.
@@ -116,10 +136,10 @@ Severity:
 | # | Gap | Evidence | Severity |
 |---|---|---|---|
 | G1 | **No verified response for either student endpoint.** Postman holds no example responses, and `DATA_AND_API.md` marks both "not yet verified live". The app's parsing rests on the contract text and test fixtures only. | Postman request files have no `response` examples; DATA_AND_API rows 87–88 | **Needed** |
-| G2 | **An issued certificate without a file.** Issuing and uploading the PDF are separate admin calls, so `issued` can come before the file. `has_file` is documented, but what `/download` returns when there's no file (status code, `error` code) isn't documented anywhere this repo can see. Today the app shows Download and, on tap, a generic error. | Admin `POST /admin/certificates`, then `PUT …/file`; #155 gap analysis; PR #245 "file missing surfaces as a download error" | **Blocking**, for a correct message to the student |
+| G2 | **An issued certificate without a file.** Issuing and uploading the PDF are separate admin calls, so `issued` can come before the file. `has_file` is documented, but what `/download` returns when there's no file (status code, `error` code) isn't documented anywhere this repo can see. Since Issue #296, an explicit `has_file: false` draws Download disabled; when `has_file` is absent, a missing file still surfaces as a generic error on tap. | Admin `POST /admin/certificates`, then `PUT …/file`; #155 gap analysis; PR #245 "file missing surfaces as a download error" | **Blocking**, for a correct message to the student |
 | G3 | **Archived certificates.** `DELETE /admin/certificates/{cert_id}` archives one. Its effect on the student's `status`, on `/download` and on `/certificates/verify/{cert_number}` isn't documented. | Postman "Archive certificate"; no matching student-side description | **Needed** |
 | G4 | **Error and access-control contract for the student endpoints.** Not recorded: the response when a student asks for **another student's** `cert_number`, an unknown one, or an archived one, and whether that is 403 or 404 and with which `error` code. The app assumes the contract's general §2 codes (`403 not_enrolled`, `404 course_not_found`) also apply to `/certificate`; that is unconfirmed. | DATA_AND_API; `EnrolledCertificateListRepository` doc | **Needed** (security review and correct messaging) |
-| G5 | **`requirements` item shape.** The contract says the response carries a `requirements` list for the client to render, but the item shape (fields, types, order, localisation) isn't recorded in this repo. No UI can be built without it. | #155 gap analysis; `CourseCertificate` doc ("`requirements` … left unread") | **Needed** before any requirements UI |
+| G5 | **`requirements` item shape.** *Answered by §2.9 (see the update above):* an object keyed by requirement, each with `done` and per-requirement fields. Still open: localised labels for each key, and the order to show them in. No UI can be built without a design. | #155 gap analysis; `CourseCertificate` doc ("`requirements` … left unread") | **Needed** before any requirements UI |
 | G6 | **Download file details.** Upload is PDF ≤ 20 MB. The download link's `Content-Type`, `Content-Disposition` filename and expiry length aren't documented. | Postman upload description; contract `{url, expires_at}` only | Improvement |
 | G7 | **No "my certificates" list.** The app composes 3 + up to 2N calls. It also depends on the **public** `GET /cohorts` still listing ended cohorts; archived cohorts are unknown. A cohort that drops out of `/cohorts` would make an issued certificate vanish from the screen. | §3 above; DATA_AND_API row 56 | Improvement, with a reliability risk |
 | G8 | **`/learning` vs `/certificate` consistency.** Both carry a certificate `status`. Whether they come from the same source, and can never disagree, isn't stated. | §2.1 / §2.9 as recorded | Needed (confirmation only) |
@@ -252,7 +272,7 @@ Each task starts only once its dependency is met.
 | # | Task | Depends on |
 |---|---|---|
 | F1 | Check the app's parsing against the real §2.9 samples and record the result in `DATA_AND_API.md` | R1 |
-| F2 | Read `has_file` and handle a certificate with no file (hide or disable Download, show a specific message) | R2, and design for the message |
+| F2 | Read `has_file` and handle a certificate with no file (hide or disable Download, show a specific message). **Partly done (Issue #296):** read, and Download disabled; the message is pending | R2, and design for the message |
 | F3 | Map the documented certificate error codes to specific messages (archived, not yours, no file) | R3, R4 |
 | F4 | Give `eligible` its own state ("awaiting issuance") if product wants one | Q6, design |
 | F5 | Requirements UI | R5, Q8, design |
