@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:aia_mobile/features/contracts/domain/contract_detail.dart';
 import 'package:aia_mobile/features/contracts/domain/contract_failure.dart';
@@ -14,7 +15,8 @@ import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 ///  * sign — [signed], or [signFailure]; held open while [signGate] is
 ///    unfinished, so a test can act while one is in flight;
 ///  * download — the next of [downloads] (one per call, so each call's link
-///    is its own), or [downloadFailure].
+///    is its own), or [downloadFailure];
+///  * preview — [preview], or [previewFailure].
 class FakeContractRepository implements ContractRepository {
   FakeContractRepository({
     this.contracts = const [],
@@ -25,6 +27,8 @@ class FakeContractRepository implements ContractRepository {
     this.signFailure,
     List<ContractDownload>? downloads,
     this.downloadFailure,
+    this.preview,
+    this.previewFailure,
   }) : downloads = downloads ?? [];
 
   List<StudentContract> contracts;
@@ -47,6 +51,9 @@ class FakeContractRepository implements ContractRepository {
   final List<ContractDownload> downloads;
   ContractFailure? downloadFailure;
 
+  Uint8List? preview;
+  ContractFailure? previewFailure;
+
   /// How many times [getContracts] has been called.
   int callCount = 0;
 
@@ -54,6 +61,7 @@ class FakeContractRepository implements ContractRepository {
   final List<({String id, ContractForm form, bool agreed, String signature})>
   signCalls = [];
   final List<String> downloadCalls = [];
+  final List<({String id, ContractForm form})> previewCalls = [];
 
   @override
   Future<List<StudentContract>> getContracts() async {
@@ -86,6 +94,16 @@ class FakeContractRepository implements ContractRepository {
     if (signGate case final gate?) await gate.future;
     if (signFailure case final failure?) throw failure;
     return signed ?? (throw StateError('no signed detail configured'));
+  }
+
+  @override
+  Future<Uint8List> getContractPreview(
+    String contractId, {
+    required ContractForm form,
+  }) async {
+    previewCalls.add((id: contractId, form: form));
+    if (previewFailure case final failure?) throw failure;
+    return preview ?? (throw StateError('no preview configured'));
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'contract_detail.dart';
 import 'student_contract.dart';
 
@@ -23,6 +25,14 @@ abstract interface class ContractRepository {
     required ContractForm form,
     required bool agreed,
     required String signature,
+  });
+
+  /// `POST /me/contracts/{contract_id}/preview` — the contract PDF filled
+  /// with [form], unsigned and not saved, as validated PDF bytes. Pending
+  /// contracts only: a signed or cancelled one is refused.
+  Future<Uint8List> getContractPreview(
+    String contractId, {
+    required ContractForm form,
   });
 
   /// `GET /me/contracts/{contract_id}/download` — signed contracts only.

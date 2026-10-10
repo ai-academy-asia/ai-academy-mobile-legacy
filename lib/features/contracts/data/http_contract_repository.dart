@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' show HttpHeaders;
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -165,14 +167,40 @@ class HttpContractRepository implements ContractRepository {
     return ContractDownload(url: url, expiresAt: expiresAt);
   }
 
+  /// `POST /me/contracts/{contract_id}/preview` with `{"form": {…}}` — the
+  /// course's contract PDF filled with [form], unsigned. The backend saves
+  /// nothing (`student.preview`), and answers raw `application/pdf`; a
+  /// signed or cancelled contract is `409`. See [contractPdfFrom] for what a
+  /// success must be.
+  @override
+  Future<Uint8List> getContractPreview(
+    String contractId, {
+    required ContractForm form,
+  }) async => contractPdfFrom(
+    await _sendRaw(
+      (headers) => postJsonRaw(
+        client: _client,
+        url: _contractUrl(contractId, '/preview'),
+        headers: {...headers, HttpHeaders.acceptHeader: 'application/pdf'},
+        body: {'form': form.toJson()},
+        timeout: timeout,
+      ),
+    ),
+  );
+
   Uri _contractUrl(String contractId, [String suffix = '']) => _baseUrl.resolve(
     '/me/contracts/${Uri.encodeComponent(contractId)}$suffix',
   );
 
-  /// Sends an authenticated request and answers its body, or throws the
-  /// [ContractFailure] its status and `error` code mean — see
-  /// [contractFailureFor].
+  /// [_sendRaw]'s body, for the JSON calls.
   Future<String> _send(
+    Future<http.Response> Function(Map<String, String> headers) request,
+  ) async => (await _sendRaw(request)).body;
+
+  /// Sends an authenticated request and answers its successful response, or
+  /// throws the [ContractFailure] its status and `error` code mean — see
+  /// [contractFailureFor].
+  Future<http.Response> _sendRaw(
     Future<http.Response> Function(Map<String, String> headers) request,
   ) async {
     if (!_sessionStore.isSignedIn || _sessionStore.isExpired()) {
@@ -194,7 +222,7 @@ class HttpContractRepository implements ContractRepository {
     }
 
     final status = response.statusCode;
-    if (status >= 200 && status < 300) return response.body;
+    if (status >= 200 && status < 300) return response;
     if (status == 401) {
       // A token the backend refused even after renewal: forget it.
       _sessionStore.clear();
@@ -206,6 +234,34 @@ class HttpContractRepository implements ContractRepository {
     throw contractFailureFor(status, response.body);
   }
 }
+
+/// A successful preview's PDF: the response must say `application/pdf`
+/// (parameters such as `; charset` ignored) and its body must start with the
+/// PDF signature `%PDF`. Anything else is the server's fault. The failure
+/// names the content type at most — never the bytes. Public so it can be
+/// tested on its own.
+Uint8List contractPdfFrom(http.Response response) {
+  final contentType = response.headers['content-type'];
+  final mediaType = contentType?.split(';').first.trim().toLowerCase();
+  if (mediaType != 'application/pdf') {
+    throw ContractFailure(
+      ContractFailureKind.server,
+      detail: 'preview: expected application/pdf, got ${mediaType ?? 'none'}',
+    );
+  }
+  final bytes = response.bodyBytes;
+  if (bytes.length < _pdfMagic.length ||
+      !_pdfMagic.indexed.every((entry) => bytes[entry.$1] == entry.$2)) {
+    throw const ContractFailure(
+      ContractFailureKind.server,
+      detail: 'preview: the body is not a PDF',
+    );
+  }
+  return bytes;
+}
+
+/// `%PDF`.
+const List<int> _pdfMagic = [0x25, 0x50, 0x44, 0x46];
 
 /// The failure a non-2xx, non-401 answer means. The body's `error` code
 /// decides when it is one the contract service documents *for that status*;
