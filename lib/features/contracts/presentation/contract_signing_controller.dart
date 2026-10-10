@@ -63,8 +63,17 @@ enum ContractDownloadResult {
 /// it gave one since the field was last edited, otherwise the client's. A
 /// failed sign keeps the whole [ContractFailure] — kind, detail, field
 /// reasons — and `already_signed` reloads the detail so the screen shows the
-/// contract as it now is. Field reasons for keys this client does not know
-/// are kept in [unmatchedServerErrors], not dropped.
+/// contract as it now is. Until a load succeeds after that, the contract is
+/// treated as signed whatever the stale detail says, so a failed reload
+/// cannot make it signable again. Field reasons for keys this client does
+/// not know are kept in [unmatchedServerErrors], not dropped.
+///
+/// **Overlapping requests.** Each [load] takes a generation number, and a
+/// successful [sign] or [dispose] moves the generation on: a load answering
+/// after a newer load, after the contract was signed, or after disposal is
+/// dropped, so an older response never overwrites newer state. Nothing
+/// notifies after [dispose], and an `already_signed` reload is not started
+/// once disposed.
 ///
 /// The shapes behind it are the backend's own source (`docs/
 /// e_contract_api_v1.md`, `fields.py`), not observed live.
@@ -82,6 +91,14 @@ class ContractSigningController extends ChangeNotifier {
   final Future<bool> Function(Uri url) _openUrl;
 
   bool _disposed = false;
+
+  /// Bumped by every [load], a successful [sign] and [dispose]; a load whose
+  /// number is no longer current is dropped.
+  int _generation = 0;
+
+  /// The server said `already_signed`; set until a load succeeds, so the
+  /// stale `pending` detail cannot make the contract signable again.
+  bool _serverReportedSigned = false;
 
   bool _loading = false;
   bool _hasLoadedOnce = false;
@@ -110,10 +127,12 @@ class ContractSigningController extends ChangeNotifier {
   /// The form as the student has it — the detail's, then their edits.
   ContractForm get form => _form;
 
-  /// Whether the contract can be signed now: loaded, `can_sign`, `pending`.
+  /// Whether the contract can be signed now: loaded, `can_sign`, `pending`,
+  /// and not reported `already_signed` since the last successful load.
   bool get canSign {
     final contract = _detail?.contract;
-    return contract != null &&
+    return !_serverReportedSigned &&
+        contract != null &&
         contract.canSign &&
         contract.status == StudentContractStatus.pending;
   }
@@ -154,22 +173,34 @@ class ContractSigningController extends ChangeNotifier {
 
   /// Loads (or reloads) the detail. Its form replaces the edited one, and
   /// earlier server field reasons are cleared — they were about a form that
-  /// is gone.
+  /// is gone. An answer overtaken by a newer load, a successful [sign] or
+  /// [dispose] is dropped (see the class doc).
   Future<void> load() async {
+    if (_disposed) return;
+    final generation = ++_generation;
     _loading = true;
     _loadFailure = null;
     _notify();
+
+    ContractDetail? loaded;
+    ContractFailure? failure;
     try {
-      _adopt(await _repository.getContractDetail(contractId));
-    } on ContractFailure catch (failure) {
-      _loadFailure = failure;
+      loaded = await _repository.getContractDetail(contractId);
+    } on ContractFailure catch (error) {
+      failure = error;
     } catch (error) {
-      _loadFailure = _unexpected(error);
-    } finally {
-      _loading = false;
-      _hasLoadedOnce = true;
-      _notify();
+      failure = _unexpected(error);
     }
+
+    if (generation != _generation) return;
+    if (loaded != null) {
+      _adopt(loaded);
+    } else {
+      _loadFailure = failure;
+    }
+    _loading = false;
+    _hasLoadedOnce = true;
+    _notify();
   }
 
   /// Sets [field] to [value]. A server reason for that field no longer
@@ -209,16 +240,22 @@ class ContractSigningController extends ChangeNotifier {
         agreed: agreed,
         signature: signatureDataUrl(png),
       );
+      // The authoritative state now: any load still in flight began before
+      // it and is dropped when it answers.
+      _generation++;
+      _loading = false;
       _adopt(signed);
       return ContractSignResult.signed;
     } on ContractFailure catch (failure) {
       _signFailure = failure;
       _takeServerErrors(failure);
       if (failure.kind == ContractFailureKind.alreadySigned) {
-        // Signed elsewhere (another device, a retried request): show the
-        // contract as it now is. Still [signing] until the reload lands, so
-        // a tap meanwhile cannot send again against the stale pending detail.
-        await load();
+        // Signed elsewhere (another device, a retried request). Treat it as
+        // signed until a load says otherwise, then show it as it now is.
+        // Still [signing] until the reload lands, so a tap meanwhile cannot
+        // send again; a failed reload keeps the guard and its loadFailure.
+        _serverReportedSigned = true;
+        if (!_disposed) await load();
       }
       return ContractSignResult.failed;
     } catch (error) {
@@ -259,6 +296,7 @@ class ContractSigningController extends ChangeNotifier {
   }
 
   void _adopt(ContractDetail detail) {
+    _serverReportedSigned = false;
     _detail = detail;
     _form = detail.form;
     _serverErrors = const {};
@@ -291,6 +329,7 @@ class ContractSigningController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _generation++;
     super.dispose();
   }
 }

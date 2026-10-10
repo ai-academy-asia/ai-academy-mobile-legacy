@@ -361,9 +361,10 @@ void main() {
       await pumpEventQueue();
       expect(repository.detailCalls, ['12', '12']);
       expect(controller.signing, isTrue);
+      // The server has said signed: refused as not signable, before busy.
       expect(
         await controller.sign(png, agreed: true),
-        ContractSignResult.inProgress,
+        ContractSignResult.notSignable,
       );
 
       repository.detailGate!.complete();
@@ -371,6 +372,61 @@ void main() {
       expect(repository.signCalls, hasLength(1));
       expect(controller.canSign, isFalse);
     });
+
+    test('already_signed then a failed reload: still not signable, and a '
+        'second sign sends nothing (review #307)', () async {
+      await loadAndComplete();
+      repository
+        ..signFailure = const ContractFailure(ContractFailureKind.alreadySigned)
+        ..detailFailure = const ContractFailure(
+          ContractFailureKind.network,
+          detail: 'offline',
+        );
+
+      expect(
+        await controller.sign(png, agreed: true),
+        ContractSignResult.failed,
+      );
+
+      // The reload failed and its failure is kept for the screen …
+      expect(repository.detailCalls, ['12', '12']);
+      expect(controller.loadFailure?.kind, ContractFailureKind.network);
+      expect(controller.loadFailure?.detail, 'offline');
+      // … but the stale pending detail does not make it signable again.
+      expect(controller.detail?.contract.status, StudentContractStatus.pending);
+      expect(controller.canSign, isFalse);
+
+      expect(
+        await controller.sign(png, agreed: true),
+        ContractSignResult.notSignable,
+      );
+      expect(repository.signCalls, hasLength(1));
+    });
+
+    test(
+      'the already_signed guard clears only after a load succeeds',
+      () async {
+        await loadAndComplete();
+        repository
+          ..signFailure = const ContractFailure(
+            ContractFailureKind.alreadySigned,
+          )
+          ..detailFailure = const ContractFailure(ContractFailureKind.network);
+        await controller.sign(png, agreed: true);
+        expect(controller.canSign, isFalse);
+
+        // Another failed load keeps it.
+        await controller.load();
+        expect(controller.canSign, isFalse);
+
+        // A successful load is authoritative — here pending and signable again
+        // (as after a staff reset).
+        repository.detailFailure = null;
+        await controller.load();
+        expect(controller.loadFailure, isNull);
+        expect(controller.canSign, isTrue);
+      },
+    );
 
     for (final failure in const [
       ContractFailure(
@@ -447,6 +503,123 @@ void main() {
       );
       expect(controller.signFailure, isNull);
       expect(repository.signCalls, hasLength(2));
+    });
+  });
+
+  group('overlapping requests (review #307)', () {
+    test(
+      'a load that answers after a successful sign cannot undo it',
+      () async {
+        await loadAndComplete();
+        repository
+          ..signed = signedDetail
+          ..signGate = Completer<void>()
+          ..detailGate = Completer<void>();
+
+        final signing = controller.sign(png, agreed: true);
+        // e.g. pull-to-refresh while signing; it will answer the stale pending
+        // detail.
+        final reloading = controller.load();
+
+        repository.signGate!.complete();
+        expect(await signing, ContractSignResult.signed);
+        expect(
+          controller.detail?.contract.status,
+          StudentContractStatus.signed,
+        );
+
+        repository.detailGate!.complete();
+        await reloading;
+
+        expect(
+          controller.detail?.contract.status,
+          StudentContractStatus.signed,
+        );
+        expect(controller.canSign, isFalse);
+        expect(controller.loading, isFalse);
+        expect(repository.detailCalls, ['12', '12']);
+      },
+    );
+
+    test(
+      'of two overlapping loads, only the newer one\'s answer counts',
+      () async {
+        repository.detailGate = Completer<void>();
+        final older = controller.load();
+
+        // The second load is answered at once with a signed detail; the older
+        // one, still held, will answer the stale pending one after it.
+        final olderGate = repository.detailGate!;
+        repository
+          ..detailGate = null
+          ..detail = signedDetail;
+        await controller.load();
+        expect(
+          controller.detail?.contract.status,
+          StudentContractStatus.signed,
+        );
+
+        repository.detail = pending();
+        olderGate.complete();
+        await older;
+
+        expect(
+          controller.detail?.contract.status,
+          StudentContractStatus.signed,
+        );
+        expect(controller.loading, isFalse);
+      },
+    );
+  });
+
+  group('disposal (review #307)', () {
+    test('an already_signed answer after dispose starts no reload and '
+        'notifies nothing', () async {
+      final c = ContractSigningController(
+        contractId: '12',
+        repository: repository,
+      );
+      await c.load();
+      c
+        ..updateField(ContractFormField.register, 'УБ12345678')
+        ..updateField(ContractFormField.address, 'Улаанбаатар');
+      repository
+        ..signFailure = const ContractFailure(ContractFailureKind.alreadySigned)
+        ..signGate = Completer<void>();
+
+      final signing = c.sign(png, agreed: true);
+      c.dispose(); // notifying after this would throw in debug builds
+
+      repository.signGate!.complete();
+      expect(await signing, ContractSignResult.failed);
+      expect(repository.detailCalls, ['12']); // the first load only
+    });
+
+    test('a load that answers after dispose is dropped quietly', () async {
+      final c = ContractSigningController(
+        contractId: '12',
+        repository: repository,
+      );
+      repository.detailGate = Completer<void>();
+
+      final loading = c.load();
+      c.dispose();
+      repository.detailGate!.complete();
+      await loading;
+
+      expect(c.detail, isNull);
+    });
+
+    test('load after dispose asks for nothing', () async {
+      final c = ContractSigningController(
+        contractId: '12',
+        repository: repository,
+      );
+      c.dispose();
+
+      await c.load();
+
+      expect(repository.detailCalls, isEmpty);
     });
   });
 
