@@ -108,22 +108,39 @@ void main() {
     expect(progress.nextLesson, isNull);
   });
 
-  test('BACKEND GAPS: no contract, no exam figure — ever', () async {
-    final progress = (await repository(
-      HomeDashboard(
-        program: sampleProgram(schedule: windowed),
-        stats: const [
-          AttendanceStat(
-            AttendanceSummary(attended: 0, total: 0, percent: 0),
-            layout: HomeStatLayout.row,
-          ),
-        ],
-      ),
-    ).getProgress())!;
+  test(
+    'the dashboard\'s unsigned contract passes through (Issue #300)',
+    () async {
+      final progress = (await repository(
+        HomeDashboard(
+          program: sampleProgram(schedule: windowed),
+          contract: const ContractStatus(signed: false),
+        ),
+      ).getProgress())!;
 
-    expect(progress.contract, isNull);
-    expect(progress.examPercent, isNull);
-  });
+      expect(progress.contract?.signed, isFalse);
+    },
+  );
+
+  test(
+    'no contract without one on the dashboard; no exam figure — ever (BACKEND GAP)',
+    () async {
+      final progress = (await repository(
+        HomeDashboard(
+          program: sampleProgram(schedule: windowed),
+          stats: const [
+            AttendanceStat(
+              AttendanceSummary(attended: 0, total: 0, percent: 0),
+              layout: HomeStatLayout.row,
+            ),
+          ],
+        ),
+      ).getProgress())!;
+
+      expect(progress.contract, isNull);
+      expect(progress.examPercent, isNull);
+    },
+  );
 
   group('calendar', () {
     test('this month, today selected', () async {

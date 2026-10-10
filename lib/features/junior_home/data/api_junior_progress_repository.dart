@@ -25,8 +25,9 @@ import '../domain/junior_progress_repository.dart';
 ///    sessions (`AttendanceSummary.missedDates`) as missed, and the days of
 ///    attended sessions (`AttendanceSummary.attendedDates`) as attended.
 ///
-/// What the API does not report stays out (see `JuniorProgress`): the
-/// contract banner and the exam result.
+/// The contract banner is the dashboard's contract, passed through (Issue
+/// #300). What the API does not report stays out (see `JuniorProgress`):
+/// the exam result.
 class ApiJuniorProgressRepository implements JuniorProgressRepository {
   ApiJuniorProgressRepository({
     HomeDashboardRepository? dashboard,

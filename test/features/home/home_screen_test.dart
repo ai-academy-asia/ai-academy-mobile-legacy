@@ -10,6 +10,8 @@ import 'package:aia_mobile/features/home/presentation/payment_screen.dart';
 import 'package:aia_mobile/features/home/presentation/payment_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/attendance_card.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/contract_banner.dart';
+import 'package:aia_mobile/features/contracts/presentation/contract_screen.dart';
+import 'package:aia_mobile/features/contracts/presentation/contract_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/payment_card.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/program_card.dart';
@@ -24,6 +26,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_home_dashboard_repository.dart';
+import '../contracts/fake_contract_repository.dart';
 import '../notifications/fake_notification_repository.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
@@ -64,6 +67,7 @@ void main() {
     Map<String, WidgetBuilder> routes = const {},
     bool showPaymentPreview = true,
     NotificationCenter? notifications,
+    FakeContractRepository? contracts,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -77,6 +81,7 @@ void main() {
           clock: () => now ?? beforeLesson,
           showPaymentPreview: showPaymentPreview,
           notifications: notifications,
+          contractRepository: contracts,
         ),
         routes: routes,
       ),
@@ -318,6 +323,29 @@ void main() {
 
       expect(find.byType(ContractBanner), findsOneWidget);
       expect(find.text(HomeStrings.contractTitle), findsOneWidget);
+    });
+
+    testWidgets('tapping it opens the E-Contract screen (Issue #300)', (
+      tester,
+    ) async {
+      final contracts = FakeContractRepository();
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(
+            program: sampleProgram(),
+            contract: const ContractStatus(signed: false),
+          ),
+        ),
+        contracts: contracts,
+      );
+
+      await tester.tap(find.byType(ContractBanner));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContractScreen), findsOneWidget);
+      expect(contracts.callCount, 1);
+      expect(find.text(ContractStrings.empty), findsOneWidget);
     });
 
     testWidgets('says nothing once it is signed', (tester) async {

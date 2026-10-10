@@ -5,6 +5,8 @@ import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/contracts/domain/contract_failure.dart';
+import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
@@ -18,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../attendance/fake_attendance_repository.dart';
 import '../cohorts/fake_cohort_repository.dart';
+import '../contracts/fake_contract_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
@@ -57,6 +60,7 @@ void main() {
     FakeCourseLearningRepository? courseLearning,
     FakeLedgerRepository? ledger,
     FakeAttendanceRepository? attendance,
+    FakeContractRepository? contracts,
     DateTime? now,
   }) => EnrolledHomeDashboardRepository(
     enrolledCohorts: FakeEnrolledCohortsRepository(enrolledCohorts: enrolled),
@@ -69,6 +73,7 @@ void main() {
     courseLearning: courseLearning ?? unavailableLearning(),
     ledger: ledger ?? unavailableLedger(),
     attendance: attendance ?? unavailableAttendance(),
+    contracts: contracts ?? FakeContractRepository(),
     clock: () => now ?? DateTime(2026, 8, 10, 9),
   );
 
@@ -288,6 +293,91 @@ void main() {
 
       expect(dashboard.isEmpty, isTrue);
       expect(learning.calls, isEmpty);
+    });
+  });
+
+  group('contract (Issue #300)', () {
+    Future<HomeDashboard> dashboardWith(FakeContractRepository contracts) =>
+        repository(
+          enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+          cohorts: [sampleCohort(id: 1)],
+          contracts: contracts,
+        ).getDashboard();
+
+    const pending = StudentContract(
+      status: StudentContractStatus.pending,
+      canSign: true,
+      isCurrent: true,
+    );
+    const signed = StudentContract(
+      status: StudentContractStatus.signed,
+      isCurrent: true,
+    );
+    const cancelled = StudentContract(status: StudentContractStatus.cancelled);
+
+    test('a signable pending contract is unsigned', () async {
+      final contracts = FakeContractRepository(contracts: [signed, pending]);
+      final dashboard = await dashboardWith(contracts);
+
+      expect(dashboard.contract?.signed, isFalse);
+      expect(contracts.callCount, 1);
+    });
+
+    test('with none signable, the newest current one — signed', () async {
+      final dashboard = await dashboardWith(
+        FakeContractRepository(contracts: [cancelled, signed]),
+      );
+
+      expect(dashboard.contract?.signed, isTrue);
+    });
+
+    test('only cancelled contracts: nothing to report', () async {
+      final dashboard = await dashboardWith(
+        FakeContractRepository(contracts: [cancelled]),
+      );
+
+      expect(dashboard.contract, isNull);
+    });
+
+    test('no contracts: nothing to report', () async {
+      expect((await dashboardWith(FakeContractRepository())).contract, isNull);
+    });
+
+    test('a selected contract with a status this build does not know is '
+        'not read as unsigned', () async {
+      final dashboard = await dashboardWith(
+        FakeContractRepository(
+          contracts: const [StudentContract(canSign: true, isCurrent: true)],
+        ),
+      );
+
+      expect(dashboard.contract, isNull);
+    });
+
+    test(
+      'a failed contract call leaves the banner off, not the dashboard',
+      () async {
+        final dashboard = await dashboardWith(
+          FakeContractRepository(
+            failure: const ContractFailure(ContractFailureKind.server),
+          ),
+        );
+
+        expect(dashboard.contract, isNull);
+        expect(dashboard.program, isNotNull);
+      },
+    );
+
+    test('is not requested when the student is enrolled nowhere', () async {
+      final contracts = FakeContractRepository(contracts: [pending]);
+      final dashboard = await repository(
+        enrolled: const [],
+        cohorts: [sampleCohort(id: 1)],
+        contracts: contracts,
+      ).getDashboard();
+
+      expect(dashboard.isEmpty, isTrue);
+      expect(contracts.callCount, 0);
     });
   });
 
@@ -693,6 +783,7 @@ void main() {
           failure: const ApiFailure(ApiFailureKind.server),
         ),
         currentUser: FakeCurrentUserRepository(),
+        contracts: FakeContractRepository(),
       ).getDashboard();
 
       expect(dashboard.program, isNotNull);

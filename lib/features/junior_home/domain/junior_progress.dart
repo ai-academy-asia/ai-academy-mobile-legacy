@@ -9,8 +9,10 @@ import '../../home/domain/lesson_schedule.dart';
 /// Home. **Every backend section is nullable, and the screen leaves out what
 /// is null** rather than drawing a stand-in value:
 ///
-///  * [contract] — always null today. No endpoint reports whether a student
-///    signed an e-contract (BACKEND GAP), so the banner does not draw.
+///  * [contract] — the adult dashboard's: `GET /me/contracts` by the
+///    backend's selection rule (Issue #300). Null when no current contract
+///    is selected, its status is neither `pending` nor `signed`, or the
+///    call failed; only an unsigned one draws the banner.
 ///  * [payment] — `GET /me/ledger`, by the adult dashboard's rule: null when
 ///    nothing is owed, no due date is set, or the call failed.
 ///  * [attendance] — `GET /me/attendance` `summary`; null when the call

@@ -7,6 +7,9 @@ import '../../cohorts/data/http_cohort_repository.dart';
 import '../../cohorts/domain/cohort.dart';
 import '../../cohorts/domain/cohort_course_resolver.dart';
 import '../../cohorts/domain/cohort_repository.dart';
+import '../../contracts/data/http_contract_repository.dart';
+import '../../contracts/domain/contract_repository.dart';
+import '../../contracts/domain/student_contract.dart';
 import '../../course_learning/data/http_course_learning_repository.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../courses/data/http_course_repository.dart';
@@ -64,15 +67,17 @@ import '../domain/lesson_schedule.dart';
 /// side-by-side tiles; a card on its own is drawn as a full-width row,
 /// never as a lone half-width tile.
 ///
-/// ## What is deliberately missing
+/// **The e-contract warning** (Issue #300) comes from `GET /me/contracts`,
+/// best-effort like the cards: a failed call leaves
+/// [HomeDashboard.contract] null and the banner off, never the screen. The
+/// contract is chosen by the backend's own rule ([selectNoticeContract]:
+/// newest signable, else newest current), and only a `pending` one reads as
+/// unsigned — the banner's copy says the contract is not signed, and no
+/// design draws any other state. The item fields and the rule come from the
+/// backend's source (`docs/e_contract_api_v1.md`), not from a non-empty live
+/// response, which has not been seen.
 ///
-/// The e-contract warning. **No confirmed field reports whether this student
-/// signed a contract** — `Course.hasContractTemplate` and the course-level
-/// `/courses/{id}/templates/contract` say a template exists, and
-/// `GET /me/contracts` has been verified only as an envelope with item `id`s
-/// (Issue #294) — so [HomeDashboard.contract] stays null and the banner does
-/// not draw. It is set here the day a source exists; nothing above this class
-/// changes.
+/// ## What is deliberately missing
 ///
 /// The module count is missing only when the learning call fails: the
 /// `/me/cohorts` fallback names a percentage, not a count, so
@@ -86,6 +91,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     CourseLearningRepository? courseLearning,
     LedgerRepository? ledger,
     AttendanceRepository? attendance,
+    ContractRepository? contracts,
     DateTime Function()? clock,
   }) : _enrolledCohorts = enrolledCohorts ?? HttpEnrolledCohortsRepository(),
        _cohorts = cohorts ?? HttpCohortRepository(),
@@ -94,6 +100,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
        _courseLearning = courseLearning ?? HttpCourseLearningRepository(),
        _ledger = ledger ?? HttpLedgerRepository(),
        _attendance = attendance ?? HttpAttendanceRepository(),
+       _contracts = contracts ?? HttpContractRepository(),
        _clock = clock ?? DateTime.now;
 
   final EnrolledCohortsRepository _enrolledCohorts;
@@ -103,6 +110,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   final CourseLearningRepository _courseLearning;
   final LedgerRepository _ledger;
   final AttendanceRepository _attendance;
+  final ContractRepository _contracts;
   final DateTime Function() _clock;
 
   @override
@@ -143,6 +151,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     final learningProgress = _learningProgress(courseSlug);
     final payment = _paymentStat(cohort.id);
     final attendance = _attendanceSummary(courseSlug);
+    final contract = _contractNotice();
 
     return HomeDashboard(
       program: EnrolledProgram(
@@ -167,8 +176,25 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         nextLesson: nextLessonFor(cohort: cohort, now: _clock()),
         schedule: LessonSchedule.of(cohort),
       ),
+      contract: await contract,
       stats: _stats(await payment, await attendance),
     );
+  }
+
+  /// The banner's contract (see the class doc): [selectNoticeContract]'s
+  /// choice, unsigned only while `pending`, signed once `signed`. Any other
+  /// status, no match, or a failed call is null — no banner.
+  Future<ContractStatus?> _contractNotice() async {
+    try {
+      final selected = selectNoticeContract(await _contracts.getContracts());
+      return switch (selected?.status) {
+        StudentContractStatus.pending => const ContractStatus(signed: false),
+        StudentContractStatus.signed => const ContractStatus(signed: true),
+        _ => null,
+      };
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Payment first, then attendance — the reference's order. Two cards sit
