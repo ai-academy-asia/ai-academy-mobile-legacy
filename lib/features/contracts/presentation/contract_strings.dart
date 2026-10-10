@@ -2,22 +2,28 @@ import '../../notifications/presentation/notification_strings.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../domain/contract_failure.dart';
 
-/// Copy for the E-Contract screen (Issue #294). No Figma frame draws this
-/// screen, so the title is the Profile row's own label and the two state
-/// lines are the app's plain wording (a `PRODUCT DECISION` until a frame
-/// exists).
+/// Copy for the E-Contract screen. The list's title, status pills and
+/// actions are the Figma export's own words (`e-contract1.png`, Issue #312).
+/// The empty line is the app's plain wording — no frame draws an empty list
+/// (a `PRODUCT DECISION` until one does).
 abstract final class ContractStrings {
-  /// The screen's title — the "E-Contract" row that opens it.
-  static const String title = ProfileStrings.eContract;
+  /// The screen's title, as both E-Contract exports draw it.
+  static const String title = 'Гэрээ · E-Contract';
 
   /// `{"contracts": []}`.
   static const String empty = 'Одоогоор гэрээ алга байна';
 
-  /// One or more contracts, none of which can be drawn: no item field beyond
-  /// `id` is documented (`BACKEND GAP`), so neither a title nor a status is
-  /// shown in their place.
-  static const String notShownYet =
-      'Таны гэрээг апп дээр одоогоор харуулах боломжгүй байна';
+  /// A `signed` contract's status pill.
+  static const String statusSigned = 'Гэрээ байгуулсан';
+
+  /// A `pending` contract's status pill.
+  static const String statusPending = 'Гэрээ хийгдээгүй байна';
+
+  /// A signed contract's action — fetches the signed PDF.
+  static const String download = 'Гэрээ татах';
+
+  /// A pending contract's action — leads to signing.
+  static const String sign = 'Гэрээ байгуулах';
 
   static const String retry = NotificationStrings.retry;
 

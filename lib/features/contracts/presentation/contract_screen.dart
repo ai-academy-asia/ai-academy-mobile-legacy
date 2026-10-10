@@ -9,34 +9,47 @@ import '../../../core/theme/app_typography.dart';
 import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../data/http_contract_repository.dart';
 import '../domain/contract_repository.dart';
+import '../domain/student_contract.dart';
 import 'contract_list_controller.dart';
 import 'contract_strings.dart';
+import 'widgets/contract_card.dart';
 
-/// The student's e-contracts (Issue #294), read from `GET /me/contracts`.
+/// The student's e-contracts (Issues #294, #312), read from
+/// `GET /me/contracts` — the Figma export `e-contract1.png`.
 ///
-/// Reached from the "E-Contract" row of both student Profiles — Adult and
-/// Junior — through [ContractScreen.open]. A Junior student is a student in
-/// kids mode on the same student token and `/me/...` endpoints, so both see
-/// the same screen.
+/// Reached from the "E-Contract" row of both student Profiles and from the
+/// Home / Junior Progress contract banner, through [ContractScreen.open]. A
+/// Junior student is a student in kids mode on the same student token and
+/// `/me/...` endpoints, so both see the same screen.
 ///
-/// **No Figma frame draws it.** It is the Certificate and Notification
-/// screens' skeleton — the back button with the title centred on its row, a
-/// loader, and a centred line with a retry on failure — and draws only what
-/// the verified response supports:
+/// **States.** A loader until the list answers; a failure's own line with a
+/// retry (a failure is never shown as an empty list); `{"contracts": []}` —
+/// [ContractStrings.empty], the app's own line (no frame draws an empty
+/// list); otherwise one [ContractCard] per contract, newest first as the API
+/// lists them, 28 under the header and 16 apart, scrolling.
 ///
-///  * `{"contracts": []}` — [ContractStrings.empty];
-///  * one or more contracts — [ContractStrings.notShownYet]. No item field
-///    beyond `id` is documented, so no title, course, status or date is
-///    drawn, and nothing opens a contract: the detail, preview, sign and
-///    download endpoints' responses are not documented (`BACKEND GAP`).
+/// **Actions.** A signed contract's "Гэрээ татах" fetches a fresh link and
+/// opens it outside the app ([ContractListController.download]); a failure,
+/// `not_signed` included, is a SnackBar with the existing copy — never a
+/// success. A pending contract's "Гэрээ байгуулах" calls [onSign] when the
+/// contract `can_sign`; no signing screen exists yet, so it is null and the
+/// action is drawn disabled. Nothing here signs.
 class ContractScreen extends StatefulWidget {
-  const ContractScreen({super.key, this.repository});
+  const ContractScreen({super.key, this.repository, this.openUrl, this.onSign});
 
   /// Defaults to the real API. Injected in tests.
   final ContractRepository? repository;
 
+  /// Opens a download link. Defaults to `openExternalUrl`. Injected in
+  /// tests.
+  final Future<bool> Function(Uri url)? openUrl;
+
+  /// Where a signable contract's "Гэрээ байгуулах" leads. Null until the
+  /// signing screen exists, which leaves the action disabled.
+  final void Function(BuildContext context, StudentContract contract)? onSign;
+
   /// Pushes the screen over [context]'s navigator — what both Profiles'
-  /// "E-Contract" rows do.
+  /// "E-Contract" rows and the contract banner do.
   static Future<void> open(
     BuildContext context, {
     ContractRepository? repository,
@@ -58,6 +71,7 @@ class _ContractScreenState extends State<ContractScreen> {
     super.initState();
     _controller = ContractListController(
       repository: widget.repository ?? HttpContractRepository(),
+      openUrl: widget.openUrl,
     )..load();
   }
 
@@ -114,16 +128,44 @@ class _ContractScreenState extends State<ContractScreen> {
         ),
       );
     }
-    return _Message(
-      message: _controller.contracts.isEmpty
-          ? ContractStrings.empty
-          : ContractStrings.notShownYet,
+    final contracts = _controller.contracts;
+    if (contracts.isEmpty) {
+      return const _Message(message: ContractStrings.empty);
+    }
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(
+        AppDimens.screenPadding,
+        _headerToCard,
+        AppDimens.screenPadding,
+        AppDimens.screenPadding + MediaQuery.paddingOf(context).bottom,
+      ),
+      itemCount: contracts.length,
+      separatorBuilder: (_, _) => const SizedBox(height: _cardGap),
+      itemBuilder: (context, index) {
+        final contract = contracts[index];
+        final id = contract.id;
+        final onSign = widget.onSign;
+        return ContractCard(
+          contract: contract,
+          downloading: id != null && _controller.isDownloading(id),
+          onDownload: id == null ? null : () => _download(id),
+          onSign: onSign == null ? null : () => onSign(context, contract),
+        );
+      },
     );
+  }
+
+  Future<void> _download(String contractId) async {
+    final error = await _controller.download(contractId);
+    if (error == null || !mounted) return;
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(error)));
   }
 }
 
-/// The back button with "E-Contract" centred on its row — the Certificate
-/// and Notification screens' header.
+/// The back button with "Гэрээ · E-Contract" centred on its row — the
+/// export's header, the Certificate and Notification screens' layout.
 class _Header extends StatelessWidget {
   const _Header();
 
@@ -181,6 +223,11 @@ class _Message extends StatelessWidget {
 
 /// `CourseLearningBackButton`'s own inset above the circle.
 const double _backButtonTop = 12;
+
+/// The back button's bottom to the first card, and card to card — measured
+/// off `e-contract1.png` (the Certificate list's 28 above the first card).
+const double _headerToCard = 28;
+const double _cardGap = 16;
 
 const TextStyle _titleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
