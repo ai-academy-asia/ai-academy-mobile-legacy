@@ -1377,6 +1377,8 @@ int? _continueId(Object? value, String key) {
 
 /// §2.9's certificate response: `status` (required), and the issued
 /// `certificate` object's `cert_number` and `issued_at` when it is present.
+/// `has_file` is read inside `certificate` first, then at the top level — its
+/// place is not documented (Issue #296); anything but a boolean is unknown.
 ///
 /// A status this build does not know reads as [CertificateStatus.unknown],
 /// never as issued. An issued status without a readable `certificate`
@@ -1396,7 +1398,9 @@ CourseCertificate _certificateFromBody(String body) {
 
   final certificate = decoded['certificate'];
   IssuedCertificate? issued;
+  bool? hasFile;
   if (certificate is Map<String, dynamic>) {
+    if (certificate['has_file'] case final bool value) hasFile = value;
     final certNumber = certificate['cert_number'];
     final issuedAt = certificate['issued_at'];
     if (certNumber is String && certNumber.isNotEmpty) {
@@ -1407,9 +1411,12 @@ CourseCertificate _certificateFromBody(String body) {
     }
   }
 
+  if (decoded['has_file'] case final bool value) hasFile ??= value;
+
   return CourseCertificate(
     status: CertificateStatus.fromApi(status),
     issued: issued,
+    hasFile: hasFile,
   );
 }
 

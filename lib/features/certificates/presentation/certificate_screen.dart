@@ -191,7 +191,11 @@ class _CertificateScreenState extends State<CertificateScreen> {
           entry: entry,
           downloading:
               certNumber != null && _controller.isDownloading(certNumber),
-          onDownload: certNumber == null ? null : () => _download(certNumber),
+          // Withheld without a number, or when the file is reported missing
+          // (`has_file: false`, Issue #296) — a tap could only fail.
+          onDownload: certNumber == null || !entry.certificate.canDownload
+              ? null
+              : () => _download(certNumber),
           onContinue: () => _continueLearning(entry.courseSlug),
         );
       },
@@ -327,18 +331,28 @@ class _CertificateCard extends StatelessWidget {
 /// The outlined Download pill: white, the border grey, the download glyph
 /// lesson materials use beside the label. Busy while its link is fetched,
 /// and inert then — a second tap does nothing.
+///
+/// **Unavailable** (no [onPressed]) it goes flat the way `AppButton`'s
+/// outlined variant does — the edge in `AppPalette.disabled`, no ripple —
+/// with the glyph and label in `disabledInk`, the palette's disabled-label
+/// role, which stays legible in Dark where `disabled` (a fill) does not. It
+/// never looks pressable while it is not (Issue #296). Busy is not
+/// unavailable: it keeps its colours.
 class _DownloadButton extends StatelessWidget {
   const _DownloadButton({required this.downloading, required this.onPressed});
 
   final bool downloading;
 
-  /// Null when the issued certificate carried no number to download with.
+  /// Null when there is nothing to download: the issued certificate carried
+  /// no number, or reported `has_file: false`.
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final available = onPressed != null;
     final shape = StadiumBorder(
-      side: BorderSide(color: context.palette.outline),
+      side: BorderSide(color: available ? palette.outline : palette.disabled),
     );
     // Its own node — one "Download" button to a screen reader, busy or not.
     return Semantics(
@@ -371,12 +385,22 @@ class _DownloadButton extends StatelessWidget {
                           _downloadGlyph,
                           width: _downloadIcon,
                           height: _downloadIcon,
+                          // Tinted only when unavailable: a same-colour tint
+                          // would still move the glyph's edge pixels.
+                          colorFilter: available
+                              ? null
+                              : ColorFilter.mode(
+                                  palette.disabledInk,
+                                  BlendMode.srcIn,
+                                ),
                         ),
                         const SizedBox(width: _iconToLabel),
                         Text(
                           CertificateStrings.download,
                           style: _downloadStyle.copyWith(
-                            color: context.palette.textPrimary,
+                            color: available
+                                ? palette.textPrimary
+                                : palette.disabledInk,
                           ),
                         ),
                       ],

@@ -119,6 +119,73 @@ void main() {
       expect(certificate.issued?.issuedAt, isNull);
     });
 
+    group('has_file (Issue #296) — its place is not documented', () {
+      Future<CourseCertificate> read(Map<String, Object?> body) =>
+          repositoryReturning(body).getCourseCertificate('s');
+
+      test('is read inside certificate', () async {
+        final certificate = await read({
+          'status': 'issued',
+          'certificate': {'cert_number': 'AIAA-1', 'has_file': false},
+        });
+
+        expect(certificate.hasFile, isFalse);
+        expect(certificate.canDownload, isFalse);
+      });
+
+      test('is read at the top level', () async {
+        final certificate = await read({
+          'status': 'issued',
+          'has_file': false,
+          'certificate': {'cert_number': 'AIAA-1'},
+        });
+
+        expect(certificate.hasFile, isFalse);
+        expect(certificate.canDownload, isFalse);
+      });
+
+      test('inside certificate wins over the top level', () async {
+        final certificate = await read({
+          'status': 'issued',
+          'has_file': false,
+          'certificate': {'cert_number': 'AIAA-1', 'has_file': true},
+        });
+
+        expect(certificate.hasFile, isTrue);
+      });
+
+      test('true, absent or not a boolean leaves Download offered', () async {
+        for (final body in [
+          {
+            'status': 'issued',
+            'certificate': {'cert_number': 'AIAA-1', 'has_file': true},
+          },
+          {
+            'status': 'issued',
+            'certificate': {'cert_number': 'AIAA-1'},
+          },
+          {
+            'status': 'issued',
+            'has_file': 'no',
+            'certificate': {'cert_number': 'AIAA-1', 'has_file': 0},
+          },
+        ]) {
+          final certificate = await read(body);
+          expect(certificate.canDownload, isTrue, reason: '$body');
+        }
+      });
+
+      test('no number means nothing to download, whatever has_file says', () {
+        expect(
+          const CourseCertificate(
+            status: CertificateStatus.issued,
+            hasFile: true,
+          ).canDownload,
+          isFalse,
+        );
+      });
+    });
+
     test('a body without a status is the server\'s fault', () async {
       final failure = await failureOf(
         repositoryReturning({
