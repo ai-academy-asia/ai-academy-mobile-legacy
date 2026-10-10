@@ -8,6 +8,8 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../contracts/domain/contract_repository.dart';
+import '../../contracts/presentation/contract_screen.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../notifications/presentation/notification_center.dart';
 import '../data/enrolled_home_dashboard_repository.dart';
@@ -40,14 +42,12 @@ import 'widgets/program_card.dart';
 /// lists them. The `home_screenshot_test.dart` goldens capture all four
 /// frames at their own 393pt width.
 ///
-/// **On the empty sections.** The API has no endpoint for modules,
-/// attendance, payments or contracts, so in the app as it stands only the
-/// cohort card and its lesson draw — those come from `GET /me/cohorts` and
-/// `GET /cohorts`, and the lesson's time and live state are derived from the
-/// cohort's own schedule. The rest is built and tested and stays dark until a
-/// repository can fill it, rather than shipping the reference's sample
-/// figures as if they were this student's. See
-/// `EnrolledHomeDashboardRepository`.
+/// **On the empty sections.** A section whose source did not answer stays
+/// dark rather than shipping the reference's sample figures as if they were
+/// this student's — the cohort card from `GET /me/cohorts` and
+/// `GET /cohorts`, the module count, payment and attendance cards from their
+/// own endpoints, and the contract warning from `GET /me/contracts` (Issue
+/// #300). See `EnrolledHomeDashboardRepository`.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -56,10 +56,15 @@ class HomeScreen extends StatefulWidget {
     this.showPaymentPreview = !kReleaseMode,
     this.showBottomNav = true,
     this.notifications,
+    this.contractRepository,
   });
 
   /// Defaults to the composition over the real API. Injected in tests.
   final HomeDashboardRepository? repository;
+
+  /// What the contract banner's E-Contract screen reads (Issue #300).
+  /// Defaults to the real API; injected in tests.
+  final ContractRepository? contractRepository;
 
   /// The unread count the header's bell shows, refreshed with the screen's
   /// own data (Issue #291). Defaults to [NotificationCenter.instance];
@@ -203,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onRefresh: _refresh,
       refreshIndicatorKey: _refreshIndicator,
       showPaymentPreview: widget.showPaymentPreview,
+      contractRepository: widget.contractRepository,
     );
   }
 }
@@ -216,9 +222,11 @@ class _DashboardView extends StatelessWidget {
     required this.onRefresh,
     required this.refreshIndicatorKey,
     required this.showPaymentPreview,
+    required this.contractRepository,
   });
 
   final HomeDashboard dashboard;
+  final ContractRepository? contractRepository;
   final DateTime now;
 
   /// [HomeScreen.clock], passed on to the attendance screen so its calendar
@@ -255,8 +263,13 @@ class _DashboardView extends StatelessWidget {
             ),
           ),
         ),
+      // An unsigned contract the API reported (Issue #300) — the banner
+      // opens the E-Contract screen, as the Profile row does.
       if (contract != null && !contract.signed)
-        ContractBanner(onTap: noDestinationYet),
+        ContractBanner(
+          onTap: () =>
+              ContractScreen.open(context, repository: contractRepository),
+        ),
       ..._statRows(
         dashboard.stats,
         noDestinationYet,

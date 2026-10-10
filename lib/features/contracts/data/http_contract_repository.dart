@@ -10,25 +10,30 @@ import '../domain/contract_failure.dart';
 import '../domain/contract_repository.dart';
 import '../domain/student_contract.dart';
 
-/// The student contract list (Issue #294):
+/// The student contract list (Issues #294, #300):
 ///
 ///     GET /me/contracts
-///       -> {"contracts": [...]}
+///       -> {"contracts": [{id, contract_number, status, enrollment_id,
+///           course_id, course {id, slug, title {mn, en}, level},
+///           cohort {id, name, start_date, end_date}, created_at,
+///           signed_at, cancelled_at, can_view, can_sign, is_current,
+///           document_url}, ...]}
 ///
-/// From the manager's Postman collection (Student → Contracts). The envelope
-/// was checked live with an Adult student token, which answered
-/// `{"contracts": []}`; no non-empty response has been seen. Each item is
-/// read for its `id` alone — the field the collection's test script reads —
-/// see [StudentContract].
+/// The item shape is the backend's own (`ai-academy-backend`
+/// `docs/e_contract_api_v1.md`, commit `208e1c9`), **not observed live**:
+/// the only production response seen is `{"contracts": []}` (Adult student).
+/// The list is newest first. Calling it is not side-effect free on the
+/// backend: it creates `pending` rows for the student's own eligible
+/// enrollments (`core.sync()`), by design.
 ///
-/// **The envelope is required, the items are not inspected further.** A
-/// missing `contracts` array, or an entry that is not an object, is the
-/// server's fault ([ContractFailureKind.server]). An item without a usable
-/// `id` still counts, so the list's length stays the server's.
+/// **The envelope is required, the fields are lenient.** A missing
+/// `contracts` array, or an entry that is not an object, is the server's
+/// fault ([ContractFailureKind.server]). Inside an entry, a missing or
+/// mistyped field reads as null (false for the flags) — see
+/// [StudentContract] — so the list's length stays the server's.
 ///
-/// The collection's other four contract endpoints — detail, `/preview`,
-/// `/sign` and `/download` — are deliberately not called: their responses
-/// are not documented (`BACKEND GAP`, see `DATA_AND_API.md`).
+/// Detail, `/preview`, `/sign` and `/download` are deliberately not called
+/// (Issue #300's scope; no design for those steps).
 ///
 /// Sent through [AuthenticatedClient.instance], so an expired access token is
 /// renewed and the request retried once; a 401 that survives that ends the
@@ -117,11 +122,58 @@ class HttpContractRepository implements ContractRepository {
           detail: 'contracts[$i]: not an object',
         );
       }
-      contracts.add(StudentContract(id: _id(item['id'])));
+      contracts.add(contractFrom(item));
     }
     return contracts;
   }
 }
+
+/// One contract item, read leniently. Public so the mapping can be tested on
+/// its own.
+StudentContract contractFrom(Map<String, dynamic> json) {
+  final course = json['course'];
+  final cohort = json['cohort'];
+  final title = course is Map<String, dynamic> ? course['title'] : null;
+  return StudentContract(
+    id: _id(json['id']),
+    contractNumber: _string(json['contract_number']),
+    status: StudentContractStatus.fromApi(json['status']),
+    course: course is Map<String, dynamic>
+        ? ContractCourse(
+            id: _int(course['id']),
+            slug: _string(course['slug']),
+            titleMn: title is Map<String, dynamic>
+                ? _string(title['mn'])
+                : null,
+            titleEn: title is Map<String, dynamic>
+                ? _string(title['en'])
+                : null,
+            level: _string(course['level']),
+          )
+        : null,
+    cohort: cohort is Map<String, dynamic>
+        ? ContractCohort(
+            id: _int(cohort['id']),
+            name: _string(cohort['name']),
+            startDate: _time(cohort['start_date']),
+            endDate: _time(cohort['end_date']),
+          )
+        : null,
+    createdAt: _time(json['created_at']),
+    signedAt: _time(json['signed_at']),
+    cancelledAt: _time(json['cancelled_at']),
+    canView: json['can_view'] == true,
+    canSign: json['can_sign'] == true,
+    isCurrent: json['is_current'] == true,
+    documentUrl: _string(json['document_url']),
+  );
+}
+
+String? _string(Object? raw) => raw is String && raw.isNotEmpty ? raw : null;
+
+int? _int(Object? raw) => raw is int ? raw : null;
+
+DateTime? _time(Object? raw) => raw is String ? DateTime.tryParse(raw) : null;
 
 String? _id(Object? raw) => switch (raw) {
   final int id => '$id',

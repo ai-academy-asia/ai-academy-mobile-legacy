@@ -5,9 +5,10 @@ import 'lesson_schedule.dart';
 /// **Every section is nullable and the screen draws each only when its field
 /// is set.** That is deliberate. The API has verified response shapes for
 /// the student's cohorts, their schedule, the course's learning path, the
-/// ledger and attendance, and no endpoint at all for the e-contract — see
-/// `EnrolledHomeDashboardRepository`, which documents exactly which endpoint
-/// each missing section is waiting on. Rather than invent those contracts, or
+/// ledger and attendance; the e-contract comes from a backend-documented
+/// list that has not yet been seen non-empty live (Issue #300) — see
+/// `EnrolledHomeDashboardRepository`, which documents each section's source
+/// and what a missing one is waiting on. Rather than invent those contracts, or
 /// ship the reference's sample numbers ("2 of 5", "1/20", "3 хоног") as
 /// constants pretending to be data, the sections they feed simply do not draw
 /// until a repository can fill them. Every one of them is built, styled and

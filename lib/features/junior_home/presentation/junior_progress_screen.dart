@@ -7,6 +7,8 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../auth/presentation/student_tabs.dart';
+import '../../contracts/domain/contract_repository.dart';
+import '../../contracts/presentation/contract_screen.dart';
 import '../../home/presentation/widgets/contract_banner.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -55,8 +57,9 @@ const double _calendarInset = 6;
 /// mapped onto [JuniorProgress]. Each backend section draws only when it has
 /// data, and nothing stands in for what the API does not report:
 ///
-///  * the contract banner — no endpoint reports a signed contract, so it does
-///    not draw (BACKEND GAP);
+///  * the contract banner — drawn while the adult dashboard's contract source
+///    reports an unsigned (`pending`) contract, by the backend's selection
+///    rule; it opens the E-Contract screen (Issue #300);
 ///  * the payment card — drawn while something is due: "N хоног дутуу", or
 ///    "Хугацаа хэтэрсэн" once overdue, by the adult dashboard's rule; left out
 ///    when nothing is owed;
@@ -84,10 +87,15 @@ class JuniorProgressScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.showBottomNav = true,
+    this.contractRepository,
   });
 
   /// Defaults to the real API. Injected in tests.
   final JuniorProgressRepository? repository;
+
+  /// What the contract banner's E-Contract screen reads (Issue #300).
+  /// Defaults to the real API; injected in tests.
+  final ContractRepository? contractRepository;
 
   /// Whether this screen draws its tab bar itself. False inside
   /// `JuniorStudentShell`, which owns the one persistent bar (Issue #241).
@@ -175,12 +183,16 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Only an unsigned contract the API reported draws the banner —
-            // and none does yet (see the class doc).
+            // Only an unsigned contract the API reported draws the banner
+            // (Issue #300); it opens the E-Contract screen.
             if (progress.contract case ContractStatus(signed: false)) ...[
-              const ContractBanner(
+              ContractBanner(
                 title: JuniorProgressStrings.contractTitle,
                 supporting: JuniorProgressStrings.showParent,
+                onTap: () => ContractScreen.open(
+                  context,
+                  repository: widget.contractRepository,
+                ),
               ),
               const SizedBox(height: _blockGap),
             ],

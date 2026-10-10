@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/contracts/presentation/contract_screen.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
@@ -21,6 +22,7 @@ import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import '../contracts/fake_contract_repository.dart';
 import 'fake_junior_progress_repository.dart';
 
 /// Junior "Сурлагын явц": the frame's full design state (through the fake
@@ -33,6 +35,7 @@ void main() {
     WidgetTester tester, {
     JuniorProgress? progress,
     FakeJuniorProgressRepository? repository,
+    FakeContractRepository? contracts,
     Size size = const Size(393, 852),
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
@@ -42,6 +45,7 @@ void main() {
         home: JuniorProgressScreen(
           repository:
               repository ?? FakeJuniorProgressRepository(progress: progress),
+          contractRepository: contracts,
         ),
       ),
     );
@@ -85,7 +89,7 @@ void main() {
   });
 
   group('missing backend data draws nothing in its place', () {
-    testWidgets('no contract status: no banner (BACKEND GAP)', (tester) async {
+    testWidgets('no contract selected: no banner', (tester) async {
       await pumpScreen(
         tester,
         progress: figmaReferenceProgress(contract: null),
@@ -93,6 +97,24 @@ void main() {
 
       expect(find.text(JuniorProgressStrings.contractTitle), findsNothing);
       expect(find.text(JuniorProgressStrings.paymentTitle), findsOneWidget);
+    });
+
+    testWidgets('tapping the banner opens the E-Contract screen (Issue '
+        '#300)', (tester) async {
+      final contracts = FakeContractRepository();
+      await pumpScreen(
+        tester,
+        progress: figmaReferenceProgress(
+          contract: const ContractStatus(signed: false),
+        ),
+        contracts: contracts,
+      );
+
+      await tester.tap(find.text(JuniorProgressStrings.contractTitle));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContractScreen), findsOneWidget);
+      expect(contracts.callCount, 1);
     });
 
     testWidgets('a signed contract draws no banner either', (tester) async {
