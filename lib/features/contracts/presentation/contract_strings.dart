@@ -21,6 +21,13 @@ abstract final class ContractStrings {
 
   static const String retry = NotificationStrings.retry;
 
+  /// The signature section's title and the pad's label — the signing
+  /// screenshot's own words (Issue #304).
+  static const String signHere = 'Гарын үсэг зурна уу · Sign here';
+
+  /// Under the signature pad — the screenshot's own words.
+  static const String clear = 'Цэвэрлэх / Clear';
+
   static String messageFor(ContractFailureKind kind) => switch (kind) {
     ContractFailureKind.sessionExpired => ProfileStrings.sessionExpired,
     ContractFailureKind.network => ProfileStrings.networkError,

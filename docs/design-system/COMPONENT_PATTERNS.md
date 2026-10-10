@@ -54,6 +54,18 @@ Equally: **do not widen a shared widget's contract for one screen.** That reason
 
 `ExerciseTextField` exists because `AppTextField` is single-line at a fixed 56 — a hard blocker for the 104/118pt textareas. It also deliberately avoids `expands: true`, which triggers a framework semantics assertion on dispose in this SDK; a generous fixed `maxLines` inside a tight `SizedBox` gives the same box through the ordinary code path. **Do not "simplify" that back to `expands`.**
 
+
+**Signature input (Issue #304).** `ContractSignaturePad` (`contracts/presentation/widgets`) is the E-Contract signing screenshot's signature section:
+- the title "Гарын үсэг зурна уу · Sign here" (16/400), excluded from semantics because the pad carries it as its label;
+- a 158-tall pad (`surface`, `outline` edge, `homeCardRadius`) that takes its parent's width, with strokes in `linkInk` at 3pt;
+- "Цэвэрлэх / Clear" (14/600, `accentText`) right-aligned under it, in `disabledInk` and inert while empty.
+
+Behaviour:
+- A `ContractSignatureController` exposes `isEmpty`, `clear()` and `toPng()`.
+- **The pad wins its touch on contact**, so a stroke never scrolls a parent scroll view. Points outside the pad are dropped, and re-entering starts a new stroke.
+- `toPng()` draws in the authored `AppColors.linkInk` on transparent, whatever the theme: the backend turns near-white transparent, so a light Dark-theme ink could vanish. It renders at up to 2×, kept under 0.6 MP.
+- Measured off a screenshot, not a Figma frame. The screenshot's faint circled "×" inside the pad is not drawn, because what it is remains unknown.
+
 ## 4. Cards and list items
 
 All share: `AppColors.surface` fill, 1pt border, rounded corners, and (on this app's list screens) an explicitly-painted soft shadow rather than Material elevation.
