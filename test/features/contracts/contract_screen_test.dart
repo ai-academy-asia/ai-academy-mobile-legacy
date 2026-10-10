@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
@@ -52,6 +53,12 @@ class _FakeContracts implements ContractRepository {
   @override
   Future<ContractDownload> getContractDownload(String contractId) =>
       throw UnimplementedError();
+
+  @override
+  Future<Uint8List> getContractPreview(
+    String contractId, {
+    required ContractForm form,
+  }) => throw UnimplementedError();
 }
 
 /// The E-Contract screen (Issue #294) and the two Profile rows that open it.
