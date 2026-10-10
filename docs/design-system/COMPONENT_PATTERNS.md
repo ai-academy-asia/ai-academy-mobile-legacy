@@ -66,6 +66,13 @@ Behaviour:
 - `toPng()` draws in the authored `AppColors.linkInk` on transparent, whatever the theme: the backend turns near-white transparent, so a light Dark-theme ink could vanish. It renders at up to 2×, kept under 0.6 MP.
 - Measured off a screenshot, not a Figma frame. The screenshot's faint circled "×" inside the pad is not drawn, because what it is remains unknown.
 
+
+**PDF preview (Issue #310).** `ContractPdfView` (`contracts/presentation/widgets`) shows in-memory PDF bytes (`getContractPreview`'s answer) inside the signing screen export's document box: `surface`, the `outline` edge, `homeCardRadius`, with the size set by the caller.
+- **Pages:** every page is drawn by `pdfx`, one under the other in a scroll view. Each is fitted to the box width with `fieldGap` between pages, and drawn lazily at the box width × device pixel ratio (capped at 2048 px). Before a page draws, it holds A4's proportion as a placeholder.
+- **States:** a spinner while opening; the generic error line plus retry if opening fails; a per-page retry if one page fails. Every failure also goes to `onError`. The export draws text there, not pages, so page spacing, zoom and the state presentation are not designed.
+- **Renderer seam:** `ContractPdfRenderer` / `ContractPdfDocument` keep the widget's tests off native rendering. `PdfxContractPdfRenderer` opens with `PdfDocument.openData` (no file), renders PNG on white, closes each page after drawing it, and queues renders one at a time (Android's `PdfRenderer` allows one open page).
+- **Resources:** the document is closed on dispose and when the bytes change, and a late open is closed instead of shown.
+
 ## 4. Cards and list items
 
 All share: `AppColors.surface` fill, 1pt border, rounded corners, and (on this app's list screens) an explicitly-painted soft shadow rather than Material elevation.

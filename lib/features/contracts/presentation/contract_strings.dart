@@ -21,6 +21,11 @@ abstract final class ContractStrings {
 
   static const String retry = NotificationStrings.retry;
 
+  /// The contract PDF could not be opened or a page drawn (Issue #310). No
+  /// design gives the preview its own words yet, so it is the app's generic
+  /// line.
+  static const String previewFailed = ProfileStrings.unexpectedError;
+
   /// The signature section's title and the pad's label — the signing
   /// screenshot's own words (Issue #304).
   static const String signHere = 'Гарын үсэг зурна уу · Sign here';
