@@ -12,6 +12,7 @@ import 'package:aia_mobile/features/home/presentation/widgets/home_badges.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show SemanticsNode;
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -467,6 +468,60 @@ void main() {
       ]);
 
       expect(card('TEST-C-0009'), findsOne);
+    });
+  });
+
+  group('review fixes (PR #313)', () {
+    /// The download pill's glyph — the card's only SVG besides the wash.
+    SvgPicture downloadGlyph(WidgetTester tester, String title) => tester
+        .widgetList<SvgPicture>(inCard(title, find.byType(SvgPicture)))
+        .singleWhere(
+          (svg) =>
+              svg.bytesLoader is SvgAssetLoader &&
+              (svg.bytesLoader as SvgAssetLoader).assetName.endsWith(
+                'exercise_download.svg',
+              ),
+        );
+
+    for (final (name, theme, palette) in [
+      ('light', AppTheme.light, AppPalette.light),
+      ('dark', AppTheme.dark, AppPalette.dark),
+    ]) {
+      testWidgets('the enabled download glyph takes the theme\'s text '
+          'colour ($name) — its SVG strokes are black', (tester) async {
+        repository.contracts = [signed];
+        useLogicalViewport(
+          tester,
+          const Size(393, 900),
+          padding: iPhonePadding,
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: theme,
+            home: ContractScreen(repository: repository),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          downloadGlyph(tester, 'Тест курс нэг').colorFilter,
+          ColorFilter.mode(palette.textPrimary, BlendMode.srcIn),
+        );
+      });
+    }
+
+    testWidgets('no overflow at 2.0× text on a 320pt phone', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(
+        tester,
+        [signed, pendingSignable, signedWithoutFile],
+        withSign: true,
+        size: const Size(320, 2400),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ContractCard), findsNWidgets(3));
     });
   });
 

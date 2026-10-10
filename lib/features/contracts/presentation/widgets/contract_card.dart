@@ -272,8 +272,10 @@ class _ActionPill extends StatelessWidget {
         child: InkWell(
           onTap: busy ? null : onPressed,
           customBorder: const StadiumBorder(),
-          child: SizedBox(
-            height: _actionHeight,
+          // 44 tall as drawn, growing only when large accessibility text
+          // needs more, rather than clipping the label.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _actionHeight),
             child: Center(
               child: busy
                   ? SizedBox.square(
@@ -286,7 +288,16 @@ class _ActionPill extends StatelessWidget {
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(label, style: _actionStyle.copyWith(color: ink)),
+                        // Ellipsised rather than overflowing when large text
+                        // meets a narrow phone (e.g. 2.0× at 320pt).
+                        Flexible(
+                          child: Text(
+                            label,
+                            style: _actionStyle.copyWith(color: ink),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         ...switch (trailing) {
                           _ActionTrailing.download => [
                             const SizedBox(width: _downloadGap),
@@ -294,11 +305,13 @@ class _ActionPill extends StatelessWidget {
                               _downloadGlyph,
                               width: _downloadGlyphSize,
                               height: _downloadGlyphSize,
-                              // Tinted only when unavailable: a same-colour
-                              // tint would still move the glyph's edges.
-                              colorFilter: available
-                                  ? null
-                                  : ColorFilter.mode(ink, BlendMode.srcIn),
+                              // Always tinted with the label's ink: the SVG's
+                              // strokes are hard-coded black, which vanishes
+                              // on the dark theme's button (review of #313).
+                              colorFilter: ColorFilter.mode(
+                                ink,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ],
                           _ActionTrailing.caret => [
