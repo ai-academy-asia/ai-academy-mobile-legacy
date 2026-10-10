@@ -1,29 +1,51 @@
+import 'dart:async';
+
 import 'package:aia_mobile/features/contracts/domain/contract_detail.dart';
 import 'package:aia_mobile/features/contracts/domain/contract_failure.dart';
 import 'package:aia_mobile/features/contracts/domain/contract_repository.dart';
 import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 
-/// A repository the tests drive by hand: returns [contracts], or throws a
-/// chosen [ContractFailure]. Detail, sign and download answer [detail],
-/// [signed] and [download], or throw [failure] too; each call is recorded.
+/// A repository the tests drive by hand. Every call is recorded; each method
+/// answers its own value or throws its own failure:
+///
+///  * the list — [contracts], or [failure];
+///  * detail — [detail], or [detailFailure]; held open while [detailGate]
+///    is unfinished;
+///  * sign — [signed], or [signFailure]; held open while [signGate] is
+///    unfinished, so a test can act while one is in flight;
+///  * download — the next of [downloads] (one per call, so each call's link
+///    is its own), or [downloadFailure].
 class FakeContractRepository implements ContractRepository {
   FakeContractRepository({
     this.contracts = const [],
     this.failure,
     this.detail,
+    this.detailFailure,
     this.signed,
-    this.download,
-  });
+    this.signFailure,
+    List<ContractDownload>? downloads,
+    this.downloadFailure,
+  }) : downloads = downloads ?? [];
 
-  /// Returned on success.
   List<StudentContract> contracts;
 
-  /// Thrown instead of returning, when set.
+  /// Thrown by the list, when set.
   ContractFailure? failure;
 
   ContractDetail? detail;
+  ContractFailure? detailFailure;
+
+  /// When set and unfinished, detail waits for it before answering.
+  Completer<void>? detailGate;
+
   ContractDetail? signed;
-  ContractDownload? download;
+  ContractFailure? signFailure;
+
+  /// When set and unfinished, sign waits for it before answering.
+  Completer<void>? signGate;
+
+  final List<ContractDownload> downloads;
+  ContractFailure? downloadFailure;
 
   /// How many times [getContracts] has been called.
   int callCount = 0;
@@ -43,7 +65,8 @@ class FakeContractRepository implements ContractRepository {
   @override
   Future<ContractDetail> getContractDetail(String contractId) async {
     detailCalls.add(contractId);
-    if (failure case final failure?) throw failure;
+    if (detailGate case final gate?) await gate.future;
+    if (detailFailure case final failure?) throw failure;
     return detail ?? (throw StateError('no detail configured'));
   }
 
@@ -60,14 +83,16 @@ class FakeContractRepository implements ContractRepository {
       agreed: agreed,
       signature: signature,
     ));
-    if (failure case final failure?) throw failure;
+    if (signGate case final gate?) await gate.future;
+    if (signFailure case final failure?) throw failure;
     return signed ?? (throw StateError('no signed detail configured'));
   }
 
   @override
   Future<ContractDownload> getContractDownload(String contractId) async {
     downloadCalls.add(contractId);
-    if (failure case final failure?) throw failure;
-    return download ?? (throw StateError('no download configured'));
+    if (downloadFailure case final failure?) throw failure;
+    if (downloads.isEmpty) throw StateError('no download configured');
+    return downloads.removeAt(0);
   }
 }
