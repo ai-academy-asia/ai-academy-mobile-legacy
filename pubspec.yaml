@@ -58,6 +58,13 @@ dependencies:
   # Manager on iOS, like the two above; no entitlement or permission needed.
   flutter_secure_storage: ^11.2.0
 
+  # Renders the unsigned E-Contract PDF (`POST /me/contracts/{id}/preview`
+  # bytes) inside the app, page by page, from memory — no file, no URL
+  # (Issue #310). Pinned to the version approved for this: MIT, Swift Package
+  # Manager on iOS like the plugins above, mavenCentral only and no permission
+  # on Android.
+  pdfx: 2.11.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
