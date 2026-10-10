@@ -15,6 +15,8 @@ import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/reset_password_screen.dart';
 import '../../certificates/domain/certificate_list_repository.dart';
 import '../../certificates/presentation/certificate_screen.dart';
+import '../../contracts/domain/contract_repository.dart';
+import '../../contracts/presentation/contract_screen.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
@@ -86,8 +88,8 @@ const double _iconToLabel = 9;
 /// the adult Profile's exported SVGs ([ProfileIcons]) — the same artwork the
 /// junior frame draws — plus the junior frame's own "Payment receipt" SVG
 /// ([JuniorProfileIcons]). Change password pushes the same [ResetPasswordScreen]
-/// the adult row does, and Certificate opens the same Certificate screen
-/// (Issue #155).
+/// the adult row does, Certificate opens the same Certificate screen (Issue
+/// #155), and E-Contract the same E-Contract screen (Issue #294).
 ///
 /// **Gaps.** No confirmed response carries an avatar URL, so the avatar is
 /// a placeholder disc, as on the adult Profile — the frame's photo is design
@@ -104,6 +106,7 @@ class JuniorProfileScreen extends StatefulWidget {
     this.showBottomNav = true,
     this.certificateRepository,
     this.courseLearningRepository,
+    this.contractRepository,
     this.themeController,
   });
 
@@ -124,6 +127,10 @@ class JuniorProfileScreen extends StatefulWidget {
   /// injected in tests.
   final CertificateListRepository? certificateRepository;
   final CourseLearningRepository? courseLearningRepository;
+
+  /// What the E-Contract row's screen reads (Issue #294) — the same screen
+  /// the Adult Profile opens. Defaults to the real API; injected in tests.
+  final ContractRepository? contractRepository;
 
   /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
@@ -247,10 +254,15 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           const _Caption(JuniorProfileStrings.accountSection),
           _Group(
             rows: [
-              // No contract status: no endpoint reports one.
-              const _Row(
-                icon: _RowIcon(ProfileIcons.eContract),
+              // The student's contracts (Issue #294). Still no status pill:
+              // no confirmed field reports one.
+              _Row(
+                icon: const _RowIcon(ProfileIcons.eContract),
                 label: JuniorProfileStrings.eContract,
+                onTap: () => ContractScreen.open(
+                  context,
+                  repository: widget.contractRepository,
+                ),
               ),
               // The student's certificates, one per course (Issue #155).
               _Row(

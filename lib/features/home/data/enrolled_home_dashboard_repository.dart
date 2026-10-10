@@ -66,11 +66,13 @@ import '../domain/lesson_schedule.dart';
 ///
 /// ## What is deliberately missing
 ///
-/// The e-contract warning. **No endpoint reports whether this student signed
-/// a contract** — `Course.hasContractTemplate` and the course-level
-/// `/courses/{id}/templates/contract` say a template exists, nothing more —
-/// so [HomeDashboard.contract] stays null and the banner does not draw. It is
-/// set here the day a source exists; nothing above this class changes.
+/// The e-contract warning. **No confirmed field reports whether this student
+/// signed a contract** — `Course.hasContractTemplate` and the course-level
+/// `/courses/{id}/templates/contract` say a template exists, and
+/// `GET /me/contracts` has been verified only as an envelope with item `id`s
+/// (Issue #294) — so [HomeDashboard.contract] stays null and the banner does
+/// not draw. It is set here the day a source exists; nothing above this class
+/// changes.
 ///
 /// The module count is missing only when the learning call fails: the
 /// `/me/cohorts` fallback names a percentage, not a count, so
