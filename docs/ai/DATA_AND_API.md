@@ -84,7 +84,7 @@ Student-facing endpoints confirmed by a request in the Postman collection (`post
 | DELETE | `/cohorts/{cohort_id}/enroll` | Bearer, no body | not yet verified | not integrated |
 | GET | `/me/assignments/{assignment_id}` | Bearer | documented: the §2.6 `assignment` object (`course_learning_api_contract_v1.md`) | not called: the lesson detail already carries the assignment |
 | GET | `/me/files/{file_id}/download` | Bearer | not yet verified (§2.8 says only that a student file is read back through a pre-signed URL, like materials) | not integrated |
-| GET | `/me/courses/{course_slug}/certificate` | Bearer | documented: contract §2.9 (`status` `not_eligible`/`eligible`/`issued`, `requirements`, `certificate {cert_number, issued_at, verify_url}`); not yet verified live | **integrated** (Issue #155): `HttpCourseLearningRepository.getCourseCertificate` reads `status`, `cert_number`, `issued_at`, and `has_file` (Issue #296, `mobile_api_v1_1.md`; read inside `certificate`, then at the top level, since its place is undocumented). An explicit `false`, or no `cert_number`, draws Download disabled. `requirements` (documented in §2.9 as an object: `lessons_completed {done, percent}`, `quizzes_passed {done, passed, required}`, `payment_cleared {done}`) and `verify_url` are not read (no design) |
+| GET | `/me/courses/{course_slug}/certificate` | Bearer | documented: contract §2.9 (`status` `not_eligible`/`eligible`/`issued`, `requirements`, `certificate {cert_number, issued_at, verify_url}`). **Verified live for `not_eligible` only** (2026-10-10, see §2.1 below); `eligible` and `issued` not yet verified live | **integrated** (Issue #155): `HttpCourseLearningRepository.getCourseCertificate` reads `status`, `cert_number`, `issued_at`, and `has_file` (Issue #296, `mobile_api_v1_1.md`; read inside `certificate`, then at the top level, since its place is undocumented). An explicit `false`, or no `cert_number`, draws Download disabled. `requirements` (documented in §2.9 as an object: `lessons_completed {done, percent}`, `quizzes_passed {done, passed, required}`, `payment_cleared {done}`) and `verify_url` are not read (no design) |
 | GET | `/me/certificates/{cert_number}/download` | Bearer | documented: contract §2.9, `{"url", "expires_at"}`, pre-signed; not yet verified live | **integrated** (Issue #155): `getCertificateDownload`, fetched fresh per tap and opened with `openExternalUrl` |
 | GET | `/certificates/verify/{cert_number}` | no auth | not yet verified | not integrated |
 | POST | `/me/attendance/check-in` | Bearer; `{"token"}` | not yet verified (see §1.1) | not integrated: the scanner is UI only (Issue #202) |
@@ -106,6 +106,46 @@ Student-facing endpoints confirmed by a request in the Postman collection (`post
 | GET | `/me/contracts/{contract_id}/download` | Bearer | not yet verified: the signed PDF, but bytes vs a JSON link (certificates answer `{url, expires_at}`) is `UNKNOWN` | not integrated |
 
 `GET /me/ledger`, in the same Postman folder (`Student/Payments & receipts`), is consumed (§1). Its `installments` element is still an unverified shape (§9).
+
+### 2.1 Certificate — live observations (Issue #298)
+
+**Observed, not documented:** two read-only responses captured in Postman on **2026-10-10** from an **Adult student test account**, for one course (`ai-corporate-leaders`) in the **`not_eligible`** state. Only the fields that matter here are shown. The other `/learning` keys (`continue`, `modules`, the course's other fields) and the account-specific `enrollment_id` are left out. The title text is replaced by `"…"`. No personal data, credentials, tokens or URLs are recorded.
+
+`GET /me/courses/ai-corporate-leaders/certificate`:
+
+```json
+{
+  "certificate": null,
+  "requirements": {
+    "lessons_completed": {"done": false, "percent": 41},
+    "payment_cleared": {"done": false},
+    "quizzes_passed": {"done": true, "passed": 2, "required": 2}
+  },
+  "status": "not_eligible"
+}
+```
+
+`GET /me/courses/ai-corporate-leaders/learning` (excerpt):
+
+```json
+{
+  "certificate": {"status": "not_eligible"},
+  "cohort_id": 3,
+  "course": {"id": 9, "slug": "ai-corporate-leaders", "title": {"mn": "…", "en": "…"}},
+  "progress": {"completed_lessons": 5, "percent": 41, "total_lessons": 12}
+}
+```
+
+What these two responses show, for this one account and course:
+
+- **Both status sources agreed on `not_eligible`.** The certificate endpoint's `status` matched `/learning`'s nested `certificate.status`. One sample does not prove they can never disagree (the requirements spec's G8 stays open).
+- **`certificate` was `null`** on the certificate endpoint while not eligible.
+- **The `requirements` object was present**, with the three keys contract §2.9 documents: lessons 41% (not done), quizzes 2 of 2 passed (done), payment not cleared.
+- **The progress percentages agreed at 41%.** `requirements.lessons_completed.percent` matched `progress.percent`, and 5 of 12 lessons rounds down to 41, as contract §2.1 describes.
+- **`has_file` was absent**, at the top level and anywhere else, in this response where `certificate` was `null`. **Nothing follows about issued certificates:** whether `has_file` appears there, where it sits, and what `/download` answers without a file are still `BACKEND GAP`s.
+- **The app's parsing matches.** `getCourseCertificate` reads `not_eligible` with nothing issued (Download not offered). `getCourseLearning` reads `"not_eligible"` and 41. The Certificate screen draws the not-yet card ("41% complete", Continue learning).
+
+**Still documented only, not observed live:** the `eligible` and `issued` states, the issued `certificate` object, `has_file`'s place and behaviour, `GET /me/certificates/{cert_number}/download`, `GET /certificates/verify/{cert_number}`, and every error case (403, 404, archived, foreign `cert_number`).
 
 
 ## 3. Transport layer
