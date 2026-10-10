@@ -158,7 +158,13 @@ What these two responses show, for this one account and course:
 - `409`: `already_signed`, `contract_cancelled`, `contract_template_missing`, `contract_template_invalid`, `not_signed`;
 - `502`: `storage_error`.
 
-Any other combination keeps the list's earlier reading (Issue #294): 5xx is `server`, anything else `unexpected`. A 401 still ends the session. None of the new kinds has copy of its own yet (no screen): `ContractStrings` shows the existing generic lines.
+Any other combination keeps the list's earlier reading (Issue #294): 5xx is `server`, anything else `unexpected`. A 401 still ends the session.
+
+**Client-side form check (Issue #306).** `ContractFormValidator` mirrors `fields.py` (`clean`, `validate`, `_date_problem`) so a screen can say the same thing before sending. The server stays authoritative; where the two differ, the client is deliberately stricter:
+- `final_payment_date` must be `YYYY-MM-DD`; the backend's Python 3.12 `date.fromisoformat` also accepts forms like `20261015`;
+- digits are ASCII; Python's `\d` also matches other scripts' digits.
+
+Length is counted in code points, as Python's `len` counts. None of the new kinds has copy of its own yet (no screen): `ContractStrings` shows the existing generic lines.
 
 ## 3. Transport layer
 

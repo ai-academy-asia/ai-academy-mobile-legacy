@@ -68,20 +68,73 @@ class ContractForm {
   /// `YYYY-MM-DD`, or empty.
   final String finalPaymentDate;
 
+  /// The value of [field].
+  String valueOf(ContractFormField field) => switch (field) {
+    ContractFormField.lastName => lastName,
+    ContractFormField.firstName => firstName,
+    ContractFormField.register => register,
+    ContractFormField.phone => phone,
+    ContractFormField.email => email,
+    ContractFormField.address => address,
+    ContractFormField.guardianRelation => guardianRelation,
+    ContractFormField.guardianLastName => guardianLastName,
+    ContractFormField.guardianFirstName => guardianFirstName,
+    ContractFormField.guardianRegister => guardianRegister,
+    ContractFormField.finalPaymentDate => finalPaymentDate,
+  };
+
+  /// This form with [field] set to [value].
+  ContractForm withValue(ContractFormField field, String value) {
+    String pick(ContractFormField f) => f == field ? value : valueOf(f);
+    return ContractForm(
+      lastName: pick(ContractFormField.lastName),
+      firstName: pick(ContractFormField.firstName),
+      register: pick(ContractFormField.register),
+      phone: pick(ContractFormField.phone),
+      email: pick(ContractFormField.email),
+      address: pick(ContractFormField.address),
+      guardianRelation: pick(ContractFormField.guardianRelation),
+      guardianLastName: pick(ContractFormField.guardianLastName),
+      guardianFirstName: pick(ContractFormField.guardianFirstName),
+      guardianRegister: pick(ContractFormField.guardianRegister),
+      finalPaymentDate: pick(ContractFormField.finalPaymentDate),
+    );
+  }
+
   /// The request's `form` object, keyed as the API names the fields.
   Map<String, String> toJson() => {
-    'last_name': lastName,
-    'first_name': firstName,
-    'register': register,
-    'phone': phone,
-    'email': email,
-    'address': address,
-    'guardian_relation': guardianRelation,
-    'guardian_last_name': guardianLastName,
-    'guardian_first_name': guardianFirstName,
-    'guardian_register': guardianRegister,
-    'final_payment_date': finalPaymentDate,
+    for (final field in ContractFormField.values) field.apiName: valueOf(field),
   };
+}
+
+/// The contract form's eleven fields, in the backend's order
+/// (`fields.FIELDS`), each with the key the API names it by.
+enum ContractFormField {
+  lastName('last_name'),
+  firstName('first_name'),
+  register('register'),
+  guardianRelation('guardian_relation'),
+  guardianLastName('guardian_last_name'),
+  guardianFirstName('guardian_first_name'),
+  guardianRegister('guardian_register'),
+  phone('phone'),
+  email('email'),
+  address('address'),
+  finalPaymentDate('final_payment_date');
+
+  const ContractFormField(this.apiName);
+
+  /// The field's key in the API's `form` object and in `invalid_fields`.
+  final String apiName;
+
+  /// The field the API names [apiName], or null for a key this client does
+  /// not know.
+  static ContractFormField? fromApi(String apiName) {
+    for (final field in values) {
+      if (field.apiName == apiName) return field;
+    }
+    return null;
+  }
 }
 
 /// What the form must satisfy (`core.rules`).
