@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
+import 'package:aia_mobile/features/contracts/domain/contract_detail.dart';
 import 'package:aia_mobile/features/contracts/domain/contract_failure.dart';
 import 'package:aia_mobile/features/contracts/domain/contract_repository.dart';
 import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
@@ -34,6 +35,23 @@ class _FakeContracts implements ContractRepository {
       _ => throw StateError('unsupported answer'),
     };
   }
+
+  // The list screen reads only the list (Issue #302 adds no UI).
+  @override
+  Future<ContractDetail> getContractDetail(String contractId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ContractDetail> signContract(
+    String contractId, {
+    required ContractForm form,
+    required bool agreed,
+    required String signature,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ContractDownload> getContractDownload(String contractId) =>
+      throw UnimplementedError();
 }
 
 /// The E-Contract screen (Issue #294) and the two Profile rows that open it.

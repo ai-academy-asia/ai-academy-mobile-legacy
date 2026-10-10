@@ -101,10 +101,10 @@ Student-facing endpoints confirmed by a request in the Postman collection (`post
 | GET | `/me/receipts` | Bearer | not yet verified (documented: eBarimt receipts, `is_temp_mode` = not yet filed) | not integrated |
 | GET | `/me/receipts/{receipt_id}` | Bearer | not yet verified | not integrated |
 | GET | `/me/contracts` | Bearer | **verified live: the envelope only** (developer's Postman call, Adult student, Issue #294): `{"contracts": []}` — only ever seen empty. **Documented by the backend's source, not observed** (`ai-academy-backend` `docs/e_contract_api_v1.md`, commit `208e1c9`): items newest first, each `{id, contract_number, status (pending/signed/cancelled), enrollment_id, course_id, course {id, slug, title {mn, en}, level}, cohort {id, name, start_date, end_date}, created_at, signed_at, cancelled_at, can_view, can_sign, is_current, document_url}`. **Not side-effect free:** the call creates `pending` rows for the student's own eligible enrollments (`core.sync()`), by design | **integrated** (Issues #294, #300): `HttpContractRepository.getContracts` reads every documented field leniently (a missing or mistyped field is null/false, never a failure); it drives the Home / Junior Progress banner (§1.1). The E-Contract screen still draws empty / "not shown yet" / error + retry |
-| GET | `/me/contracts/{contract_id}` | Bearer | not yet verified (Postman names it "form, rules, finance") | not integrated (`BACKEND GAP`) |
+| GET | `/me/contracts/{contract_id}` | Bearer | **documented by the backend's source, not observed** (`docs/e_contract_api_v1.md`, `student._detail`; re-checked at backend `8dc89df`): the list item plus `form` (11 strings, `""` when empty; prefilled with names, phone, e-mail while pending), `rules {guardian_required, final_payment_date_required, final_payment_date_min, final_payment_date_max\|null}`, `finance {total_due, total_paid, balance, discount_percent, currency}`, `document {format: "pdf", preview\|null, download\|null}`. Creates `pending` rows like the list (`core.sync()`) | **data layer only** (Issue #302): `HttpContractRepository.getContractDetail` → `ContractDetail`. The summary is read leniently; `form`, `rules`, `finance` and `document` are required with their documented types, otherwise a server failure. No UI calls it |
 | POST | `/me/contracts/{contract_id}/preview` | Bearer; `{"form": {last_name, first_name, register, phone, email, address, final_payment_date (`YYYY-MM-DD`), guardian_relation, guardian_last_name, guardian_first_name, guardian_register}}` (the guardian fields sent as `""` in the example) | not yet verified: an unsigned PDF, but bytes vs a JSON link is `UNKNOWN` | not integrated |
-| POST | `/me/contracts/{contract_id}/sign` | Bearer; the preview's `form`, plus `"agreed": true` and `"signature": "data:image/png;base64,…"` (a drawn signature) | not yet verified | **not called** — it signs a real contract; in-app vs web signing is a `PRODUCT DECISION` |
-| GET | `/me/contracts/{contract_id}/download` | Bearer | not yet verified: the signed PDF, but bytes vs a JSON link (certificates answer `{url, expires_at}`) is `UNKNOWN` | not integrated |
+| POST | `/me/contracts/{contract_id}/sign` | Bearer; `{form, agreed, signature}`: all eleven form fields, `agreed` must be `true`, `signature` a PNG data URL or bare base64 (≤ 2 MB, ≤ 8 MP, something drawn) | **documented by the backend's source, not observed**: `200` with the detail shape, `status: "signed"`, `signed_at` and `document.download` set. **Irreversible for the student** (staff reset only). The backend decided signing happens in the app | **data layer only** (Issue #302): `signContract` sends `agreed` as the caller gives it, never assumed; `signatureDataUrl` builds the data URL. Tested against `MockClient` only — **never called live**, no UI calls it |
+| GET | `/me/contracts/{contract_id}/download` | Bearer | **documented by the backend's source, not observed**: `{url, expires_at}`, a pre-signed link valid 5 minutes; `409 not_signed` before signing | **data layer only** (Issue #302): `getContractDownload` → `ContractDownload` (an http(s) `url` and a timestamp, or a server failure). Nothing opens it yet |
 
 `GET /me/ledger`, in the same Postman folder (`Student/Payments & receipts`), is consumed (§1). Its `installments` element is still an unverified shape (§9).
 
@@ -148,6 +148,17 @@ What these two responses show, for this one account and course:
 
 **Still documented only, not observed live:** the `eligible` and `issued` states, the issued `certificate` object, `has_file`'s place and behaviour, `GET /me/certificates/{cert_number}/download`, `GET /certificates/verify/{cert_number}`, and every error case (403, 404, archived, foreign `cert_number`).
 
+### 2.2 E-Contract errors (Issue #302)
+
+**Documented by the backend's source, not observed live** (`app/services/errors.py`: `{"error": "<code>", ...extra}`; codes from `app/services/contracts/`). `contractFailureFor` gives each documented code its own `ContractFailureKind`, but only under the status that code is documented with:
+- `400`: `invalid_fields` (its `fields` map becomes `ContractFailure.fieldErrors`: `required`, `too_long`, `cyrillic_only`, `invalid_format`, `out_of_range`, else `unknown`), `agreement_required`, `signature_required`, `invalid_signature`, `empty_signature`;
+- `413`: `signature_too_large`;
+- `403`: `forbidden`;
+- `404`: `contract_not_found`;
+- `409`: `already_signed`, `contract_cancelled`, `contract_template_missing`, `contract_template_invalid`, `not_signed`;
+- `502`: `storage_error`.
+
+Any other combination keeps the list's earlier reading (Issue #294): 5xx is `server`, anything else `unexpected`. A 401 still ends the session. None of the new kinds has copy of its own yet (no screen): `ContractStrings` shows the existing generic lines.
 
 ## 3. Transport layer
 
@@ -172,6 +183,7 @@ Eight failure types, each scoped to a domain so no caller has to `switch` over c
 | `AttendanceFailure` (`attendance`) | `sessionExpired`, `rejected`, `network`, `server`, `unexpected` |
 | `LedgerFailure` (`payments`) | `sessionExpired`, `rejected`, `network`, `server`, `unexpected` |
 | `CourseLearningFailure` (`course_learning`) | `sessionExpired`, `notEnrolled`, `notFound`, `locked`, `contentRequired`, `contentTooLong`, `submissionEmpty`, `invalidLink`, `descriptionTooLong`, `pastDue`, `noAttemptsLeft`, `attemptFinished`, `alreadyAnswered`, `unsupportedFileType`, `fileTooLarge`, `network`, `server`, `unexpected` |
+| `ContractFailure` (`contracts`) | `sessionExpired`, `network`, `server`, `unexpected`, and from the body's `error` code (§2.2): `forbidden`, `contractNotFound`, `invalidFields` (+ `fieldErrors`), `agreementRequired`, `signatureRequired`, `invalidSignature`, `emptySignature`, `signatureTooLarge`, `alreadySigned`, `contractCancelled`, `templateMissing`, `templateInvalid`, `notSigned`, `storageError` |
 
 `notFound` exists on `ApiFailure`, because a 404 on `GET /courses/{slug}` is a real, distinguishable outcome (stale link, removed course) a screen may want to word differently, and on `CourseLearningFailure`, for the contract's `*_not_found` 404s. `CourseLearningFailure`'s 400/409/413 kinds are read from the body's `error` code, which the contract (§0) says the app branches on.
 

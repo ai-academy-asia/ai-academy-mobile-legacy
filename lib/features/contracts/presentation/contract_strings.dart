@@ -24,7 +24,24 @@ abstract final class ContractStrings {
   static String messageFor(ContractFailureKind kind) => switch (kind) {
     ContractFailureKind.sessionExpired => ProfileStrings.sessionExpired,
     ContractFailureKind.network => ProfileStrings.networkError,
-    ContractFailureKind.server => ProfileStrings.serverError,
-    ContractFailureKind.unexpected => ProfileStrings.unexpectedError,
+    ContractFailureKind.server ||
+    ContractFailureKind.storageError => ProfileStrings.serverError,
+    // The signing kinds (Issue #302) have no screen and no design yet; until
+    // one gives them words, the generic line stands in rather than invented
+    // copy. Only the list reaches this today.
+    ContractFailureKind.unexpected ||
+    ContractFailureKind.forbidden ||
+    ContractFailureKind.contractNotFound ||
+    ContractFailureKind.invalidFields ||
+    ContractFailureKind.agreementRequired ||
+    ContractFailureKind.signatureRequired ||
+    ContractFailureKind.invalidSignature ||
+    ContractFailureKind.emptySignature ||
+    ContractFailureKind.signatureTooLarge ||
+    ContractFailureKind.alreadySigned ||
+    ContractFailureKind.contractCancelled ||
+    ContractFailureKind.templateMissing ||
+    ContractFailureKind.templateInvalid ||
+    ContractFailureKind.notSigned => ProfileStrings.unexpectedError,
   };
 }
