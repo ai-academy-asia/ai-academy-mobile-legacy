@@ -39,6 +39,8 @@ class AppTextField extends StatefulWidget {
     this.autofillHints,
     this.onSubmitted,
     this.focusNode,
+    this.readOnly = false,
+    this.onTap,
   }) : floatingLabel = floatingLabel ?? placeholder;
 
   final TextEditingController controller;
@@ -64,6 +66,13 @@ class AppTextField extends StatefulWidget {
   final Iterable<String>? autofillHints;
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
+
+  /// Takes no typing — for a value picked elsewhere (the E-Contract form's
+  /// date, Issue #314), drawn as an ordinary field rather than a new widget.
+  /// [onTap] opens the picker.
+  final bool readOnly;
+
+  final GestureTapCallback? onTap;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -146,6 +155,8 @@ class _AppTextFieldState extends State<AppTextField> {
       controller: widget.controller,
       focusNode: _node,
       enabled: widget.enabled,
+      readOnly: widget.readOnly,
+      onTap: widget.onTap,
       obscureText: widget.obscureText,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
