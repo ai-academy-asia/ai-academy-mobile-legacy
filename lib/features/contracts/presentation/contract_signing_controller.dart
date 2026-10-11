@@ -35,6 +35,31 @@ enum ContractSignResult {
   failed,
 }
 
+/// What [ContractSigningController.loadPreview] did.
+enum ContractPreviewResult {
+  /// [ContractSigningController.preview] holds the PDF for the current form
+  /// — fetched now, or already fetched for this same form.
+  loaded,
+
+  /// Nothing was sent: a preview of this same form is already in flight.
+  inProgress,
+
+  /// Nothing was sent: the detail is not loaded, or the contract cannot be
+  /// signed (the backend previews pending contracts only).
+  notSignable,
+
+  /// Nothing was sent: the form fails the client's check.
+  invalidForm,
+
+  /// The answer came for a form that is no longer current (an edit, a
+  /// reload, a sign) or after disposal, and was dropped.
+  superseded,
+
+  /// The request was refused or never completed — see
+  /// [ContractSigningController.previewFailure].
+  failed,
+}
+
 /// What [ContractSigningController.download] did.
 enum ContractDownloadResult {
   /// A fresh link was fetched and the OS took it.
@@ -74,6 +99,14 @@ enum ContractDownloadResult {
 /// dropped, so an older response never overwrites newer state. Nothing
 /// notifies after [dispose], and an `already_signed` reload is not started
 /// once disposed.
+///
+/// **Preview (Issue #316).** [loadPreview] fetches the unsigned PDF for the
+/// form as [sign] would send it — normalized, and only once it passes the
+/// client check. The bytes belong to that form: an edit that changes the
+/// normalized form, a reload and a sign all drop them (and drop an answer
+/// still in flight), so a preview never shows values the student has since
+/// changed. The same form asked again reuses the bytes rather than asking
+/// the server twice. Nothing is saved by the backend's preview.
 ///
 /// The shapes behind it are the backend's own source (`docs/
 /// e_contract_api_v1.md`, `fields.py`), not observed live.
@@ -115,6 +148,17 @@ class ContractSigningController extends ChangeNotifier {
   bool _downloading = false;
   ContractFailure? _downloadFailure;
 
+  /// Bumped whenever the preview stops matching the form, and on dispose;
+  /// a preview answer whose number is no longer current is dropped.
+  int _previewGeneration = 0;
+
+  /// The normalized form ([ContractForm.toJson]) the preview — fetched or in
+  /// flight — was asked for. Null when there is none.
+  Map<String, String>? _previewForm;
+  bool _previewLoading = false;
+  Uint8List? _previewBytes;
+  ContractFailure? _previewFailure;
+
   bool get loading => _loading;
   bool get hasLoadedOnce => _hasLoadedOnce;
 
@@ -147,6 +191,16 @@ class ContractSigningController extends ChangeNotifier {
 
   /// Why the last [download] failed. Null after one opens.
   ContractFailure? get downloadFailure => _downloadFailure;
+
+  /// A preview is in flight.
+  bool get previewLoading => _previewLoading;
+
+  /// The unsigned PDF for the current form. Null before [loadPreview]
+  /// answers, and once the form has changed since.
+  Uint8List? get preview => _previewBytes;
+
+  /// Why the last [loadPreview] for the current form failed.
+  ContractFailure? get previewFailure => _previewFailure;
 
   /// The client's check of the current form. Empty when the detail is not
   /// loaded.
@@ -211,7 +265,70 @@ class ContractSigningController extends ChangeNotifier {
     if (_serverErrors.containsKey(field)) {
       _serverErrors = {..._serverErrors}..remove(field);
     }
+    // Only a change that reaches what would be sent outdates the preview —
+    // not, say, a trailing space the normalizer trims.
+    final previewed = _previewForm;
+    if (previewed != null &&
+        !mapEquals(
+          previewed,
+          ContractFormValidator.normalize(_form).toJson(),
+        )) {
+      _dropPreview();
+    }
     _notify();
+  }
+
+  /// Fetches the unsigned PDF for the current form (`POST …/preview`). See
+  /// [ContractPreviewResult] for every case that sends nothing.
+  Future<ContractPreviewResult> loadPreview() async {
+    final detail = _detail;
+    if (detail == null || !canSign) return ContractPreviewResult.notSignable;
+    if (ContractFormValidator.validate(_form, detail.rules).isNotEmpty) {
+      return ContractPreviewResult.invalidForm;
+    }
+    final form = ContractFormValidator.normalize(_form);
+    final asked = form.toJson();
+    if (mapEquals(_previewForm, asked)) {
+      if (_previewBytes != null) return ContractPreviewResult.loaded;
+      if (_previewLoading) return ContractPreviewResult.inProgress;
+    }
+
+    final generation = ++_previewGeneration;
+    _previewForm = asked;
+    _previewBytes = null;
+    _previewFailure = null;
+    _previewLoading = true;
+    _notify();
+
+    Uint8List? bytes;
+    ContractFailure? failure;
+    try {
+      bytes = await _repository.getContractPreview(contractId, form: form);
+    } on ContractFailure catch (error) {
+      failure = error;
+    } catch (error) {
+      failure = _unexpected(error);
+    }
+
+    if (generation != _previewGeneration) {
+      return ContractPreviewResult.superseded;
+    }
+    _previewLoading = false;
+    _previewBytes = bytes;
+    _previewFailure = failure;
+    _notify();
+    return bytes != null
+        ? ContractPreviewResult.loaded
+        : ContractPreviewResult.failed;
+  }
+
+  /// Forgets the preview, and any answer still in flight.
+  void _dropPreview() {
+    _previewGeneration++;
+    _previewForm = null;
+    _previewLoading = false;
+    _previewBytes = null;
+    _previewFailure = null;
   }
 
   /// Signs with [png] — the signature pad's export — and [agreed], the
@@ -301,6 +418,7 @@ class ContractSigningController extends ChangeNotifier {
     _form = detail.form;
     _serverErrors = const {};
     _unmatchedServerErrors = const {};
+    _dropPreview();
   }
 
   void _takeServerErrors(ContractFailure failure) {
@@ -330,6 +448,7 @@ class ContractSigningController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _generation++;
+    _previewGeneration++;
     super.dispose();
   }
 }

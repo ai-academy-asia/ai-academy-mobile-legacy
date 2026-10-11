@@ -16,7 +16,8 @@ import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 ///    unfinished, so a test can act while one is in flight;
 ///  * download — the next of [downloads] (one per call, so each call's link
 ///    is its own), or [downloadFailure];
-///  * preview — [preview], or [previewFailure].
+///  * preview — [preview], or [previewFailure]; held open while
+///    [previewGate] is unfinished.
 class FakeContractRepository implements ContractRepository {
   FakeContractRepository({
     this.contracts = const [],
@@ -53,6 +54,9 @@ class FakeContractRepository implements ContractRepository {
 
   Uint8List? preview;
   ContractFailure? previewFailure;
+
+  /// When set and unfinished, preview waits for it before answering.
+  Completer<void>? previewGate;
 
   /// How many times [getContracts] has been called.
   int callCount = 0;
@@ -102,6 +106,7 @@ class FakeContractRepository implements ContractRepository {
     required ContractForm form,
   }) async {
     previewCalls.add((id: contractId, form: form));
+    if (previewGate case final gate?) await gate.future;
     if (previewFailure case final failure?) throw failure;
     return preview ?? (throw StateError('no preview configured'));
   }
