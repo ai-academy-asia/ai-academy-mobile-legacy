@@ -623,6 +623,164 @@ void main() {
     });
   });
 
+  group('preview (Issue #316)', () {
+    final pdf = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 1]);
+    setUp(() => repository.preview = pdf);
+
+    test('fetches for the current form, normalized as sign sends it', () async {
+      await loadAndComplete();
+
+      final result = await controller.loadPreview();
+
+      expect(result, ContractPreviewResult.loaded);
+      expect(controller.preview, same(pdf));
+      expect(controller.previewLoading, isFalse);
+      expect(repository.previewCalls, hasLength(1));
+      final sent = repository.previewCalls.single;
+      expect(sent.id, '12');
+      expect(sent.form.register, 'УБ12345678');
+      expect(sent.form.address, 'Улаанбаатар');
+      expect(sent.form.lastName, 'Тест');
+      expect(repository.signCalls, isEmpty);
+    });
+
+    test('sends nothing before load, for a signed contract, or for a form '
+        'that fails the client check', () async {
+      expect(await controller.loadPreview(), ContractPreviewResult.notSignable);
+
+      await controller.load();
+      expect(await controller.loadPreview(), ContractPreviewResult.invalidForm);
+
+      repository.detail = signedDetail;
+      await controller.load();
+      expect(await controller.loadPreview(), ContractPreviewResult.notSignable);
+      expect(repository.previewCalls, isEmpty);
+    });
+
+    test('the same form asked again reuses the bytes', () async {
+      await loadAndComplete();
+      await controller.loadPreview();
+      final again = await controller.loadPreview();
+
+      expect(again, ContractPreviewResult.loaded);
+      expect(repository.previewCalls, hasLength(1));
+    });
+
+    test(
+      'an edit drops the preview, and the next one has the new value',
+      () async {
+        await loadAndComplete();
+        await controller.loadPreview();
+
+        controller.updateField(ContractFormField.address, 'Дархан');
+        expect(controller.preview, isNull);
+
+        await controller.loadPreview();
+        expect(repository.previewCalls, hasLength(2));
+        expect(repository.previewCalls.last.form.address, 'Дархан');
+        expect(controller.preview, same(pdf));
+      },
+    );
+
+    test('an edit the normalizer undoes keeps the preview', () async {
+      await loadAndComplete();
+      await controller.loadPreview();
+
+      controller.updateField(ContractFormField.address, 'Улаанбаатар  ');
+      expect(controller.preview, same(pdf));
+      await controller.loadPreview();
+      expect(repository.previewCalls, hasLength(1));
+    });
+
+    test('a failure is kept whole, and retry asks again', () async {
+      await loadAndComplete();
+      repository.previewFailure = const ContractFailure(
+        ContractFailureKind.templateMissing,
+      );
+
+      expect(await controller.loadPreview(), ContractPreviewResult.failed);
+      expect(controller.preview, isNull);
+      expect(
+        controller.previewFailure?.kind,
+        ContractFailureKind.templateMissing,
+      );
+
+      repository.previewFailure = null;
+      expect(await controller.loadPreview(), ContractPreviewResult.loaded);
+      expect(controller.previewFailure, isNull);
+      expect(repository.previewCalls, hasLength(2));
+    });
+
+    test('a non-contract error becomes unexpected', () async {
+      await loadAndComplete();
+      repository.preview = null; // the fake throws a StateError
+      expect(await controller.loadPreview(), ContractPreviewResult.failed);
+      expect(controller.previewFailure?.kind, ContractFailureKind.unexpected);
+    });
+
+    test('the same form while one is in flight sends nothing more', () async {
+      await loadAndComplete();
+      repository.previewGate = Completer<void>();
+
+      final first = controller.loadPreview();
+      expect(controller.previewLoading, isTrue);
+      expect(await controller.loadPreview(), ContractPreviewResult.inProgress);
+
+      repository.previewGate!.complete();
+      expect(await first, ContractPreviewResult.loaded);
+      expect(repository.previewCalls, hasLength(1));
+    });
+
+    test('an answer for a form edited meanwhile is dropped', () async {
+      await loadAndComplete();
+      repository.previewGate = Completer<void>();
+
+      final first = controller.loadPreview();
+      controller.updateField(ContractFormField.address, 'Дархан');
+      expect(controller.previewLoading, isFalse);
+
+      repository.previewGate!.complete();
+      expect(await first, ContractPreviewResult.superseded);
+      expect(controller.preview, isNull);
+      expect(controller.previewLoading, isFalse);
+    });
+
+    test('a reload drops the preview and any answer in flight', () async {
+      await loadAndComplete();
+      await controller.loadPreview();
+      await controller.load();
+      expect(controller.preview, isNull);
+
+      controller
+        ..updateField(ContractFormField.register, 'УБ12345678')
+        ..updateField(ContractFormField.address, 'Улаанбаатар');
+      repository.previewGate = Completer<void>();
+      final inFlight = controller.loadPreview();
+      await controller.load();
+      repository.previewGate!.complete();
+
+      expect(await inFlight, ContractPreviewResult.superseded);
+      expect(controller.preview, isNull);
+    });
+
+    test('an answer after dispose is dropped without notifying', () async {
+      final own = ContractSigningController(
+        contractId: '12',
+        repository: repository,
+      );
+      await own.load();
+      own
+        ..updateField(ContractFormField.register, 'УБ12345678')
+        ..updateField(ContractFormField.address, 'Улаанбаатар');
+      repository.previewGate = Completer<void>();
+      final inFlight = own.loadPreview();
+      own.dispose();
+
+      repository.previewGate!.complete();
+      expect(await inFlight, ContractPreviewResult.superseded);
+    });
+  });
+
   group('download', () {
     ContractDownload link(String name) => ContractDownload(
       url: Uri.parse('https://files.example.test/$name.pdf'),

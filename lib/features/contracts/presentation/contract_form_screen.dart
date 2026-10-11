@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,6 +14,7 @@ import '../data/http_contract_repository.dart';
 import '../domain/contract_detail.dart';
 import '../domain/contract_failure.dart';
 import '../domain/contract_repository.dart';
+import 'contract_preview_screen.dart';
 import 'contract_signing_controller.dart';
 import 'contract_strings.dart';
 import 'widgets/contract_page_parts.dart';
@@ -62,8 +65,10 @@ import 'widgets/contract_page_parts.dart';
 ///
 /// **Continue** checks the form and, only when no field has an error, calls
 /// [onContinue]; otherwise it scrolls to the first visible field at fault,
-/// or to the general line. It calls no endpoint — the preview is the next
-/// step's.
+/// or to the general line. It calls no endpoint itself. Through [open] it
+/// leads to [ContractPreviewScreen] (Issue #316), which fetches the preview
+/// with this screen's controller; this screen stays under it, so the
+/// controller outlives the preview.
 class ContractFormScreen extends StatefulWidget {
   const ContractFormScreen({
     super.key,
@@ -90,7 +95,8 @@ class ContractFormScreen extends StatefulWidget {
   )?
   onContinue;
 
-  /// Pushes the form for [contractId] over [context]'s navigator.
+  /// Pushes the form for [contractId] over [context]'s navigator. Continue
+  /// opens the preview unless [onContinue] says otherwise.
   static Future<void> open(
     BuildContext context, {
     required String contractId,
@@ -101,10 +107,15 @@ class ContractFormScreen extends StatefulWidget {
       builder: (_) => ContractFormScreen(
         contractId: contractId,
         repository: repository,
-        onContinue: onContinue,
+        onContinue: onContinue ?? _openPreview,
       ),
     ),
   );
+
+  static void _openPreview(
+    BuildContext context,
+    ContractSigningController controller,
+  ) => unawaited(ContractPreviewScreen.open(context, controller: controller));
 
   @override
   State<ContractFormScreen> createState() => _ContractFormScreenState();
