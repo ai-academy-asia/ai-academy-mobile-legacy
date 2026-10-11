@@ -9,8 +9,16 @@ import '../contract_strings.dart';
 
 /// The back button with "Гэрээ · E-Contract" centred on its row — the
 /// export's header, the Certificate and Notification screens' layout. Shared
-/// by the E-Contract list (Issue #312) and the contract form (Issue #314),
-/// which both draw it.
+/// by the E-Contract list (Issue #312), the contract form (Issue #314) and
+/// the preview (Issue #316).
+///
+/// **The title never covers the button (Issue #318).** It used to fill the
+/// whole row on top of the button, so at large text sizes it grew over the
+/// circle and took its taps. Now it is kept out of the button's band on
+/// *both* sides — [_titleInset] — so it stays centred on the row, wraps
+/// inside what is left, and the header grows to fit it; the button is
+/// painted last, on top. At the default text size the title fits that band
+/// on a 320-wide phone and lands exactly where it did.
 class ContractHeader extends StatelessWidget {
   const ContractHeader({super.key});
 
@@ -18,17 +26,27 @@ class ContractHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
-        Positioned.fill(
-          top: _backButtonTop,
-          child: Center(
-            child: Text(
-              ContractStrings.title,
-              style: _titleStyle.copyWith(color: context.palette.textTitle),
-              textAlign: TextAlign.center,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            _titleInset,
+            _backButtonTop,
+            _titleInset,
+            0,
+          ),
+          // At least the circle's height, so a one-line title is centred on
+          // it as before; taller when the title wraps.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _backButtonSize),
+            child: Center(
+              child: Text(
+                ContractStrings.title,
+                style: _titleStyle.copyWith(color: context.palette.textTitle),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ),
+        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
       ],
     );
   }
@@ -70,6 +88,14 @@ class ContractMessage extends StatelessWidget {
 
 /// `CourseLearningBackButton`'s own inset above the circle.
 const double _backButtonTop = 12;
+
+/// `CourseLearningBackButton`'s circle.
+const double _backButtonSize = 40;
+
+/// Kept clear on either side of the title: the button's screen inset, its
+/// circle and 8 between them — mirrored on the right so the title stays
+/// centred on the row.
+const double _titleInset = AppDimens.screenPadding + _backButtonSize + 8;
 
 const TextStyle _titleStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
