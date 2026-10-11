@@ -73,10 +73,11 @@ enum ContractDownloadResult {
   failed,
 }
 
-/// The E-Contract signing logic, for a screen not yet designed (Issue #306):
-/// one contract's detail, its editable form checked exactly as the backend
-/// checks it ([ContractFormValidator]), the sign request, and the signed
-/// PDF's download. It draws nothing.
+/// The E-Contract signing logic (Issue #306): one contract's detail, its
+/// editable form checked exactly as the backend checks it
+/// ([ContractFormValidator]), the preview, the sign request, and the signed
+/// PDF's download. It draws nothing — `ContractFormScreen` and
+/// `ContractPreviewScreen` (Issues #314, #316, #320) are its screens.
 ///
 /// **Signing is guarded locally.** [sign] sends nothing unless the detail is
 /// loaded and signable, no other sign is in flight, a signature is drawn,

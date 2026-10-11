@@ -14,6 +14,7 @@ import '../data/http_contract_repository.dart';
 import '../domain/contract_detail.dart';
 import '../domain/contract_failure.dart';
 import '../domain/contract_repository.dart';
+import '../domain/student_contract.dart';
 import 'contract_preview_screen.dart';
 import 'contract_signing_controller.dart';
 import 'contract_strings.dart';
@@ -66,9 +67,11 @@ import 'widgets/contract_page_parts.dart';
 /// **Continue** checks the form and, only when no field has an error, calls
 /// [onContinue]; otherwise it scrolls to the first visible field at fault,
 /// or to the general line. It calls no endpoint itself. Through [open] it
-/// leads to [ContractPreviewScreen] (Issue #316), which fetches the preview
-/// with this screen's controller; this screen stays under it, so the
-/// controller outlives the preview.
+/// leads to [ContractPreviewScreen] (Issues #316, #320), which previews and
+/// signs with this screen's controller; this screen stays under it, so the
+/// controller outlives the preview. When [onContinue] answers a future, the
+/// form waits for it, and if the contract came back signed — signed there,
+/// or `already_signed` — it closes too: there is nothing left to fill in.
 class ContractFormScreen extends StatefulWidget {
   const ContractFormScreen({
     super.key,
@@ -88,8 +91,9 @@ class ContractFormScreen extends StatefulWidget {
   /// Loaded by the screen if it has not been yet.
   final ContractSigningController? controller;
 
-  /// Called by Continue once the form passes the client check.
-  final void Function(
+  /// Called by Continue once the form passes the client check. A future it
+  /// answers is awaited (see the class doc).
+  final FutureOr<void> Function(
     BuildContext context,
     ContractSigningController controller,
   )?
@@ -101,7 +105,8 @@ class ContractFormScreen extends StatefulWidget {
     BuildContext context, {
     required String contractId,
     ContractRepository? repository,
-    void Function(BuildContext, ContractSigningController)? onContinue,
+    FutureOr<void> Function(BuildContext, ContractSigningController)?
+    onContinue,
   }) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => ContractFormScreen(
@@ -112,10 +117,10 @@ class ContractFormScreen extends StatefulWidget {
     ),
   );
 
-  static void _openPreview(
+  static Future<void> _openPreview(
     BuildContext context,
     ContractSigningController controller,
-  ) => unawaited(ContractPreviewScreen.open(context, controller: controller));
+  ) => ContractPreviewScreen.open(context, controller: controller);
 
   @override
   State<ContractFormScreen> createState() => _ContractFormScreenState();
@@ -200,6 +205,12 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       _controller.updateField(field, value);
     }
   }
+
+  /// The contract is signed now — here, or by the server's `already_signed`
+  /// (whose reload may not have landed).
+  bool get _cameBackSigned =>
+      _controller.detail?.contract.status == StudentContractStatus.signed ||
+      _controller.signFailure?.kind == ContractFailureKind.alreadySigned;
 
   bool get _showErrors =>
       _attempted ||
@@ -442,14 +453,18 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     if (picked != null && mounted) text.text = _isoDay(picked);
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     FocusScope.of(context).unfocus();
     setState(() => _attempted = true);
     final errors = _controller.fieldErrors;
     final rules = _controller.detail?.rules;
     if (rules == null) return;
     if (errors.isEmpty) {
-      widget.onContinue?.call(context, _controller);
+      final next = widget.onContinue?.call(context, _controller);
+      if (next is Future<void>) {
+        await next;
+        if (mounted && _cameBackSigned) Navigator.of(context).pop();
+      }
       return;
     }
     final firstShown = _FormLayout.of(

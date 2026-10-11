@@ -37,8 +37,10 @@ import '../domain/student_contract.dart';
 ///
 /// Detail, `/sign` and `/download` (Issue #302) follow the same
 /// backend-source shapes — see [contractDetailFrom] and
-/// [contractFailureFor] — and are not observed live either; no screen calls
-/// them yet. `/preview` (raw PDF bytes) has no client.
+/// [contractFailureFor] — and are not observed live either. `/preview`
+/// (Issue #308) answers raw PDF bytes, checked by [contractPdfFrom]. The
+/// E-Contract screens call all four through `ContractSigningController`
+/// and `ContractListController`; `/sign` has never been called live.
 ///
 /// Sent through [AuthenticatedClient.instance], so an expired access token is
 /// renewed and the request retried once; a 401 that survives that ends the
