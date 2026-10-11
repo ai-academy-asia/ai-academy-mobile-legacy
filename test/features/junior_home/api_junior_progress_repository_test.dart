@@ -36,6 +36,20 @@ void main() {
         clock: () => now,
       );
 
+  test('the banner alone comes from the dashboard\'s own notice, and its '
+      'failure is passed on (Issue #322)', () async {
+    final dashboard = FakeHomeDashboardRepository()
+      ..contractNotice = (() => const ContractStatus(signed: true));
+    final repository = ApiJuniorProgressRepository(dashboard: dashboard);
+
+    expect((await repository.getContractNotice())?.signed, isTrue);
+    expect(dashboard.contractNoticeCalls, 1);
+    expect(dashboard.callCount, 0, reason: 'no dashboard reload');
+
+    dashboard.contractNoticeFailure = StateError('offline');
+    await expectLater(repository.getContractNotice(), throwsStateError);
+  });
+
   test('enrolled in nothing answers null, not a failure', () async {
     expect(await repository(const HomeDashboard()).getProgress(), isNull);
   });

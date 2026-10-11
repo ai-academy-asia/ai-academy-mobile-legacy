@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -45,8 +47,11 @@ class ContractScreen extends StatefulWidget {
   final Future<bool> Function(Uri url)? openUrl;
 
   /// Where a signable contract's "Гэрээ байгуулах" leads. Null — as [open]
-  /// leaves it — draws the action disabled.
-  final void Function(BuildContext context, StudentContract contract)? onSign;
+  /// leaves it — draws the action disabled. When it answers a future (the
+  /// signing flow's route), the list reloads once that completes (Issue
+  /// #322), so a contract signed there is shown signed.
+  final FutureOr<void> Function(BuildContext context, StudentContract contract)?
+  onSign;
 
   /// Pushes the screen over [context]'s navigator — what both Profiles'
   /// "E-Contract" rows and the contract banner do.
@@ -149,10 +154,23 @@ class _ContractScreenState extends State<ContractScreen> {
           contract: contract,
           downloading: id != null && _controller.isDownloading(id),
           onDownload: id == null ? null : () => _download(id),
-          onSign: onSign == null ? null : () => onSign(context, contract),
+          onSign: onSign == null ? null : () => _sign(onSign, contract),
         );
       },
     );
+  }
+
+  /// Runs [onSign] for [contract] and, when it hands back the flow's
+  /// future, reloads the list once the flow is closed — whatever happened
+  /// in it: signed, `already_signed`, or nothing.
+  Future<void> _sign(
+    FutureOr<void> Function(BuildContext, StudentContract) onSign,
+    StudentContract contract,
+  ) async {
+    final flow = onSign(context, contract);
+    if (flow is! Future<void>) return;
+    await flow;
+    if (mounted) await _controller.load();
   }
 
   Future<void> _download(String contractId) async {

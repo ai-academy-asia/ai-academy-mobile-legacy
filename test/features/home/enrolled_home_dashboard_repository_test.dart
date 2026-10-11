@@ -296,6 +296,63 @@ void main() {
     });
   });
 
+  group('getContractNotice — the banner alone (Issue #322)', () {
+    EnrolledHomeDashboardRepository withContracts(
+      FakeContractRepository contracts,
+    ) => repository(
+      enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+      cohorts: [sampleCohort(id: 1)],
+      contracts: contracts,
+    );
+
+    test('the same rule as the dashboard, from the contracts alone', () async {
+      final pending = FakeContractRepository(
+        contracts: const [
+          StudentContract(
+            status: StudentContractStatus.pending,
+            canSign: true,
+            isCurrent: true,
+          ),
+        ],
+      );
+      expect(
+        (await withContracts(pending).getContractNotice())?.signed,
+        isFalse,
+      );
+      expect(pending.callCount, 1);
+
+      final signed = FakeContractRepository(
+        contracts: const [
+          StudentContract(
+            status: StudentContractStatus.signed,
+            isCurrent: true,
+          ),
+        ],
+      );
+      expect((await withContracts(signed).getContractNotice())?.signed, isTrue);
+
+      expect(
+        await withContracts(FakeContractRepository()).getContractNotice(),
+        isNull,
+      );
+    });
+
+    test('a failed call throws — unlike the dashboard, which leaves the '
+        'banner off', () async {
+      final failing = withContracts(
+        FakeContractRepository(
+          failure: const ContractFailure(ContractFailureKind.network),
+        ),
+      );
+
+      await expectLater(
+        failing.getContractNotice(),
+        throwsA(isA<ContractFailure>()),
+      );
+      expect((await failing.getDashboard()).contract, isNull);
+    });
+  });
+
   group('contract (Issue #300)', () {
     Future<HomeDashboard> dashboardWith(FakeContractRepository contracts) =>
         repository(

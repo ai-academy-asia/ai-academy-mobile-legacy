@@ -9,6 +9,10 @@ import 'package:aia_mobile/features/home/domain/home_failure.dart';
 /// either returns [dashboard], throws a chosen [HomeFailure], or — when
 /// [hold] is set — waits for [release], which is how the loading state gets
 /// observed while the request is still in flight.
+///
+/// The banner refresh (Issue #322) answers [contractNotice] — by default the
+/// dashboard's own contract — or throws [contractNoticeFailure]; while
+/// [contractNoticeGate] is unfinished it waits.
 class FakeHomeDashboardRepository implements HomeDashboardRepository {
   FakeHomeDashboardRepository({
     this.dashboard = const HomeDashboard(),
@@ -31,6 +35,18 @@ class FakeHomeDashboardRepository implements HomeDashboardRepository {
 
   Completer<void>? _gate;
 
+  /// What [getContractNotice] answers; defaults to `dashboard.contract`.
+  ContractStatus? Function()? contractNotice;
+
+  /// Thrown by [getContractNotice] instead, when set.
+  Object? contractNoticeFailure;
+
+  /// When set and unfinished, [getContractNotice] waits for it.
+  Completer<void>? contractNoticeGate;
+
+  /// How many times [getContractNotice] has been called.
+  int contractNoticeCalls = 0;
+
   /// Lets a held [getDashboard] finish.
   void release() {
     final gate = _gate;
@@ -50,6 +66,14 @@ class FakeHomeDashboardRepository implements HomeDashboardRepository {
     if (failure != null) throw failure;
 
     return dashboard;
+  }
+
+  @override
+  Future<ContractStatus?> getContractNotice() async {
+    contractNoticeCalls++;
+    if (contractNoticeGate case final gate?) await gate.future;
+    if (contractNoticeFailure case final failure?) throw failure;
+    return contractNotice?.call() ?? dashboard.contract;
   }
 }
 

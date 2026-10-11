@@ -183,15 +183,23 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
 
   /// The banner's contract (see the class doc): [selectNoticeContract]'s
   /// choice, unsigned only while `pending`, signed once `signed`. Any other
-  /// status, no match, or a failed call is null — no banner.
+  /// status or no match is null — no banner. A failed call throws (the
+  /// contracts' own `ContractFailure`), for a refresh to keep what it had.
+  @override
+  Future<ContractStatus?> getContractNotice() async {
+    final selected = selectNoticeContract(await _contracts.getContracts());
+    return switch (selected?.status) {
+      StudentContractStatus.pending => const ContractStatus(signed: false),
+      StudentContractStatus.signed => const ContractStatus(signed: true),
+      _ => null,
+    };
+  }
+
+  /// [getContractNotice] for the whole dashboard, where a failed call is no
+  /// banner rather than a failed Home.
   Future<ContractStatus?> _contractNotice() async {
     try {
-      final selected = selectNoticeContract(await _contracts.getContracts());
-      return switch (selected?.status) {
-        StudentContractStatus.pending => const ContractStatus(signed: false),
-        StudentContractStatus.signed => const ContractStatus(signed: true),
-        _ => null,
-      };
+      return await getContractNotice();
     } catch (_) {
       return null;
     }

@@ -64,6 +64,21 @@ class JuniorProgress {
   /// marks are fixed data rather than derived (design state in tests), which
   /// leaves every other month unmarked.
   final JuniorCalendarSource? calendar;
+
+  /// This progress with [contract] in place of its own — null included
+  /// (Issue #322's banner refresh). Everything else, the calendar's month
+  /// and day among it, is kept.
+  JuniorProgress withContract(ContractStatus? contract) => JuniorProgress(
+    month: month,
+    selectedDay: selectedDay,
+    days: days,
+    contract: contract,
+    payment: payment,
+    attendance: attendance,
+    examPercent: examPercent,
+    nextLesson: nextLesson,
+    calendar: calendar,
+  );
 }
 
 /// The backend facts the Junior calendar marks, independent of any month:

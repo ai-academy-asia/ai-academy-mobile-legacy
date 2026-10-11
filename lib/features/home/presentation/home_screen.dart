@@ -209,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
       refreshIndicatorKey: _refreshIndicator,
       showPaymentPreview: widget.showPaymentPreview,
       contractRepository: widget.contractRepository,
+      onContractListClosed: _controller.refreshContract,
     );
   }
 }
@@ -223,10 +224,15 @@ class _DashboardView extends StatelessWidget {
     required this.refreshIndicatorKey,
     required this.showPaymentPreview,
     required this.contractRepository,
+    required this.onContractListClosed,
   });
 
   final HomeDashboard dashboard;
   final ContractRepository? contractRepository;
+
+  /// After the contract list the banner opened is closed: the banner's
+  /// status alone is re-read ([HomeController.refreshContract], Issue #322).
+  final Future<void> Function() onContractListClosed;
   final DateTime now;
 
   /// [HomeScreen.clock], passed on to the attendance screen so its calendar
@@ -264,11 +270,15 @@ class _DashboardView extends StatelessWidget {
           ),
         ),
       // An unsigned contract the API reported (Issue #300) — the banner
-      // opens the E-Contract screen, as the Profile row does.
+      // opens the E-Contract screen, as the Profile row does. Coming back,
+      // the banner re-reads its status (Issue #322): the list just showed
+      // the fresh one.
       if (contract != null && !contract.signed)
         ContractBanner(
-          onTap: () =>
-              ContractScreen.open(context, repository: contractRepository),
+          onTap: () async {
+            await ContractScreen.open(context, repository: contractRepository);
+            await onContractListClosed();
+          },
         ),
       ..._statRows(
         dashboard.stats,

@@ -189,10 +189,15 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
               ContractBanner(
                 title: JuniorProgressStrings.contractTitle,
                 supporting: JuniorProgressStrings.showParent,
-                onTap: () => ContractScreen.open(
-                  context,
-                  repository: widget.contractRepository,
-                ),
+                // Coming back, the banner re-reads its status (Issue #322):
+                // the list just showed the fresh one.
+                onTap: () async {
+                  await ContractScreen.open(
+                    context,
+                    repository: widget.contractRepository,
+                  );
+                  if (mounted) await _controller.refreshContract();
+                },
               ),
               const SizedBox(height: _blockGap),
             ],

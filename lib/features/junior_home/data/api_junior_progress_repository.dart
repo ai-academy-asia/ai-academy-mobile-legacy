@@ -69,4 +69,8 @@ class ApiJuniorProgressRepository implements JuniorProgressRepository {
       nextLesson: program.nextLesson,
     );
   }
+
+  /// The dashboard's own, as [getProgress] passes it through.
+  @override
+  Future<ContractStatus?> getContractNotice() => _dashboard.getContractNotice();
 }
