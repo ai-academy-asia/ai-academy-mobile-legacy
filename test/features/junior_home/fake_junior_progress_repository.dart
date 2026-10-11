@@ -8,7 +8,9 @@ import 'package:aia_mobile/features/junior_home/domain/junior_progress_repositor
 
 /// A repository the tests drive by hand: returns [progress] (null = enrolled
 /// in nothing), throws [failure], or — with [hold] — waits for [release], so
-/// the loading state can be observed.
+/// the loading state can be observed. The banner refresh (Issue #322)
+/// answers [contractNotice] (by default the progress's own contract) or
+/// throws [contractNoticeFailure].
 class FakeJuniorProgressRepository implements JuniorProgressRepository {
   FakeJuniorProgressRepository({
     JuniorProgress? progress,
@@ -25,6 +27,11 @@ class FakeJuniorProgressRepository implements JuniorProgressRepository {
 
   Completer<void>? _gate;
 
+  /// What [getContractNotice] answers; defaults to `progress?.contract`.
+  ContractStatus? Function()? contractNotice;
+  Object? contractNoticeFailure;
+  int contractNoticeCalls = 0;
+
   void release() {
     final gate = _gate;
     if (gate != null && !gate.isCompleted) gate.complete();
@@ -40,6 +47,13 @@ class FakeJuniorProgressRepository implements JuniorProgressRepository {
     final failure = this.failure;
     if (failure != null) throw failure;
     return progress;
+  }
+
+  @override
+  Future<ContractStatus?> getContractNotice() async {
+    contractNoticeCalls++;
+    if (contractNoticeFailure case final failure?) throw failure;
+    return contractNotice?.call() ?? progress?.contract;
   }
 }
 

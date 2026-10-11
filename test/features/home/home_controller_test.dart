@@ -180,4 +180,7 @@ void main() {
 class _ThrowsNonHomeFailure implements HomeDashboardRepository {
   @override
   Future<HomeDashboard> getDashboard() => throw StateError('boom');
+
+  @override
+  Future<ContractStatus?> getContractNotice() => throw StateError('boom');
 }

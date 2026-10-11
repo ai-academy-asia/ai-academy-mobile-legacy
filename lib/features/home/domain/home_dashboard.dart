@@ -36,6 +36,11 @@ class HomeDashboard {
   /// True when there is nothing at all to show — the student is enrolled in
   /// no cohort and no other section has a source.
   bool get isEmpty => program == null && contract == null && stats.isEmpty;
+
+  /// This dashboard with [contract] in place of its own — null included
+  /// (Issue #322's banner refresh).
+  HomeDashboard withContract(ContractStatus? contract) =>
+      HomeDashboard(program: program, contract: contract, stats: stats);
 }
 
 /// How one [HomeStat] card is drawn.

@@ -72,6 +72,28 @@ class HomeController extends ChangeNotifier {
     }
   }
 
+  /// Re-reads the contract banner's status alone (Issue #322) — after the
+  /// student comes back from the contract list, whose fresh statuses the
+  /// banner should agree with. One request; the rest of the dashboard stays.
+  ///
+  /// Nothing happens once disposed, with no dashboard yet, or with a [load]
+  /// in flight (that load brings the contract with it). A failure keeps the banner as it was —
+  /// it never turns into a failed Home — and an answer arriving after a
+  /// [load] replaced the dashboard is dropped.
+  Future<void> refreshContract() async {
+    final dashboard = _dashboard;
+    if (_disposed || dashboard == null || _loading) return;
+    final ContractStatus? notice;
+    try {
+      notice = await _repository.getContractNotice();
+    } catch (_) {
+      return;
+    }
+    if (_disposed || !identical(_dashboard, dashboard)) return;
+    _dashboard = dashboard.withContract(notice);
+    _notify();
+  }
+
   void _notify() {
     if (_disposed) return;
     notifyListeners();

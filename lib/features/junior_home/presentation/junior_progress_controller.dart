@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../home/domain/home_dashboard.dart';
 import '../../home/domain/home_failure.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/junior_progress.dart';
@@ -125,6 +126,28 @@ class JuniorProgressController extends ChangeNotifier {
       _hasLoadedOnce = true;
       _notify();
     }
+  }
+
+  /// Re-reads the contract banner's status alone (Issue #322) — after the
+  /// student comes back from the contract list. One request; the rest of
+  /// the progress stays, the month the student paged to included.
+  ///
+  /// Nothing happens once disposed, with no progress yet, or with a [load]
+  /// in flight. A failure
+  /// keeps the banner as it was, and an answer arriving after a [load]
+  /// replaced the progress is dropped.
+  Future<void> refreshContract() async {
+    final progress = _progress;
+    if (_disposed || progress == null || _loading) return;
+    final ContractStatus? notice;
+    try {
+      notice = await _repository.getContractNotice();
+    } catch (_) {
+      return;
+    }
+    if (_disposed || !identical(_progress, progress)) return;
+    _progress = progress.withContract(notice);
+    _notify();
   }
 
   void _notify() {
