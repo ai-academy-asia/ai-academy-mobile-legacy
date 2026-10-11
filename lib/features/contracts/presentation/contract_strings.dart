@@ -62,12 +62,28 @@ abstract final class ContractStrings {
   static const String formUnmatchedErrors =
       'Гэрээний мэдээлэлд алдаа байна. Дахин оролдоно уу.';
 
-  /// The label of [field].
-  static String fieldLabel(ContractFormField field) => switch (field) {
+  /// Errors the student cannot fix here: on a field the form does not draw.
+  static const String formHiddenErrors =
+      'Гэрээний мэдээлэлд энд засах боломжгүй алдаа байна. '
+      'Менежертэйгээ холбогдоно уу.';
+
+  /// `final_payment_date_max` before `final_payment_date_min`: no date can
+  /// be picked.
+  static const String formDateRulesInvalid =
+      'Төлбөрийн огнооны хязгаар буруу тохируулагдсан тул огноо сонгох '
+      'боломжгүй. Менежертэйгээ холбогдоно уу.';
+
+  /// The label of [field]. For a junior course ([guardianRequired]) the
+  /// backend's `phone` is the parent's, and is labelled so.
+  static String fieldLabel(
+    ContractFormField field, {
+    bool guardianRequired = false,
+  }) => switch (field) {
     ContractFormField.lastName => 'Овог',
     ContractFormField.firstName => 'Нэр',
     ContractFormField.register => 'Регистрийн дугаар',
-    ContractFormField.phone => 'Утасны дугаар',
+    ContractFormField.phone =>
+      guardianRequired ? 'Асран хамгаалагчийн утасны дугаар' : 'Утасны дугаар',
     ContractFormField.email => 'Email хаяг',
     ContractFormField.address => 'Гэрийн хаяг',
     ContractFormField.guardianRelation => 'Таны хэн болох',

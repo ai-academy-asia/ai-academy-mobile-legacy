@@ -33,11 +33,14 @@ import 'widgets/contract_page_parts.dart';
 /// [controller] to share it with the steps after this one (they need the
 /// same form); otherwise the screen makes and disposes its own.
 ///
-/// **Which fields.** The six student fields always; the four guardian
-/// fields only when `rules.guardian_required` — `guardian_relation` among
-/// them, since the backend requires it with the other three; the final
-/// payment date only when `rules.final_payment_date_required`, picked from a
-/// calendar bounded by `final_payment_date_min` / `_max`, never typed.
+/// **Which fields.** The backend's eleven. The student's always; the four
+/// guardian fields (`guardian_relation` among them) only when
+/// `rules.guardian_required` — and then `phone` moves into the guardian
+/// section under the guardian's label, since for a junior course the backend
+/// fills it with the parent's number (it is still the API's `phone`; there is
+/// no `guardian_phone`). The final payment date only when
+/// `rules.final_payment_date_required`, picked from a calendar bounded by
+/// `final_payment_date_min` / `_max`, never typed.
 ///
 /// **States.** A loader until the detail answers (and during a reload); a
 /// failure's own line with a retry; a contract that cannot be signed shows
@@ -46,12 +49,21 @@ import 'widgets/contract_page_parts.dart';
 ///
 /// **Errors** stay hidden until Continue is first pressed — an untouched form
 /// is not wrong yet — and then follow the form as it is edited. A signing
-/// attempt refused with `invalid_fields` shows them at once. Reasons for
-/// keys this client has no field for are one line above Continue.
+/// attempt refused with `invalid_fields` shows them at once. An error the
+/// student cannot see — on a field this form does not draw (say, a guardian
+/// field the backend filled for an adult course), or a server key this
+/// client does not know — is a general line above Continue instead, so a
+/// blocked Continue always says why.
+///
+/// **Inconsistent date rules.** A `final_payment_date_max` before
+/// `final_payment_date_min` admits no date at all. The rules are not
+/// rewritten and no date is invented: the date field is drawn disabled with
+/// [ContractStrings.formDateRulesInvalid] under it, and Continue is disabled.
 ///
 /// **Continue** checks the form and, only when no field has an error, calls
-/// [onContinue]; otherwise it scrolls to the first field at fault. It calls
-/// no endpoint — the preview is the next step's.
+/// [onContinue]; otherwise it scrolls to the first visible field at fault,
+/// or to the general line. It calls no endpoint — the preview is the next
+/// step's.
 class ContractFormScreen extends StatefulWidget {
   const ContractFormScreen({
     super.key,
@@ -109,6 +121,10 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   final Map<ContractFormField, GlobalKey> _fieldKeys = {
     for (final field in ContractFormField.values) field: GlobalKey(),
   };
+
+  /// The general error line above Continue — where a blocked Continue
+  /// scrolls when no visible field is at fault.
+  final GlobalKey _formErrorKey = GlobalKey();
 
   /// The detail whose form the text controllers hold.
   ContractDetail? _shownDetail;
@@ -233,12 +249,14 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   Widget _form(ContractDetail detail) {
     final editable = _controller.canSign;
     final rules = detail.rules;
-    final lastTyped = rules.guardianRequired
-        ? ContractFormField.guardianRegister
-        : ContractFormField.address;
+    final layout = _FormLayout.of(rules);
+    final datesInconsistent = _datesInconsistent(rules);
+    final hiddenErrors = _showErrors && _hasHiddenError(rules);
+    final unmatchedErrors =
+        _showErrors && _controller.unmatchedServerErrors.isNotEmpty;
 
     Widget field(ContractFormField f) =>
-        _textField(f, editable: editable, last: f == lastTyped);
+        _textField(f, rules, editable: editable, last: f == layout.lastTyped);
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -260,25 +278,41 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
             const SizedBox(height: AppDimens.headingToForm),
           ],
           const _SectionTitle(ContractStrings.formStudentSection),
-          ..._spaced(_studentFields.map(field)),
-          if (rules.guardianRequired) ...[
+          ..._spaced(layout.student.map(field)),
+          if (layout.guardian.isNotEmpty) ...[
             const SizedBox(height: AppDimens.headingToForm),
             const _SectionTitle(ContractStrings.formGuardianSection),
-            ..._spaced(_guardianFields.map(field)),
+            ..._spaced(layout.guardian.map(field)),
           ],
-          if (rules.finalPaymentDateRequired) ...[
+          if (layout.date) ...[
             const SizedBox(height: AppDimens.headingToForm),
             const _SectionTitle(ContractStrings.formPaymentSection),
-            _dateField(detail.rules, editable: editable),
+            _dateField(
+              rules,
+              editable: editable,
+              inconsistent: datesInconsistent,
+            ),
           ],
-          if (_showErrors && _controller.unmatchedServerErrors.isNotEmpty) ...[
-            const SizedBox(height: AppDimens.fieldGap),
-            const _ErrorLine(ContractStrings.formUnmatchedErrors),
-          ],
+          if (hiddenErrors || unmatchedErrors)
+            Padding(
+              key: _formErrorKey,
+              padding: const EdgeInsets.only(top: AppDimens.fieldGap),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (hiddenErrors)
+                    const _ErrorLine(ContractStrings.formHiddenErrors),
+                  if (unmatchedErrors)
+                    const _ErrorLine(ContractStrings.formUnmatchedErrors),
+                ],
+              ),
+            ),
           const SizedBox(height: AppDimens.formToButtons),
           AppButton(
             label: ContractStrings.formContinue,
-            onPressed: editable ? _continue : null,
+            // An inconsistent date rule can never pass: Continue is not
+            // offered rather than refused on every press.
+            onPressed: editable && !datesInconsistent ? _continue : null,
           ),
         ],
       ),
@@ -286,7 +320,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   }
 
   Widget _textField(
-    ContractFormField field, {
+    ContractFormField field,
+    ContractRules rules, {
     required bool editable,
     required bool last,
   }) {
@@ -295,7 +330,10 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       error: _errorFor(field),
       child: AppTextField(
         controller: _texts[field]!,
-        placeholder: ContractStrings.fieldLabel(field),
+        placeholder: ContractStrings.fieldLabel(
+          field,
+          guardianRequired: rules.guardianRequired,
+        ),
         errorText: _errorFor(field),
         enabled: editable,
         keyboardType: _keyboardFor(field),
@@ -304,18 +342,30 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     );
   }
 
-  Widget _dateField(ContractRules rules, {required bool editable}) {
+  Widget _dateField(
+    ContractRules rules, {
+    required bool editable,
+    required bool inconsistent,
+  }) {
     const field = ContractFormField.finalPaymentDate;
+    final pickable = editable && !inconsistent;
+    // With no date allowed, the field's own reason (`required`,
+    // `out_of_range`) would ask for something the student cannot give; the
+    // rule line says what is wrong instead, shown whether or not Continue
+    // has been pressed.
+    final error = inconsistent
+        ? ContractStrings.formDateRulesInvalid
+        : _errorFor(field);
     return _LabelledField(
       key: _fieldKeys[field],
-      error: _errorFor(field),
+      error: error,
       child: AppTextField(
         controller: _texts[field]!,
         placeholder: ContractStrings.fieldLabel(field),
-        errorText: _errorFor(field),
-        enabled: editable,
+        errorText: error,
+        enabled: pickable,
         readOnly: true,
-        onTap: editable ? () => _pickDate(rules) : null,
+        onTap: pickable ? () => _pickDate(rules) : null,
         suffix: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Icon(
@@ -326,6 +376,25 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
         ),
       ),
     );
+  }
+
+  /// `final_payment_date_max` before `final_payment_date_min`, for a date
+  /// the form must have: no date can pass. A check of the rules the server
+  /// sent, not of the form — the validator still judges the date itself.
+  static bool _datesInconsistent(ContractRules rules) {
+    final max = rules.finalPaymentDateMax;
+    return rules.finalPaymentDateRequired &&
+        max != null &&
+        DateUtils.dateOnly(
+          max,
+        ).isBefore(DateUtils.dateOnly(rules.finalPaymentDateMin));
+  }
+
+  /// Whether a field this form does not draw has an error — the
+  /// controller's, so nothing is re-checked here.
+  bool _hasHiddenError(ContractRules rules) {
+    final shown = _FormLayout.of(rules).all;
+    return _controller.fieldErrors.keys.any((f) => !shown.contains(f));
   }
 
   String? _errorFor(ContractFormField field) {
@@ -340,7 +409,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     var last = max == null
         ? DateTime(first.year + _openEndedPickerYears, first.month, first.day)
         : DateUtils.dateOnly(max);
-    if (last.isBefore(first)) last = first;
+    // Not offered then (see [_datesInconsistent]); the picker would assert.
+    if (last.isBefore(first)) return;
 
     final text = _texts[ContractFormField.finalPaymentDate]!;
     final current = DateTime.tryParse(text.text);
@@ -365,17 +435,19 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _attempted = true);
     final errors = _controller.fieldErrors;
+    final rules = _controller.detail?.rules;
+    if (rules == null) return;
     if (errors.isEmpty) {
       widget.onContinue?.call(context, _controller);
       return;
     }
-    final firstBad = _displayOrder.firstWhere(
-      errors.containsKey,
-      orElse: () => errors.keys.first,
-    );
+    final firstShown = _FormLayout.of(
+      rules,
+    ).all.where(errors.containsKey).firstOrNull;
+    final key = firstShown == null ? _formErrorKey : _fieldKeys[firstShown]!;
     // After this frame, so the error lines are laid out before scrolling.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = _fieldKeys[firstBad]?.currentContext;
+      final target = key.currentContext;
       if (target == null || !target.mounted) return;
       Scrollable.ensureVisible(
         target,
@@ -414,30 +486,64 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   }
 }
 
-/// The student's fields, top to bottom.
-const List<ContractFormField> _studentFields = [
-  ContractFormField.lastName,
-  ContractFormField.firstName,
-  ContractFormField.register,
-  ContractFormField.phone,
-  ContractFormField.email,
-  ContractFormField.address,
-];
+/// Which fields the form draws for a contract's rules, in which section,
+/// top to bottom.
+class _FormLayout {
+  const _FormLayout._(this.student, this.guardian, {required this.date});
 
-/// The guardian's fields, top to bottom — shown for a junior course.
-const List<ContractFormField> _guardianFields = [
-  ContractFormField.guardianRelation,
-  ContractFormField.guardianLastName,
-  ContractFormField.guardianFirstName,
-  ContractFormField.guardianRegister,
-];
+  factory _FormLayout.of(ContractRules rules) {
+    if (!rules.guardianRequired) {
+      return _FormLayout._(
+        const [
+          ContractFormField.lastName,
+          ContractFormField.firstName,
+          ContractFormField.register,
+          ContractFormField.phone,
+          ContractFormField.email,
+          ContractFormField.address,
+        ],
+        const [],
+        date: rules.finalPaymentDateRequired,
+      );
+    }
+    // A junior course: `phone` is the parent's (the backend prefills it so),
+    // so it sits with the guardian's details under their label.
+    return _FormLayout._(
+      const [
+        ContractFormField.lastName,
+        ContractFormField.firstName,
+        ContractFormField.register,
+        ContractFormField.email,
+        ContractFormField.address,
+      ],
+      const [
+        ContractFormField.guardianRelation,
+        ContractFormField.guardianLastName,
+        ContractFormField.guardianFirstName,
+        ContractFormField.guardianRegister,
+        ContractFormField.phone,
+      ],
+      date: rules.finalPaymentDateRequired,
+    );
+  }
 
-/// Every field in the order the screen draws them.
-const List<ContractFormField> _displayOrder = [
-  ..._studentFields,
-  ..._guardianFields,
-  ContractFormField.finalPaymentDate,
-];
+  final List<ContractFormField> student;
+  final List<ContractFormField> guardian;
+
+  /// Whether the final payment date is drawn.
+  final bool date;
+
+  /// Every drawn field, in order.
+  List<ContractFormField> get all => [
+    ...student,
+    ...guardian,
+    if (date) ContractFormField.finalPaymentDate,
+  ];
+
+  /// The last field typed into — its keyboard says "done".
+  ContractFormField get lastTyped =>
+      (guardian.isEmpty ? student : guardian).last;
+}
 
 /// With no `final_payment_date_max` the backend sets no upper bound, but the
 /// date picker needs one: this many years past the minimum. A picker range,

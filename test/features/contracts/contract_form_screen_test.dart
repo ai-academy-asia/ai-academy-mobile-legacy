@@ -439,6 +439,172 @@ void main() {
     }
   });
 
+  group('junior phone (review of #315)', () {
+    const guardianPhone = 'Асран хамгаалагчийн утасны дугаар';
+
+    testWidgets('a junior form shows the backend phone as the guardian\'s, '
+        'in the guardian section', (tester) async {
+      repository.detail = detail(withRules: rules(guardian: true));
+      await pumpForm(tester);
+
+      final phone = find.widgetWithText(TextField, guardianPhone);
+      expect(phone, findsOneWidget);
+      expect(field(ContractFormField.phone), findsNothing);
+      // Still the backend's `phone`, prefilled as sent.
+      expect(tester.widget<TextField>(phone).controller!.text, '00000000');
+      expect(
+        tester.getTopLeft(phone).dy,
+        greaterThan(
+          tester.getTopLeft(find.text(ContractStrings.formGuardianSection)).dy,
+        ),
+      );
+
+      await tester.enterText(phone, '99112233');
+      expect(repository.detailCalls, ['12']);
+      await fillStudent(tester);
+      await enter(tester, ContractFormField.guardianRelation, 'Ээж');
+      await enter(tester, ContractFormField.guardianLastName, 'Тест');
+      await enter(tester, ContractFormField.guardianFirstName, 'Асран');
+      await enter(tester, ContractFormField.guardianRegister, 'УБ87654321');
+      await tapContinue(tester);
+
+      expect(continued, hasLength(1));
+      expect(continued.single.form.phone, '99112233');
+      expect(
+        continued.single.form.toJson().containsKey('guardian_phone'),
+        isFalse,
+      );
+      expectNoWrites();
+    });
+
+    testWidgets('an adult form keeps the plain phone label', (tester) async {
+      await pumpForm(tester);
+      expect(field(ContractFormField.phone), findsOneWidget);
+      expect(find.widgetWithText(TextField, guardianPhone), findsNothing);
+    });
+  });
+
+  group('errors on fields the form does not draw (review of #315)', () {
+    for (final (name, form) in [
+      (
+        'a guardian field, adult course',
+        const ContractForm(
+          lastName: 'Тест',
+          firstName: 'Сурагч',
+          phone: '00000000',
+          guardianLastName: 'Smith',
+        ),
+      ),
+      (
+        'the final payment date, not required',
+        const ContractForm(
+          lastName: 'Тест',
+          firstName: 'Сурагч',
+          phone: '00000000',
+          finalPaymentDate: '2020-01-01',
+        ),
+      ),
+    ]) {
+      testWidgets('$name: Continue is blocked with a visible general error', (
+        tester,
+      ) async {
+        repository.detail = detail(form: form);
+        await pumpForm(tester);
+
+        expect(find.text(ContractStrings.formHiddenErrors), findsNothing);
+        await fillStudent(tester);
+        await tapContinue(tester);
+
+        expect(find.text(ContractStrings.formHiddenErrors), findsOneWidget);
+        // No visible field is at fault, and none is drawn for the hidden one.
+        expect(field(ContractFormField.guardianLastName), findsNothing);
+        expect(field(ContractFormField.finalPaymentDate), findsNothing);
+        expect(continued, isEmpty);
+
+        // Pressing again changes nothing: the form cannot pass from here.
+        await tapContinue(tester);
+        expect(continued, isEmpty);
+        expectNoWrites();
+      });
+    }
+
+    testWidgets('visible field errors still show beside the general line', (
+      tester,
+    ) async {
+      repository.detail = detail(
+        form: const ContractForm(
+          lastName: 'Тест',
+          firstName: 'Сурагч',
+          phone: '00000000',
+          guardianLastName: 'Smith',
+        ),
+      );
+      await pumpForm(tester);
+      await tapContinue(tester);
+
+      expect(find.text(ContractStrings.formHiddenErrors), findsOneWidget);
+      expect(
+        find.text(
+          error(ContractFormField.register, ContractFieldReason.required),
+        ),
+        findsNWidgets(2),
+      );
+      expect(continued, isEmpty);
+    });
+  });
+
+  group('inconsistent payment-date rules (review of #315)', () {
+    testWidgets('max before min: explained, no picker, Continue disabled, '
+        'rules and date left as sent', (tester) async {
+      repository.detail = detail(
+        withRules: rules(finalDate: true, max: DateTime(2026, 10, 5)),
+      );
+      await pumpForm(tester);
+
+      // Shown at once — not the student's error to discover.
+      expect(find.text(ContractStrings.formDateRulesInvalid), findsOneWidget);
+      final date = field(ContractFormField.finalPaymentDate);
+      expect(tester.widget<TextField>(date).enabled, isFalse);
+
+      await tester.tap(date, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsNothing);
+
+      await fillStudent(tester);
+      expect(
+        tester.widget<AppButton>(find.byType(AppButton)).onPressed,
+        isNull,
+      );
+      await tapContinue(tester);
+      expect(continued, isEmpty);
+
+      expect(textOf(tester, ContractFormField.finalPaymentDate), isEmpty);
+      expect(
+        repository.detail!.rules.finalPaymentDateMax,
+        DateTime(2026, 10, 5),
+      );
+      expectNoWrites();
+    });
+
+    testWidgets('max equal to min is consistent: one pickable day', (
+      tester,
+    ) async {
+      repository.detail = detail(
+        withRules: rules(finalDate: true, max: DateTime(2026, 10, 10)),
+      );
+      await pumpForm(tester);
+
+      expect(find.text(ContractStrings.formDateRulesInvalid), findsNothing);
+      await tester.tap(field(ContractFormField.finalPaymentDate));
+      await tester.pumpAndSettle();
+      final dialog = tester.widget<DatePickerDialog>(
+        find.byType(DatePickerDialog),
+      );
+      expect(dialog.firstDate, DateTime(2026, 10, 10));
+      expect(dialog.lastDate, DateTime(2026, 10, 10));
+    });
+  });
+
   group('server invalid_fields', () {
     testWidgets('a shared controller is not reloaded, and the server\'s '
         'reasons land on the same fields until edited', (tester) async {
