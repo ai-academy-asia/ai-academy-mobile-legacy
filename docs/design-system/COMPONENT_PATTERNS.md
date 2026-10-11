@@ -49,8 +49,10 @@ Equally: **do not widen a shared widget's contract for one screen.** That reason
 
 | Widget | Where | Height | Notes |
 |---|---|---|---|
-| `AppTextField` | `shared/widgets` | 56 (fixed by its content-padding math) | Single-line only. Floating label rises on focus. Supports `errorText`, `suffix`, `obscureText`, `autofillHints`, `focusNode` |
+| `AppTextField` | `shared/widgets` | 56 (fixed by its content-padding math) | Single-line only. Floating label rises on focus. Supports `errorText`, `suffix`, `obscureText`, `autofillHints`, `focusNode`, and `readOnly` + `onTap` for a value picked elsewhere (the E-Contract form's date, Issue #314). Draws no message under itself |
 | `ExerciseTextField` | `course_learning` | caller-supplied (53 / 104 / 118) | Multiline-capable; label is **permanently floated** (`FloatingLabelBehavior.always`), never resting inside the box |
+
+**A form of many fields** (the E-Contract form, Issue #314) puts each field's reason in a `fieldError` line in `error`, 4 under the box and 16 in, since `AppTextField` draws none and Login's one-line message band cannot say which of twelve fields is at fault.
 
 `ExerciseTextField` exists because `AppTextField` is single-line at a fixed 56 — a hard blocker for the 104/118pt textareas. It also deliberately avoids `expands: true`, which triggers a framework semantics assertion on dispose in this SDK; a generous fixed `maxLines` inside a tight `SizedBox` gives the same box through the ordinary code path. **Do not "simplify" that back to `expands`.**
 

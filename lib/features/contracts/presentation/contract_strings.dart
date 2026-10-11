@@ -1,5 +1,6 @@
 import '../../notifications/presentation/notification_strings.dart';
 import '../../profile/presentation/profile_strings.dart';
+import '../domain/contract_detail.dart';
 import '../domain/contract_failure.dart';
 
 /// Copy for the E-Contract screen. The list's title, status pills and
@@ -38,6 +39,63 @@ abstract final class ContractStrings {
 
   /// Under the signature pad — the screenshot's own words.
   static const String clear = 'Цэвэрлэх / Clear';
+
+  // ── The contract form (Issue #314) ──────────────────────────────────────
+  // No frame draws the form: these are the app's own plain words — section
+  // headings in the "Монгол · English" form the signing export uses, field
+  // labels in Mongolian as Login's are. A `PRODUCT DECISION` until design
+  // gives the form its own copy.
+
+  static const String formStudentSection = 'Хувийн мэдээлэл · Personal details';
+  static const String formGuardianSection =
+      'Асран хамгаалагчийн мэдээлэл · Guardian details';
+  static const String formPaymentSection = 'Төлбөр · Payment';
+
+  /// The form's action — on to the contract preview.
+  static const String formContinue = 'Үргэлжлүүлэх';
+
+  /// Over a form that cannot be signed (`can_sign` false, or not pending):
+  /// the fields are shown, not editable.
+  static const String formReadOnly = 'Энэ гэрээг одоогоор засах боломжгүй.';
+
+  /// Server `invalid_fields` reasons for keys this client has no field for.
+  static const String formUnmatchedErrors =
+      'Гэрээний мэдээлэлд алдаа байна. Дахин оролдоно уу.';
+
+  /// The label of [field].
+  static String fieldLabel(ContractFormField field) => switch (field) {
+    ContractFormField.lastName => 'Овог',
+    ContractFormField.firstName => 'Нэр',
+    ContractFormField.register => 'Регистрийн дугаар',
+    ContractFormField.phone => 'Утасны дугаар',
+    ContractFormField.email => 'Email хаяг',
+    ContractFormField.address => 'Гэрийн хаяг',
+    ContractFormField.guardianRelation => 'Таны хэн болох',
+    ContractFormField.guardianLastName => 'Асран хамгаалагчийн овог',
+    ContractFormField.guardianFirstName => 'Асран хамгаалагчийн нэр',
+    ContractFormField.guardianRegister =>
+      'Асран хамгаалагчийн регистрийн дугаар',
+    ContractFormField.finalPaymentDate => 'Төлбөр төлж дуусах огноо',
+  };
+
+  /// Why [field] is refused — the validator's or the server's [reason].
+  static String fieldError(
+    ContractFormField field,
+    ContractFieldReason reason,
+  ) => switch (reason) {
+    ContractFieldReason.required => 'Заавал бөглөнө үү',
+    ContractFieldReason.tooLong => 'Хэт урт байна',
+    ContractFieldReason.cyrillicOnly => 'Кирилл үсгээр бичнэ үү',
+    ContractFieldReason.invalidFormat => switch (field) {
+      ContractFormField.register ||
+      ContractFormField.guardianRegister => 'Жишээ нь: УБ12345678',
+      ContractFormField.phone => '8 оронтой утасны дугаар оруулна уу',
+      ContractFormField.email => 'Email хаяг буруу байна',
+      _ => 'Буруу утга байна',
+    },
+    ContractFieldReason.outOfRange => 'Зөвшөөрөгдөх хугацаанаас гадуур байна',
+    ContractFieldReason.unknown => 'Энэ талбарыг шалгана уу',
+  };
 
   static String messageFor(ContractFailureKind kind) => switch (kind) {
     ContractFailureKind.sessionExpired => ProfileStrings.sessionExpired,

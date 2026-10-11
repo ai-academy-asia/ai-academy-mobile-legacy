@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_system_ui.dart';
-import '../../../core/theme/app_typography.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../data/http_contract_repository.dart';
 import '../domain/contract_repository.dart';
 import '../domain/student_contract.dart';
 import 'contract_list_controller.dart';
 import 'contract_strings.dart';
 import 'widgets/contract_card.dart';
+import 'widgets/contract_page_parts.dart';
 
 /// The student's e-contracts (Issues #294, #312), read from
 /// `GET /me/contracts` — the Figma export `e-contract1.png`.
@@ -98,7 +96,7 @@ class _ContractScreenState extends State<ContractScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _Header(),
+                  const ContractHeader(),
                   Expanded(
                     child: ListenableBuilder(
                       listenable: _controller,
@@ -120,7 +118,7 @@ class _ContractScreenState extends State<ContractScreen> {
     }
     final message = _controller.errorMessage;
     if (message != null) {
-      return _Message(
+      return ContractMessage(
         message: message,
         action: TextButton(
           onPressed: _controller.load,
@@ -130,7 +128,7 @@ class _ContractScreenState extends State<ContractScreen> {
     }
     final contracts = _controller.contracts;
     if (contracts.isEmpty) {
-      return const _Message(message: ContractStrings.empty);
+      return const ContractMessage(message: ContractStrings.empty);
     }
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(
@@ -164,75 +162,7 @@ class _ContractScreenState extends State<ContractScreen> {
   }
 }
 
-/// The back button with "Гэрээ · E-Contract" centred on its row — the
-/// export's header, the Certificate and Notification screens' layout.
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
-        Positioned.fill(
-          top: _backButtonTop,
-          child: Center(
-            child: Text(
-              ContractStrings.title,
-              style: _titleStyle.copyWith(color: context.palette.textTitle),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.message, this.action});
-
-  final String message;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimens.screenPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message,
-              style: AppTypography.statLabel.copyWith(
-                color: context.palette.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (action case final action?) ...[
-              const SizedBox(height: AppDimens.fieldGap),
-              action,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// `CourseLearningBackButton`'s own inset above the circle.
-const double _backButtonTop = 12;
-
 /// The back button's bottom to the first card, and card to card — measured
 /// off `e-contract1.png` (the Certificate list's 28 above the first card).
 const double _headerToCard = 28;
 const double _cardGap = 16;
-
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
