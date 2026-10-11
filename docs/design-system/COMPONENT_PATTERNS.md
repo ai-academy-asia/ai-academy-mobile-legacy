@@ -67,6 +67,7 @@ Behaviour:
 - **The pad wins its touch on contact**, so a stroke never scrolls a parent scroll view. Points outside the pad are dropped, and re-entering starts a new stroke.
 - `toPng()` draws in the authored `AppColors.linkInk` on transparent, whatever the theme: the backend turns near-white transparent, so a light Dark-theme ink could vanish. It renders at up to 2×, kept under 0.6 MP.
 - Measured off a screenshot, not a Figma frame. The screenshot's faint circled "×" inside the pad is not drawn, because what it is remains unknown.
+- Used by `ContractPreviewScreen`'s signing step (Issue #320), which owns and disposes the controller and ignores the pad's touches while a sign is in flight.
 
 
 **PDF preview (Issue #310).** `ContractPdfView` (`contracts/presentation/widgets`) shows in-memory PDF bytes (`getContractPreview`'s answer) inside the signing screen export's document box: `surface`, the `outline` edge, `homeCardRadius`, with the size set by the caller. Used by `ContractPreviewScreen` (Issue #316), on that export's `surfaceSubtle` page.

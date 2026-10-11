@@ -113,14 +113,53 @@ abstract final class ContractStrings {
     ContractFieldReason.unknown => 'Энэ талбарыг шалгана уу',
   };
 
+  // ── Signing (Issue #320) ────────────────────────────────────────────────
+  // The Sign label and the agreement sentence are `e-contract2.png`'s own
+  // words. No frame draws a signed state or a signing error, so the rest
+  // is the app's plain wording — a `PRODUCT DECISION` until design gives
+  // them copy.
+
+  /// The signing screen's action — the export's own words.
+  static const String signSubmit = 'Гарын үсэг зурах / Sign';
+
+  /// The agreement checkbox's label — the export's own sentence.
+  static const String signAgreement = 'Та гэрээний нөхцөлийг зөвшөөрч байна.';
+
+  /// The success state's title.
+  static const String signedTitle = 'Гэрээ амжилттай байгуулагдлаа';
+
+  /// The success state's way out, back to the contracts.
+  static const String signedDone = 'Буцах';
+
+  /// `already_signed`: signed elsewhere, or by an earlier request.
+  static const String signAlreadySigned =
+      'Энэ гэрээ аль хэдийн байгуулагдсан байна.';
+
+  /// `invalid_fields`: sent back to the form, whose fields say what.
+  static const String signFixForm = 'Гэрээний мэдээллээ шалгаад засна уу.';
+
+  /// `contract_cancelled`.
+  static const String signCancelled =
+      'Энэ гэрээ цуцлагдсан тул байгуулах боломжгүй.';
+
+  /// `contract_template_missing` / `_invalid`.
+  static const String signTemplateUnavailable =
+      'Гэрээний загвар бэлэн биш байна. Менежертэйгээ холбогдоно уу.';
+
   static String messageFor(ContractFailureKind kind) => switch (kind) {
     ContractFailureKind.sessionExpired => ProfileStrings.sessionExpired,
     ContractFailureKind.network => ProfileStrings.networkError,
     ContractFailureKind.server ||
     ContractFailureKind.storageError => ProfileStrings.serverError,
-    // The signing kinds (Issue #302) have no screen and no design yet; until
-    // one gives them words, the generic line stands in rather than invented
-    // copy. Only the list reaches this today.
+    // The three a student can act on (Issue #320) — the same refusals the
+    // preview and sign steps both meet.
+    ContractFailureKind.alreadySigned => signAlreadySigned,
+    ContractFailureKind.contractCancelled => signCancelled,
+    ContractFailureKind.templateMissing ||
+    ContractFailureKind.templateInvalid => signTemplateUnavailable,
+    // The rest has no design and nothing the student can do differently;
+    // the generic line stands in rather than invented copy.
+    // `invalid_fields` is shown on the form's own fields instead.
     ContractFailureKind.unexpected ||
     ContractFailureKind.forbidden ||
     ContractFailureKind.contractNotFound ||
@@ -130,10 +169,6 @@ abstract final class ContractStrings {
     ContractFailureKind.invalidSignature ||
     ContractFailureKind.emptySignature ||
     ContractFailureKind.signatureTooLarge ||
-    ContractFailureKind.alreadySigned ||
-    ContractFailureKind.contractCancelled ||
-    ContractFailureKind.templateMissing ||
-    ContractFailureKind.templateInvalid ||
     ContractFailureKind.notSigned => ProfileStrings.unexpectedError,
   };
 }

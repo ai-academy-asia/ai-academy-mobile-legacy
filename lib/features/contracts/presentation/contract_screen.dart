@@ -30,8 +30,10 @@ import 'widgets/contract_page_parts.dart';
 /// opens it outside the app ([ContractListController.download]); a failure,
 /// `not_signed` included, is a SnackBar with the existing copy — never a
 /// success. A pending contract's "Гэрээ байгуулах" calls [onSign] when the
-/// contract `can_sign`; no signing screen exists yet, so it is null and the
-/// action is drawn disabled. Nothing here signs.
+/// contract `can_sign`. The signing flow exists (Issues #314–#320), but
+/// [open] passes no [onSign] on purpose: signing stays off for students
+/// until a real-contract test is approved and done, so the action is drawn
+/// disabled. Nothing here signs.
 class ContractScreen extends StatefulWidget {
   const ContractScreen({super.key, this.repository, this.openUrl, this.onSign});
 
@@ -42,8 +44,8 @@ class ContractScreen extends StatefulWidget {
   /// tests.
   final Future<bool> Function(Uri url)? openUrl;
 
-  /// Where a signable contract's "Гэрээ байгуулах" leads. Null until the
-  /// signing screen exists, which leaves the action disabled.
+  /// Where a signable contract's "Гэрээ байгуулах" leads. Null — as [open]
+  /// leaves it — draws the action disabled.
   final void Function(BuildContext context, StudentContract contract)? onSign;
 
   /// Pushes the screen over [context]'s navigator — what both Profiles'

@@ -44,10 +44,10 @@ const Color _exportInk = AppColors.linkInk;
 /// "Гарын үсэг зурна уу · Sign here", a rounded pad the student draws in,
 /// and "Цэвэрлэх / Clear" under it.
 ///
-/// **Standalone.** It holds no contract and calls no API: [controller] says
-/// whether anything is drawn and exports it as a PNG for `signatureDataUrl`
-/// (Issue #302). The signing screen it belongs to is not built — its contract
-/// display, form and agreement still need decisions.
+/// **It holds no contract and calls no API:** [controller] says whether
+/// anything is drawn and exports it as a PNG for `signatureDataUrl` (Issue
+/// #302). `ContractPreviewScreen` (Issue #320) places it under the contract
+/// and sends that PNG through `ContractSigningController.sign`.
 ///
 /// **Drawing never scrolls the page.** The pad claims a touch the moment it
 /// lands, so a parent scroll view cannot take a vertical stroke from it; a
