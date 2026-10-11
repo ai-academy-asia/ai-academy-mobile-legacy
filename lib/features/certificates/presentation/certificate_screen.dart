@@ -204,6 +204,15 @@ class _CertificateScreenState extends State<CertificateScreen> {
 }
 
 /// The back button with "Certificate" centred on its row.
+///
+/// **The title never covers the button (Issue #325, as #318 fixed the
+/// E-Contract header).** It used to fill the whole row on top of the button,
+/// so at large text sizes it grew over the circle and took its taps. Now it
+/// is kept out of the button's band on *both* sides — [_titleInset] — so it
+/// stays centred on the row, wraps inside what is left, and the header grows
+/// to fit it; the button is painted last, on top. At the default text size
+/// the title fits that band on a 320-wide phone and lands exactly where it
+/// did.
 class _Header extends StatelessWidget {
   const _Header();
 
@@ -211,18 +220,28 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
-        Positioned.fill(
+        Padding(
           // The button's own 12 above it, so the title centres on the circle.
-          top: _backButtonTop,
-          child: Center(
-            child: Text(
-              CertificateStrings.title,
-              style: _titleStyle.copyWith(color: context.palette.textTitle),
-              textAlign: TextAlign.center,
+          padding: const EdgeInsets.fromLTRB(
+            _titleInset,
+            _backButtonTop,
+            _titleInset,
+            0,
+          ),
+          // At least the circle's height, so a one-line title is centred on
+          // it as before; taller when the title wraps.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _backButtonSize),
+            child: Center(
+              child: Text(
+                CertificateStrings.title,
+                style: _titleStyle.copyWith(color: context.palette.textTitle),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ),
+        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
       ],
     );
   }
@@ -452,6 +471,14 @@ class _Message extends StatelessWidget {
 
 /// `CourseLearningBackButton`'s own inset above the circle.
 const double _backButtonTop = 12;
+
+/// `CourseLearningBackButton`'s circle.
+const double _backButtonSize = 40;
+
+/// Kept clear on either side of the header title: the button's screen inset,
+/// its circle and 8 between them — mirrored on the right so the title stays
+/// centred on the row (Issue #325).
+const double _titleInset = AppDimens.screenPadding + _backButtonSize + 8;
 
 /// The circle's bottom to the first card's top.
 const double _headerToCard = 28;
