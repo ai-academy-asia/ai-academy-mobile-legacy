@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../payments/data/payment_checkout_ui_fixtures.dart';
-import '../../payments/data/payment_plan_ui_fixtures.dart';
+import '../data/payment_checkout_ui_fixtures.dart';
+import '../data/payment_plan_ui_fixtures.dart';
 import 'payment_flow/payment_amount_screen.dart';
 import 'payment_screen.dart';
 

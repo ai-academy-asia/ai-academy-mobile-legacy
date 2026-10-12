@@ -1,5 +1,5 @@
-import 'package:aia_mobile/features/home/presentation/payment_flow/payment_amount_screen.dart';
-import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_flow/payment_amount_screen.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_previews.dart';
 import 'package:aia_mobile/features/payments/data/payment_checkout_ui_fixtures.dart';
 import 'package:aia_mobile/features/payments/domain/payment_checkout.dart';
 import 'package:flutter_test/flutter_test.dart';

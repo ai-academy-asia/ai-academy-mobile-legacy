@@ -8,7 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_system_ui.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../shared/widgets/app_back_button.dart';
-import '../../../payments/domain/payment_checkout.dart';
+import '../../domain/payment_checkout.dart';
 import '../../../../shared/widgets/pill_button.dart';
 import 'payment_flow_strings.dart';
 

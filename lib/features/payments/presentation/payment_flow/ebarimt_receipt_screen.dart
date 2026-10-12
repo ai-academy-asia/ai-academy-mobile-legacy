@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
-import '../../../payments/domain/payment_checkout.dart';
+import '../../domain/payment_checkout.dart';
 import 'payment_flow_strings.dart';
 import 'payment_flow_widgets.dart';
 
