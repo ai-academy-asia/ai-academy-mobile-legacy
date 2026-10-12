@@ -27,6 +27,12 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
           top: Radius.circular(AppDimens.cardRadius),
         ),
       ),
+      // The sheet may take the whole safe height, rather than Flutter's
+      // default 9/16 of the screen: on a small phone, or at a larger text
+      // size, that cap cut the options off — the email one could not be
+      // chosen at 1.3× on a 375×667 phone (Issue #343).
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (_) => const ManagerContactSheet(),
     );
 
@@ -82,64 +88,80 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.screenPadding,
-          AppDimens.headingToForm,
-          AppDimens.screenPadding,
-          AppDimens.cardPadding,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The cue stays put — a fixed 68pt whatever the text size — and
+          // everything under it scrolls when the sheet still cannot fit it
+          // (Issue #343). A drag on the cue always dismisses the sheet, and
+          // while everything fits the scroll view takes no drags, so a drag
+          // anywhere dismisses it as before.
+          const Padding(
+            padding: EdgeInsets.only(top: AppDimens.headingToForm),
+            child: Center(
               child: _IconTile(
                 icon: AppIcons.chatCircleDots,
                 size: AppDimens.avatarSize,
                 iconSize: headerIconSize,
               ),
             ),
-            const SizedBox(height: AppDimens.fieldGap),
-            Text(
-              LoginStrings.contactSheetTitle,
-              style: AppTypography.catalogTitle.copyWith(
-                color: context.palette.textPrimary,
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.screenPadding,
+                AppDimens.fieldGap,
+                AppDimens.screenPadding,
+                AppDimens.cardPadding,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppDimens.fieldGap),
-            Text(
-              LoginStrings.contactMessage,
-              style: AppTypography.statLabel.copyWith(
-                color: context.palette.textPrimary,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    LoginStrings.contactSheetTitle,
+                    style: AppTypography.catalogTitle.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppDimens.fieldGap),
+                  Text(
+                    LoginStrings.contactMessage,
+                    style: AppTypography.statLabel.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppDimens.headingToForm),
+                  _ContactOption(
+                    icon: AppIcons.phone,
+                    label: LoginStrings.contactCall,
+                    value: ManagerContact.phoneLabel,
+                    onTap: () => _answer(ManagerContact.phone),
+                  ),
+                  const SizedBox(height: AppDimens.fieldGap),
+                  _ContactOption(
+                    icon: AppIcons.envelope,
+                    label: LoginStrings.contactEmail,
+                    value: ManagerContact.emailLabel,
+                    onTap: () => _answer(ManagerContact.email),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppDimens.headingToForm),
-            _ContactOption(
-              icon: AppIcons.phone,
-              label: LoginStrings.contactCall,
-              value: ManagerContact.phoneLabel,
-              onTap: () => _answer(ManagerContact.phone),
-            ),
-            const SizedBox(height: AppDimens.fieldGap),
-            _ContactOption(
-              icon: AppIcons.envelope,
-              label: LoginStrings.contactEmail,
-              value: ManagerContact.emailLabel,
-              onTap: () => _answer(ManagerContact.email),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 /// One way to reach the manager, drawn as the Login frame's contact card:
-/// the same 80pt bordered white surface and trailing caret, led by the
-/// option's glyph on a pale blue tile, with the action over the contact.
+/// the same bordered white surface — at least 80pt — and trailing caret, led
+/// by the option's glyph on a pale blue tile, with the action over the
+/// contact.
 class _ContactOption extends StatelessWidget {
   const _ContactOption({
     required this.icon,
@@ -158,6 +180,10 @@ class _ContactOption extends StatelessWidget {
     return Semantics(
       button: true,
       label: '$label, $value',
+      // `excludeSemantics` also drops the [InkWell]'s tap action, so the
+      // button carries its own: without it a screen reader announced a
+      // button it could not activate (Issue #343).
+      onTap: onTap,
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,
@@ -165,10 +191,14 @@ class _ContactOption extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+          // At least the Login card's 80, and taller when a larger text
+          // size needs it (Issue #343); the vertical inset only shows then —
+          // at the default size the content sits well inside the 80.
           child: Container(
-            height: AppDimens.cardHeight,
+            constraints: const BoxConstraints(minHeight: AppDimens.cardHeight),
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.cardPadding,
+              vertical: AppDimens.fieldGap,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -185,6 +215,10 @@ class _ContactOption extends StatelessWidget {
                   iconSize: AppDimens.settingsRowIconSize,
                 ),
                 const SizedBox(width: AppDimens.fieldGap),
+                // The action and the contact wrap rather than ellipsize: cut
+                // to "info@ai-acad…" at a large text size, the address — the
+                // point of the option — was lost (Issue #343). At the default
+                // size each is one line.
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -195,8 +229,6 @@ class _ContactOption extends StatelessWidget {
                         style: AppTypography.cardHeading.copyWith(
                           color: context.palette.textPrimary,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppDimens.cardLineGap),
                       Text(
@@ -204,8 +236,6 @@ class _ContactOption extends StatelessWidget {
                         style: AppTypography.statLabel.copyWith(
                           color: context.palette.textSecondary,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
