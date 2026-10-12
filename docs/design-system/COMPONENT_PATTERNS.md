@@ -15,7 +15,7 @@ That third step is a real convention here, not boilerplate. Several widgets exis
 **Colour in shared components comes from the theme (Dark Mode Phase 3, Issue #258).** These read every colour from `context.palette`, never `AppColors`, a feature palette or a literal:
 - `AppButton`, `AppTextField`, `AppBottomNav`;
 - `AppBackButton`, `BackTitleHeader`, `HomeHeader`;
-- `PillButton`, `TrackBadge`, `CardCapsule` (`shared/widgets`, Issue #329 — moved out of `home`, formerly `HomePillButton` / `home_badges.dart`'s `HomeCapsule`, because the Attendance scanner, Payment, Teacher and E-Contract screens draw them too; `CardCapsule` draws the colours its caller passes);
+- `PillButton`, `TrackBadge`, `CardCapsule` (`shared/widgets`, Issue #329 — moved out of `home`, formerly `HomePillButton` / `home_badges.dart`'s `HomeCapsule`, because the Attendance scanner, Payment, Teacher and E-Contract screens draw them too; `CardCapsule` draws the colours its caller passes). `TrackBadge`'s 32 and `CardCapsule`'s 24 are minimums: a larger system text size grows each with its label instead of clipping it, and `CardCapsule` is only as wide as its label in any parent (Issue #351). A caller with a fixed-height band still caps them — `ProgramCard`'s badge row, for one;
 - the `profile_parts` widgets (`ProfileTitleBar`, `ProfileAvatar`, `ProfileCaption`, `ProfileRow`, `ProfileRule`, `ProfileLanguageToggle`, `ProfileSwitch`, `ProfileLogOutButton`).
 
 `test/shared/theme_aware_components_test.dart` proves it by pumping them under a sentinel palette. New shared widgets follow suit.
