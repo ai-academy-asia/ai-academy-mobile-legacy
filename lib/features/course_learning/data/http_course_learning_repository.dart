@@ -21,6 +21,9 @@ import '../domain/uploaded_file.dart';
 import 'course_module_visuals.dart';
 import '../../auth/data/authenticated_client.dart';
 
+part 'http_course_learning/display_labels.dart';
+part 'http_course_learning/json_fields.dart';
+
 /// Reads one course's learning path — hero, progress, module list — one
 /// module's lessons, and one lesson's content against the AI Academy API.
 ///
@@ -644,23 +647,6 @@ Lesson _lessonFrom(Object? entry, int moduleId) {
   );
 }
 
-/// The badge copy for a `recording` lesson — the one type the design names a
-/// badge for ("Live Classroom Recording", the sample's own label). `video`
-/// and `reading` have no copy, so their badge is left off rather than
-/// invented.
-const String _recordingBadgeLabel = 'Live Classroom Recording';
-
-/// Who a note's author is to the student reading it — always themselves, as
-/// §2.5's note is the signed-in student's own. The same "Me" the sample and
-/// `NoteTab` use.
-const String _noteAuthorLabel = 'Me';
-
-/// The label the Mentor Feedback card draws under a `teacher` mentor — the
-/// sample's own "Lead Mentor". §2.6 sends the role as an enum and leaves the
-/// wording to the client; any other role has no copy, so its label is left
-/// empty rather than invented.
-const String _teacherRoleLabel = 'Lead Mentor';
-
 /// §2.3's body into a [CourseExercise].
 ///
 /// Read: `id`, `module.id`/`module.order`, `title`, `type`,
@@ -893,27 +879,6 @@ LessonCompletion _completionFromBody(String body) {
     completed: _requireBool(decoded, 'completion.completed'),
     percentComplete: _requirePercent(_requireObject(decoded, 'progress')),
   );
-}
-
-/// A 2xx body that must be one JSON object — the shape every §2.7 answer
-/// has. Anything else is the API misbehaving: a `server` failure.
-Map<String, dynamic> _decodeObject(String body) {
-  final Object? decoded;
-  try {
-    decoded = jsonDecode(body);
-  } on FormatException catch (e) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: 'malformed JSON: ${e.message}',
-    );
-  }
-  if (decoded is! Map<String, dynamic>) {
-    throw const CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: 'response was not a JSON object',
-    );
-  }
-  return decoded;
 }
 
 /// `video` is `{embed_url}` or `null`; only its presence is read.
@@ -1264,105 +1229,6 @@ CourseExerciseNote? _noteFrom(Object? note, {required DateTime now}) {
   );
 }
 
-/// "Today, 14:20" — the contract's §0 example of what the client formats a
-/// timestamp as, and the sample's own label — for a time on [now]'s
-/// calendar day; "08/06, 14:20" otherwise, the `MM/dd` the module schedule
-/// label already uses.
-String _timestampLabel(DateTime local, {required DateTime now}) {
-  String two(int value) => value.toString().padLeft(2, '0');
-  final time = '${two(local.hour)}:${two(local.minute)}';
-  final sameDay =
-      local.year == now.year &&
-      local.month == now.month &&
-      local.day == now.day;
-  return sameDay
-      ? 'Today, $time'
-      : '${two(local.month)}/${two(local.day)}, $time';
-}
-
-/// `duration_seconds` as the lesson row draws it: `M:SS` under an hour,
-/// `H:MM:SS` from one up — `0` is `"0:00"`, `1455` is `"24:15"`, `3725` is
-/// `"1:02:05"`. The contract sends integers and no pre-formatted label, so
-/// the client composes it. A negative duration is a server fault.
-String _durationLabel(int seconds) {
-  if (seconds < 0) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: 'lesson.duration_seconds: expected 0 or more, got $seconds',
-    );
-  }
-
-  String two(int value) => value.toString().padLeft(2, '0');
-
-  final hours = seconds ~/ 3600;
-  final minutes = (seconds % 3600) ~/ 60;
-  final secs = seconds % 60;
-  return hours > 0
-      ? '$hours:${two(minutes)}:${two(secs)}'
-      : '$minutes:${two(secs)}';
-}
-
-/// `{"date": "2026-08-06", "start_time": "09:00"}` into the card's own
-/// `"08/06 • Пү • 09:00"`.
-///
-/// The format is the one the Figma module card draws and the contract quotes
-/// back — `MM/dd`, the weekday abbreviated in Mongolian, then the start time.
-/// Only `"Да"` (Даваа) is confirmed by the design; the other six follow that
-/// one's convention, the first two letters of the Mongolian day name. Kept in
-/// `data/` beside the mapping rather than in `CourseLearningStrings` because
-/// `scheduleLabel` is a pre-formatted model field, which is where
-/// `SampleCourseLearningRepository` already writes its own copy of this label
-/// — and because `data/` must not import `presentation/`.
-///
-/// Absent schedule means a self-paced module, which the contract says sends
-/// `null`: the card then draws no date line. An empty string rather than a
-/// nullable field, so the widget the Figma pass measured stays untouched.
-String _scheduleLabel(Object? schedule) {
-  if (schedule == null) return '';
-  if (schedule is! Map<String, dynamic>) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail:
-          'module.schedule: expected an object or null, got ${schedule.runtimeType}',
-    );
-  }
-
-  final date = _requireString(schedule, 'module.schedule.date');
-  final startTime = _requireString(schedule, 'module.schedule.start_time');
-
-  final DateTime parsed;
-  try {
-    parsed = DateTime.parse(date);
-  } on FormatException {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: 'module.schedule.date: not a date ("$date")',
-    );
-  }
-
-  final month = parsed.month.toString().padLeft(2, '0');
-  final day = parsed.day.toString().padLeft(2, '0');
-  // `DateTime.weekday` is 1 = Monday … 7 = Sunday.
-  final weekday = _mongolianWeekdays[parsed.weekday - 1];
-  // Tolerates `"09:00:00"` as well as the contract's `"09:00"` — the card
-  // draws hours and minutes either way.
-  final time = startTime.length > 5 ? startTime.substring(0, 5) : startTime;
-
-  return '$month/$day • $weekday • $time';
-}
-
-/// Даваа, Мягмар, Лхагва, Пүрэв, Баасан, Бямба, Ням — Monday-first, matching
-/// `DateTime.weekday`.
-const List<String> _mongolianWeekdays = [
-  'Да',
-  'Мя',
-  'Лх',
-  'Пү',
-  'Ба',
-  'Бя',
-  'Ня',
-];
-
 /// One id out of `continue` — `module_id`, the module "Continue learning"
 /// opens, or `lesson_id`, the lesson inside it.
 ///
@@ -1448,173 +1314,4 @@ int _requirePercent(Map<String, dynamic> progress) {
     );
   }
   return percent.toInt().clamp(0, 100);
-}
-
-// --- Field readers ---------------------------------------------------------
-//
-// Named per-field like `HttpCourseRepository`'s, and for the same reason:
-// "which field, on which module" is what makes a parse failure fixable.
-//
-// Each takes the field's dotted path exactly as the contract writes it —
-// `course.slug`, `module.schedule.date` — reads the last segment as the key
-// in the map it was handed, and reports the whole path. That way a parse
-// failure names the response's own field rather than this file's variables,
-// without every call site repeating the key twice.
-
-Map<String, dynamic> _requireObject(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value is! Map<String, dynamic>) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$key: expected a JSON object, got ${value.runtimeType}',
-    );
-  }
-  return value;
-}
-
-String _requireString(Map<String, dynamic> json, String label) {
-  final value = json[label.split('.').last];
-  if (value is! String || value.isEmpty) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: expected a non-empty string, got ${value.runtimeType}',
-    );
-  }
-  return value;
-}
-
-int _requireInt(Map<String, dynamic> json, String label) {
-  final value = json[label.split('.').last];
-  if (value is! num) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: expected a number, got ${value.runtimeType}',
-    );
-  }
-  return value.toInt();
-}
-
-bool _requireBool(Map<String, dynamic> json, String label) {
-  final value = json[label.split('.').last];
-  if (value is! bool) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: expected a boolean, got ${value.runtimeType}',
-    );
-  }
-  return value;
-}
-
-/// A `{"mn": ..., "en": ...}` field, resolved the way the rest of the app
-/// resolves one: Mongolian first, English second — [LocalizedText.preferred].
-String _requireLocalized(Map<String, dynamic> json, String label) {
-  final text = _optionalLocalized(json, label);
-  if (text == null) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: carried neither "mn" nor "en" text',
-    );
-  }
-  return text;
-}
-
-/// A localised field that must be present — as an object or `null` — but
-/// whose text may be empty: `""` when neither language carries any.
-String _localizedOrEmpty(Map<String, dynamic> json, String label) {
-  final key = label.split('.').last;
-  if (!json.containsKey(key)) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: missing',
-    );
-  }
-  return _optionalLocalized(json, label) ?? '';
-}
-
-List<Object?> _requireList(Map<String, dynamic> json, String label) {
-  final value = json[label.split('.').last];
-  if (value is! List) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: expected a list, got ${value.runtimeType}',
-    );
-  }
-  return value;
-}
-
-/// An ISO-8601 timestamp field — §0's "with offset" — that must be present.
-DateTime _requireTimestamp(Map<String, dynamic> json, String label) {
-  final raw = _requireString(json, label);
-  final parsed = DateTime.tryParse(raw);
-  if (parsed == null) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: not a timestamp ("$raw")',
-    );
-  }
-  return parsed;
-}
-
-/// A URL field that must be an absolute `http`/`https` URL with a host —
-/// something the OS can open outside the app (`https://` alone parses, but
-/// names nowhere). Parsed, never rebuilt: the URL opened is the one the
-/// server sent. Anything else is a server fault.
-Uri _requireHttpUrl(Map<String, dynamic> json, String label) {
-  final raw = _requireString(json, label);
-  final url = Uri.tryParse(raw);
-  if (url == null ||
-      url.host.isEmpty ||
-      (url.scheme != 'https' && url.scheme != 'http')) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: not an http(s) URL ("$raw")',
-    );
-  }
-  return url;
-}
-
-/// A number field that may be `null` or absent — §2.7's `attempts_left`
-/// (null = unlimited) and `open_attempt_id` (null = none open). Present, it
-/// must be a number.
-int? _optionalInt(Map<String, dynamic> json, String label) {
-  final value = json[label.split('.').last];
-  if (value == null) return null;
-  if (value is! num) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: expected a number or null, got ${value.runtimeType}',
-    );
-  }
-  return value.toInt();
-}
-
-/// A string field that may be `null` or absent. Present, it must be a
-/// string; an empty one reads as null, the way an absent one does.
-String? _optionalString(Map<String, dynamic> json, String label) {
-  final value = json[label.split('.').last];
-  if (value == null) return null;
-  if (value is! String) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail: '$label: expected a string or null, got ${value.runtimeType}',
-    );
-  }
-  return value.isEmpty ? null : value;
-}
-
-String? _optionalLocalized(Map<String, dynamic> json, String label) {
-  final key = label.split('.').last;
-  final value = json[key];
-  if (value == null) return null;
-  if (value is! Map<String, dynamic>) {
-    throw CourseLearningFailure(
-      CourseLearningFailureKind.server,
-      detail:
-          '$label: expected a {"mn", "en"} object, got ${value.runtimeType}',
-    );
-  }
-  return LocalizedText(
-    en: value['en'] is String ? value['en'] as String : null,
-    mn: value['mn'] is String ? value['mn'] as String : null,
-  ).preferred;
 }
