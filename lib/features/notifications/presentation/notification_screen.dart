@@ -186,85 +186,94 @@ class NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final unread = !notification.isRead;
     final palette = context.palette;
-    final row = SizedBox(
-      height: _rowHeight,
+    // At least the frame's 71, and as tall as its content when a larger
+    // system text size needs more (Issue #359) — the body used to spill into
+    // the next row from 1.5×. At the default size it is exactly 71.
+    final row = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _rowHeight),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.screenPadding,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: _iconTop),
-              child: SvgPicture.asset(
-                HomeIcons.notification,
-                width: _iconSize,
-                height: _iconSize,
-                colorFilter: ColorFilter.mode(
-                  unread ? palette.accent : palette.textInactive,
-                  BlendMode.srcIn,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: _iconTop),
+                child: SvgPicture.asset(
+                  HomeIcons.notification,
+                  width: _iconSize,
+                  height: _iconSize,
+                  colorFilter: ColorFilter.mode(
+                    unread ? palette.accent : palette.textInactive,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: _iconToText),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: _textTop),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: _iconToText),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: _textTop,
+                    bottom: _textBottom,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notification.title,
+                        style: _rowTitleStyle.copyWith(
+                          color: unread
+                              ? palette.textPrimary
+                              : palette.textInactive,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: _titleToBody),
+                      Text(
+                        notification.body,
+                        style: _bodyStyle.copyWith(
+                          color: unread
+                              ? palette.textSecondary
+                              : palette.textInactive,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: _iconToText),
+              // Centred in the row, whatever its height — the frame's place
+              // at the default size.
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      notification.title,
-                      style: _rowTitleStyle.copyWith(
-                        color: unread
-                            ? palette.textPrimary
-                            : palette.textInactive,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      age,
+                      style: _ageStyle.copyWith(color: palette.textSecondary),
                     ),
-                    const SizedBox(height: _titleToBody),
-                    Text(
-                      notification.body,
-                      style: _bodyStyle.copyWith(
-                        color: unread
-                            ? palette.textSecondary
-                            : palette.textInactive,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: _ageToDot),
+                    SizedBox.square(
+                      dimension: _dotSize,
+                      child: unread
+                          ? DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: palette.accent,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : null,
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(width: _iconToText),
-            SizedBox(
-              height: _rowHeight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    age,
-                    style: _ageStyle.copyWith(color: palette.textSecondary),
-                  ),
-                  const SizedBox(width: _ageToDot),
-                  SizedBox.square(
-                    dimension: _dotSize,
-                    child: unread
-                        ? DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: palette.accent,
-                              shape: BoxShape.circle,
-                            ),
-                          )
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -343,6 +352,10 @@ const double _iconSize = 24;
 const double _iconTop = 12;
 const double _iconToText = 12;
 const double _textTop = 12;
+
+/// Under the body: what the 71 leaves below the title, the gap and the body
+/// at the default size — kept when a larger text size grows the row.
+const double _textBottom = 11;
 const double _titleToBody = 4;
 const double _ageToDot = 13;
 const double _dotSize = 8;
