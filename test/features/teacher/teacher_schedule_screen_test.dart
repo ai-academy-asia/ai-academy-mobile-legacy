@@ -107,11 +107,14 @@ void main() {
     // Tuesday's block sits in the third day column, 14:00 down the grid.
     final grid = tester.getTopLeft(find.byType(TeacherWeekGrid));
     final block = tester.getTopLeft(find.bySemanticsLabel(upcomingLabel));
-    final dayWidth = (393 - TeacherWeekGridMetrics.timeColumnWidth) / 7;
-    expect(
-      block.dx - grid.dx,
-      closeTo(TeacherWeekGridMetrics.timeColumnWidth + 2 * dayWidth + 1, 0.01),
+    // The hour column the grid draws: the reference's 64 with the app's
+    // font, wider under this file's test font, whose glyphs are a full em
+    // (Issue #355).
+    final timeColumn = timeColumnWidthOf(
+      tester.element(find.byType(TeacherWeekGrid)),
     );
+    final dayWidth = (393 - timeColumn) / 7;
+    expect(block.dx - grid.dx, closeTo(timeColumn + 2 * dayWidth + 1, 0.01));
     expect(
       block.dy - grid.dy,
       closeTo(
