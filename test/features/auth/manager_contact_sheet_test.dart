@@ -412,6 +412,105 @@ void main() {
       expect(scroll.position.maxScrollExtent, greaterThan(0));
     });
 
+    group('the scroll hint', () {
+      /// The fade over the foot of the scroll view, found by its gradient.
+      Finder fade() => find.descendant(
+        of: sheet(),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).gradient != null,
+        ),
+      );
+
+      ScrollableState scrollable(WidgetTester tester) =>
+          tester.state<ScrollableState>(
+            find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+          );
+
+      Future<List<Uri?>> openLarge(WidgetTester tester) {
+        tester.platformDispatcher.textScaleFactorTestValue = 3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        return openSheet(tester, size: const Size(320, 568));
+      }
+
+      testWidgets('is not drawn at all while nothing scrolls', (tester) async {
+        for (final (size, scale) in const [
+          (Size(393, 852), 1.0),
+          (Size(375, 667), 1.3),
+        ]) {
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          await openSheet(tester, size: size);
+          expect(scrollable(tester).position.maxScrollExtent, 0);
+          expect(fade(), findsNothing);
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+        }
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+
+      testWidgets('shows at the foot of the scroll view while more is '
+          'below, and is gone at the end', (tester) async {
+        await openLarge(tester);
+
+        expect(fade(), findsOneWidget);
+        final viewport = tester.getRect(
+          find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+        );
+        final rect = tester.getRect(fade());
+        expect(rect.bottom, viewport.bottom);
+        expect(rect.left, viewport.left);
+        expect(rect.right, viewport.right);
+        expect(
+          tester
+              .widget<Opacity>(
+                find.ancestor(of: fade(), matching: find.byType(Opacity)),
+              )
+              .opacity,
+          1,
+        );
+
+        final position = scrollable(tester).position;
+        position.jumpTo(position.maxScrollExtent);
+        await tester.pumpAndSettle();
+        expect(fade(), findsNothing);
+        // Nothing covers the last option at the end.
+        expect(
+          tester.getRect(find.text('info@ai-academy.asia')).bottom,
+          lessThanOrEqualTo(viewport.bottom),
+        );
+      });
+
+      testWidgets('lets a tap through to the option under it', (tester) async {
+        final answers = await openLarge(tester);
+        final viewport = tester.getRect(
+          find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+        );
+
+        // Scroll the email card's top edge just under the fade's top, with
+        // more still below, so the fade sits over the card.
+        final position = scrollable(tester).position;
+        final cardTop = tester
+            .getRect(
+              find.ancestor(
+                of: find.text('Email бичих'),
+                matching: find.byType(InkWell),
+              ),
+            )
+            .top;
+        position.jumpTo(position.pixels + cardTop - (viewport.bottom - 20));
+        await tester.pumpAndSettle();
+        expect(position.extentAfter, greaterThan(0));
+        final over = tester.getRect(fade());
+
+        await tester.tapAt(Offset(over.center.dx, over.bottom - 4));
+        await tester.pumpAndSettle();
+
+        expect(answers, [ManagerContact.email]);
+      });
+    });
+
     testWidgets('at the default size on the reference phone, the sheet is '
         'only as tall as before and nothing scrolls', (tester) async {
       await openSheet(tester);

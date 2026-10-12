@@ -84,6 +84,22 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
     Navigator.of(context).pop(choice);
   }
 
+  /// How much of [_ScrollFade] shows: 0 while nothing is hidden below the
+  /// scroll view — always, at the default size — up to 1 once at least its
+  /// own height is.
+  final ValueNotifier<double> _fade = ValueNotifier(0);
+
+  bool _onScrollMetrics(ScrollMetrics metrics) {
+    _fade.value = (metrics.extentAfter / _ScrollFade.height).clamp(0.0, 1.0);
+    return false;
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -108,51 +124,112 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
             ),
           ),
           Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimens.screenPadding,
-                AppDimens.fieldGap,
-                AppDimens.screenPadding,
-                AppDimens.cardPadding,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    LoginStrings.contactSheetTitle,
-                    style: AppTypography.catalogTitle.copyWith(
-                      color: context.palette.textPrimary,
+            child: Stack(
+              children: [
+                // Both: the first tells the fade there is more below before
+                // anything scrolls, the second as it scrolls.
+                NotificationListener<ScrollMetricsNotification>(
+                  onNotification: (n) => _onScrollMetrics(n.metrics),
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (n) => _onScrollMetrics(n.metrics),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.screenPadding,
+                        AppDimens.fieldGap,
+                        AppDimens.screenPadding,
+                        AppDimens.cardPadding,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            LoginStrings.contactSheetTitle,
+                            style: AppTypography.catalogTitle.copyWith(
+                              color: context.palette.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppDimens.fieldGap),
+                          Text(
+                            LoginStrings.contactMessage,
+                            style: AppTypography.statLabel.copyWith(
+                              color: context.palette.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppDimens.headingToForm),
+                          _ContactOption(
+                            icon: AppIcons.phone,
+                            label: LoginStrings.contactCall,
+                            value: ManagerContact.phoneLabel,
+                            onTap: () => _answer(ManagerContact.phone),
+                          ),
+                          const SizedBox(height: AppDimens.fieldGap),
+                          _ContactOption(
+                            icon: AppIcons.envelope,
+                            label: LoginStrings.contactEmail,
+                            value: ManagerContact.emailLabel,
+                            onTap: () => _answer(ManagerContact.email),
+                          ),
+                        ],
+                      ),
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppDimens.fieldGap),
-                  Text(
-                    LoginStrings.contactMessage,
-                    style: AppTypography.statLabel.copyWith(
-                      color: context.palette.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _fade,
+                    builder: (context, fade, _) => fade == 0
+                        ? const SizedBox.shrink()
+                        : _ScrollFade(opacity: fade),
                   ),
-                  const SizedBox(height: AppDimens.headingToForm),
-                  _ContactOption(
-                    icon: AppIcons.phone,
-                    label: LoginStrings.contactCall,
-                    value: ManagerContact.phoneLabel,
-                    onTap: () => _answer(ManagerContact.phone),
-                  ),
-                  const SizedBox(height: AppDimens.fieldGap),
-                  _ContactOption(
-                    icon: AppIcons.envelope,
-                    label: LoginStrings.contactEmail,
-                    value: ManagerContact.emailLabel,
-                    onTap: () => _answer(ManagerContact.email),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The hint that the sheet scrolls (Issue #343): its own background fading
+/// in over the foot of the scroll view while content is hidden below, and
+/// fading out as the end is reached — so at the end nothing covers the last
+/// option. The app has no scrollbar or scroll-fade pattern; this is the
+/// lightest one, drawn in the sheet's own colour.
+///
+/// Drawn only while there is more below — never at the default size, where
+/// nothing scrolls. It takes no pointers, so a tap or a drag under it reaches
+/// the option or the sheet, and it has no semantics.
+class _ScrollFade extends StatelessWidget {
+  const _ScrollFade({required this.opacity});
+
+  /// The fade's height, the sheet's own [AppDimens.headingToForm] step.
+  static const double height = AppDimens.headingToForm;
+
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = context.palette.surfaceElevated;
+    return IgnorePointer(
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [surface.withValues(alpha: 0), surface],
+            ),
+          ),
+        ),
       ),
     );
   }
