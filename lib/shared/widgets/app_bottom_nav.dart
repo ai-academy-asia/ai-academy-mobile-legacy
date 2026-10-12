@@ -110,22 +110,32 @@ class AppBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
+        // At least [AppDimens.bottomNavHeight], and taller when the system
+        // text size needs it (Issue #341): a fixed 72 clipped the labels
+        // from 2.0× on a 320-wide phone. The tallest tab sets the height and
+        // every tab stretches to it, so each is tappable over the whole bar —
+        // at the default size, exactly the 72 it always was.
         child: Container(
-          height: AppDimens.bottomNavHeight,
+          constraints: const BoxConstraints(
+            minHeight: AppDimens.bottomNavHeight,
+          ),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Row(
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(
-                  child: _NavButton(
-                    item: items[i],
-                    selected: i == currentIndex,
-                    iconSize: iconSize,
-                    labelSize: labelSize,
-                    selectedColor: selectedColor ?? palette.accentText,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: _NavButton(
+                      item: items[i],
+                      selected: i == currentIndex,
+                      iconSize: iconSize,
+                      labelSize: labelSize,
+                      selectedColor: selectedColor ?? palette.accentText,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -180,11 +190,15 @@ class _NavButton extends StatelessWidget {
                     ),
             ),
             const SizedBox(height: _iconToLabelGap),
-            Text(
-              item.label,
-              style: AppTypography.badgeLabel.copyWith(
-                color: color,
-                fontSize: labelSize,
+            // The tab's [Semantics] already reads the label; without this a
+            // screen reader read it twice (Issue #341).
+            ExcludeSemantics(
+              child: Text(
+                item.label,
+                style: AppTypography.badgeLabel.copyWith(
+                  color: color,
+                  fontSize: labelSize,
+                ),
               ),
             ),
           ],
