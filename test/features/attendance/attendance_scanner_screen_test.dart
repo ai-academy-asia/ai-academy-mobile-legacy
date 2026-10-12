@@ -1,7 +1,7 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/attendance/presentation/attendance_scanner_screen.dart';
 import 'package:aia_mobile/shared/widgets/app_back_button.dart';
-import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,7 +43,7 @@ void main() {
 
     expect(find.text(AttendanceScannerStrings.hint), findsOneWidget);
     expect(
-      find.widgetWithText(HomePillButton, AttendanceScannerStrings.manualEntry),
+      find.widgetWithText(PillButton, AttendanceScannerStrings.manualEntry),
       findsOneWidget,
     );
     expect(
@@ -55,11 +55,11 @@ void main() {
   testWidgets('"Гараар оруулах" is live but leads nowhere yet', (tester) async {
     await pump(tester);
     final manual = find.widgetWithText(
-      HomePillButton,
+      PillButton,
       AttendanceScannerStrings.manualEntry,
     );
 
-    expect(tester.widget<HomePillButton>(manual).onPressed, isNotNull);
+    expect(tester.widget<PillButton>(manual).onPressed, isNotNull);
     await tester.tap(manual);
     await tester.pumpAndSettle();
 

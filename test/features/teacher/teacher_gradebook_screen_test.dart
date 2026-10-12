@@ -2,7 +2,7 @@ import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
-import 'package:aia_mobile/features/home/presentation/widgets/home_badges.dart';
+import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_failure.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_submission.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_class_screen.dart';

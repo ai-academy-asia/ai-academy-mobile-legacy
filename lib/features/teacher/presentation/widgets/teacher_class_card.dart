@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../home/presentation/widgets/home_badges.dart';
+import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/teacher_class.dart';
 import '../teacher_home_strings.dart';
 
@@ -67,12 +67,12 @@ class TeacherClassCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: homeBadgeHeight,
+            height: trackBadgeHeight,
             child: Row(
               children: [
                 if (track != null) TrackBadge(track),
                 const Spacer(),
-                HomeCapsule(
+                CardCapsule(
                   label: TeacherHomeStrings.students(cohort.enrolledCount),
                   outline: palette.successOutline,
                   fill: palette.successFill,

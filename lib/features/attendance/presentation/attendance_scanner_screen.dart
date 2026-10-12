@@ -7,7 +7,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_back_button.dart';
-import '../../home/presentation/widgets/home_pill_button.dart';
+import '../../../shared/widgets/pill_button.dart';
 
 /// Every word on the attendance scanner, read off its Figma reference.
 abstract final class AttendanceScannerStrings {
@@ -93,7 +93,7 @@ class AttendanceScannerScreen extends StatelessWidget {
               left: AppDimens.screenPadding,
               right: AppDimens.screenPadding,
               bottom: AppDimens.screenPadding + bottomInset,
-              child: const HomePillButton(
+              child: const PillButton(
                 label: AttendanceScannerStrings.manualEntry,
                 height: 44,
                 labelSize: 16,

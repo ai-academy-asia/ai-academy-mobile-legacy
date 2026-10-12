@@ -5,7 +5,7 @@ import 'package:aia_mobile/features/home/presentation/payment_flow/payment_amoun
 import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
 import 'package:aia_mobile/features/home/presentation/payment_screen.dart';
 import 'package:aia_mobile/features/home/presentation/payment_strings.dart';
-import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:aia_mobile/features/payments/data/payment_plan_ui_fixtures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,9 +36,8 @@ Future<void> pumpPayment(WidgetTester tester, PaymentScreen screen) async {
   await tester.pumpAndSettle();
 }
 
-HomePillButton payButton(WidgetTester tester) => tester.widget(
-  find.widgetWithText(HomePillButton, PaymentStrings.payAction),
-);
+PillButton payButton(WidgetTester tester) =>
+    tester.widget(find.widgetWithText(PillButton, PaymentStrings.payAction));
 
 double progressFill(WidgetTester tester) => tester
     .widget<FractionallySizedBox>(
@@ -121,9 +120,7 @@ void main() {
   ) async {
     await pumpPayment(tester, PaymentPreviews.overdue.screen());
 
-    await tester.tap(
-      find.widgetWithText(HomePillButton, PaymentStrings.payAction),
-    );
+    await tester.tap(find.widgetWithText(PillButton, PaymentStrings.payAction));
     await tester.pumpAndSettle();
 
     expect(find.byType(PaymentAmountScreen), findsOneWidget);
@@ -139,9 +136,7 @@ void main() {
     );
 
     expect(payButton(tester).onPressed, isNotNull);
-    await tester.tap(
-      find.widgetWithText(HomePillButton, PaymentStrings.payAction),
-    );
+    await tester.tap(find.widgetWithText(PillButton, PaymentStrings.payAction));
     await tester.pumpAndSettle();
 
     expect(find.byType(PaymentScreen), findsOneWidget);

@@ -4,7 +4,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
-import 'home_pill_button.dart';
+import '../../../../shared/widgets/pill_button.dart';
 import 'home_stat_card.dart';
 
 /// "Хичээлийн ирц" — how much of the cohort the student has attended.
@@ -53,9 +53,9 @@ class AttendanceCard extends StatelessWidget {
           ? context.palette.onPrimary
           : context.palette.textStatLabel,
       valueColor: filled ? context.palette.onPrimary : context.palette.accent,
-      action: HomePillButton(
+      action: PillButton(
         label: HomeStrings.details,
-        variant: HomePillVariant.secondary,
+        variant: PillButtonVariant.secondary,
         height: statActionHeight,
         onPressed: onDetails,
       ),

@@ -15,11 +15,12 @@ That third step is a real convention here, not boilerplate. Several widgets exis
 **Colour in shared components comes from the theme (Dark Mode Phase 3, Issue #258).** These read every colour from `context.palette`, never `AppColors`, a feature palette or a literal:
 - `AppButton`, `AppTextField`, `AppBottomNav`;
 - `AppBackButton`, `BackTitleHeader`, `HomeHeader`;
+- `PillButton`, `TrackBadge`, `CardCapsule` (`shared/widgets`, Issue #329 — moved out of `home`, formerly `HomePillButton` / `home_badges.dart`'s `HomeCapsule`, because the Attendance scanner, Payment, Teacher and E-Contract screens draw them too; `CardCapsule` draws the colours its caller passes);
 - the `profile_parts` widgets (`ProfileTitleBar`, `ProfileAvatar`, `ProfileCaption`, `ProfileRow`, `ProfileRule`, `ProfileLanguageToggle`, `ProfileSwitch`, `ProfileLogOutButton`).
 
 `test/shared/theme_aware_components_test.dart` proves it by pumping them under a sentinel palette. New shared widgets follow suit.
 - **Monochrome SVG icons go through `AppSvgIcon`.** It tints from `AppPalette.iconInk`, **but only when the role differs from the asset's own colour** (`authoredInk`). A `srcIn` `ColorFilter` re-rasterises the SVG and moves anti-aliased edge pixels even at the same colour: up to 29/255 on the wordmark, 9/255 on the Profile icons, measured on the goldens. So light mode draws icons as authored, and only another palette tints them. The `HomeHeader` wordmark follows the same rule with `AppPalette.wordmark`.
-- **Not moved yet,** because each is used by one role only: `HomePillButton` (Adult), `TeacherPillButton` (Teacher), Junior Profile's private row and switch, and every sheet. They move with their feature (audit Phases 5–8).
+- **Not moved yet,** because each is used by one role only: `TeacherPillButton` (Teacher), Junior Profile's private row and switch, and every sheet. They move with their feature (audit Phases 5–8). (`HomePillButton` was on this list; it is now the shared `PillButton`, Issue #329.)
 
 **Migrating a screen onto the palette (Phase 5, Issue #262): the patterns that keep light mode identical.**
 - **A colour that was a default parameter** (`this.color = HomePalette.border`) becomes nullable and resolves in `build` (`color ?? context.palette.outline`). A default value must be a constant.
@@ -98,10 +99,10 @@ Practical consequence: **do not hardcode 361.** A widget that fills its parent s
 **Avatars are rendered as initials in a blue circle**, not images. No model carries an avatar URL; adding one is new UI, not a field swap.
 
 
-**Contract card (Issue #312).** `ContractCard` (`contracts/presentation/widgets`) is the Figma export `e-contract1.png`'s card, in the same family as Adult Home's `ProgramCard` summary. It reuses that card's wash (`HomeIcons.cardBackground`), `TrackBadge`, `HomeCapsule` and caption/title styles (12 over 18/700).
+**Contract card (Issue #312).** `ContractCard` (`contracts/presentation/widgets`) is the Figma export `e-contract1.png`'s card, in the same family as Adult Home's `ProgramCard` summary. It reuses that card's wash (`HomeIcons.cardBackground`), the shared `TrackBadge` and `CardCapsule`, and caption/title styles (12 over 18/700).
 - **Layout:** 16 in from the edge; the badge and pill row 24 below the top, with the pill scaled down rather than overflowing on phones narrower than the export. The action is a 44-tall white pill with an `outline` edge and a trailing download glyph or caret, 24 above the bottom. The glyph is always tinted with the label's ink, because the SVG's strokes are hard-coded black and would vanish on the dark button. The pill grows past 44 only for large accessibility text, and its label ellipsises rather than overflow (e.g. 2.0× at 320pt). Disabled, it goes flat (`disabled` edge, `disabledInk` label) and is announced as a disabled button.
 - **Pill colours:** pending is the export's exact `warningFill` / `warningInk`. The signed ink (`#007BE5`) and the pill edges (`#84CAFF`, `#FFE8A3`) have no exact role, so `infoInk`, `accentSubtleOutline` and `warningOutline` at 30% stand in.
-- **Export inconsistency:** the export draws the signed pill 24 tall and the pending one 32 tall; both use the 24-tall `HomeCapsule` here.
+- **Export inconsistency:** the export draws the signed pill 24 tall and the pending one 32 tall; both use the 24-tall `CardCapsule` here.
 
 ## 5. Navigation chrome
 

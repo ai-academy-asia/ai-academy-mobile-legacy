@@ -5,7 +5,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_back_button.dart';
-import '../../../home/presentation/widgets/home_badges.dart';
+import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/teacher_submission.dart';
 import '../teacher_gradebook_strings.dart';
 import 'teacher_pill_button.dart';
@@ -273,7 +273,7 @@ class GradebookStatCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              HomeCapsule(
+              CardCapsule(
                 label: value,
                 outline: palette.infoInk.withValues(alpha: 0.3),
                 fill: palette.infoFill,

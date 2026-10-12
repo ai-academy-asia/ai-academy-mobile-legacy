@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/app_palette.dart';
-import 'home_palette.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 
-/// Which of the Home frames' two pill treatments a [HomePillButton] draws.
-enum HomePillVariant {
-  /// The call to action: [HomePalette.accent] on a flat
+/// Which of the two pill treatments a [PillButton] draws.
+enum PillButtonVariant {
+  /// The call to action: the palette's `accent` on a flat
   /// [AppColors.primaryDepth] band, or — with no `onPressed` — the muted pill
   /// on its [AppColors.mutedDepth] band.
   primary,
@@ -23,7 +22,11 @@ const double _depth = 4;
 /// The secondary pill's much fainter band.
 const double _secondaryDepth = 1.5;
 
-/// A full-width pill button, as every action on the Home frames is drawn.
+/// A full-width pill button, as every action on the Home frames is drawn —
+/// and the Payment, payment-flow and attendance-scanner screens' actions too.
+/// Moved here from `home/presentation/widgets/home_pill_button.dart` and
+/// renamed from `HomePillButton` (Issue #329): a widget other features draw
+/// does not belong to one of them.
 ///
 /// The primary variant is the Course Learning CTA — the same flat, zero-blur
 /// band of [AppColors.primaryDepth] under a blue pill that
@@ -37,12 +40,12 @@ const double _secondaryDepth = 1.5;
 /// The band is a shadow, so it takes no layout space: the button measures
 /// [height], and the band lands in the padding below it, exactly as the
 /// reference's does.
-class HomePillButton extends StatelessWidget {
-  const HomePillButton({
+class PillButton extends StatelessWidget {
+  const PillButton({
     required this.label,
     required this.onPressed,
     super.key,
-    this.variant = HomePillVariant.primary,
+    this.variant = PillButtonVariant.primary,
     this.height = 36,
     this.icon,
     this.raised = true,
@@ -55,7 +58,7 @@ class HomePillButton extends StatelessWidget {
   /// Null disables the button.
   final VoidCallback? onPressed;
 
-  final HomePillVariant variant;
+  final PillButtonVariant variant;
 
   /// 40 for the attendance action, 36 for a statistic card's.
   final double height;
@@ -79,7 +82,7 @@ class HomePillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final secondary = variant == HomePillVariant.secondary;
+    final secondary = variant == PillButtonVariant.secondary;
     final filled = !secondary && enabled;
 
     final Color fill;

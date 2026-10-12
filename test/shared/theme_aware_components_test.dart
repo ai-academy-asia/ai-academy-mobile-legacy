@@ -11,6 +11,8 @@ import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:aia_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:aia_mobile/shared/widgets/app_text_field.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
+import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -180,6 +182,91 @@ void main() {
     expect(material.color, surface);
     expect((material.shape! as CircleBorder).side.color, outline);
     expect(tester.widget<Icon>(find.byType(Icon)).color, textPrimary);
+  });
+
+  group('PillButton (Issue #329)', () {
+    testWidgets('primary: accent fill, onPrimary label', (tester) async {
+      await pump(tester, PillButton(label: 'Pay', onPressed: () {}));
+
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byType(PillButton),
+          matching: find.byType(Material),
+        ),
+      );
+      expect(material.color, accent);
+      expect(textColor(tester, 'Pay'), onPrimary);
+    });
+
+    testWidgets('secondary: surface fill, outline edge, textPrimary label', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        PillButton(
+          label: 'More',
+          variant: PillButtonVariant.secondary,
+          onPressed: () {},
+        ),
+      );
+
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byType(PillButton),
+          matching: find.byType(Material),
+        ),
+      );
+      expect(material.color, surface);
+      final ink = tester.widget<Ink>(find.byType(Ink));
+      final decoration = ink.decoration! as BoxDecoration;
+      expect((decoration.border! as Border).top.color, outline);
+      expect(textColor(tester, 'More'), textPrimary);
+    });
+  });
+
+  group('TrackBadge and CardCapsule (Issue #329)', () {
+    testWidgets('badge: surface fill, outline edge, textPrimary label', (
+      tester,
+    ) async {
+      await pump(tester, const TrackBadge('adult'));
+
+      final box = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(TrackBadge),
+          matching: find.byType(Container),
+        ),
+      );
+      final decoration = box.decoration! as BoxDecoration;
+      expect(decoration.color, surface);
+      expect((decoration.border! as Border).top.color, outline);
+      expect(textColor(tester, 'Adult'), textPrimary);
+    });
+
+    testWidgets('capsule: draws exactly the colours its caller passes', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        const CardCapsule(
+          label: 'Status',
+          outline: outline,
+          fill: surfaceMuted,
+          ink: accentText,
+          horizontalPadding: 8,
+        ),
+      );
+
+      final box = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(CardCapsule),
+          matching: find.byType(Container),
+        ),
+      );
+      final decoration = box.decoration! as BoxDecoration;
+      expect(decoration.color, surfaceMuted);
+      expect((decoration.border! as Border).top.color, outline);
+      expect(textColor(tester, 'Status'), accentText);
+    });
   });
 
   testWidgets('HomeHeader: surface band, iconInk bell, wordmark tint, '

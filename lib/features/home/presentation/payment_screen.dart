@@ -9,7 +9,7 @@ import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_back_button.dart';
 import '../../payments/domain/payment_plan.dart';
 import 'payment_strings.dart';
-import 'widgets/home_pill_button.dart';
+import '../../../shared/widgets/pill_button.dart';
 
 // Measured off the three Figma "Төлбөр" references at 1:1 (393 wide, a 44pt
 // status-bar inset, a 34pt home-indicator inset). Every text is placed by its
@@ -137,7 +137,7 @@ class PaymentScreen extends StatelessWidget {
                           AppDimens.maxContentWidth -
                           2 * AppDimens.screenPadding,
                     ),
-                    child: HomePillButton(
+                    child: PillButton(
                       label: PaymentStrings.payAction,
                       height: _buttonHeight,
                       raised: false,

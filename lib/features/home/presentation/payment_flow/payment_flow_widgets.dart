@@ -9,7 +9,7 @@ import '../../../../core/theme/app_system_ui.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../payments/domain/payment_checkout.dart';
-import '../widgets/home_pill_button.dart';
+import '../../../../shared/widgets/pill_button.dart';
 import 'payment_flow_strings.dart';
 
 // The pieces the Adult payment flow's screens share (Issue #198), measured
@@ -203,7 +203,7 @@ class PaymentFlowScaffold extends StatelessWidget {
                     maxWidth:
                         AppDimens.maxContentWidth - 2 * AppDimens.screenPadding,
                   ),
-                  child: HomePillButton(
+                  child: PillButton(
                     label: action,
                     height: 44,
                     raised: false,

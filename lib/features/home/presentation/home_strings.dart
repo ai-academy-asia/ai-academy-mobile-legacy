@@ -1,4 +1,5 @@
 import '../domain/home_failure.dart';
+import '../../../shared/widgets/track_badge.dart';
 
 /// Every word on the Home dashboard.
 ///
@@ -127,8 +128,10 @@ abstract final class HomeIcons {
   /// Profile's `e_contract.svg`, which is single-colour.
   static const String contract = '$_dir/contract_warning.svg';
 
-  static const String adult = '$_dir/adult.svg';
-  static const String junior = '$_dir/junior.svg';
+  /// The track badge's marks — [TrackBadge.adultGlyph] / [TrackBadge.juniorGlyph]
+  /// (Issue #329).
+  static const String adult = TrackBadge.adultGlyph;
+  static const String junior = TrackBadge.juniorGlyph;
 
   /// The decorative shapes behind the cohort card's summary: the cohort
   /// list card's own export, unchanged but for a 208-tall viewBox. The paths
