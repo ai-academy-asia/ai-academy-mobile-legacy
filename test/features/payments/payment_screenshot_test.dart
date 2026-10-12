@@ -1,5 +1,5 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_previews.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

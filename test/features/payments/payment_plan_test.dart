@@ -1,4 +1,4 @@
-import 'package:aia_mobile/features/home/presentation/payment_strings.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_strings.dart';
 import 'package:aia_mobile/features/payments/data/payment_plan_ui_fixtures.dart';
 import 'package:aia_mobile/features/payments/domain/payment_plan.dart';
 import 'package:flutter_test/flutter_test.dart';

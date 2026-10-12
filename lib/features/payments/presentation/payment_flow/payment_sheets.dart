@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../payments/domain/payment_checkout.dart';
+import '../../domain/payment_checkout.dart';
 import 'payment_flow_widgets.dart';
 import '../../../../core/theme/app_palette.dart';
 

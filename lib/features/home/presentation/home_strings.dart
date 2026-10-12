@@ -1,5 +1,6 @@
 import '../domain/home_failure.dart';
 import '../../../shared/widgets/track_badge.dart';
+import '../../payments/presentation/payment_strings.dart';
 
 /// Every word on the Home dashboard.
 ///
@@ -51,7 +52,10 @@ abstract final class HomeStrings {
   static const String paymentLabel = 'Дараанийн төлөлт';
   static const String paymentOverdue = 'Хугацаа хэтэрсэн';
   static String paymentDueIn(int days) => '$days хоног дутуу';
-  static const String payAction = 'Төлбөр төлөх';
+
+  /// [PaymentStrings.payAction] — the Payment feature owns the label; the
+  /// Home payment card shows the same words (Issue #331).
+  static const String payAction = PaymentStrings.payAction;
 
   // --- Attendance -----------------------------------------------------------
 

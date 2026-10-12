@@ -1,8 +1,8 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/home/presentation/payment_flow/ebarimt_receipt_screen.dart';
-import 'package:aia_mobile/features/home/presentation/payment_flow/payment_flow_strings.dart';
-import 'package:aia_mobile/features/home/presentation/payment_flow/payment_method_screen.dart';
-import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_flow/ebarimt_receipt_screen.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_flow/payment_flow_strings.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_flow/payment_method_screen.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_previews.dart';
 import 'package:aia_mobile/features/payments/data/payment_checkout_ui_fixtures.dart';
 import 'package:aia_mobile/features/payments/domain/payment_checkout.dart';
 import 'package:flutter/material.dart';

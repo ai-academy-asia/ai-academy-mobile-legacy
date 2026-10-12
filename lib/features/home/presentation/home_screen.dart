@@ -17,7 +17,7 @@ import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import 'attendance_detail_screen.dart';
 import 'home_controller.dart';
-import 'payment_previews.dart';
+import '../../payments/presentation/payment_previews.dart';
 import 'home_strings.dart';
 import 'widgets/adult_bottom_nav.dart';
 import 'widgets/attendance_card.dart';

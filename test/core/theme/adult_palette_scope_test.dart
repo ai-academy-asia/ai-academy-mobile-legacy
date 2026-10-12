@@ -85,7 +85,7 @@ void main() {
       'home/presentation/widgets/home_palette.dart' => true,
       // `PaymentFlowPalette`'s own members: aliases of the roles, pinned by
       // `app_palette_test.dart`. Screens read the roles, not these.
-      'home/presentation/payment_flow/payment_flow_widgets.dart' => RegExp(
+      'payments/presentation/payment_flow/payment_flow_widgets.dart' => RegExp(
         r'^\s*static const Color \w+ = AppColors\.\w+;$',
       ).hasMatch(line),
       // The wordmark's *authored* colour, compared with the theme's to

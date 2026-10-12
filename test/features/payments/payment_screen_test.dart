@@ -1,10 +1,10 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/shared/widgets/app_back_button.dart';
-import 'package:aia_mobile/features/home/presentation/payment_flow/payment_amount_screen.dart';
-import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
-import 'package:aia_mobile/features/home/presentation/payment_screen.dart';
-import 'package:aia_mobile/features/home/presentation/payment_strings.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_flow/payment_amount_screen.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_previews.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_screen.dart';
+import 'package:aia_mobile/features/payments/presentation/payment_strings.dart';
 import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:aia_mobile/features/payments/data/payment_plan_ui_fixtures.dart';
 import 'package:flutter/material.dart';

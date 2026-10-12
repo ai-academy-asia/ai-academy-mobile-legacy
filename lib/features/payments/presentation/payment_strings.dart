@@ -1,5 +1,3 @@
-import 'home_strings.dart';
-
 /// Every word on the Adult Payment screen ("Төлбөр"), read off its three
 /// Figma references (Issue #196) and carried verbatim, as `HomeStrings` does.
 abstract final class PaymentStrings {
@@ -32,8 +30,10 @@ abstract final class PaymentStrings {
   /// Under an overdue installment's date.
   static const String overdue = 'Хугацаа хэтэрсэн';
 
-  /// The bottom button — the same words the Home payment card's action uses.
-  static const String payAction = HomeStrings.payAction;
+  /// The bottom button. The Payment feature owns the label; the Home payment
+  /// card's action shows the same words through `HomeStrings.payAction`,
+  /// which is this (Issue #331).
+  static const String payAction = 'Төлбөр төлөх';
 
   /// Read out for a paid installment, whose badge draws only a tick.
   static const String paidInstallment = 'Төлөгдсөн';
