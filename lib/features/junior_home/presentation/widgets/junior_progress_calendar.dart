@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -10,7 +12,9 @@ import '../junior_progress_strings.dart';
 // Measured off the Junior Learning Progress frame at 1:1.
 
 /// A day cell: 44 wide in the 393 frame — the width is what is left of the
-/// row once the gaps are taken, so it tracks the screen — and always 58 tall.
+/// row once the gaps are taken, so it tracks the screen — and 58 tall at the
+/// default text size: 4 + the 32 disc + 1 + the number's 16 line + 5. Larger
+/// system text grows it by what the number's line grows (Issue #361).
 const double _cellHeight = 58;
 const double _cellRadius = 8;
 
@@ -72,6 +76,16 @@ class JuniorProgressCalendar extends StatelessWidget {
         : DateTime(month.year, month.month, selectedDay).weekday %
               DateTime.daysPerWeek;
     final rowCount = ((lead + dayCount) / DateTime.daysPerWeek).ceil();
+    // The number's line at the reader's text size, as its Text lays it out;
+    // every cell, blank or not, takes the same growth so the rows stay even.
+    final numberLine = _dayStyle.fontSize! * _dayStyle.height!;
+    final scaledNumberLine =
+        MediaQuery.textScalerOf(context).scale(_dayStyle.fontSize!) *
+        _dayStyle.height!;
+    final cellHeight = math.max(
+      _cellHeight,
+      _cellHeight - numberLine + scaledNumberLine,
+    );
 
     Widget row(List<Widget> cells) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,13 +102,15 @@ class JuniorProgressCalendar extends StatelessWidget {
       children: [
         row([
           for (var c = 0; c < DateTime.daysPerWeek; c++)
-            Text(
-              JuniorProgressStrings.weekdays[c],
-              textAlign: TextAlign.center,
-              style: _weekdayStyle.copyWith(
-                color: c == selectedColumn
-                    ? context.palette.accentText
-                    : context.palette.textSecondary,
+            _FitOneLine(
+              Text(
+                JuniorProgressStrings.weekdays[c],
+                textAlign: TextAlign.center,
+                style: _weekdayStyle.copyWith(
+                  color: c == selectedColumn
+                      ? context.palette.accentText
+                      : context.palette.textSecondary,
+                ),
               ),
             ),
         ]),
@@ -103,17 +119,22 @@ class JuniorProgressCalendar extends StatelessWidget {
           if (r > 0) const SizedBox(height: _cellGap),
           row([
             for (var c = 0; c < DateTime.daysPerWeek; c++)
-              _cellAt(r * DateTime.daysPerWeek + c - lead + 1, dayCount),
+              _cellAt(
+                r * DateTime.daysPerWeek + c - lead + 1,
+                dayCount,
+                cellHeight,
+              ),
           ]),
         ],
       ],
     );
   }
 
-  Widget _cellAt(int day, int dayCount) {
-    if (day < 1 || day > dayCount) return const SizedBox(height: _cellHeight);
+  Widget _cellAt(int day, int dayCount, double height) {
+    if (day < 1 || day > dayCount) return SizedBox(height: height);
     return _DayCell(
       day: day,
+      height: height,
       status: days[day],
       selected: day == selectedDay,
       missedRing: missedRing,
@@ -124,12 +145,16 @@ class JuniorProgressCalendar extends StatelessWidget {
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
+    required this.height,
     required this.status,
     required this.selected,
     this.missedRing,
   });
 
   final int day;
+
+  /// 58 at the default text size; see [_cellHeight].
+  final double height;
   final JuniorDayStatus? status;
   final bool selected;
   final Color? missedRing;
@@ -138,7 +163,7 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return Container(
-      height: _cellHeight,
+      height: height,
       decoration: BoxDecoration(
         color: palette.surfaceSubtle,
         borderRadius: BorderRadius.circular(_cellRadius),
@@ -164,14 +189,50 @@ class _DayCell extends StatelessWidget {
             missedRing: missedRing,
           ),
           const SizedBox(height: _discToNumber),
-          Text(
-            '$day',
-            style: _dayStyle.copyWith(
-              color: selected ? palette.accentText : palette.textSecondary,
+          _FitOneLine(
+            Text(
+              '$day',
+              style: _dayStyle.copyWith(
+                color: selected ? palette.accentText : palette.textSecondary,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// [text] exactly as given wherever it fits its width on one line — so at
+/// the default size, and at most enlarged ones, nothing changes. Only where
+/// enlarged system text makes it wider than its column (the W, or a
+/// two-digit day, from about 3.0× on a 320 phone) is it scaled down to the
+/// largest size that fits, rather than wrapped onto a second line or cut
+/// (Issue #361).
+class _FitOneLine extends StatelessWidget {
+  const _FitOneLine(this.text);
+
+  final Text text;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Measured as the Text itself lays out: the ambient style under its
+        // own, at the reader's text size.
+        final painter = TextPainter(
+          text: TextSpan(
+            text: text.data,
+            style: DefaultTextStyle.of(context).style.merge(text.style),
+          ),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout();
+        final fits = painter.width <= constraints.maxWidth;
+        painter.dispose();
+        return fits ? text : FittedBox(fit: BoxFit.scaleDown, child: text);
+      },
     );
   }
 }
