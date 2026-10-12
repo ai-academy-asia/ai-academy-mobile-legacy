@@ -6,6 +6,7 @@ import 'package:aia_mobile/features/course_learning/presentation/course_learning
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_module_card.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/course_progress_cta_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -587,9 +588,10 @@ void main() {
       expect(buttons, findsNWidgets(2));
       for (var i = 0; i < 2; i++) {
         final rect = tester.getRect(
-          find
-              .ancestor(of: buttons.at(i), matching: find.byType(SizedBox))
-              .first,
+          find.ancestor(
+            of: buttons.at(i),
+            matching: find.byType(ContinueLearningButton),
+          ),
         );
         expect(rect.height, 40);
         // The reference keeps the button's left edge on x213 in both places
