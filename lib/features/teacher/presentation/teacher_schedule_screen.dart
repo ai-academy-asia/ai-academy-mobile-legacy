@@ -186,8 +186,11 @@ class _Header extends StatelessWidget {
       color: palette.scheduleBand,
       child: Padding(
         padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-        child: SizedBox(
-          height: 46,
+        // At least the reference's 46, and taller when a larger system text
+        // size wraps the date (Issue #353). At the default size it is the
+        // one 46-tall row it always was.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 46),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppDimens.screenPadding,
@@ -197,35 +200,45 @@ class _Header extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Semantics(
-                  button: true,
-                  label:
-                      '${TeacherScheduleStrings.pickDate}, '
-                      '${TeacherScheduleStrings.headerDate(day)}',
-                  excludeSemantics: true,
-                  child: GestureDetector(
-                    onTap: onPickDate,
-                    behavior: HitTestBehavior.opaque,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          TeacherScheduleStrings.headerDate(day),
-                          style: _headerStyle.copyWith(
-                            color: palette.onPrimary,
-                          ),
+                // The date takes what the bell leaves, and wraps in it
+                // rather than pushing the bell off the band; only the date
+                // and its caret are the tap target, as before.
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Semantics(
+                      button: true,
+                      label:
+                          '${TeacherScheduleStrings.pickDate}, '
+                          '${TeacherScheduleStrings.headerDate(day)}',
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: onPickDate,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                TeacherScheduleStrings.headerDate(day),
+                                style: _headerStyle.copyWith(
+                                  color: palette.onPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Icon(
+                              AppIcons.caretDown,
+                              size: 16,
+                              color: palette.onPrimary,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Icon(
-                          AppIcons.caretDown,
-                          size: 16,
-                          color: palette.onPrimary,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 12),
                 // Opens the shared Notification Center (Issue #246). Drawn as
                 // the reference draws it, white on the blue header, with no
                 // unread dot: no frame shows one here (Teacher Home's bell
@@ -272,8 +285,12 @@ class _WeekStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // At least the reference's 68, and as tall as its tallest cell when a
+    // larger system text size needs more (Issue #353). Every cell is
+    // stretched to the strip's height, so each stays tappable over the
+    // whole strip — at the default size, exactly as before.
     return Container(
-      height: 68,
+      constraints: const BoxConstraints(minHeight: 68),
       decoration: BoxDecoration(
         color: context.palette.surface,
         boxShadow: [
@@ -284,19 +301,30 @@ class _WeekStrip extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          const SizedBox(width: TeacherWeekGridMetrics.timeColumnWidth),
-          for (final (index, day) in days.indexed)
-            Expanded(
-              child: _DayCell(
-                weekday: TeacherScheduleStrings.weekdays[index],
-                day: day,
-                selected: isSameDay(day, selected),
-                onTap: () => onSelect(day),
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columnWidth =
+              (constraints.maxWidth - TeacherWeekGridMetrics.timeColumnWidth) /
+              DateTime.daysPerWeek;
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(width: TeacherWeekGridMetrics.timeColumnWidth),
+                for (final (index, day) in days.indexed)
+                  Expanded(
+                    child: _DayCell(
+                      weekday: TeacherScheduleStrings.weekdays[index],
+                      day: day,
+                      selected: isSameDay(day, selected),
+                      columnWidth: columnWidth,
+                      onTap: () => onSelect(day),
+                    ),
+                  ),
+              ],
             ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -307,16 +335,33 @@ class _DayCell extends StatelessWidget {
     required this.weekday,
     required this.day,
     required this.selected,
+    required this.columnWidth,
     required this.onTap,
   });
 
   final String weekday;
   final DateTime day;
   final bool selected;
+
+  /// The cell's width — the most the marker can take.
+  final double columnWidth;
+
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final number = '${day.day}';
+    // The day number as it will be drawn, at the user's text size.
+    final painter = TextPainter(
+      text: TextSpan(text: number, style: _dateStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final numberSize = painter.size;
+    painter.dispose();
+    final marker = _markerSize(numberSize, columnWidth);
+
     return Semantics(
       button: true,
       selected: selected,
@@ -336,17 +381,24 @@ class _DayCell extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Container(
-              width: 30,
-              height: 30,
+              width: marker.width,
+              height: marker.height,
               alignment: Alignment.center,
               decoration: selected
                   ? BoxDecoration(
                       color: context.palette.accent,
-                      shape: BoxShape.circle,
+                      // A circle while it fits the column, as before; taller
+                      // than wide, an upright rounded rectangle.
+                      shape: marker.width == marker.height
+                          ? BoxShape.circle
+                          : BoxShape.rectangle,
+                      borderRadius: marker.width == marker.height
+                          ? null
+                          : BorderRadius.circular(marker.width / 2),
                     )
                   : null,
               child: Text(
-                '${day.day}',
+                number,
                 style: _dateStyle.copyWith(
                   color: selected
                       ? context.palette.onPrimary
@@ -359,6 +411,25 @@ class _DayCell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The day marker: the reference's 30 circle, grown to hold its number at a
+/// larger text size (Issue #353). While that circle fits the column it stays
+/// a circle; once the number's line is taller than the column is wide — 2.0×
+/// on a 320-wide phone — it is the column's width and the number's height, a
+/// rounded rectangle standing upright, rather than a clipped number.
+Size _markerSize(Size number, double columnWidth) {
+  const reference = 30.0;
+  final diameter = [
+    reference,
+    number.width,
+    number.height,
+  ].reduce((a, b) => a > b ? a : b);
+  if (diameter <= columnWidth) return Size.square(diameter);
+  return Size(
+    columnWidth,
+    number.height < reference ? reference : number.height,
+  );
 }
 
 class _LoadingView extends StatelessWidget {
