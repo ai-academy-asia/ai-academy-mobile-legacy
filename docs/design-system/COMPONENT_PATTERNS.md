@@ -85,7 +85,7 @@ All share: `AppColors.surface` fill, 1pt border, rounded corners, and (on this a
 |---|---|---|
 | `CourseCard`, `CohortCard` | content width | Catalog/cohort rows |
 | `ProgramCard` | content width | Home cohort card |
-| `CourseModuleCard` | 361 × 86 min | 56 icon tile (accent-tinted) / 32 lock tile; 24 completed check |
+| `CourseModuleCard` | 361 × 86 min — exactly 86 at the default text size; grows with a larger one so the caption, title and date line stay whole (Issue #349) | 56 icon tile (accent-tinted); locked: the same 56 tile in flat grey with the 24 × 27 padlock; 20 completed check; 12 inset around the tile and the text; title one line with an ellipsis |
 | `LessonListItem` | 361 × 72 min | Figma level-detail reference (Issue #215): two-digit number, title in Manrope 14/20 ExtraBold (calibrated against the reference, Issue #217) on the number's baseline, duration line; a reserved 24 trailing status column after a 16 gap, holding Course Detail's 20 completed check or padlock flush right; radius 12, `#EAEDF0` outline with a 4pt flat band |
 | `CourseMaterialCard` | 329 × 72 | 32 file icon, 40 circular download → check |
 | `AssignmentAttachmentCard` | 329 × 72 / ~132 | Three states: idle row, taller downloading card (progress bar + Cancel), complete row (Remove) |
