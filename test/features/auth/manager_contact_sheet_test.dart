@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/auth/presentation/manager_contact.dart';
 import 'package:aia_mobile/features/auth/presentation/widgets/manager_contact_sheet.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -18,8 +19,11 @@ void main() {
   setUpAll(loadAppFonts);
 
   /// Opens the sheet from a bare page and records what it completes with.
-  Future<List<Uri?>> openSheet(WidgetTester tester) async {
-    useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+  Future<List<Uri?>> openSheet(
+    WidgetTester tester, {
+    Size size = const Size(393, 852),
+  }) async {
+    useLogicalViewport(tester, size, padding: iPhonePadding);
     final answers = <Uri?>[];
     await tester.pumpWidget(
       MaterialApp(
@@ -155,12 +159,14 @@ void main() {
         tester.widget<Text>(find.text(value)).style,
         AppTypography.statLabel,
       );
+      // 80 is the card's minimum since Issue #343; at the default size it
+      // is exactly 80.
       final card = find.ancestor(
         of: find.text(label),
         matching: find.byWidgetPredicate(
           (w) =>
               w is Container &&
-              w.constraints?.maxHeight == AppDimens.cardHeight,
+              w.constraints?.minHeight == AppDimens.cardHeight,
         ),
       );
       expect(tester.getSize(card).height, AppDimens.cardHeight);
@@ -264,5 +270,257 @@ void main() {
       find.bySemanticsLabel('Email бичих, info@ai-academy.asia'),
       findsOneWidget,
     );
+  });
+
+  group('every option stays reachable on small screens and at larger text '
+      'sizes (Issue #343)', () {
+    /// A miss is a failure here, not a warning.
+    setUp(() => WidgetController.hitTestWarningShouldBeFatal = true);
+    tearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
+
+    const options = [
+      ('Утасдах', '+976 7505 1055'),
+      ('Email бичих', 'info@ai-academy.asia'),
+    ];
+    final links = [ManagerContact.phone, ManagerContact.email];
+
+    /// One option's card — its tappable ink.
+    Finder card(String label) =>
+        find.ancestor(of: find.text(label), matching: find.byType(InkWell));
+
+    for (final size in const [Size(320, 568), Size(375, 667), Size(393, 852)]) {
+      for (final scale in const [1.0, 1.3, 1.5, 2.0, 3.0]) {
+        final name =
+            '${size.width.toInt()}×${size.height.toInt()}, '
+            'text ×$scale';
+
+        Future<List<Uri?>> open(WidgetTester tester) {
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          return openSheet(tester, size: size);
+        }
+
+        group(name, () {
+          testWidgets('lays out without overflow, at the user\'s text size, '
+              'below the status bar', (tester) async {
+            await open(tester);
+
+            expect(tester.takeException(), isNull);
+            expect(
+              tester.getTopLeft(sheet()).dy,
+              greaterThanOrEqualTo(iPhonePadding.top),
+            );
+            final title = tester.widget<RichText>(
+              find.descendant(
+                of: find.text(LoginStrings.contactSheetTitle),
+                matching: find.byType(RichText),
+              ),
+            );
+            expect(title.textScaler.scale(10), moreOrLessEquals(10 * scale));
+          });
+
+          for (final (i, (label, value)) in options.indexed) {
+            testWidgets('"$label" can be scrolled to, is fully on screen, '
+                'and answers its link', (tester) async {
+              final answers = await open(tester);
+
+              await tester.ensureVisible(card(label));
+              await tester.pumpAndSettle();
+              final rect = tester.getRect(card(label));
+              expect(rect.top, greaterThanOrEqualTo(iPhonePadding.top));
+              expect(
+                rect.bottom,
+                lessThanOrEqualTo(size.height - iPhonePadding.bottom),
+              );
+              // Not cut short: the whole contact is drawn.
+              expect(find.text(value), findsOneWidget);
+
+              await tester.tap(find.text(label));
+              await tester.pumpAndSettle();
+
+              expect(answers, [links[i]]);
+              expect(sheet(), findsNothing);
+              expect(tester.takeException(), isNull);
+            });
+          }
+
+          testWidgets('each option is one button, announced with its '
+              'contact', (tester) async {
+            final semantics = tester.ensureSemantics();
+            final answers = await open(tester);
+
+            for (final (label, value) in options) {
+              await tester.ensureVisible(card(label));
+              await tester.pumpAndSettle();
+              expect(
+                tester.getSemantics(find.bySemanticsLabel('$label, $value')),
+                isSemantics(
+                  label: '$label, $value',
+                  isButton: true,
+                  hasTapAction: true,
+                ),
+              );
+              // Its text is not read again on its own.
+              expect(find.bySemanticsLabel(label), findsNothing);
+            }
+
+            // Activated as a screen reader does, the button answers its link.
+            final (label, value) = options.last;
+            tester.semantics.performAction(
+              find.semantics.byLabel('$label, $value'),
+              SemanticsAction.tap,
+            );
+            await tester.pumpAndSettle();
+            expect(answers, [ManagerContact.email]);
+            semantics.dispose();
+          });
+
+          testWidgets('the barrier, a drag down on the cue and system back '
+              'all complete with null', (tester) async {
+            for (final close in <Future<void> Function()>[
+              // The strip above the sheet, under the status bar.
+              () => tester.tapAt(Offset(size.width / 2, 20)),
+              // The cue never scrolls, so this dismisses at every size.
+              () => tester.drag(
+                find.byIcon(AppIcons.chatCircleDots),
+                Offset(0, size.height),
+              ),
+              () => tester.binding.handlePopRoute(),
+            ]) {
+              final answers = await open(tester);
+              await close();
+              await tester.pumpAndSettle();
+
+              expect(answers, [null]);
+              expect(sheet(), findsNothing);
+            }
+          });
+        });
+      }
+    }
+
+    testWidgets('scrolls when even the full height cannot fit it', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await openSheet(tester, size: const Size(320, 568));
+
+      final scroll = tester.state<ScrollableState>(
+        find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+      );
+      expect(scroll.position.maxScrollExtent, greaterThan(0));
+    });
+
+    group('the scroll hint', () {
+      /// The fade over the foot of the scroll view, found by its gradient.
+      Finder fade() => find.descendant(
+        of: sheet(),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).gradient != null,
+        ),
+      );
+
+      ScrollableState scrollable(WidgetTester tester) =>
+          tester.state<ScrollableState>(
+            find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+          );
+
+      Future<List<Uri?>> openLarge(WidgetTester tester) {
+        tester.platformDispatcher.textScaleFactorTestValue = 3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        return openSheet(tester, size: const Size(320, 568));
+      }
+
+      testWidgets('is not drawn at all while nothing scrolls', (tester) async {
+        for (final (size, scale) in const [
+          (Size(393, 852), 1.0),
+          (Size(375, 667), 1.3),
+        ]) {
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          await openSheet(tester, size: size);
+          expect(scrollable(tester).position.maxScrollExtent, 0);
+          expect(fade(), findsNothing);
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+        }
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+
+      testWidgets('shows at the foot of the scroll view while more is '
+          'below, and is gone at the end', (tester) async {
+        await openLarge(tester);
+
+        expect(fade(), findsOneWidget);
+        final viewport = tester.getRect(
+          find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+        );
+        final rect = tester.getRect(fade());
+        expect(rect.bottom, viewport.bottom);
+        expect(rect.left, viewport.left);
+        expect(rect.right, viewport.right);
+        expect(
+          tester
+              .widget<Opacity>(
+                find.ancestor(of: fade(), matching: find.byType(Opacity)),
+              )
+              .opacity,
+          1,
+        );
+
+        final position = scrollable(tester).position;
+        position.jumpTo(position.maxScrollExtent);
+        await tester.pumpAndSettle();
+        expect(fade(), findsNothing);
+        // Nothing covers the last option at the end.
+        expect(
+          tester.getRect(find.text('info@ai-academy.asia')).bottom,
+          lessThanOrEqualTo(viewport.bottom),
+        );
+      });
+
+      testWidgets('lets a tap through to the option under it', (tester) async {
+        final answers = await openLarge(tester);
+        final viewport = tester.getRect(
+          find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+        );
+
+        // Scroll the email card's top edge just under the fade's top, with
+        // more still below, so the fade sits over the card.
+        final position = scrollable(tester).position;
+        final cardTop = tester
+            .getRect(
+              find.ancestor(
+                of: find.text('Email бичих'),
+                matching: find.byType(InkWell),
+              ),
+            )
+            .top;
+        position.jumpTo(position.pixels + cardTop - (viewport.bottom - 20));
+        await tester.pumpAndSettle();
+        expect(position.extentAfter, greaterThan(0));
+        final over = tester.getRect(fade());
+
+        await tester.tapAt(Offset(over.center.dx, over.bottom - 4));
+        await tester.pumpAndSettle();
+
+        expect(answers, [ManagerContact.email]);
+      });
+    });
+
+    testWidgets('at the default size on the reference phone, the sheet is '
+        'only as tall as before and nothing scrolls', (tester) async {
+      await openSheet(tester);
+
+      final scroll = tester.state<ScrollableState>(
+        find.descendant(of: sheet(), matching: find.byType(Scrollable)),
+      );
+      expect(scroll.position.maxScrollExtent, 0);
+      // Well under Flutter's former 9/16 cap, so lifting it changed nothing.
+      expect(tester.getSize(sheet()).height, lessThan(852 * 9 / 16));
+    });
   });
 }

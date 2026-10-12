@@ -27,6 +27,12 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
           top: Radius.circular(AppDimens.cardRadius),
         ),
       ),
+      // The sheet may take the whole safe height, rather than Flutter's
+      // default 9/16 of the screen: on a small phone, or at a larger text
+      // size, that cap cut the options off — the email one could not be
+      // chosen at 1.3× on a 375×667 phone (Issue #343).
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (_) => const ManagerContactSheet(),
     );
 
@@ -78,59 +84,151 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
     Navigator.of(context).pop(choice);
   }
 
+  /// How much of [_ScrollFade] shows: 0 while nothing is hidden below the
+  /// scroll view — always, at the default size — up to 1 once at least its
+  /// own height is.
+  final ValueNotifier<double> _fade = ValueNotifier(0);
+
+  bool _onScrollMetrics(ScrollMetrics metrics) {
+    _fade.value = (metrics.extentAfter / _ScrollFade.height).clamp(0.0, 1.0);
+    return false;
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.screenPadding,
-          AppDimens.headingToForm,
-          AppDimens.screenPadding,
-          AppDimens.cardPadding,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The cue stays put — a fixed 68pt whatever the text size — and
+          // everything under it scrolls when the sheet still cannot fit it
+          // (Issue #343). A drag on the cue always dismisses the sheet, and
+          // while everything fits the scroll view takes no drags, so a drag
+          // anywhere dismisses it as before.
+          const Padding(
+            padding: EdgeInsets.only(top: AppDimens.headingToForm),
+            child: Center(
               child: _IconTile(
                 icon: AppIcons.chatCircleDots,
                 size: AppDimens.avatarSize,
                 iconSize: headerIconSize,
               ),
             ),
-            const SizedBox(height: AppDimens.fieldGap),
-            Text(
-              LoginStrings.contactSheetTitle,
-              style: AppTypography.catalogTitle.copyWith(
-                color: context.palette.textPrimary,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          Flexible(
+            child: Stack(
+              children: [
+                // Both: the first tells the fade there is more below before
+                // anything scrolls, the second as it scrolls.
+                NotificationListener<ScrollMetricsNotification>(
+                  onNotification: (n) => _onScrollMetrics(n.metrics),
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (n) => _onScrollMetrics(n.metrics),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.screenPadding,
+                        AppDimens.fieldGap,
+                        AppDimens.screenPadding,
+                        AppDimens.cardPadding,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            LoginStrings.contactSheetTitle,
+                            style: AppTypography.catalogTitle.copyWith(
+                              color: context.palette.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppDimens.fieldGap),
+                          Text(
+                            LoginStrings.contactMessage,
+                            style: AppTypography.statLabel.copyWith(
+                              color: context.palette.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppDimens.headingToForm),
+                          _ContactOption(
+                            icon: AppIcons.phone,
+                            label: LoginStrings.contactCall,
+                            value: ManagerContact.phoneLabel,
+                            onTap: () => _answer(ManagerContact.phone),
+                          ),
+                          const SizedBox(height: AppDimens.fieldGap),
+                          _ContactOption(
+                            icon: AppIcons.envelope,
+                            label: LoginStrings.contactEmail,
+                            value: ManagerContact.emailLabel,
+                            onTap: () => _answer(ManagerContact.email),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _fade,
+                    builder: (context, fade, _) => fade == 0
+                        ? const SizedBox.shrink()
+                        : _ScrollFade(opacity: fade),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppDimens.fieldGap),
-            Text(
-              LoginStrings.contactMessage,
-              style: AppTypography.statLabel.copyWith(
-                color: context.palette.textPrimary,
-              ),
-              textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The hint that the sheet scrolls (Issue #343): its own background fading
+/// in over the foot of the scroll view while content is hidden below, and
+/// fading out as the end is reached — so at the end nothing covers the last
+/// option. The app has no scrollbar or scroll-fade pattern; this is the
+/// lightest one, drawn in the sheet's own colour.
+///
+/// Drawn only while there is more below — never at the default size, where
+/// nothing scrolls. It takes no pointers, so a tap or a drag under it reaches
+/// the option or the sheet, and it has no semantics.
+class _ScrollFade extends StatelessWidget {
+  const _ScrollFade({required this.opacity});
+
+  /// The fade's height, the sheet's own [AppDimens.headingToForm] step.
+  static const double height = AppDimens.headingToForm;
+
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = context.palette.surfaceElevated;
+    return IgnorePointer(
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [surface.withValues(alpha: 0), surface],
             ),
-            const SizedBox(height: AppDimens.headingToForm),
-            _ContactOption(
-              icon: AppIcons.phone,
-              label: LoginStrings.contactCall,
-              value: ManagerContact.phoneLabel,
-              onTap: () => _answer(ManagerContact.phone),
-            ),
-            const SizedBox(height: AppDimens.fieldGap),
-            _ContactOption(
-              icon: AppIcons.envelope,
-              label: LoginStrings.contactEmail,
-              value: ManagerContact.emailLabel,
-              onTap: () => _answer(ManagerContact.email),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -138,8 +236,9 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
 }
 
 /// One way to reach the manager, drawn as the Login frame's contact card:
-/// the same 80pt bordered white surface and trailing caret, led by the
-/// option's glyph on a pale blue tile, with the action over the contact.
+/// the same bordered white surface — at least 80pt — and trailing caret, led
+/// by the option's glyph on a pale blue tile, with the action over the
+/// contact.
 class _ContactOption extends StatelessWidget {
   const _ContactOption({
     required this.icon,
@@ -158,6 +257,10 @@ class _ContactOption extends StatelessWidget {
     return Semantics(
       button: true,
       label: '$label, $value',
+      // `excludeSemantics` also drops the [InkWell]'s tap action, so the
+      // button carries its own: without it a screen reader announced a
+      // button it could not activate (Issue #343).
+      onTap: onTap,
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,
@@ -165,10 +268,14 @@ class _ContactOption extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+          // At least the Login card's 80, and taller when a larger text
+          // size needs it (Issue #343); the vertical inset only shows then —
+          // at the default size the content sits well inside the 80.
           child: Container(
-            height: AppDimens.cardHeight,
+            constraints: const BoxConstraints(minHeight: AppDimens.cardHeight),
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.cardPadding,
+              vertical: AppDimens.fieldGap,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -185,6 +292,10 @@ class _ContactOption extends StatelessWidget {
                   iconSize: AppDimens.settingsRowIconSize,
                 ),
                 const SizedBox(width: AppDimens.fieldGap),
+                // The action and the contact wrap rather than ellipsize: cut
+                // to "info@ai-acad…" at a large text size, the address — the
+                // point of the option — was lost (Issue #343). At the default
+                // size each is one line.
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -195,8 +306,6 @@ class _ContactOption extends StatelessWidget {
                         style: AppTypography.cardHeading.copyWith(
                           color: context.palette.textPrimary,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppDimens.cardLineGap),
                       Text(
@@ -204,8 +313,6 @@ class _ContactOption extends StatelessWidget {
                         style: AppTypography.statLabel.copyWith(
                           color: context.palette.textSecondary,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
