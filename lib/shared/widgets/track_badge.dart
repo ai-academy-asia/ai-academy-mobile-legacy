@@ -36,8 +36,11 @@ class TrackBadge extends StatelessWidget {
     final isJunior = mode == 'junior' || mode == 'kids';
 
     return Container(
-      // 5 | 20 icon | 8 | label | 9.5, inside the 1pt outline.
-      height: trackBadgeHeight,
+      // 5 | 20 icon | 8 | label | 9.5, inside the 1pt outline. 32 tall at
+      // least: a larger system text size grows it with its label rather
+      // than clipping the label (Issue #351). At the default size it is
+      // exactly 32.
+      constraints: const BoxConstraints(minHeight: trackBadgeHeight),
       padding: const EdgeInsets.only(left: 5, right: 9.5),
       decoration: BoxDecoration(
         color: context.palette.surface,
@@ -65,7 +68,9 @@ class TrackBadge extends StatelessWidget {
   }
 }
 
-/// A 24-tall outlined capsule with a 12pt bold label.
+/// An outlined capsule with a 12pt bold label, 24 tall — at least: a larger
+/// system text size grows it with its label rather than clipping the label
+/// (Issue #351). At the default size it is exactly 24.
 class CardCapsule extends StatelessWidget {
   const CardCapsule({
     required this.label,
@@ -85,15 +90,23 @@ class CardCapsule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: cardCapsuleHeight,
-      alignment: Alignment.center,
+      constraints: const BoxConstraints(minHeight: cardCapsuleHeight),
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(cardCapsuleHeight / 2),
+        // A pill at any height: at 24 this is the 12 it always was.
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(color: outline),
       ),
-      child: Text(label, style: _capsuleStyle.copyWith(color: ink)),
+      // Centred as before, but only as large as the label: an `alignment`
+      // on the box itself would stretch it to whatever its parent offers —
+      // the full height once that is no longer fixed, the full width in a
+      // `Wrap`.
+      child: Align(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(label, style: _capsuleStyle.copyWith(color: ink)),
+      ),
     );
   }
 }

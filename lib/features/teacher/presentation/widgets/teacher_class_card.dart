@@ -55,6 +55,13 @@ class TeacherClassCard extends StatelessWidget {
     final room = cohort.classroom?.name;
 
     final palette = context.palette;
+    final students = CardCapsule(
+      label: TeacherHomeStrings.students(cohort.enrolledCount),
+      outline: palette.successOutline,
+      fill: palette.successFill,
+      ink: palette.successInk,
+      horizontalPadding: 15,
+    );
     return Container(
       // 24 inside the card's edge on every side, the 1pt outline included.
       padding: const EdgeInsets.fromLTRB(15, 23, 15, 23),
@@ -66,20 +73,25 @@ class TeacherClassCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: trackBadgeHeight,
-            child: Row(
-              children: [
-                if (track != null) TrackBadge(track),
-                const Spacer(),
-                CardCapsule(
-                  label: TeacherHomeStrings.students(cohort.enrolledCount),
-                  outline: palette.successOutline,
-                  fill: palette.successFill,
-                  ink: palette.successInk,
-                  horizontalPadding: 15,
-                ),
-              ],
+          // The badge left and the count right on one line, at least the
+          // badge's 32 tall; when a larger text size leaves no room for
+          // both, the count wraps under the badge (Issue #351). At the
+          // default size this is the one 32-tall row it always was.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: trackBadgeHeight),
+            child: SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: track == null
+                    ? WrapAlignment.end
+                    : WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                // A lone count is centred in the 32, as the row centred it.
+                runAlignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [if (track != null) TrackBadge(track), students],
+              ),
             ),
           ),
           const SizedBox(height: _badgeToCaption),
@@ -139,9 +151,13 @@ class _Detail extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: context.palette.accentText),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: _detailStyle.copyWith(color: context.palette.accentText),
+          // Wraps within the card rather than running off it: a long room
+          // name used to, from 1.3× on a 320-wide phone (Issue #351).
+          Flexible(
+            child: Text(
+              label,
+              style: _detailStyle.copyWith(color: context.palette.accentText),
+            ),
           ),
         ],
       ),
