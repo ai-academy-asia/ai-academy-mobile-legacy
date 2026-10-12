@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:aia_mobile/features/auth/data/authenticated_client.dart';
+import 'package:aia_mobile/features/auth/data/http_auth_repository.dart';
 import 'package:aia_mobile/features/auth/data/session_refresher.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
@@ -340,5 +342,43 @@ void main() {
     await get(clientFor());
 
     expect(store.session?.userType, UserType.adult);
+  });
+
+  group('a TLS failure during renewal (Issue #339)', () {
+    test('through the real HttpAuthRepository, a HandshakeException on '
+        'POST /auth/refresh is transient: refresh() answers false, the '
+        'session stays stored and nothing ends', () async {
+      final tlsStore = AuthSessionStore()
+        ..save(
+          const AuthSession(
+            accessToken: 'old',
+            refreshToken: 'r1',
+            userType: UserType.adult,
+          ),
+        );
+      final attempted = <String>[];
+      var ended = 0;
+      final tlsRefresher = SessionRefresher(
+        sessionStore: tlsStore,
+        authRepository: HttpAuthRepository(
+          client: MockClient((request) async {
+            attempted.add('${request.method} ${request.url.path}');
+            throw const HandshakeException('Handshake error in client');
+          }),
+        ),
+        onSessionEnded: () => ended++,
+      );
+
+      expect(await tlsRefresher.refresh(failedToken: 'old'), isFalse);
+
+      // The renewal was really attempted, through the HTTP transport.
+      expect(attempted, ['POST /auth/refresh']);
+      // Before #339 a TLS failure escaped as a raw exception and ended the
+      // session; now it is a network failure, which is transient.
+      expect(tlsStore.isSignedIn, isTrue);
+      expect(tlsStore.session?.accessToken, 'old');
+      expect(tlsStore.session?.refreshToken, 'r1');
+      expect(ended, 0);
+    });
   });
 }
