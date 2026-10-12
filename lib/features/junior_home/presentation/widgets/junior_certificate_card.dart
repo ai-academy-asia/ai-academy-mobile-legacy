@@ -90,8 +90,13 @@ class _TrackPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    // At least the frame's height, and taller when a larger system text
+    // size needs it: a fixed height clipped "Junior" from 2.0× (Issue #345).
+    // At the default size the label sits well inside it, centred as before.
     return Container(
-      height: JuniorMapGeometry.certificatePillHeight * scale,
+      constraints: BoxConstraints(
+        minHeight: JuniorMapGeometry.certificatePillHeight * scale,
+      ),
       decoration: BoxDecoration(
         color: palette.surfaceSubtle,
         borderRadius: BorderRadius.circular(8 * scale),

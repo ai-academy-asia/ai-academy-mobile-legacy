@@ -81,6 +81,7 @@ class JuniorLearningMapView extends StatelessWidget {
         final scale = constraints.maxWidth / JuniorMapGeometry.mapWidth;
         final nodes = map.nodes;
         final height = JuniorMapGeometry.mapHeightFor(nodes.length) * scale;
+        final certificate = JuniorMapGeometry.certificateFor(nodes.length);
         final checkIn = map.checkInNode;
         final open = map.checkInOpenAt(now);
 
@@ -110,9 +111,12 @@ class JuniorLearningMapView extends StatelessWidget {
         return JuniorMapScenery(
           scale: scale,
           content: SingleChildScrollView(
-            child: SizedBox(
-              width: constraints.maxWidth,
-              height: height,
+            // At least the frame's height; taller only when the certificate
+            // card grows (below).
+            child: ConstrainedBox(
+              constraints: BoxConstraints.tightFor(
+                width: constraints.maxWidth,
+              ).copyWith(minHeight: height),
               child: Stack(
                 clipBehavior: Clip.hardEdge,
                 children: [
@@ -164,11 +168,33 @@ class JuniorLearningMapView extends StatelessWidget {
                     ),
                   ),
 
-                  at(
-                    JuniorMapGeometry.certificateFor(nodes.length),
-                    JuniorCertificateCard(
-                      certificate: map.certificate,
-                      scale: scale,
+                  // The one child not pinned to the frame, so the map sizes
+                  // to it: at its frame place and size, but free to grow
+                  // downward when a larger system text size needs room
+                  // (Issue #345) — never capping the text. The card is the
+                  // last thing on the map, so growing moves nothing else;
+                  // the map grows by the same amount and keeps the frame's
+                  // margin under it. At the default size it is exactly the
+                  // frame's card and the map exactly the frame's height.
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: certificate.left * scale,
+                      top: certificate.top * scale,
+                      bottom:
+                          (JuniorMapGeometry.mapHeightFor(nodes.length) -
+                              certificate.bottom) *
+                          scale,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: certificate.width * scale,
+                        maxWidth: certificate.width * scale,
+                        minHeight: certificate.height * scale,
+                      ),
+                      child: JuniorCertificateCard(
+                        certificate: map.certificate,
+                        scale: scale,
+                      ),
                     ),
                   ),
                 ],
