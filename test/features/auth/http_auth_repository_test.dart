@@ -221,6 +221,13 @@ void main() {
       expect(failure.kind, AuthFailureKind.network);
     });
 
+    test('a TLS handshake failure is a network failure, not unexpected (Issue #339)', () async {
+      final failure = await failureFrom(
+        repositoryReturning((_) async => throw const HandshakeException('Handshake error in client')),
+      );
+      expect(failure.kind, AuthFailureKind.network);
+    });
+
     test('a slow backend times out rather than hanging the form', () async {
       final repository = HttpAuthRepository(
         client: MockClient(

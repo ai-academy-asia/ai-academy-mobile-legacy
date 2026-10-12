@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:aia_mobile/features/auth/data/http_auth_repository.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
@@ -5,6 +8,7 @@ import 'package:aia_mobile/features/auth/presentation/login_controller.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/manager_contact.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/testing.dart';
 
 import '../profile/fake_current_user_repository.dart';
 import 'fake_auth_repository.dart';
@@ -398,5 +402,23 @@ void main() {
         controller.dispose();
       },
     );
+  });
+
+  group('a TLS failure on sign-in (Issue #339)', () {
+    test('shows the network message, not the unexpected one', () async {
+      final controller = LoginController(
+        repository: HttpAuthRepository(
+          client: MockClient(
+            (_) async => throw const HandshakeException('Handshake error in client'),
+          ),
+        ),
+      );
+      controller.identifier.text = 'jr10.s01@test.ai-academy.asia';
+      controller.password.text = 'nuutsug123';
+
+      expect(await controller.submit(), isNull);
+      expect(controller.formError, LoginStrings.networkError);
+      expect(controller.formError, isNot(LoginStrings.unexpectedError));
+    });
   });
 }
