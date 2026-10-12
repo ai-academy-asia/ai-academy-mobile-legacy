@@ -149,7 +149,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             ),
             if (_controller.isEmpty)
               Positioned(
-                left: TeacherWeekGridMetrics.timeColumnWidth,
+                left: timeColumnWidthOf(context),
                 right: 0,
                 top: TeacherWeekGridMetrics.topInset + 24,
                 child: Text(
@@ -303,14 +303,16 @@ class _WeekStrip extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          // Aligned with the grid's day columns, whose hour-label column
+          // can widen with the text size (Issue #355).
+          final timeColumn = timeColumnWidthOf(context);
           final columnWidth =
-              (constraints.maxWidth - TeacherWeekGridMetrics.timeColumnWidth) /
-              DateTime.daysPerWeek;
+              (constraints.maxWidth - timeColumn) / DateTime.daysPerWeek;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(width: TeacherWeekGridMetrics.timeColumnWidth),
+                SizedBox(width: timeColumn),
                 for (final (index, day) in days.indexed)
                   Expanded(
                     child: _DayCell(

@@ -8,7 +8,9 @@ import '../../domain/teacher_session.dart';
 
 /// The `huvaari` reference's grid, in points at its 393pt width.
 abstract final class TeacherWeekGridMetrics {
-  /// The hour labels' column; the seven day columns share the rest.
+  /// The hour labels' column at the reference's text size; the seven day
+  /// columns share the rest. A larger system text size can widen it — see
+  /// [timeColumnWidthOf].
   static const double timeColumnWidth = 64;
 
   /// One hour of the grid.
@@ -21,6 +23,41 @@ abstract final class TeacherWeekGridMetrics {
   /// with a session outside it widens the span to fit (see [hourSpan]).
   static const int firstHour = 7;
   static const int lastHour = 23;
+}
+
+/// An hour's label, `07:00`.
+String hourLabel(int hour) => '${hour.toString().padLeft(2, '0')}:00';
+
+/// Between an hour label's right edge and the day columns.
+const double _hourLabelGap = 10;
+
+/// The hour labels' column for this context's text size: the reference's
+/// [TeacherWeekGridMetrics.timeColumnWidth], or wider when the widest label
+/// needs it (Issue #355) — so a label stays `HH:mm` on one line rather than
+/// wrapping mid-number, and the text size is never capped. At the default
+/// size, and to about 1.6×, it is the reference's 64. The week strip above
+/// the grid aligns its days with it, so both ask here.
+double timeColumnWidthOf(BuildContext context) {
+  // Measured as the label is drawn: a `Text` merges its style into the
+  // ambient one, which can add letter spacing.
+  final style = DefaultTextStyle.of(
+    context,
+  ).style.merge(_hourStyle.copyWith(color: context.palette.textStrong));
+  var widest = 0.0;
+  for (var hour = 0; hour < 24; hour++) {
+    final painter = TextPainter(
+      text: TextSpan(text: hourLabel(hour), style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    widest = math.max(widest, painter.width);
+    painter.dispose();
+  }
+  return math.max(
+    TeacherWeekGridMetrics.timeColumnWidth,
+    (widest + _hourLabelGap).ceilToDouble(),
+  );
 }
 
 /// The hours the grid draws, `(first, last)`: the reference's 07:00–23:00
@@ -163,9 +200,8 @@ class TeacherWeekGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final dayWidth =
-            (width - TeacherWeekGridMetrics.timeColumnWidth) /
-            DateTime.daysPerWeek;
+        final timeColumn = timeColumnWidthOf(context);
+        final dayWidth = (width - timeColumn) / DateTime.daysPerWeek;
 
         return SizedBox(
           width: width,
@@ -176,6 +212,7 @@ class TeacherWeekGrid extends StatelessWidget {
                 child: CustomPaint(
                   painter: _GridPainter(
                     hours: last - first,
+                    timeColumn: timeColumn,
                     dayWidth: dayWidth,
                     // The grid's hairlines are rules (proposal §12).
                     line: context.palette.divider,
@@ -185,14 +222,18 @@ class TeacherWeekGrid extends StatelessWidget {
               for (var hour = first; hour < last; hour++)
                 Positioned(
                   left: 0,
-                  width: TeacherWeekGridMetrics.timeColumnWidth - 10,
+                  width: timeColumn - _hourLabelGap,
                   top:
                       TeacherWeekGridMetrics.topInset +
                       (hour - first) * TeacherWeekGridMetrics.hourHeight +
                       8,
                   child: Text(
-                    '${hour.toString().padLeft(2, '0')}:00',
+                    hourLabel(hour),
                     textAlign: TextAlign.right,
+                    // The column is as wide as the widest label, so one line
+                    // always fits; this only guards against a mid-number
+                    // break.
+                    maxLines: 1,
                     style: _hourStyle.copyWith(
                       color: context.palette.textStrong,
                     ),
@@ -201,7 +242,7 @@ class TeacherWeekGrid extends StatelessWidget {
               for (final placement in placements)
                 Positioned(
                   left:
-                      TeacherWeekGridMetrics.timeColumnWidth +
+                      timeColumn +
                       placement.day * dayWidth +
                       placement.lane * dayWidth / placement.lanes +
                       1,
@@ -263,18 +304,35 @@ class SessionBlock extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(4, 5, 4, 6),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // The time needs its two lines; a block too short for both
-              // keeps the title alone.
-              final showTime = constraints.maxHeight >= 48;
+              final fit = _BlockFit.measure(
+                context,
+                style: style,
+                start: session.startLabel,
+                end: session.endLabel,
+                space: constraints.biggest,
+              );
+              // Too small for any legible text: the block alone, still
+              // tappable and still read out in full (Issue #355).
+              if (!fit.showTime && fit.titleLines == 0) {
+                return const SizedBox.expand();
+              }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: ClipRect(
-                      child: Text(title, style: style, softWrap: true),
-                    ),
+                    child: fit.titleLines == 0
+                        ? const SizedBox.shrink()
+                        : ClipRect(
+                            child: Text(
+                              title,
+                              style: style,
+                              softWrap: true,
+                              maxLines: fit.titleLines,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                   ),
-                  if (showTime)
+                  if (fit.showTime)
                     Text(
                       '${session.startLabel}\n-${session.endLabel}',
                       style: style,
@@ -289,14 +347,71 @@ class SessionBlock extends StatelessWidget {
   }
 }
 
+/// What a session block can show legibly in [space] (Issue #355), measured
+/// with the block's own style at the user's text size — never a guess from
+/// the session's duration.
+///
+/// The time comes first, as the block always drew it: it shows only when
+/// each of its two lines, `09:00` and `-10:00`, fits the width on one line
+/// and both fit the height — so a time is never broken mid-number. The title
+/// takes whole lines of what is left, ending in an ellipsis when it is cut.
+/// When neither fits, the block shows no text.
+class _BlockFit {
+  const _BlockFit({required this.showTime, required this.titleLines});
+
+  factory _BlockFit.measure(
+    BuildContext context, {
+    required TextStyle style,
+    required String start,
+    required String end,
+    required Size space,
+  }) {
+    final direction = Directionality.of(context);
+    final scaler = MediaQuery.textScalerOf(context);
+    // Measured as the block's `Text` draws it: merged into the ambient
+    // style, which can add letter spacing.
+    final drawn = DefaultTextStyle.of(context).style.merge(style);
+    (double, double) measure(String text) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: drawn),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final size = (painter.width, painter.preferredLineHeight);
+      painter.dispose();
+      return size;
+    }
+
+    final (startWidth, line) = measure(start);
+    final (endWidth, _) = measure('-$end');
+    final showTime =
+        startWidth <= space.width &&
+        endWidth <= space.width &&
+        2 * line <= space.height;
+    final left = space.height - (showTime ? 2 * line : 0);
+    return _BlockFit(
+      showTime: showTime,
+      titleLines: math.max(0, (left / line + 1e-6).floor()),
+    );
+  }
+
+  final bool showTime;
+  final int titleLines;
+}
+
 class _GridPainter extends CustomPainter {
   _GridPainter({
     required this.hours,
+    required this.timeColumn,
     required this.dayWidth,
     required this.line,
   });
 
   final int hours;
+
+  /// The hour labels' column — see [timeColumnWidthOf].
+  final double timeColumn;
   final double dayWidth;
 
   /// The hairlines' colour — passed in: a painter has no context.
@@ -316,8 +431,7 @@ class _GridPainter extends CustomPainter {
     }
     final columns = <double>[
       0.5,
-      for (var d = 0; d <= DateTime.daysPerWeek; d++)
-        TeacherWeekGridMetrics.timeColumnWidth + d * dayWidth,
+      for (var d = 0; d <= DateTime.daysPerWeek; d++) timeColumn + d * dayWidth,
     ];
     for (final x in columns) {
       final at = math.min(x, size.width - 0.5);
@@ -327,7 +441,10 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GridPainter old) =>
-      old.hours != hours || old.dayWidth != dayWidth || old.line != line;
+      old.hours != hours ||
+      old.timeColumn != timeColumn ||
+      old.dayWidth != dayWidth ||
+      old.line != line;
 }
 
 final TextStyle _hourStyle = AppTypography.cardSupporting.copyWith(
