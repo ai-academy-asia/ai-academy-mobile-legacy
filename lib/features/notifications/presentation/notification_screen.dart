@@ -287,6 +287,10 @@ class NotificationTile extends StatelessWidget {
         notification.body,
         age,
       ].join(', '),
+      // `excludeSemantics` also drops the [InkWell]'s tap action, so the row
+      // carries its own: without it a screen reader announced a button it
+      // could not activate (Issue #359, as the Login contact sheet in #343).
+      onTap: onTap,
       excludeSemantics: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -188,9 +188,54 @@ void main() {
     final node = tester.getSemantics(tileOf(readTitle));
     expect(node.flagsCollection.isButton, isTrue);
     expect(node.label, contains(readTitle));
+    expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     await tester.tap(tileOf(readTitle));
     await tester.pumpAndSettle();
     expect(find.byType(NotificationDetailScreen), findsOneWidget);
     semantics.dispose();
+  });
+
+  group('screen-reader activation', () {
+    Future<void> pumpDefault(WidgetTester tester) =>
+        pump(tester, width: 393, scale: 1).then((errors) {
+          expect(errors, isEmpty);
+        });
+
+    testWidgets('each row is exactly one node, read once, with a tap action', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpDefault(tester);
+
+      for (final title in [unreadTitle, readTitle]) {
+        // Only the row's own node mentions its title, and only once.
+        final mentions = find.semantics
+            .byPredicate((node) => node.label.contains(title))
+            .evaluate()
+            .toList();
+        expect(mentions, hasLength(1), reason: title);
+        final node = mentions.single;
+        expect(node.label.indexOf(title), node.label.lastIndexOf(title));
+        expect(node.flagsCollection.isButton, isTrue);
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      }
+      semantics.dispose();
+    });
+
+    testWidgets('activating a row as a screen reader does opens its '
+        'notification', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpDefault(tester);
+
+      tester.semantics.performAction(
+        find.semantics.byPredicate((node) => node.label.contains(readTitle)),
+        SemanticsAction.tap,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotificationDetailScreen), findsOneWidget);
+      expect(find.text(readTitle), findsWidgets);
+      semantics.dispose();
+    });
   });
 }
