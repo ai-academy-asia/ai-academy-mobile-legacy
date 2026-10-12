@@ -832,6 +832,32 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('the tab bar fits its labels at 320 wide and 2.0× text', (
+      tester,
+    ) async {
+      // A fixed 72pt bar overflowed by 23 here and clipped every label
+      // (Issue #341); the grid itself is in `app_bottom_nav_test.dart`.
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(dashboard: scheduledDashboard()),
+        size: const Size(320, 852),
+      );
+
+      expect(tester.takeException(), isNull);
+      final bar = tester.getRect(find.byType(AppBottomNav));
+      for (final label in [
+        HomeStrings.navHome,
+        HomeStrings.navCourses,
+        HomeStrings.navProfile,
+      ]) {
+        final text = tester.getRect(find.text(label));
+        expect(text.top, greaterThanOrEqualTo(bar.top), reason: label);
+        expect(text.bottom, lessThanOrEqualTo(bar.bottom), reason: label);
+      }
+    });
   });
 
   group('header logo refresh (Issue #221)', () {
