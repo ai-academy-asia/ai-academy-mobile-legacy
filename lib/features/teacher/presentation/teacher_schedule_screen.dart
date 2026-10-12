@@ -17,6 +17,7 @@ import 'teacher_home_strings.dart';
 import 'teacher_schedule_controller.dart';
 import 'teacher_schedule_strings.dart';
 import 'widgets/teacher_bottom_nav.dart';
+import 'widgets/teacher_day_session_list.dart';
 import 'widgets/teacher_session_sheet.dart';
 import 'widgets/teacher_tabs.dart';
 import 'widgets/teacher_week_grid.dart';
@@ -86,6 +87,43 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     if (picked != null) _controller.selectDay(picked);
   }
 
+  /// The mode last decided — kept while a week loads, when the sessions the
+  /// content rule reads are not there yet, so the screen does not flash the
+  /// grid on every week change.
+  bool _dayList = false;
+
+  /// Whether to show the selected day as a list instead of the week strip
+  /// and grid (Issue #357). Never at the default text size: there the week
+  /// grid always shows, whatever the sessions. Above it, the list when the
+  /// strip's labels or numbers no longer fit their columns, or when any
+  /// session of the loaded week cannot show its time or title legibly in
+  /// the block the grid would give it — both measured, never a fixed scale,
+  /// and the text size is never capped. The mode can change with the week.
+  bool _usesDayList(BuildContext context, double width) {
+    const probe = 14.0;
+    if (MediaQuery.textScalerOf(context).scale(probe) <= probe) {
+      return _dayList = false;
+    }
+    if (!_weekStripFits(context, width, _controller.weekDays)) {
+      return _dayList = true;
+    }
+    final sessions = _controller.sessions;
+    if (sessions == null) return _dayList;
+    return _dayList = !weekBlocksLegible(
+      context,
+      sessions: sessions,
+      weekStart: _controller.weekStart,
+      width: width,
+    );
+  }
+
+  /// One day back or forward — across a week boundary, the controller loads
+  /// that week, as a tap on the strip or the date picker would.
+  void _stepDay(int days) {
+    final day = _controller.selectedDay;
+    _controller.selectDay(DateTime(day.year, day.month, day.day + days));
+  }
+
   void _openSession(ScheduledSession entry) {
     showTeacherSessionSheet(
       context,
@@ -108,20 +146,48 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             : null,
         body: ListenableBuilder(
           listenable: _controller,
-          builder: (context, _) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(day: _controller.selectedDay, onPickDate: _pickDate),
-              _WeekStrip(
-                days: _controller.weekDays,
-                selected: _controller.selectedDay,
-                onSelect: _controller.selectDay,
-              ),
-              Expanded(child: _buildBody()),
-            ],
+          builder: (context, _) => LayoutBuilder(
+            builder: (context, constraints) {
+              final dayList = _usesDayList(context, constraints.maxWidth);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Header(
+                    day: _controller.selectedDay,
+                    onPickDate: _pickDate,
+                    onPreviousDay: dayList ? () => _stepDay(-1) : null,
+                    onNextDay: dayList ? () => _stepDay(1) : null,
+                  ),
+                  if (!dayList)
+                    _WeekStrip(
+                      days: _controller.weekDays,
+                      selected: _controller.selectedDay,
+                      onSelect: _controller.selectDay,
+                    ),
+                  Expanded(child: dayList ? _buildDayList() : _buildBody()),
+                ],
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+
+  /// The day list's body: the same loading and failure states as the grid,
+  /// then the selected day's sessions (Issue #357).
+  Widget _buildDayList() {
+    if (_controller.errorMessage case final message?) {
+      return _ErrorView(message: message, onRetry: _controller.load);
+    }
+    final sessions = _controller.sessions;
+    if (sessions == null) return const _LoadingView();
+    return TeacherDaySessionList(
+      day: _controller.selectedDay,
+      sessions: sessions,
+      now: _controller.now(),
+      onSessionTap: _openSession,
+      onRefresh: _controller.load,
     );
   }
 
@@ -174,10 +240,48 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 /// surface — with `onPrimary` ink, under the light status-bar glyphs the
 /// screen keeps (`AppSystemUi.overDarkContent`).
 class _Header extends StatelessWidget {
-  const _Header({required this.day, required this.onPickDate});
+  const _Header({
+    required this.day,
+    required this.onPickDate,
+    this.onPreviousDay,
+    this.onNextDay,
+  });
 
   final DateTime day;
   final VoidCallback onPickDate;
+
+  /// The day list's previous- and next-day controls, drawn around the date
+  /// (Issue #357). Null — the week grid — draws the header as before.
+  final VoidCallback? onPreviousDay;
+  final VoidCallback? onNextDay;
+
+  /// The date and its caret — the date picker's button, the only tap
+  /// target of the date itself. It wraps rather than push anything off the
+  /// band.
+  Widget _dateControl(AppPalette palette) => Semantics(
+    button: true,
+    label:
+        '${TeacherScheduleStrings.pickDate}, '
+        '${TeacherScheduleStrings.headerDate(day)}',
+    excludeSemantics: true,
+    child: GestureDetector(
+      onTap: onPickDate,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              TeacherScheduleStrings.headerDate(day),
+              style: _headerStyle.copyWith(color: palette.onPrimary),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(AppIcons.caretDown, size: 16, color: palette.onPrimary),
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -204,39 +308,27 @@ class _Header extends StatelessWidget {
                 // rather than pushing the bell off the band; only the date
                 // and its caret are the tap target, as before.
                 Expanded(
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Semantics(
-                      button: true,
-                      label:
-                          '${TeacherScheduleStrings.pickDate}, '
-                          '${TeacherScheduleStrings.headerDate(day)}',
-                      excludeSemantics: true,
-                      child: GestureDetector(
-                        onTap: onPickDate,
-                        behavior: HitTestBehavior.opaque,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                TeacherScheduleStrings.headerDate(day),
-                                style: _headerStyle.copyWith(
-                                  color: palette.onPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Icon(
-                              AppIcons.caretDown,
-                              size: 16,
-                              color: palette.onPrimary,
-                            ),
-                          ],
+                  child: switch ((onPreviousDay, onNextDay)) {
+                    (final previous?, final next?) => Row(
+                      children: [
+                        _DayStep(
+                          icon: AppIcons.caretLeft,
+                          label: TeacherScheduleStrings.previousDay,
+                          onTap: previous,
                         ),
-                      ),
+                        Flexible(child: _dateControl(palette)),
+                        _DayStep(
+                          icon: AppIcons.caretRight,
+                          label: TeacherScheduleStrings.nextDay,
+                          onTap: next,
+                        ),
+                      ],
                     ),
-                  ),
+                    _ => Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: _dateControl(palette),
+                    ),
+                  },
                 ),
                 const SizedBox(width: 12),
                 // Opens the shared Notification Center (Issue #246). Drawn as
@@ -268,6 +360,62 @@ class _Header extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One step of the day list's header: a 44pt control with its caret, read
+/// out as [label] (Issue #357).
+class _DayStep extends StatelessWidget {
+  const _DayStep({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox.square(
+          dimension: 44,
+          child: Icon(icon, size: 20, color: context.palette.onPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+/// Whether every weekday label and day number of [days] fits its strip
+/// column at this context's text size, a screen [width] wide — the strip's
+/// own column maths, measured as its `Text`s draw (Issue #357).
+bool _weekStripFits(BuildContext context, double width, List<DateTime> days) {
+  final column = (width - timeColumnWidthOf(context)) / DateTime.daysPerWeek;
+  final ambient = DefaultTextStyle.of(context).style;
+  double widthOf(String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: ambient.merge(style)),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  return [
+    for (final weekday in TeacherScheduleStrings.weekdays)
+      widthOf(weekday, _weekdayStyle),
+    for (final day in days) widthOf('${day.day}', _dateStyle),
+  ].every((needed) => needed <= column);
 }
 
 /// The week's seven days under their weekday letters, the selected one in

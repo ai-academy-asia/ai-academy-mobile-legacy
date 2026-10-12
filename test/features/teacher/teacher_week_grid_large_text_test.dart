@@ -26,13 +26,20 @@ void main() {
 
   const widths = [320.0, 375.0, 393.0];
   const scales = [1.0, 1.5, 2.0];
-  const title = 'Хиймэл оюун ухааны инженерчлэлийн ахисан түвшний сургалт';
+  const mongolian = 'Хиймэл оюун ухааны инженерчлэлийн ахисан түвшний сургалт';
 
-  final teacherClass = TeacherClass(
+  /// The title the grid is checked with. At the default size the grid
+  /// always shows, so the long Mongolian title. Above it that title leaves
+  /// the grid illegible and the screen shows the day list instead (Issue
+  /// #357, covered there), so the grid's own checks use a title it keeps —
+  /// its first word fits every block.
+  String titleAt(double scale) => scale == 1 ? mongolian : 'AI Engineer';
+
+  TeacherClass classWith(String title) => TeacherClass(
     cohort: sampleCohort(
       id: 2,
       name: 'Cohort 01',
-      course: const CohortCourse(
+      course: CohortCourse(
         id: 8,
         slug: 'ai-engineering',
         title: LocalizedText(mn: title),
@@ -54,7 +61,7 @@ void main() {
   ];
 
   /// The screen-reader labels — the full title and times, always.
-  const labels = [
+  List<String> labelsFor(String title) => [
     '$title, 09:00-09:45',
     '$title, 09:00-10:00',
     '$title, 09:00-12:00',
@@ -79,7 +86,7 @@ void main() {
           theme: AppTheme.light,
           home: TeacherScheduleScreen(
             repository: FakeTeacherScheduleRepository(
-              classes: [teacherClass],
+              classes: [classWith(titleAt(scale))],
               sessions: {2: sessions},
             ),
             clock: () => DateTime(2026, 10, 4, 7),
@@ -201,7 +208,7 @@ void main() {
             );
           }
         }
-        for (final label in labels) {
+        for (final label in labelsFor(titleAt(scale))) {
           expect(find.bySemanticsLabel(label), findsOneWidget, reason: label);
         }
       });
@@ -210,7 +217,9 @@ void main() {
         tester,
       ) async {
         await pump(tester, width: width, scale: scale);
-        await tester.tap(find.bySemanticsLabel(labels.first));
+        await tester.tap(
+          find.bySemanticsLabel(labelsFor(titleAt(scale)).first),
+        );
         await tester.pumpAndSettle();
         expect(find.byType(TeacherSessionSheet), findsOneWidget);
       });
@@ -225,8 +234,8 @@ void main() {
     // The 3-hour block keeps its two-line time and title.
     expect(find.text('09:00\n-12:00'), findsOneWidget);
     final long = find.descendant(
-      of: find.bySemanticsLabel(labels.last),
-      matching: find.text(title),
+      of: find.bySemanticsLabel(labelsFor(mongolian).last),
+      matching: find.text(mongolian),
     );
     expect(long, findsOneWidget);
   });
