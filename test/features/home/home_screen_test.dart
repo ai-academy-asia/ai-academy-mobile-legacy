@@ -12,7 +12,7 @@ import 'package:aia_mobile/features/home/presentation/widgets/attendance_card.da
 import 'package:aia_mobile/features/home/presentation/widgets/contract_banner.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_screen.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_strings.dart';
-import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/payment_card.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/program_card.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
@@ -375,8 +375,8 @@ void main() {
       expect(find.byType(PaymentCard), findsOneWidget);
       expect(find.text(HomeStrings.paymentDueIn(3)), findsOneWidget);
 
-      final pay = tester.widget<HomePillButton>(
-        find.widgetWithText(HomePillButton, HomeStrings.payAction),
+      final pay = tester.widget<PillButton>(
+        find.widgetWithText(PillButton, HomeStrings.payAction),
       );
       expect(pay.onPressed, isNull);
     });
@@ -396,8 +396,8 @@ void main() {
 
       expect(find.text(HomeStrings.paymentOverdue), findsOneWidget);
 
-      final pay = tester.widget<HomePillButton>(
-        find.widgetWithText(HomePillButton, HomeStrings.payAction),
+      final pay = tester.widget<PillButton>(
+        find.widgetWithText(PillButton, HomeStrings.payAction),
       );
       expect(pay.onPressed, isNotNull);
     });
@@ -420,7 +420,7 @@ void main() {
       expect(find.text(HomeStrings.paymentDueIn(3)), findsOneWidget);
       expect(find.text(HomeStrings.payAction), findsNothing);
       expect(
-        find.widgetWithText(HomePillButton, HomeStrings.details),
+        find.widgetWithText(PillButton, HomeStrings.details),
         findsOneWidget,
       );
     });
@@ -446,9 +446,9 @@ void main() {
     );
 
     Finder detailsButton() =>
-        find.widgetWithText(HomePillButton, HomeStrings.details);
+        find.widgetWithText(PillButton, HomeStrings.details);
     Finder payButton() =>
-        find.widgetWithText(HomePillButton, HomeStrings.payAction);
+        find.widgetWithText(PillButton, HomeStrings.payAction);
 
     testWidgets('"Дэлгэрэнгүй" opens the partly-paid preview', (tester) async {
       await pumpHome(tester, withPayment(dueRow));
@@ -475,7 +475,7 @@ void main() {
     testWidgets('a due tile keeps its pay action muted', (tester) async {
       await pumpHome(tester, withPayment(dueTile));
 
-      expect(tester.widget<HomePillButton>(payButton()).onPressed, isNull);
+      expect(tester.widget<PillButton>(payButton()).onPressed, isNull);
     });
 
     testWidgets('with previews off (release builds) "Дэлгэрэнгүй" opens '
@@ -496,7 +496,7 @@ void main() {
         showPaymentPreview: false,
       );
 
-      expect(tester.widget<HomePillButton>(payButton()).onPressed, isNotNull);
+      expect(tester.widget<PillButton>(payButton()).onPressed, isNotNull);
       await tester.tap(payButton());
       await tester.pumpAndSettle();
 

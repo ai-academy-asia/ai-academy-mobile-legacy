@@ -8,7 +8,7 @@ import 'package:aia_mobile/features/home/presentation/payment_flow/payment_metho
 import 'package:aia_mobile/features/home/presentation/payment_flow/payment_sheets.dart';
 import 'package:aia_mobile/features/home/presentation/payment_flow/payment_success_dialog.dart';
 import 'package:aia_mobile/features/home/presentation/payment_previews.dart';
-import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:aia_mobile/features/payments/data/payment_checkout_ui_fixtures.dart';
 import 'package:aia_mobile/features/payments/domain/payment_checkout.dart';
 import 'dart:ui' show SemanticsAction;
@@ -44,7 +44,7 @@ Finder slider() => find.byWidgetPredicate(
   (widget) => widget is Semantics && (widget.properties.slider ?? false),
 );
 
-Finder button(String label) => find.widgetWithText(HomePillButton, label);
+Finder button(String label) => find.widgetWithText(PillButton, label);
 
 /// Records what the copy buttons put on the clipboard.
 List<String> recordClipboard(WidgetTester tester) {
@@ -344,7 +344,7 @@ void main() {
       await pumpFlow(tester, EbarimtReceiptScreen(receipt: checkout.receipt));
 
       final download = button(PaymentFlowStrings.download);
-      expect(tester.widget<HomePillButton>(download).onPressed, isNotNull);
+      expect(tester.widget<PillButton>(download).onPressed, isNotNull);
       await tester.tap(download);
       await tester.pumpAndSettle();
 

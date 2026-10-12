@@ -6,7 +6,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../home/presentation/home_strings.dart';
-import '../../../home/presentation/widgets/home_badges.dart';
+import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/student_contract.dart';
 import '../contract_strings.dart';
 
@@ -123,7 +123,7 @@ class ContractCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    height: homeBadgeHeight,
+                    height: trackBadgeHeight,
                     child: Row(
                       // The pill hangs from the top of the badge row.
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,14 +177,14 @@ class ContractCard extends StatelessWidget {
   Widget _statusPill(BuildContext context) {
     final palette = context.palette;
     return switch (contract.status) {
-      StudentContractStatus.signed => HomeCapsule(
+      StudentContractStatus.signed => CardCapsule(
         label: ContractStrings.statusSigned,
         outline: palette.accentSubtleOutline,
         fill: palette.infoFill,
         ink: palette.infoInk,
         horizontalPadding: 15,
       ),
-      StudentContractStatus.pending => HomeCapsule(
+      StudentContractStatus.pending => CardCapsule(
         label: ContractStrings.statusPending,
         outline: palette.warningOutline.withValues(alpha: 0.3),
         fill: palette.warningFill,

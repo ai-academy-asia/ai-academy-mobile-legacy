@@ -23,7 +23,7 @@ import '../course_learning_strings.dart';
 /// Sampled off the reference frames at 1:1. Every primary CTA measures
 /// 329 x 44: an `AppPalette.accent` fill and `onPrimary` label on a 4pt
 /// `primaryDepth` band. The disabled pill is the same shape in the muted
-/// set Phase 5 fixed for `HomePillButton` — `surfaceSubtle` fill, `divider`
+/// set Phase 5 fixed for `PillButton` — `surfaceSubtle` fill, `divider`
 /// outline, `disabledInk` label, `neutralDepth` band.
 const double _depthOffset = 4;
 const double _defaultWidth = 329;

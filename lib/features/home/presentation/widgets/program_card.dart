@@ -7,8 +7,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
-import 'home_badges.dart';
-import 'home_pill_button.dart';
+import '../../../../shared/widgets/track_badge.dart';
+import '../../../../shared/widgets/pill_button.dart';
 
 // Measured off the Figma Home frames at 1:1. Figma strokes sit inside the
 // frame and take no layout space, so every inset below is the reference's
@@ -25,8 +25,8 @@ const double _paddingH = 16;
 /// The badge row, the caption, the progress row: 24 between each group.
 const double _groupGap = 24;
 
-/// The track badge row — see [TrackBadge] and [HomeCapsule].
-const double _badgeHeight = homeBadgeHeight;
+/// The track badge row — see [TrackBadge] and [CardCapsule].
+const double _badgeHeight = trackBadgeHeight;
 
 /// The progress row (the taller of its two lines), the gap under it, the bar.
 const double _progressRowHeight = 20;
@@ -288,7 +288,7 @@ class _NextLessonSection extends StatelessWidget {
             ),
           ],
           const SizedBox(height: _actionGap),
-          HomePillButton(
+          PillButton(
             label: HomeStrings.attendanceAction,
             icon: AppIcons.qrCode,
             height: _actionHeight,
@@ -353,7 +353,7 @@ class _StatusPill extends StatelessWidget {
       ),
     };
 
-    return HomeCapsule(
+    return CardCapsule(
       label: _capitalize(status),
       outline: outline,
       fill: fill,
@@ -369,7 +369,7 @@ class _LiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HomeCapsule(
+    return CardCapsule(
       label: HomeStrings.live,
       outline: context.palette.infoInk,
       fill: context.palette.infoFill,

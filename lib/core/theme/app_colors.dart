@@ -170,7 +170,7 @@ abstract final class AppColors {
   /// The "AI academy Asia" wordmark — the brand [navy] it is drawn in.
   static const Color wordmark = navy;
 
-  /// The faint band under a white pill (`HomePillButton`'s secondary).
+  /// The faint band under a white pill (`PillButton`'s secondary).
   static const Color subtleDepth = Color(0x0A000000);
 
   static const Color _successGreen = Color(0xFF14AE5C);

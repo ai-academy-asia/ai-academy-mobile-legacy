@@ -8,7 +8,7 @@ import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_screen.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_strings.dart';
 import 'package:aia_mobile/features/contracts/presentation/widgets/contract_card.dart';
-import 'package:aia_mobile/features/home/presentation/widgets/home_badges.dart';
+import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show SemanticsNode;

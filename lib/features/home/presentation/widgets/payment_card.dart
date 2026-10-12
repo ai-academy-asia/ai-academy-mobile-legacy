@@ -4,7 +4,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../domain/home_dashboard.dart';
 import '../home_strings.dart';
-import 'home_pill_button.dart';
+import '../../../../shared/widgets/pill_button.dart';
 import 'home_stat_card.dart';
 
 /// "Дараанийн төлөлт" — what the student owes next.
@@ -56,7 +56,7 @@ class PaymentCard extends StatelessWidget {
       fill: tinted ? context.palette.errorFill : context.palette.surface,
       outline: tinted ? context.palette.errorOutline : context.palette.outline,
       action: isTile
-          ? HomePillButton(
+          ? PillButton(
               label: HomeStrings.payAction,
               height: statActionHeight,
               onPressed: overdue ? onPay : null,
@@ -64,9 +64,9 @@ class PaymentCard extends StatelessWidget {
               // action above it.
               raised: false,
             )
-          : HomePillButton(
+          : PillButton(
               label: HomeStrings.details,
-              variant: HomePillVariant.secondary,
+              variant: PillButtonVariant.secondary,
               height: statActionHeight,
               onPressed: onDetails,
             ),

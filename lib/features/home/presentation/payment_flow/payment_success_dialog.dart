@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/home_pill_button.dart';
+import '../../../../shared/widgets/pill_button.dart';
 import 'payment_flow_strings.dart';
 import 'payment_flow_widgets.dart';
 import '../../../../core/theme/app_palette.dart';
@@ -71,7 +71,7 @@ class PaymentSuccessDialog extends StatelessWidget {
               header: true,
             ),
             const SizedBox(height: 40.9),
-            HomePillButton(
+            PillButton(
               label: PaymentFlowStrings.understood,
               height: 44,
               raised: false,
