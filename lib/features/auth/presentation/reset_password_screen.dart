@@ -9,7 +9,7 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import '../data/http_password_repository.dart';
 import '../domain/password_repository.dart';
 import 'reset_password_controller.dart';
@@ -120,7 +120,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 preferredSize: Size.fromHeight(52),
                 child: SafeArea(
                   bottom: false,
-                  child: CourseLearningBackButton(),
+                  child: AppBackButton(),
                 ),
               )
             : null,

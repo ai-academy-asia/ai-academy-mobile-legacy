@@ -1,3 +1,4 @@
+import '../../../shared/widgets/app_back_button.dart';
 import '../domain/course_learning_failure.dart';
 
 /// Every word on the Course Learning screens.
@@ -9,7 +10,8 @@ import '../domain/course_learning_failure.dart';
 /// reference rather than translated, since translating would be inventing
 /// copy the design never specified.
 abstract final class CourseLearningStrings {
-  static const String back = 'Back';
+  /// The back control's label — [AppBackButton.label] (Issue #327).
+  static const String back = AppBackButton.label;
 
   // --- Failures ----------------------------------------------------------
   //

@@ -9,7 +9,7 @@ import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -359,7 +359,7 @@ void main() {
   });
 
   group('back control (Issue #227)', () {
-    Finder backControl() => find.byType(CourseLearningBackButton);
+    Finder backControl() => find.byType(AppBackButton);
 
     /// The screen pushed over a page, as Profile pushes it.
     Future<void> pushVoluntary(

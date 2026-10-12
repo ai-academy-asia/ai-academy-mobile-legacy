@@ -4,7 +4,7 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_screen.dart';
 import 'package:aia_mobile/features/contracts/presentation/contract_strings.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/presentation/home_controller.dart';
 import 'package:aia_mobile/features/home/presentation/home_screen.dart';
@@ -57,7 +57,7 @@ void main() {
     await tester.tap(
       find
           .descendant(
-            of: find.byType(CourseLearningBackButton),
+            of: find.byType(AppBackButton),
             matching: find.byType(InkWell),
           )
           .last,

@@ -126,7 +126,7 @@ void main() {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
 
-      // CourseLearningBackButton: 16 in, 12 below the inset, 40 square.
+      // AppBackButton: 16 in, 12 below the inset, 40 square.
       final back = tester.getRect(
         find.ancestor(of: backButton(), matching: find.byType(InkWell)).first,
       );

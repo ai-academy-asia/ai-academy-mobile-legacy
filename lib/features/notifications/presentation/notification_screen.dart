@@ -10,7 +10,7 @@ import '../../home/presentation/home_strings.dart';
 import '../domain/app_notification.dart';
 import 'notification_center.dart';
 import 'notification_detail_screen.dart';
-import 'notification_header.dart';
+import '../../../shared/widgets/back_title_header.dart';
 import 'notification_strings.dart';
 
 /// The Notification Center — the Figma "Notification" frame (Issue #246):
@@ -95,7 +95,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const NotificationHeader(),
+              const BackTitleHeader(title: NotificationStrings.title),
               Expanded(
                 child: ListenableBuilder(
                   listenable: _center,

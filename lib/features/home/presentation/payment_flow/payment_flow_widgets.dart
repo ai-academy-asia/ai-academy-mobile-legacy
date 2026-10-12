@@ -7,7 +7,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_system_ui.dart';
 import '../../../../core/theme/app_palette.dart';
-import '../../../course_learning/presentation/widgets/course_learning_back_button.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../payments/domain/payment_checkout.dart';
 import '../widgets/home_pill_button.dart';
 import 'payment_flow_strings.dart';
@@ -124,7 +124,7 @@ class PaymentFlowHeader extends StatelessWidget {
               const Positioned(
                 left: 0,
                 top: 0,
-                child: CourseLearningBackButton(icon: AppIcons.arrowLeft),
+                child: AppBackButton(icon: AppIcons.arrowLeft),
               ),
               if (title case final title?)
                 // Centred on the back control's own centre line.

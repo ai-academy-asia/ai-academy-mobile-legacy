@@ -11,6 +11,7 @@ import '../../course_learning/presentation/widgets/exercise_submit_button.dart';
 import '../domain/contract_failure.dart';
 import 'contract_signing_controller.dart';
 import 'contract_strings.dart';
+import '../../../shared/widgets/back_title_header.dart';
 import 'widgets/contract_page_parts.dart';
 import 'widgets/contract_pdf_renderer.dart';
 import 'widgets/contract_pdf_view.dart';
@@ -235,7 +236,7 @@ class _ContractPreviewScreenState extends State<ContractPreviewScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const ContractHeader(),
+                    const BackTitleHeader(title: ContractStrings.title),
                     Expanded(
                       child: ListenableBuilder(
                         listenable: Listenable.merge([

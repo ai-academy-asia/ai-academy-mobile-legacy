@@ -16,7 +16,7 @@ import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
 import 'lesson_list_screen.dart';
 import 'widgets/certificate_preview.dart';
-import 'widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import 'widgets/course_progress_cta_row.dart';
 import 'widgets/course_module_card.dart';
 
@@ -158,7 +158,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const CourseLearningBackButton(),
+                        const AppBackButton(),
                         Expanded(child: _buildBody()),
                       ],
                     ),

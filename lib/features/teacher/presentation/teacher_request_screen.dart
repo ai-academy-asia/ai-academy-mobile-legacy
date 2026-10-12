@@ -4,7 +4,7 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import 'teacher_schedule_strings.dart';
 import 'widgets/teacher_pill_button.dart';
 
@@ -62,7 +62,7 @@ class TeacherRequestScreen extends StatelessWidget {
               height: 52,
               child: Stack(
                 children: [
-                  const CourseLearningBackButton(icon: AppIcons.arrowLeft),
+                  const AppBackButton(icon: AppIcons.arrowLeft),
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Center(

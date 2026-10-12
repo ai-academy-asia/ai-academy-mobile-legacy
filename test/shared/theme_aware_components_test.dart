@@ -1,7 +1,7 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_header.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
@@ -167,13 +167,13 @@ void main() {
     expect(textColor(tester, 'Profile'), textSecondary);
   });
 
-  testWidgets('CourseLearningBackButton: surface disc, outline ring, '
+  testWidgets('AppBackButton: surface disc, outline ring, '
       'textPrimary glyph', (tester) async {
-    await pump(tester, const CourseLearningBackButton());
+    await pump(tester, const AppBackButton());
 
     final material = tester.widget<Material>(
       find.descendant(
-        of: find.byType(CourseLearningBackButton),
+        of: find.byType(AppBackButton),
         matching: find.byType(Material),
       ),
     );

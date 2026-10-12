@@ -67,7 +67,7 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    // `CourseLearningBackButton`'s page control: a `surface` disc in an
+    // `AppBackButton`'s page control: a `surface` disc in an
     // `outline` ring, its glyph `textPrimary`.
     return Semantics(
       button: true,
@@ -76,7 +76,7 @@ class _CloseButton extends StatelessWidget {
         color: palette.surface,
         shape: CircleBorder(side: BorderSide(color: palette.outline)),
         // Black @ 10 %, exactly as before: `shadowSubtle`'s hue at this
-        // control's own strength, as `CourseLearningBackButton` does.
+        // control's own strength, as `AppBackButton` does.
         shadowColor: palette.shadowSubtle.withValues(alpha: 0.1),
         elevation: 2,
         child: InkWell(

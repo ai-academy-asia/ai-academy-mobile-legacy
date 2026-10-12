@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_palette.dart';
-import '../../../../core/theme/app_dimens.dart';
-import '../../../../core/theme/app_icons.dart';
-import '../course_learning_strings.dart';
+import '../../core/theme/app_palette.dart';
+import '../../core/theme/app_dimens.dart';
+import '../../core/theme/app_icons.dart';
 
-/// Back navigation for the Course Learning screens.
+/// The app's back control: a 40 x 40 circle (a `surface` disc in an `outline`
+/// ring, a soft lift) that pops the current route.
 ///
-/// A revision of the earlier decision to keep `CourseDetailScreen`'s bare
-/// icon-in-an-`InkWell` pattern here: this screen's own Figma reference
-/// draws a distinct 40 x 40 circular control (white fill, [_borderColor]
-/// outline, a soft shadow), and that is now what this implements, on
-/// direction to match it rather than defer to the plainer app-wide pattern.
-class CourseLearningBackButton extends StatelessWidget {
-  const CourseLearningBackButton({super.key, this.icon = AppIcons.caretLeft});
+/// First drawn for the Course Learning screens — a revision of the earlier
+/// decision to keep `CourseDetailScreen`'s bare icon-in-an-`InkWell` pattern:
+/// their Figma reference draws this distinct circular control, and that is
+/// what this implements. Moved here unchanged from
+/// `course_learning/presentation/widgets/course_learning_back_button.dart`
+/// (Issue #327), since screens across the app use it — the attendance,
+/// contract, certificate, notification, payment, password and teacher
+/// screens as well as Course Learning — and a shared widget should not live
+/// inside one feature. It holds its own [label] for the same reason, so
+/// `shared/` depends on no feature.
+class AppBackButton extends StatelessWidget {
+  const AppBackButton({super.key, this.icon = AppIcons.caretLeft});
+
+  /// What assistive technology announces. The text it has always had;
+  /// `CourseLearningStrings.back` is this.
+  static const String label = 'Back';
 
   static const double _size = 40;
 
@@ -40,7 +49,7 @@ class CourseLearningBackButton extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Semantics(
           button: true,
-          label: CourseLearningStrings.back,
+          label: label,
           child: Material(
             color: palette.surface,
             shape: CircleBorder(side: BorderSide(color: palette.outline)),
