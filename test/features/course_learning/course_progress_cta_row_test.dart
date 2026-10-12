@@ -40,12 +40,10 @@ void main() {
     ),
   };
 
-  /// Pumps [screen] and returns every layout error it raised.
-  ///
-  /// The Course Module List's module cards clip their date line from 1.5×
-  /// (`course_module_card.dart`) — a separate defect, outside this row's
-  /// scope. The grid lets that one through, by file, and fails on any other
-  /// error; the Certificate screen and the row on its own allow none.
+  /// Pumps [screen] and returns every error it raised — all of them, so a
+  /// test can show what went wrong rather than only the first. Every caller
+  /// expects none: the module cards' clipped date line, once let through
+  /// here, is fixed (Issue #349).
   Future<List<String>> pumpScreen(
     WidgetTester tester,
     Widget screen, {
@@ -66,13 +64,6 @@ void main() {
     }
     return errors;
   }
-
-  /// The errors left once the module cards' known overflow is set aside.
-  Iterable<String> unexpected(List<String> errors) => errors.where(
-    (error) =>
-        !(error.contains('A RenderFlex overflowed') &&
-            error.contains('course_module_card.dart')),
-  );
 
   Finder within(Element row, Finder matching) => find.descendant(
     of: find.byElementPredicate((e) => e == row),
@@ -100,12 +91,7 @@ void main() {
             width: width,
             scale: scale,
           );
-          expect(unexpected(errors), isEmpty);
-          expect(
-            errors.where((e) => e.contains('course_progress_cta_row.dart')),
-            isEmpty,
-          );
-          if (name == 'Certificate') expect(errors, isEmpty);
+          expect(errors, isEmpty);
 
           final rows = find.byType(CourseProgressCtaRow).evaluate().toList();
           expect(rows, isNotEmpty);
@@ -215,6 +201,25 @@ void main() {
       expect(buttons[i].height, 40);
       expect(buttons[i].top, lessThan(bars[i].bottom));
     }
+  });
+
+  testWidgets('pumpScreen keeps every layout error — it does not swallow '
+      'one — so the grid above fails on any', (tester) async {
+    final errors = await pumpScreen(
+      tester,
+      const Center(
+        child: SizedBox(
+          width: 10,
+          height: 10,
+          // A real area: Flutter reports no overflow of a 0-tall row.
+          child: Row(children: [SizedBox(width: 50, height: 10)]),
+        ),
+      ),
+      width: 393,
+      scale: 1,
+    );
+    expect(errors, hasLength(1));
+    expect(errors.single, contains('A RenderFlex overflowed'));
   });
 
   group('the button itself', () {

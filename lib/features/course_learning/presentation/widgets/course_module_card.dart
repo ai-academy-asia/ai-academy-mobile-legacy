@@ -11,6 +11,11 @@ import '../course_learning_strings.dart';
 /// icon tile 56 square, vertically centred in it — (86 - 56) / 2 lands the tile
 /// exactly where the reference draws it. The locked state uses the *same* 56
 /// tile, in flat grey, rather than a smaller one.
+///
+/// 86 is the card's *minimum* (Issue #349): at a larger system text size the
+/// card grows to hold its three lines rather than clipping the date line. At
+/// the default size the text column is exactly the 60 left inside the 1pt
+/// edge and the [_tileInset] above and below it, so the card is exactly 86.
 const double _cardHeight = 86;
 const double _iconSlot = 56;
 const double _checkSize = 20;
@@ -95,8 +100,10 @@ class CourseModuleCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
         child: Container(
-          height: _cardHeight,
-          padding: const EdgeInsets.symmetric(horizontal: _tileInset),
+          constraints: const BoxConstraints(minHeight: _cardHeight),
+          // The tile's own inset above and below too, so a card that has
+          // grown keeps the reference's breathing room around its text.
+          padding: const EdgeInsets.all(_tileInset),
           decoration: BoxDecoration(
             // The fill is repeated here, not left to the `Material` behind:
             // the band below is a zero-blur shadow, which paints the card's
