@@ -5,7 +5,7 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import '../../junior_home/domain/junior_progress.dart';
 import '../../junior_home/presentation/junior_progress_strings.dart';
 import '../../junior_home/presentation/widgets/attendance_panel_parts.dart';
@@ -61,7 +61,7 @@ const double _pageBottom = 12;
 /// [AttendanceLegend], [AttendancePill]). Two things are the Adult frame's:
 /// the missed stamp's red ring in the calendar, and the legend's wording for
 /// it ([HomeStrings.attendanceMissed]). The back control is
-/// [CourseLearningBackButton] with the frame's arrow.
+/// [AppBackButton] with the frame's arrow.
 ///
 /// The calendar opens on today's month with today selected, and its arrows
 /// page locally — back no further than the cohort's start month, forward
@@ -128,7 +128,7 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const CourseLearningBackButton(icon: AppIcons.arrowLeft),
+                    const AppBackButton(icon: AppIcons.arrowLeft),
                     const SizedBox(height: _backToHeader),
                     Padding(
                       padding: const EdgeInsets.symmetric(

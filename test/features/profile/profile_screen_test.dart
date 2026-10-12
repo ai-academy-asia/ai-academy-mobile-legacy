@@ -12,7 +12,7 @@ import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_screen.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
@@ -491,7 +491,7 @@ void main() {
 
       await tester.tap(rowLabel(ProfileStrings.changePassword));
       await tester.pumpAndSettle();
-      expect(find.byType(CourseLearningBackButton), findsOneWidget);
+      expect(find.byType(AppBackButton), findsOneWidget);
 
       await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
       await tester.pumpAndSettle();

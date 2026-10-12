@@ -6,7 +6,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import '../../home/presentation/widgets/home_pill_button.dart';
 
 /// Every word on the attendance scanner, read off its Figma reference.
@@ -66,7 +66,7 @@ class AttendanceScannerScreen extends StatelessWidget {
             Positioned(
               left: 0,
               top: MediaQuery.paddingOf(context).top,
-              child: const CourseLearningBackButton(icon: AppIcons.arrowLeft),
+              child: const AppBackButton(icon: AppIcons.arrowLeft),
             ),
             Positioned(
               top: _windowTop + windowSize + _windowToHint,

@@ -12,6 +12,7 @@ import '../domain/student_contract.dart';
 import 'contract_list_controller.dart';
 import 'contract_strings.dart';
 import 'widgets/contract_card.dart';
+import '../../../shared/widgets/back_title_header.dart';
 import 'widgets/contract_page_parts.dart';
 
 /// The student's e-contracts (Issues #294, #312), read from
@@ -103,7 +104,7 @@ class _ContractScreenState extends State<ContractScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const ContractHeader(),
+                  const BackTitleHeader(title: ContractStrings.title),
                   Expanded(
                     child: ListenableBuilder(
                       listenable: _controller,

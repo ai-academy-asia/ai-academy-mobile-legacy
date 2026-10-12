@@ -15,7 +15,7 @@ import '../domain/lesson.dart';
 import 'course_exercise_detail_screen.dart';
 import 'course_learning_strings.dart';
 import 'lesson_list_controller.dart';
-import 'widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import 'widgets/lesson_list_item.dart';
 
 /// The Lesson List — one module's lessons, from
@@ -262,7 +262,7 @@ class _ModuleHero extends StatelessWidget {
               top: topInset,
               // The reference draws the arrow here, as Exercise Detail and
               // the attendance screens do.
-              child: const CourseLearningBackButton(icon: AppIcons.arrowLeft),
+              child: const AppBackButton(icon: AppIcons.arrowLeft),
             ),
           ],
         ),

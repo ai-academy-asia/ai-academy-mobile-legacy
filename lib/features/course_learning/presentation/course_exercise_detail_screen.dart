@@ -16,7 +16,7 @@ import 'course_exercise_detail_controller.dart';
 import 'course_learning_strings.dart';
 import 'course_quiz_screen.dart';
 import 'widgets/assignment_tab.dart';
-import 'widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import 'widgets/course_materials_tab.dart';
 import 'widgets/exercise_info_section.dart';
 import 'widgets/exercise_tabs.dart';
@@ -515,7 +515,7 @@ class _ErrorView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const CourseLearningBackButton(),
+        const AppBackButton(),
         Expanded(
           child: Center(
             child: Padding(

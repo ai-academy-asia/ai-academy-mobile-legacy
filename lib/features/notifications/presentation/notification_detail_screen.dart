@@ -8,7 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/app_notification.dart';
-import 'notification_header.dart';
+import '../../../shared/widgets/back_title_header.dart';
 import 'notification_strings.dart';
 
 /// One notification in full (Issue #248) — what a Notification Center row
@@ -55,7 +55,7 @@ class NotificationDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const NotificationHeader(),
+              const BackTitleHeader(title: NotificationStrings.title),
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(

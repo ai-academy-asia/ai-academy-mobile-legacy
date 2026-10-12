@@ -15,7 +15,7 @@ import 'package:aia_mobile/features/auth/presentation/widgets/contact_manager_ca
 import 'package:aia_mobile/features/auth/presentation/widgets/manager_contact_sheet.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -901,7 +901,7 @@ void main() {
       expect(canPop(tester), isFalse);
       // No visible back control either (Issue #227): it is the voluntary
       // change's alone.
-      expect(find.byType(CourseLearningBackButton), findsNothing);
+      expect(find.byType(AppBackButton), findsNothing);
       // A system back press does not leave the screen for Login or Home.
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();

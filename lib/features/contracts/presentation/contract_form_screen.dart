@@ -18,6 +18,7 @@ import '../domain/student_contract.dart';
 import 'contract_preview_screen.dart';
 import 'contract_signing_controller.dart';
 import 'contract_strings.dart';
+import '../../../shared/widgets/back_title_header.dart';
 import 'widgets/contract_page_parts.dart';
 
 /// The E-Contract form step (Issue #314): one contract's details, checked
@@ -26,7 +27,7 @@ import 'widgets/contract_page_parts.dart';
 /// **No frame draws it.** `e-contract2.png` is the preview/signature step;
 /// the form is laid out in the app's own form pattern instead — Login's
 /// [AppTextField] and [AppButton], `fieldGap` apart, under the list's
-/// [ContractHeader] — with plain section headings. A `PRODUCT DECISION` until
+/// [BackTitleHeader] — with plain section headings. A `PRODUCT DECISION` until
 /// design supplies a frame.
 ///
 /// **Everything runs through [ContractSigningController].** The form is the
@@ -233,7 +234,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const ContractHeader(),
+                  const BackTitleHeader(title: ContractStrings.title),
                   Expanded(
                     child: ListenableBuilder(
                       listenable: _controller,

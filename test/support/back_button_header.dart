@@ -1,15 +1,16 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'screenshot.dart';
 
-/// The checks a "back button + centred title" header must pass at every
-/// width and text size (Issues #318, #325): the back circle goes back when
-/// tapped at its centre and both edges, the title stays clear of it and on
-/// screen, nothing overflows, and both stay readable to assistive tech.
+/// The checks a "back button + centred title" header — `BackTitleHeader` (Issue
+/// #327) — must pass at every width and text size (Issues #318, #325): the back
+/// circle goes back when tapped at its centre and both edges, the title stays
+/// clear of it and on screen, nothing overflows, and both stay readable to
+/// assistive tech.
 ///
 /// Defines the tests where it is called. [screen] builds the real screen
 /// that draws the header; it is pushed over a blank home so the back button
@@ -56,7 +57,7 @@ void backButtonHeaderChecks({
 
   /// The back button's circle — the tappable ink, not its full-width row.
   Finder circle() => find.descendant(
-    of: find.byType(CourseLearningBackButton),
+    of: find.byType(AppBackButton),
     matching: find.byType(InkWell),
   );
 

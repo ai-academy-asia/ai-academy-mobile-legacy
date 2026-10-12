@@ -20,9 +20,9 @@ import '../course_learning_strings.dart';
 /// 393 x 196: back button, "Live Classroom Recording" badge, a centred play
 /// button, and the duration in the bottom-right corner.
 ///
-/// The back button here is a second copy of `CourseLearningBackButton`'s
+/// The back button here is a second copy of `AppBackButton`'s
 /// visual (white circle, grey ring, soft shadow), not
-/// that widget reused directly: `CourseLearningBackButton` lays itself out as
+/// that widget reused directly: `AppBackButton` lays itself out as
 /// a standalone row above the page (`Padding` + `Align`, vertically centred
 /// in whatever space it is given), whereas here it has to sit at a fixed
 /// `Positioned` spot overlaid on the video, with the recording badge
@@ -146,7 +146,7 @@ class _VideoBackButton extends StatelessWidget {
           side: BorderSide(color: palette.mediaControlOutline),
         ),
         // Black @ 20 %, exactly as before: `shadowSubtle`'s hue at this
-        // control's own strength, as `CourseLearningBackButton` does.
+        // control's own strength, as `AppBackButton` does.
         shadowColor: palette.shadowSubtle.withValues(alpha: 0.2),
         elevation: 2,
         child: InkWell(

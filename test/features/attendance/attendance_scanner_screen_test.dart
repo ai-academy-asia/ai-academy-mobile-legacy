@@ -1,6 +1,6 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/attendance/presentation/attendance_scanner_screen.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_pill_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,7 +70,7 @@ void main() {
   testWidgets('back returns to where it was opened from', (tester) async {
     await pump(tester);
 
-    await tester.tap(find.byType(CourseLearningBackButton));
+    await tester.tap(find.byType(AppBackButton));
     await tester.pumpAndSettle();
 
     expect(find.byType(AttendanceScannerScreen), findsNothing);

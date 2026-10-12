@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
@@ -11,8 +10,8 @@ import '../../course_learning/data/http_course_learning_repository.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../course_learning/presentation/widgets/certificate_preview.dart';
-import '../../course_learning/presentation/widgets/course_learning_back_button.dart';
 import '../../course_learning/presentation/widgets/course_progress_cta_row.dart';
+import '../../../shared/widgets/back_title_header.dart';
 import '../data/enrolled_certificate_list_repository.dart';
 import '../domain/certificate_entry.dart';
 import '../domain/certificate_list_repository.dart';
@@ -141,7 +140,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _Header(),
+                  const BackTitleHeader(title: CertificateStrings.title),
                   Expanded(
                     child: ListenableBuilder(
                       listenable: _controller,
@@ -199,50 +198,6 @@ class _CertificateScreenState extends State<CertificateScreen> {
           onContinue: () => _continueLearning(entry.courseSlug),
         );
       },
-    );
-  }
-}
-
-/// The back button with "Certificate" centred on its row.
-///
-/// **The title never covers the button (Issue #325, as #318 fixed the
-/// E-Contract header).** It used to fill the whole row on top of the button,
-/// so at large text sizes it grew over the circle and took its taps. Now it
-/// is kept out of the button's band on *both* sides — [_titleInset] — so it
-/// stays centred on the row, wraps inside what is left, and the header grows
-/// to fit it; the button is painted last, on top. At the default text size
-/// the title fits that band on a 320-wide phone and lands exactly where it
-/// did.
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Padding(
-          // The button's own 12 above it, so the title centres on the circle.
-          padding: const EdgeInsets.fromLTRB(
-            _titleInset,
-            _backButtonTop,
-            _titleInset,
-            0,
-          ),
-          // At least the circle's height, so a one-line title is centred on
-          // it as before; taller when the title wraps.
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: _backButtonSize),
-            child: Center(
-              child: Text(
-                CertificateStrings.title,
-                style: _titleStyle.copyWith(color: context.palette.textTitle),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ),
-        const CourseLearningBackButton(icon: AppIcons.arrowLeft),
-      ],
     );
   }
 }
@@ -469,17 +424,6 @@ class _Message extends StatelessWidget {
 // --- Measured off the Figma "Certificate" frame at 1:1 (393 wide, a 44pt
 // status-bar inset) -----------------------------------------------------------
 
-/// `CourseLearningBackButton`'s own inset above the circle.
-const double _backButtonTop = 12;
-
-/// `CourseLearningBackButton`'s circle.
-const double _backButtonSize = 40;
-
-/// Kept clear on either side of the header title: the button's screen inset,
-/// its circle and 8 between them — mirrored on the right so the title stays
-/// centred on the row (Issue #325).
-const double _titleInset = AppDimens.screenPadding + _backButtonSize + 8;
-
 /// The circle's bottom to the first card's top.
 const double _headerToCard = 28;
 
@@ -503,14 +447,6 @@ const double _downloadIcon = 20;
 const double _iconToLabel = 6;
 const String _downloadGlyph =
     'assets/images/course_learning/exercise_download.svg';
-
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
 
 const TextStyle _captionStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,

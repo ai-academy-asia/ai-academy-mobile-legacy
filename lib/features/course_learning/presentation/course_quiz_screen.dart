@@ -10,7 +10,7 @@ import '../domain/course_quiz.dart';
 import 'course_learning_strings.dart';
 import 'course_quiz_controller.dart';
 import 'course_quiz_result_screen.dart';
-import 'widgets/course_learning_back_button.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import 'widgets/exercise_submit_button.dart';
 import 'widgets/quiz_answer_card.dart';
 import 'widgets/quiz_feedback_card.dart';
@@ -251,7 +251,7 @@ class _StartingView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const CourseLearningBackButton(),
+        const AppBackButton(),
         Expanded(
           child: Center(
             child: SizedBox(
@@ -280,7 +280,7 @@ class _StartFailedView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const CourseLearningBackButton(),
+        const AppBackButton(),
         Expanded(
           child: Center(
             child: Padding(

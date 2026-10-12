@@ -12,7 +12,7 @@ import 'package:aia_mobile/features/contracts/presentation/contract_signing_cont
 import 'package:aia_mobile/features/contracts/presentation/contract_strings.dart';
 import 'package:aia_mobile/features/contracts/presentation/widgets/contract_pdf_renderer.dart';
 import 'package:aia_mobile/features/contracts/presentation/widgets/contract_pdf_view.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
@@ -118,7 +118,7 @@ void main() {
     // the title.
     await tester.tap(
       find.descendant(
-        of: find.byType(CourseLearningBackButton),
+        of: find.byType(AppBackButton),
         matching: find.byType(InkWell),
       ),
     );

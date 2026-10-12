@@ -1,5 +1,5 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/course_learning/presentation/widgets/course_learning_back_button.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/features/home/presentation/payment_flow/ebarimt_receipt_screen.dart';
 import 'package:aia_mobile/features/home/presentation/payment_flow/payment_amount_screen.dart';
 import 'package:aia_mobile/features/home/presentation/payment_flow/payment_flow_strings.dart';
@@ -300,7 +300,7 @@ void main() {
       expect(find.byType(PaymentSuccessDialog), findsNothing);
       expect(find.byType(EbarimtReceiptScreen), findsOneWidget);
 
-      await tester.tap(find.byType(CourseLearningBackButton));
+      await tester.tap(find.byType(AppBackButton));
       await tester.pumpAndSettle();
       expect(find.byType(EbarimtReceiptScreen), findsNothing);
       expect(find.byType(PaymentMethodScreen), findsOneWidget);
