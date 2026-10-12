@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/api/transport_log.dart';
 import '../domain/auth_failure.dart';
 
 /// The transport the auth endpoints share.
@@ -38,11 +39,20 @@ Future<http.Response> postJson({
           body: jsonEncode(body),
         )
         .timeout(timeout);
-  } on TimeoutException {
+  } on TimeoutException catch (e) {
+    logTransportFailure('auth', AuthFailureKind.network.name, e);
     throw const AuthFailure(AuthFailureKind.network, detail: 'request timed out');
   } on SocketException catch (e) {
+    logTransportFailure('auth', AuthFailureKind.network.name, e);
     throw AuthFailure(AuthFailureKind.network, detail: e.message);
   } on http.ClientException catch (e) {
+    logTransportFailure('auth', AuthFailureKind.network.name, e);
+    throw AuthFailure(AuthFailureKind.network, detail: e.message);
+  } on TlsException catch (e) {
+    // A TLS failure is a request that never completed too (Issue #339) —
+    // `IOClient` passes it through unconverted. See `api_client.dart`'s
+    // `_send`, which handles it the same way.
+    logTransportFailure('auth', AuthFailureKind.network.name, e);
     throw AuthFailure(AuthFailureKind.network, detail: e.message);
   }
 

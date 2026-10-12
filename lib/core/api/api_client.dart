@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'api_failure.dart';
+import 'transport_log.dart';
 
 /// The transport for public, unauthenticated GET endpoints.
 ///
@@ -154,17 +155,30 @@ Future<http.Response> postMultipartRaw({
 /// Runs [request], turning one that never completed into
 /// [ApiFailureKind.network] — so each transport above states the try/catch
 /// once rather than restating it.
+///
+/// A TLS failure (`HandshakeException` and the other [TlsException]s — a
+/// captive portal, a wrong device clock, a certificate problem) is a request
+/// that never completed too (Issue #339): `http`'s `IOClient` passes it
+/// through unconverted, so without this it reached the screens' catch-alls
+/// as an *unexpected* error. Each failure is also logged, in debug builds
+/// only and without its message ([logTransportFailure]).
 Future<http.Response> _send(
   Future<http.Response> Function() request,
   Duration timeout,
 ) async {
   try {
     return await request().timeout(timeout);
-  } on TimeoutException {
+  } on TimeoutException catch (e) {
+    logTransportFailure('api', ApiFailureKind.network.name, e);
     throw const ApiFailure(ApiFailureKind.network, detail: 'request timed out');
   } on SocketException catch (e) {
+    logTransportFailure('api', ApiFailureKind.network.name, e);
     throw ApiFailure(ApiFailureKind.network, detail: e.message);
   } on http.ClientException catch (e) {
+    logTransportFailure('api', ApiFailureKind.network.name, e);
+    throw ApiFailure(ApiFailureKind.network, detail: e.message);
+  } on TlsException catch (e) {
+    logTransportFailure('api', ApiFailureKind.network.name, e);
     throw ApiFailure(ApiFailureKind.network, detail: e.message);
   }
 }
