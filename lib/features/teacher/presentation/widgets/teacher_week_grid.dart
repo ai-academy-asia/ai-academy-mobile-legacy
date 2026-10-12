@@ -301,7 +301,7 @@ class SessionBlock extends StatelessWidget {
             color: held ? palette.scheduleHeld : palette.accent,
             borderRadius: held ? null : BorderRadius.circular(4),
           ),
-          padding: const EdgeInsets.fromLTRB(4, 5, 4, 6),
+          padding: _blockPadding,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final fit = _BlockFit.measure(
@@ -345,6 +345,65 @@ class SessionBlock extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Inside a session block, around its text.
+const EdgeInsets _blockPadding = EdgeInsets.fromLTRB(4, 5, 4, 6);
+
+/// Whether every session of the week can present its time or its title
+/// legibly in the block the grid would give it, at this context's text size
+/// and a grid [width] wide (Issue #357) — laid out exactly as
+/// [TeacherWeekGrid] lays it out: its real duration, its lane, its title.
+///
+/// A block is legible when its time fits (see [_BlockFit]), or when at
+/// least one whole title line fits *and* the title's first word fits that
+/// line — so its first line is a word, not a fragment like "Х…". The
+/// schedule screen reads this, above the default text size, to decide
+/// between the week grid and a single day's list.
+bool weekBlocksLegible(
+  BuildContext context, {
+  required List<ScheduledSession> sessions,
+  required DateTime weekStart,
+  required double width,
+}) {
+  if (sessions.isEmpty) return true;
+  final (first, _) = hourSpan(sessions);
+  final dayWidth = (width - timeColumnWidthOf(context)) / DateTime.daysPerWeek;
+  final style = _blockStyle.copyWith(color: context.palette.onPrimary);
+  final drawn = DefaultTextStyle.of(context).style.merge(style);
+  for (final placement in placeSessions(
+    sessions,
+    weekStart: weekStart,
+    firstHour: first,
+  )) {
+    final space = Size(
+      dayWidth / placement.lanes - 3 - _blockPadding.horizontal,
+      placement.height - _blockPadding.vertical,
+    );
+    final session = placement.entry.session;
+    final fit = _BlockFit.measure(
+      context,
+      style: style,
+      start: session.startLabel,
+      end: session.endLabel,
+      space: space,
+    );
+    if (fit.showTime) continue;
+    final course = placement.entry.teacherClass.cohort.course;
+    final title = course.title.preferred ?? course.slug;
+    final firstWord = title.trim().split(RegExp(r'\s+')).first;
+    final painter = TextPainter(
+      text: TextSpan(text: firstWord, style: drawn),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final wordFits = painter.width <= space.width;
+    painter.dispose();
+    if (fit.titleLines > 0 && wordFits) continue;
+    return false;
+  }
+  return true;
 }
 
 /// What a session block can show legibly in [space] (Issue #355), measured

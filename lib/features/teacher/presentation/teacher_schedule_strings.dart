@@ -33,6 +33,19 @@ abstract final class TeacherScheduleStrings {
   /// wording for the same state.
   static const String empty = TeacherHomeStrings.empty;
 
+  /// No session on the selected day, in the large-text day list (Issue
+  /// #357). The week grid keeps [empty].
+  static const String emptyDay = 'Энэ өдөр хичээл байхгүй байна.';
+
+  /// Accessibility labels for the day list's previous- and next-day
+  /// controls (Issue #357).
+  static const String previousDay = 'Өмнөх өдөр';
+  static const String nextDay = 'Дараагийн өдөр';
+
+  /// A finished session in the day list (Issue #357) — said in words, not
+  /// only by the muted card.
+  static const String finished = 'Дууссан';
+
   /// The upcoming session sheet's action.
   static const String changeTime = 'Цаг солих';
 
