@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
@@ -19,6 +20,12 @@ import '../course_learning_strings.dart';
 /// `AppButton`: that widget is fixed at a 44pt *full-width* block, while the
 /// reference measures this one at 40 tall beside the progress section; see
 /// [ContinueLearningButton].
+///
+/// **When the row does not fit** (Issue #347) — a narrow phone, or a larger
+/// system text size — the button moves to its own line under the bar and
+/// the label, at the row's end and its design width, rather than squeezing
+/// the bar to nothing and running off the screen. "Fits" means the bar keeps
+/// at least [_minBarWidth]; every width the frames draw keeps the one row.
 class CourseProgressCtaRow extends StatelessWidget {
   const CourseProgressCtaRow({
     required this.percent,
@@ -37,31 +44,84 @@ class CourseProgressCtaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              minHeight: _barHeight,
-              backgroundColor: context.palette.outline,
-              valueColor: AlwaysStoppedAnimation<Color>(context.palette.accent),
+    final label = CourseLearningStrings.percentComplete(percent);
+    final labelStyle = AppTypography.catalogSectionValue.copyWith(
+      fontSize: 14,
+      height: 20 / 14,
+      color: context.palette.textTitle,
+    );
+    final bar = Expanded(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: LinearProgressIndicator(
+          value: percent / 100,
+          minHeight: _barHeight,
+          backgroundColor: context.palette.outline,
+          valueColor: AlwaysStoppedAnimation<Color>(context.palette.accent),
+        ),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        // The label as it will be drawn — at the user's text size.
+        final painter = TextPainter(
+          text: TextSpan(text: label, style: labelStyle),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout();
+        final labelWidth = painter.width;
+        painter.dispose();
+        final fits =
+            _minBarWidth +
+                _barToPercent +
+                labelWidth +
+                _percentToButton +
+                buttonWidth <=
+            available;
+
+        if (fits) {
+          return Row(
+            children: [
+              bar,
+              const SizedBox(width: _barToPercent),
+              Text(label, style: labelStyle),
+              const SizedBox(width: _percentToButton),
+              ContinueLearningButton(width: buttonWidth, onTap: onContinue),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                bar,
+                const SizedBox(width: _barToPercent),
+                // Whatever the bar's minimum leaves; the label wraps in it
+                // rather than taking the bar's room.
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: available - _minBarWidth - _barToPercent,
+                  ),
+                  child: Text(label, style: labelStyle),
+                ),
+              ],
             ),
-          ),
-        ),
-        const SizedBox(width: _barToPercent),
-        Text(
-          CourseLearningStrings.percentComplete(percent),
-          style: AppTypography.catalogSectionValue.copyWith(
-            fontSize: 14,
-            height: 20 / 14,
-            color: context.palette.textTitle,
-          ),
-        ),
-        const SizedBox(width: _percentToButton),
-        ContinueLearningButton(width: buttonWidth, onTap: onContinue),
-      ],
+            const SizedBox(height: AppDimens.fieldGap),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: ContinueLearningButton(
+                width: buttonWidth < available ? buttonWidth : available,
+                onTap: onContinue,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -112,18 +172,31 @@ class ContinueLearningButton extends StatelessWidget {
             // — `AppButton`'s own ripple.
             splashColor: palette.onPrimary.withAlpha(0x3D),
             highlightColor: palette.onPrimary.withAlpha(0x1A),
-            child: SizedBox(
-              width: width,
-              height: _ctaHeight,
-              child: Center(
-                child: Text(
-                  CourseLearningStrings.continueLearning,
-                  style: TextStyle(
-                    fontFamily: AppTypography.fontFamily,
-                    fontSize: 14,
-                    height: 20 / 14,
-                    fontWeight: FontWeight.w600,
-                    color: palette.onPrimary,
+            // At least 40 tall, and taller when a larger text size wraps
+            // the label, which is then shown whole rather than clipped
+            // (Issue #347). At the default size it is one line, centred in
+            // the 40 exactly as before.
+            child: ConstrainedBox(
+              constraints: BoxConstraints.tightFor(
+                width: width,
+              ).copyWith(minHeight: _ctaHeight),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: _ctaLabelInset),
+                child: Center(
+                  heightFactor: 1,
+                  // The button's [Semantics] already reads the label;
+                  // without this a screen reader read it twice (Issue #347).
+                  child: ExcludeSemantics(
+                    child: Text(
+                      CourseLearningStrings.continueLearning,
+                      style: TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: 14,
+                        height: 20 / 14,
+                        fontWeight: FontWeight.w600,
+                        color: palette.onPrimary,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -141,6 +214,15 @@ const double _barHeight = 8;
 const double _barToPercent = 13;
 const double _percentToButton = 31;
 const double _ctaHeight = 40;
+
+/// The least the bar may keep and still count as fitting on the button's
+/// row: twice its own height, so it still reads as a bar. Every frame keeps
+/// more — the narrowest, the certification panel at 393, keeps 36.5.
+const double _minBarWidth = 2 * _barHeight;
+
+/// Above and below a label that has wrapped. At the default size the one
+/// line sits inside the 40 without reaching it.
+const double _ctaLabelInset = 8;
 const double _ctaRadius = 20;
 
 /// The button's depth: a flat darker-blue band under it
