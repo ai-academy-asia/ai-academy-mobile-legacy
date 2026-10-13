@@ -90,7 +90,8 @@ void main() {
     await tester.pump();
   }
 
-  Finder backButton() => find.byIcon(Icons.arrow_back);
+  // The app's one back glyph (Issue #368), on the video's control too.
+  Finder backButton() => find.byIcon(AppIcons.arrowLeft);
 
   /// Lessons open on the Note tab (Issue #219); the Assignment tab is the
   /// third. Opened explicitly by every test that is about it.
@@ -2447,9 +2448,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       // The video header, which carries the usual back button, is not drawn;
       // the shared one stands in so the student is never stranded.
-      expect(find.byIcon(AppIcons.caretLeft), findsOneWidget);
+      expect(find.byIcon(AppIcons.arrowLeft), findsOneWidget);
 
-      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.tap(find.byIcon(AppIcons.arrowLeft));
       await tester.pumpAndSettle();
       expect(find.text('open'), findsOneWidget);
     });

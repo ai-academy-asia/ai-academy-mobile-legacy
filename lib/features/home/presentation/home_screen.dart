@@ -314,9 +314,9 @@ class _DashboardView extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
-          _sectionGap,
+          AppDimens.tabContentTop,
           AppDimens.screenPadding,
-          24,
+          AppDimens.pageBottom,
         ),
         // Always scrollable, so pull-to-refresh works even on a short
         // dashboard that fits the viewport.
@@ -388,12 +388,12 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
-/// Between the header rule and the first card, and between every card: 16
-/// in each of the reference frames.
-const double _sectionGap = 16;
+/// Between every card: the page's [AppDimens.cardGap] (16 in each of the
+/// reference frames).
+const double _sectionGap = AppDimens.cardGap;
 
 /// Between two tiles on one line — each 176 wide inside the 361 column.
-const double _tileGap = 8;
+const double _tileGap = AppDimens.tileGap;
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();

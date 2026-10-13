@@ -4,7 +4,8 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../shared/widgets/app_back_button.dart';
+import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import 'teacher_schedule_strings.dart';
 import 'widgets/teacher_pill_button.dart';
 
@@ -54,46 +55,37 @@ class TeacherRequestScreen extends StatelessWidget {
       backgroundColor: context.palette.surface,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // The back control's 12 + 40, with the title centred on it.
-            SizedBox(
-              height: 52,
-              child: Stack(
-                children: [
-                  const AppBackButton(icon: AppIcons.arrowLeft),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Center(
-                      child: Text(
-                        TeacherScheduleStrings.teachersTitle,
-                        style: _titleStyle.copyWith(
-                          color: context.palette.textStrong,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+        // Capped at the content width, as every page is (Issue #368).
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // The shared back header (Issue #368): its title kept clear of
+              // the button, and wrapping at larger text.
+              const BackTitleHeader(
+                title: TeacherScheduleStrings.teachersTitle,
               ),
-            ),
-            Expanded(
-              child: candidates.isEmpty
-                  ? const _Unavailable()
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppDimens.screenPadding,
-                        40,
-                        AppDimens.screenPadding,
-                        24,
+              Expanded(
+                child: candidates.isEmpty
+                    ? const _Unavailable()
+                    : ListView.separated(
+                        padding: EdgeInsets.fromLTRB(
+                          AppDimens.screenPadding,
+                          AppDimens.pageContentTop,
+                          AppDimens.screenPadding,
+                          AppDimens.pageBottom +
+                              MediaQuery.paddingOf(context).bottom,
+                        ),
+                        itemCount: candidates.length,
+                        // A row of its own kind — avatar, name, request pill —
+                        // spaced as the reference draws it.
+                        separatorBuilder: (_, _) => const SizedBox(height: 32),
+                        itemBuilder: (_, index) =>
+                            TeacherRequestRow(candidate: candidates[index]),
                       ),
-                      itemCount: candidates.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 32),
-                      itemBuilder: (_, index) =>
-                          TeacherRequestRow(candidate: candidates[index]),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -205,9 +197,6 @@ class TeacherRequestRow extends StatelessWidget {
     );
   }
 }
-
-/// The screen's title.
-const TextStyle _titleStyle = AppTypography.headerTitle;
 
 /// A teacher's name — a list row's primary line.
 const TextStyle _nameStyle = AppTypography.itemTitle;

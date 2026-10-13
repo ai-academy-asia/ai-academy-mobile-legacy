@@ -133,6 +133,43 @@ abstract final class AppDimens {
   /// Border of a focused or errored field, which the reference draws heavier.
   static const double borderWidthEmphasis = 1.5;
 
+  // --- Page layout ---------------------------------------------------------
+  //
+  // Every page is one of a few kinds, and pages of a kind share these
+  // (Issue #368, `SCREEN_PATTERNS.md` §1): the gutter is [screenPadding] and
+  // content is capped at [maxContentWidth] everywhere.
+
+  /// A primary tab's title band (`TabTitleBar`): the title, `screenTitle`,
+  /// left-aligned and centred in it, on a `surface` band; a 1pt rule under it.
+  static const double tabHeaderHeight = 63;
+
+  /// A pushed page's header (`BackTitleHeader`): the back button's
+  /// [backButtonTop] + [backButtonSize], the title centred on the circle.
+  static const double backHeaderHeight = backButtonTop + backButtonSize;
+
+  /// `AppBackButton`'s circle, and how far below the safe area it sits. Its
+  /// left edge is on the [screenPadding] gutter.
+  static const double backButtonSize = 40;
+  static const double backButtonTop = 12;
+
+  /// From a primary tab's header rule to its first content.
+  static const double tabContentTop = 16;
+
+  /// From a pushed page's header to its first content — more than a tab's,
+  /// as no rule separates them.
+  static const double pageContentTop = 24;
+
+  /// Between cards in a list, and between sections of cards.
+  static const double cardGap = 16;
+
+  /// Between two tiles sharing a line (Home's statistics, the student
+  /// summary cards).
+  static const double tileGap = 8;
+
+  /// After a page's last content, above the bottom safe-area inset (or the
+  /// bottom navigation, which reserves the inset itself).
+  static const double pageBottom = 24;
+
   // --- Bottom navigation -----------------------------------------------
 
   /// Height of the app-wide bottom navigation bar's tap area, excluding the

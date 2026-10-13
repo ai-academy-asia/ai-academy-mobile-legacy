@@ -6,9 +6,12 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_typography.dart';
 import 'app_back_button.dart';
 
-/// [AppBackButton] (the arrow) with [title] centred on its row — the header
-/// of the E-Contract, Certificate and Notification screens, which their
-/// frames draw alike (Issue #327; it was three identical copies).
+/// [AppBackButton] (the arrow) with [title] centred on its row — the one
+/// header of every pushed page that has one (Issue #368): E-Contract,
+/// Certificate, Notification and its detail, Change password, Attendance
+/// detail, the Teacher Request and the Gradebook class, student and
+/// submission screens. [AppDimens.backHeaderHeight] tall at one line, the
+/// title in [AppTypography.headerTitle]; it does not scroll.
 ///
 /// **The title never covers the button (Issues #318, #325).** It is kept out
 /// of the button's band on *both* sides — [_titleInset] — so it stays
@@ -55,11 +58,9 @@ class BackTitleHeader extends StatelessWidget {
   }
 }
 
-/// [AppBackButton]'s own inset above the circle.
-const double _backButtonTop = 12;
-
-/// [AppBackButton]'s circle.
-const double _backButtonSize = 40;
+/// [AppBackButton]'s own inset above the circle, and the circle.
+const double _backButtonTop = AppDimens.backButtonTop;
+const double _backButtonSize = AppDimens.backButtonSize;
 
 /// Kept clear on either side of the title: the button's screen inset, its
 /// circle and 8 between them — mirrored on the right so the title stays

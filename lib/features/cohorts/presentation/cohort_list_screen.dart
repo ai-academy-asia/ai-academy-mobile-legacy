@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/tab_title_bar.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../courses/domain/course_repository.dart';
@@ -23,17 +23,6 @@ import '../domain/cohort_repository.dart';
 import 'cohort_list_controller.dart';
 import 'cohort_list_strings.dart';
 import 'widgets/cohort_card.dart';
-
-/// The rule beneath the heading, measured off the reference at 1:1 — a
-/// lighter grey than the global [AppColors.border].
-const double _headingToRule = 14;
-
-/// The heading's line box starts flush with the safe-area inset — this screen
-/// does not take [AppDimens.resetHeadingTop]'s 32, which three other screens
-/// share. The box carries 8 of its own leading above the cap, so the title
-/// still clears the status bar; the reference's own chain confirms it, at a
-/// 59pt inset: 59 + 34 (box) + 14 = 107, the rule, and +1+16 = 124, card one.
-const double _headingTop = 0;
 
 /// The cohort list — every scheduled cohort across every course, or, when
 /// reached with a [courseId], only that course's cohorts. With [enrolledOnly]
@@ -147,11 +136,10 @@ class _CohortListScreenState extends State<CohortListScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
-        // The reference draws this screen the other way round from the rest of
-        // the app: a white page carrying faintly-tinted cards, rather than a
-        // grey page carrying white ones. The cards keep their own tint from
-        // `cohort_background.svg`, so only the page changes here.
-        backgroundColor: context.palette.surface,
+        // A primary tab like Profile (Issue #368): the white title band over
+        // the app's `surfaceSubtle` page. The cards keep their own faint tint
+        // from `cohort_background.svg`.
+        backgroundColor: context.palette.surfaceSubtle,
         bottomNavigationBar: widget.showBottomNav
             ? AdultBottomNav(
                 current: StudentTab.progress,
@@ -163,51 +151,31 @@ class _CohortListScreenState extends State<CohortListScreen> {
                     : () => Navigator.of(context).maybePop(),
               )
             : null,
-        body: SafeArea(
-          bottom: false,
-          child: ListenableBuilder(
-            listenable: Listenable.merge([
-              _controller,
-              _enrollment,
-              _enrolledCohorts,
-            ]),
-            builder: (context, _) => Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppDimens.maxContentWidth,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppDimens.screenPadding,
-                        _headingTop,
-                        AppDimens.screenPadding,
-                        _headingToRule,
-                      ),
-                      // A top-level tab destination: the title stands alone, the
-                      // way Figma draws it, with no back control.
-                      child: Text(
-                        CohortListStrings.heading,
-                        style: AppTypography.screenTitle.copyWith(
-                          color: context.palette.textPrimary,
-                        ),
-                      ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // A top-level tab destination: the shared tab header, with no
+            // back control.
+            const TabTitleBar(title: CohortListStrings.heading),
+            Expanded(
+              child: ListenableBuilder(
+                listenable: Listenable.merge([
+                  _controller,
+                  _enrollment,
+                  _enrolledCohorts,
+                ]),
+                builder: (context, _) => Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppDimens.maxContentWidth,
                     ),
-                    // The header's own bottom rule — this screen had none
-                    // before.
-                    Container(
-                      height: AppDimens.borderWidth,
-                      color: context.palette.divider,
-                    ),
-                    Expanded(child: _buildBody()),
-                  ],
+                    child: _buildBody(),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -370,18 +338,21 @@ class _CohortList extends StatelessWidget {
             onRefresh: onRefresh,
             color: context.palette.primary,
             child: ListView.separated(
-              // The same 16 Home leaves between its header rule and its first
-              // card.
-              padding: const EdgeInsets.all(AppDimens.screenPadding),
+              // A tab's own spacing (Issue #368): its header rule to the first
+              // card, and the end of the page above the bottom navigation.
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.screenPadding,
+                AppDimens.tabContentTop,
+                AppDimens.screenPadding,
+                AppDimens.pageBottom,
+              ),
               // Always scrollable, even when every card fits on screen, so
               // pull-to-refresh is reachable regardless of how many cohorts
               // there are.
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: cohorts.length,
-              // 16 between cards, matching the reference and the list's own
-              // 16pt gutter — the gap was 12 before this was measured.
               separatorBuilder: (context, index) =>
-                  const SizedBox(height: AppDimens.screenPadding),
+                  const SizedBox(height: AppDimens.cardGap),
               itemBuilder: (context, index) {
                 final cohort = cohorts[index];
                 final enrolled =

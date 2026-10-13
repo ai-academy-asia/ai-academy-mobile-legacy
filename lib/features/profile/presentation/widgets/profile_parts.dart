@@ -16,9 +16,6 @@ import '../profile_strings.dart';
 /// Teacher profiles draw the same parts rather than two copies of them.
 /// `JuniorProfileScreen` keeps its own, measured off the junior frame.
 abstract final class ProfileMetrics {
-  /// The white header under the status bar, down to its rule.
-  static const double headerHeight = 63;
-
   /// The hero band: the avatar 32 below the rule above it, 31 above the one
   /// under it.
   static const double avatarSize = 72;
@@ -31,9 +28,10 @@ abstract final class ProfileMetrics {
   /// The contact rows, which the frames run without rules between them.
   static const double contactRowHeight = 56;
 
-  /// Log out 32 below the last contact row, and 32 of page under it.
+  /// Log out 32 below the last contact row; under it, the page's
+  /// [AppDimens.pageBottom] like every page's (Issue #368).
   static const double contactToLogOut = 32;
-  static const double bottomPadding = 32;
+  static const double bottomPadding = AppDimens.pageBottom;
 }
 
 /// The caption band above each group — the caption's line 16 below the
@@ -63,43 +61,6 @@ Widget profileConstrained(Widget child) => Align(
     child: child,
   ),
 );
-
-/// The white title band — white behind the status bar as well as the title,
-/// as the frames draw it. The rule under it is a separate [ProfileRule].
-class ProfileTitleBar extends StatelessWidget {
-  const ProfileTitleBar({required this.title, super.key});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.palette.surface,
-      child: SafeArea(
-        bottom: false,
-        child: profileConstrained(
-          SizedBox(
-            height: ProfileMetrics.headerHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimens.screenPadding,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  title,
-                  style: profileHeadingStyle.copyWith(
-                    color: context.palette.textPrimary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// The avatar: a placeholder disc. No confirmed response carries an avatar
 /// URL, so the frames' photos are design content, never app data.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
@@ -152,10 +153,10 @@ class _VideoBackButton extends StatelessWidget {
           child: SizedBox(
             width: 40,
             height: 40,
-            // A full left arrow with a shaft, not `AppIcons.caretLeft`'s
-            // bare chevron — the reference draws the arrow on this screen.
+            // The app's one back glyph, the arrow (Issue #368), on the
+            // video's own control.
             child: Icon(
-              Icons.arrow_back,
+              AppIcons.arrowLeft,
               size: 20,
               color: palette.onMediaControl,
             ),

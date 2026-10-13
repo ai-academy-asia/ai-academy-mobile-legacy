@@ -67,6 +67,7 @@ void main() {
   const errorInk = Color(0xFF181818);
   const linkInk = Color(0xFF191919);
   const shadow = Color(0xFF1A1A1A);
+  const textTitle = Color(0xFF1B1B1B);
 
   final sentinel = AppPalette.light.copyWith(
     surface: surface,
@@ -91,6 +92,7 @@ void main() {
     onJuniorMapSky: onJuniorMapSky,
     onPrimary: onPrimary,
     textPrimary: textPrimary,
+    textTitle: textTitle,
     textSecondary: textSecondary,
     textStatLabel: textStatLabel,
     errorInk: errorInk,
@@ -470,7 +472,9 @@ void main() {
       ),
       size: const Size(393, 910),
     );
-    expect(textColor(tester, HomeStrings.attendanceLabel), textPrimary);
+    // The title is the shared back header's since Issue #368, in its
+    // `textTitle`.
+    expect(textColor(tester, HomeStrings.attendanceLabel), textTitle);
     final pill = decorations(tester, find.byType(AttendancePill)).single;
     expect(pill.color, accentSubtle);
     expect(edge(pill), accentSubtleOutline);

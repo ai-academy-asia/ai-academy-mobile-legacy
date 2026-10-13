@@ -54,7 +54,8 @@ const TextStyle _titleStyle = AppTypography.cardTitle;
 /// frame's card: an Adult badge and a status pill on top, the cohort's
 /// caption and title, then the enroll action. Same visual language as
 /// `CourseCard`: a white surface, [AppColors.border] at [AppDimens.borderWidth],
-/// and [AppDimens.cardRadius] — no new card style invented for this list.
+/// and every content card's [AppDimens.homeCardRadius] (Issue #368) — no new
+/// card style invented for this list.
 ///
 /// The schedule/classroom/teacher/seats fields `Cohort` carries are no longer
 /// shown here — the reference has no place for them. They still exist on the
@@ -108,21 +109,21 @@ class CohortCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: context.palette.surfaceTinted,
-      borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+      borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
         child: Container(
           constraints: const BoxConstraints(minHeight: _minHeight),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+            borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
             border: Border.all(
               color: context.palette.outline,
               width: AppDimens.borderWidth,
             ),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+            borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
             child: Stack(
               children: [
                 // The reference's decorative shapes, from the exact asset rather

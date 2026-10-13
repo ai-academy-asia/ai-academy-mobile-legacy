@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_gradebook_repository.dart';
@@ -80,22 +82,28 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.palette.surfaceSubtle,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          GradebookBackHeader(title: _courseTitle),
-          const SizedBox(height: 16),
-          GradebookFilterBar(
-            selected: _filter,
-            onChanged: (filter) => setState(() => _filter = filter),
+      // Capped at the content width, as every page is (Issue #368).
+      body: SafeArea(
+        bottom: false,
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              BackTitleHeader(title: _courseTitle),
+              const SizedBox(height: AppDimens.pageContentTop),
+              GradebookFilterBar(
+                selected: _filter,
+                onChanged: (filter) => setState(() => _filter = filter),
+              ),
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) => _buildBody(),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) => _buildBody(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -149,15 +157,15 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
       onRefresh: _controller.load,
       color: context.palette.primary,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
-          16,
+          AppDimens.cardGap,
           AppDimens.screenPadding,
-          24,
+          AppDimens.pageBottom + MediaQuery.paddingOf(context).bottom,
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: visible.isEmpty ? 1 : visible.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 16),
+        separatorBuilder: (_, _) => const SizedBox(height: AppDimens.cardGap),
         itemBuilder: (_, index) => visible.isEmpty
             ? const GradebookNotice(TeacherGradebookStrings.noRows)
             : GradebookRowCard(

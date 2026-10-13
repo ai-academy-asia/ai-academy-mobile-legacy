@@ -27,7 +27,8 @@ import 'widgets/contract_page_parts.dart';
 /// retry (a failure is never shown as an empty list); `{"contracts": []}` —
 /// [ContractStrings.empty], the app's own line (no frame draws an empty
 /// list); otherwise one [ContractCard] per contract, newest first as the API
-/// lists them, 28 under the header and 16 apart, scrolling.
+/// lists them, [AppDimens.pageContentTop] under the header and
+/// [AppDimens.cardGap] apart, scrolling.
 ///
 /// **Actions.** A signed contract's "Гэрээ татах" fetches a fresh link and
 /// opens it outside the app ([ContractListController.download]); a failure,
@@ -143,7 +144,7 @@ class _ContractScreenState extends State<ContractScreen> {
         AppDimens.screenPadding,
         _headerToCard,
         AppDimens.screenPadding,
-        AppDimens.screenPadding + MediaQuery.paddingOf(context).bottom,
+        AppDimens.pageBottom + MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: contracts.length,
       separatorBuilder: (_, _) => const SizedBox(height: _cardGap),
@@ -183,7 +184,7 @@ class _ContractScreenState extends State<ContractScreen> {
   }
 }
 
-/// The back button's bottom to the first card, and card to card — measured
-/// off `e-contract1.png` (the Certificate list's 28 above the first card).
-const double _headerToCard = 28;
-const double _cardGap = 16;
+/// The header to the first card, and card to card: every pushed page's
+/// (Issue #368), as the Certificate list's are.
+const double _headerToCard = AppDimens.pageContentTop;
+const double _cardGap = AppDimens.cardGap;

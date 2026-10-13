@@ -5,6 +5,8 @@ import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/open_external_url.dart';
+import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/teacher_failure.dart';
@@ -12,7 +14,6 @@ import '../domain/teacher_gradebook_repository.dart';
 import '../domain/teacher_submission.dart';
 import 'teacher_gradebook_strings.dart';
 import 'teacher_home_strings.dart';
-import 'widgets/gradebook_widgets.dart';
 import 'widgets/teacher_pill_button.dart';
 
 /// A student's submission (Issue #233), built against the `feedback`
@@ -103,29 +104,35 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.palette.surfaceSubtle,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          GradebookBackHeader(title: widget.courseTitle),
-          Expanded(child: _buildBody()),
-          SafeArea(
-            top: false,
-            minimum: const EdgeInsets.only(bottom: AppDimens.screenPadding),
-            child: const Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppDimens.screenPadding,
-                16,
-                AppDimens.screenPadding,
-                0,
+      // Capped at the content width, as every page is (Issue #368).
+      body: SafeArea(
+        bottom: false,
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              BackTitleHeader(title: widget.courseTitle),
+              Expanded(child: _buildBody()),
+              SafeArea(
+                top: false,
+                minimum: const EdgeInsets.only(bottom: AppDimens.screenPadding),
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppDimens.screenPadding,
+                    16,
+                    AppDimens.screenPadding,
+                    0,
+                  ),
+                  child: TeacherPillButton(
+                    label: TeacherGradebookStrings.mentorFeedback,
+                    variant: TeacherPillVariant.filled,
+                    onPressed: null,
+                  ),
+                ),
               ),
-              child: TeacherPillButton(
-                label: TeacherGradebookStrings.mentorFeedback,
-                variant: TeacherPillVariant.filled,
-                onPressed: null,
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -178,7 +185,7 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppDimens.screenPadding,
-        19,
+        AppDimens.pageContentTop,
         AppDimens.screenPadding,
         16,
       ),

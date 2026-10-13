@@ -13,6 +13,7 @@ import 'package:aia_mobile/features/course_learning/presentation/course_module_l
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
 import 'package:aia_mobile/features/enrollments/presentation/enrollment_strings.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
@@ -127,14 +128,14 @@ void main() {
       expect(find.byType(CohortCard), findsNWidgets(3));
     });
 
-    testWidgets('the page is white and the cards carry the decoration', (
-      tester,
-    ) async {
+    testWidgets('the page is a tab\'s grey and the cards carry the '
+        'decoration', (tester) async {
       await pumpCatalog(tester);
 
-      // The reference inverts the app's usual grey-page/white-card pairing.
+      // A primary tab like Profile (Issue #368): the white title band over
+      // the `surfaceSubtle` page.
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, AppColors.surface);
+      expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
 
       // One abstract background per card, from the bundled asset.
       expect(
@@ -322,10 +323,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The heading's line box starts flush with the inset, which puts its cap
-      // on the reference's y67 and the rule beneath it on y107.
-      expect(tester.getTopLeft(find.text('Courses')).dy, 59);
-      expect(tester.getTopLeft(find.byType(CohortCard).first).dy, 124);
+      // The shared tab header (Issue #368): the title's 34 line centred in
+      // the 63 band under the 59 inset, the rule under the band, and the
+      // first card a tab's 16 below it.
+      expect(tester.getTopLeft(find.text('Courses')).dy, 59 + (63 - 34) / 2);
+      expect(
+        tester.getTopLeft(find.byType(CohortCard).first).dy,
+        59 + 63 + 1 + 16,
+      );
 
       // The bar's own rule lands on the reference's y748: 854 less the 34
       // home-indicator inset and the bar's 72.
@@ -354,7 +359,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(CohortListStrings.heading), findsOneWidget);
-      expect(find.byIcon(AppIcons.caretLeft), findsNothing);
+      expect(find.byType(AppBackButton), findsNothing);
     });
 
     testWidgets('leaves 16 between the header rule and the first card', (

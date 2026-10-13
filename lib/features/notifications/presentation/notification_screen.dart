@@ -11,6 +11,7 @@ import '../domain/app_notification.dart';
 import 'notification_center.dart';
 import 'notification_detail_screen.dart';
 import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import 'notification_strings.dart';
 
 /// The Notification Center — the Figma "Notification" frame (Issue #246):
@@ -92,17 +93,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
         backgroundColor: context.palette.surface,
         body: SafeArea(
           bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const BackTitleHeader(title: NotificationStrings.title),
-              Expanded(
-                child: ListenableBuilder(
-                  listenable: _center,
-                  builder: (context, _) => _body(context),
+          // Capped at the content width, as every page is (Issue #368).
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const BackTitleHeader(title: NotificationStrings.title),
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: _center,
+                    builder: (context, _) => _body(context),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -146,7 +150,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
           top: _headerToList,
-          bottom: MediaQuery.paddingOf(context).bottom,
+          bottom: AppDimens.pageBottom + MediaQuery.paddingOf(context).bottom,
         ),
         itemCount: notifications.length,
         itemBuilder: (context, index) {
@@ -347,7 +351,8 @@ class _Message extends StatelessWidget {
 
 /// The header ends at the circle's bottom (y 96); the first row starts at
 /// y 108.
-const double _headerToList = 12;
+/// The header to the first row: every pushed page's (Issue #368).
+const double _headerToList = AppDimens.pageContentTop;
 
 /// A row's content; with its 1pt rule, 72.
 const double _rowHeight = 71;

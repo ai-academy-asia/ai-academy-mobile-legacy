@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/tab_title_bar.dart';
 import '../data/http_teacher_gradebook_repository.dart';
 import '../domain/teacher_class.dart';
 import '../domain/teacher_gradebook_repository.dart';
@@ -88,33 +89,25 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ColoredBox(
-              color: context.palette.surface,
-              child: SafeArea(
-                bottom: false,
-                child: Container(
-                  height: 63,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimens.screenPadding,
-                  ),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    TeacherGradebookStrings.title,
-                    style: _titleStyle.copyWith(
-                      color: context.palette.teacherTitle,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              height: AppDimens.borderWidth,
-              color: context.palette.divider,
+            // The shared tab header (Issue #368), in the Teacher tabs' title
+            // ink.
+            TabTitleBar(
+              title: TeacherGradebookStrings.title,
+              titleColor: context.palette.teacherTitle,
             ),
             Expanded(
               child: ListenableBuilder(
                 listenable: _controller,
-                builder: (context, _) => _buildBody(),
+                // Capped at the content width, as every page is.
+                builder: (context, _) => Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppDimens.maxContentWidth,
+                    ),
+                    child: _buildBody(),
+                  ),
+                ),
               ),
             ),
           ],
@@ -174,9 +167,9 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
-          16,
+          AppDimens.tabContentTop,
           AppDimens.screenPadding,
-          24,
+          AppDimens.pageBottom,
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
@@ -193,7 +186,7 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
             ),
           for (final (index, teacherClass) in list.indexed)
             Padding(
-              padding: EdgeInsets.only(top: index == 0 ? 0 : 16),
+              padding: EdgeInsets.only(top: index == 0 ? 0 : AppDimens.cardGap),
               child: Semantics(
                 button: true,
                 child: GestureDetector(
@@ -211,6 +204,3 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
     );
   }
 }
-
-/// The tab's title — a top-level screen's heading.
-const TextStyle _titleStyle = AppTypography.screenTitle;

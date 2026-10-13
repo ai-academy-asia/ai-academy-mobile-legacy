@@ -173,11 +173,23 @@ All carry `leadingDistribution: TextLeadingDistribution.even` and **no colour**:
 | `screenPadding` | 16 | Left/right gutter |
 | `contentWidth` | 361 | `393 − 2×16`. Every block is this wide |
 
-Also global: `maxContentWidth` 480 (the column stops and centres on tablet/desktop rather than stretching), `fieldHeight` 56, `fieldGap` 12, `buttonHeight` 44, `buttonGap` 12, `cardPadding` 16, `caretSize` 18, `avatarSize` 44, `avatarEditSize` 36, `settingsRowHeight` 40, `settingsRowIconSize` 20, `bottomNavHeight` 72, `statIconTile` 36, `headerLogoHeight` 40 (the frame draws 32; scaled up per Issue #188) beside `headerActionSize` 44 (the frame's own, so the Home header keeps the frame's height), `progressBarHeight` 6, `strengthBarHeight` 6.
+Also global: `maxContentWidth` 480 (the column stops and centres on tablet/desktop rather than stretching), `fieldHeight` 56, `fieldGap` 12, `buttonHeight` 44, `buttonGap` 12, `cardPadding` 16, `caretSize` 18, `avatarSize` 44, `avatarEditSize` 36, `settingsRowHeight` 40, `settingsRowIconSize` 20, `bottomNavHeight` 72, `statIconTile` 36, `headerLogoHeight` 40 (the frame draws 32; scaled up per Issue #188) beside `headerActionSize` 44 (the frame's own, so the Home header keeps the frame's height), `progressBarHeight` 6, `strengthBarHeight` 8.
+
+**Page layout (Issue #368)** — every page of a kind shares these; the full standard is [SCREEN_PATTERNS.md](SCREEN_PATTERNS.md) §1:
+
+| Token | Value | Rule |
+|---|---|---|
+| `tabHeaderHeight` | 63 (+ 1pt rule) | A primary tab's title band (`TabTitleBar`) |
+| `backHeaderHeight` | 52 = `backButtonTop` 12 + `backButtonSize` 40 | A pushed page's header (`BackTitleHeader`) |
+| `tabContentTop` | 16 | A tab's header rule → first content |
+| `pageContentTop` | 24 | A pushed page's header → first content |
+| `cardGap` | 16 | Between list cards and sections of cards |
+| `tileGap` | 8 | Between two tiles sharing a line |
+| `pageBottom` | 24 (+ the bottom inset) | After a page's last content |
 
 The Home header's "AI academy" / "Asia" wordmark is not a text style. It is the Figma export of outlined paths (`splash_wordmark.svg`, the splash screen's own), drawn at the lockup's height. The design does not set it in Manrope, so live text could only approximate it (Issue #188).
 
-**Radii:** `fieldRadius` 12 · `cardRadius` 12 · `homeCardRadius` 16 (Home/Course-Learning cards are visibly rounder) · `checkboxRadius` 4 · `buttonRadius` = `buttonHeight / 2` (a pill).
+**Radii:** `fieldRadius` 12 · `cardRadius` 12 (fields' neighbours: the Login contact card) · `homeCardRadius` 16 (**every content card**, Issue #368 — the cohort card and lesson items included) · `checkboxRadius` 4 · `buttonRadius` = `buttonHeight / 2` (a pill).
 
 **Borders:** `borderWidth` 1 · `borderWidthEmphasis` 1.5 (focused/errored field).
 

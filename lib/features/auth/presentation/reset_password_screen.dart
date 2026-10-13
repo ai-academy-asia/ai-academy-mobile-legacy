@@ -9,7 +9,8 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
-import '../../../shared/widgets/app_back_button.dart';
+import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import '../data/http_password_repository.dart';
 import '../domain/password_repository.dart';
 import 'reset_password_controller.dart';
@@ -112,93 +113,117 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         // Same as login: the keyboard overlays rather than resizing, and the
         // scroll padding below keeps every field reachable regardless.
         resizeToAvoidBottomInset: false,
-        // The voluntary change's back control, as a row above the unchanged
-        // form; the required change has none (see [showBackButton]). 52 is
-        // the control's own height: 12 over its 40 circle.
-        appBar: widget.showBackButton
-            ? const PreferredSize(
-                preferredSize: Size.fromHeight(52),
-                child: SafeArea(bottom: false, child: AppBackButton()),
-              )
-            : null,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           behavior: HitTestBehavior.opaque,
           child: SafeArea(
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) => LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.only(bottom: keyboardInset),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: AppDimens.maxContentWidth,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppDimens.screenPadding,
-                        ),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: IntrinsicHeight(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                const SizedBox(
-                                  height: AppDimens.resetHeadingTop,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The voluntary change is a pushed page: the shared back
+                // header carries its title (Issue #368). The required change
+                // has no way back, so it keeps the auth layout's own heading
+                // (see [showBackButton]).
+                if (widget.showBackButton)
+                  const ContentColumn(
+                    child: BackTitleHeader(title: ResetPasswordStrings.title),
+                  ),
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: _controller,
+                    builder: (context, _) => LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.only(bottom: keyboardInset),
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: AppDimens.maxContentWidth,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppDimens.screenPadding,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
                                 ),
+                                child: IntrinsicHeight(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      if (widget.showBackButton)
+                                        const SizedBox(
+                                          height: AppDimens.pageContentTop,
+                                        )
+                                      else ...[
+                                        const SizedBox(
+                                          height: AppDimens.resetHeadingTop,
+                                        ),
+                                        Text(
+                                          ResetPasswordStrings.title,
+                                          style: AppTypography.screenTitle
+                                              .copyWith(
+                                                color:
+                                                    context.palette.textPrimary,
+                                              ),
+                                        ),
+                                        const SizedBox(
+                                          height: AppDimens.titleToSupporting,
+                                        ),
+                                      ],
+                                      Text(
+                                        ResetPasswordStrings.supporting,
+                                        style: AppTypography.supporting
+                                            .copyWith(
+                                              color:
+                                                  context.palette.textSecondary,
+                                            ),
+                                      ),
+                                      const SizedBox(
+                                        height: AppDimens.headingToForm,
+                                      ),
 
-                                Text(
-                                  ResetPasswordStrings.title,
-                                  style: AppTypography.screenTitle.copyWith(
-                                    color: context.palette.textPrimary,
+                                      _buildFields(),
+
+                                      // The reference puts the message directly under
+                                      // the confirm field, above the requirements —
+                                      // see `Sign in - 10`.
+                                      _buildMessageBand(),
+                                      const SizedBox(
+                                        height: AppDimens.headingToForm,
+                                      ),
+
+                                      PasswordRequirementsPanel(
+                                        satisfied:
+                                            _controller.satisfiedRequirements,
+                                        strength: _controller.strength,
+                                        evaluated:
+                                            _controller.requirementsEvaluated,
+                                      ),
+
+                                      // The reference crop shows nothing below the
+                                      // requirements, so the button takes the empty
+                                      // space at the bottom rather than crowding them.
+                                      const Spacer(),
+
+                                      AppButton(
+                                        label: ResetPasswordStrings.submit,
+                                        loading: _controller.submitting,
+                                        onPressed: _controller.submitting
+                                            ? null
+                                            : _submit,
+                                      ),
+                                      const SizedBox(
+                                        height: AppDimens.cardPadding,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(
-                                  height: AppDimens.titleToSupporting,
-                                ),
-                                Text(
-                                  ResetPasswordStrings.supporting,
-                                  style: AppTypography.supporting.copyWith(
-                                    color: context.palette.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: AppDimens.headingToForm),
-
-                                _buildFields(),
-
-                                // The reference puts the message directly under
-                                // the confirm field, above the requirements —
-                                // see `Sign in - 10`.
-                                _buildMessageBand(),
-                                const SizedBox(height: AppDimens.headingToForm),
-
-                                PasswordRequirementsPanel(
-                                  satisfied: _controller.satisfiedRequirements,
-                                  strength: _controller.strength,
-                                  evaluated: _controller.requirementsEvaluated,
-                                ),
-
-                                // The reference crop shows nothing below the
-                                // requirements, so the button takes the empty
-                                // space at the bottom rather than crowding them.
-                                const Spacer(),
-
-                                AppButton(
-                                  label: ResetPasswordStrings.submit,
-                                  loading: _controller.submitting,
-                                  onPressed: _controller.submitting
-                                      ? null
-                                      : _submit,
-                                ),
-                                const SizedBox(height: AppDimens.cardPadding),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -206,7 +231,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
