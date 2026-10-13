@@ -162,6 +162,11 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
   ) async {
     if (!_canSubmit(assignment)) return;
     final max = assignment.maxScore;
+    // The class list owns the controller and outlives this screen (Issue
+    // #392): held here so a save confirmed after the teacher leaves still
+    // reaches the roster.
+    final classController = _class;
+    final studentId = _studentId;
     setState(() {
       _saving = true;
       _error = null;
@@ -172,8 +177,10 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
         feedback: _reply.text.trim(),
         score: max == null ? null : _parsedScore(max),
       );
+      // The server confirmed it: record it whether or not this screen is
+      // still up. Everything below is this screen's own.
+      classController.replaceSubmission(studentId, saved);
       if (!mounted) return;
-      _class.replaceSubmission(_studentId, saved);
       _reply.clear();
       _score.clear();
       FocusScope.of(context).unfocus();

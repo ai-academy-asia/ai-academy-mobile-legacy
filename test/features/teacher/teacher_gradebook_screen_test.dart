@@ -150,6 +150,27 @@ void main() {
         w.decoration?.labelText == TeacherGradebookStrings.replyLabel,
   );
 
+  /// The student screen's own back control.
+  Future<void> leaveStudent(WidgetTester tester) async {
+    await tester.tap(
+      find.descendant(
+        of: find.byType(GradebookStudentScreen),
+        matching: find.descendant(
+          of: find.byType(AppBackButton),
+          matching: find.byType(InkWell),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  List<int> rosterBadges(WidgetTester tester) => [
+    for (final row in tester.widgetList<ProgramStudentRow>(
+      find.byType(ProgramStudentRow),
+    ))
+      row.pending,
+  ];
+
   group('Хөтөлбөрүүд', () {
     test('is the tab label and the title — formerly "Дүнгийн хуудас"', () {
       expect(TeacherGradebookStrings.title, 'Хөтөлбөрүүд');
@@ -394,6 +415,98 @@ void main() {
         tester.widget<TextField>(replyField()).controller!.text,
         'Хариулт',
       );
+      expect(find.text('Анужин Болд'), findsNothing);
+
+      // Nothing was saved, so the class list still counts it (Issue #392).
+      await leaveStudent(tester);
+      expect(rosterBadges(tester), [1, 1, 0]);
+    });
+
+    testWidgets('a reply the server confirms after the teacher has left the '
+        'student still reaches the class list, with no refresh (Issue #392)', (
+      tester,
+    ) async {
+      final repo = classRepository()..reviewGate = Completer<void>();
+      await openStudent(tester, 'Student A', repository: repo);
+      await tester.enterText(replyField(), 'Сайн ажил.');
+      await tester.pump();
+      await tester.tap(pill(TeacherGradebookStrings.submit));
+      await tester.pump();
+      expect(repo.reviewCalls, [(30, 'Сайн ажил.', null)]);
+
+      // Leave while the save is in flight: the screen is disposed.
+      await leaveStudent(tester);
+      expect(find.byType(GradebookStudentScreen), findsNothing);
+      expect(rosterBadges(tester), [1, 1, 0]);
+      final reads = (
+        repo.studentCalls.length,
+        repo.assignmentCalls.length,
+        repo.submissionListCalls.length,
+      );
+
+      repo.reviewGate!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(rosterBadges(tester), [0, 1, 0]);
+      // From the server's answer, not a re-read.
+      expect((
+        repo.studentCalls.length,
+        repo.assignmentCalls.length,
+        repo.submissionListCalls.length,
+      ), reads);
+
+      // Back on the student, nothing waits for review any more; the saved
+      // reply is on its assignment (3).
+      await tester.tap(find.text('Student A'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(AssignmentSelector));
+      await tester.pumpAndSettle();
+      expect(
+        [
+          for (final o in tester.widgetList<AssignmentOption>(
+            find.byType(AssignmentOption),
+          ))
+            o.pending,
+        ],
+        [0, 0],
+      );
+      await tester.tap(find.byType(AssignmentOption).last);
+      await tester.pumpAndSettle();
+      expect(find.text('Сайн ажил.'), findsOneWidget);
+      expect(find.text('Анужин Болд'), findsOneWidget);
+    });
+
+    testWidgets('a reply refused after the teacher has left changes nothing '
+        '(Issue #392)', (tester) async {
+      final repo = classRepository()
+        ..reviewGate = Completer<void>()
+        ..reviewFailure = const TeacherFailure(
+          TeacherFailureKind.rejected,
+          code: 'invalid_score',
+        );
+      await openStudent(tester, 'Student A', repository: repo);
+      await tester.enterText(replyField(), 'Сайн ажил.');
+      await tester.pump();
+      await tester.tap(pill(TeacherGradebookStrings.submit));
+      await tester.pump();
+      await leaveStudent(tester);
+
+      repo.reviewGate!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(rosterBadges(tester), [1, 1, 0]);
+
+      // Still awaiting review on the student's own screen, with no reply.
+      await tester.tap(find.text('Student A'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AssignmentSelector), findsOneWidget);
+      expect(
+        tester
+            .widget<AssignmentSelector>(find.byType(AssignmentSelector))
+            .pending,
+        1,
+      );
+      expect(find.text('Сайн ажил.'), findsNothing);
       expect(find.text('Анужин Болд'), findsNothing);
     });
 
