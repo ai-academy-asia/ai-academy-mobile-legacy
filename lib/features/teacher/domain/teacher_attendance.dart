@@ -76,6 +76,11 @@ class AttendanceQrToken {
 
   /// The backend's `QR_TTL_MINUTES`.
   static const Duration lifetime = Duration(minutes: 5);
+
+  /// Never the token: it is a live check-in credential, and this is what a
+  /// log or an error message would print.
+  @override
+  String toString() => 'AttendanceQrToken(<redacted>, expiresAt: $expiresAt)';
 }
 
 /// Today's date in Ulaanbaatar — the backend's own "today" for a session
@@ -116,17 +121,3 @@ abstract interface class TeacherAttendanceRepository {
     required AttendanceStatus status,
   });
 }
-
-/// What the attendance QR encodes, given the issued token — **UNCONFIRMED**
-/// (Issue #374, open question 1). The backend documents only that a
-/// student's check-in sends "`{token}` from the teacher's QR"; whether the
-/// QR holds the raw token or a URL/JSON around it is for the backend owner
-/// to say. Until they do this stays null, and the QR screen asks for no
-/// token and draws no code — manual registration works meanwhile.
-///
-/// The manual screen's guard against overwriting a QR check-in made after
-/// it loaded is in place (Issue #378): it re-reads the roster before saving
-/// and holds any changed row whose server record moved. A window of seconds
-/// between that re-read and each unconditional PUT remains
-/// (`ManualAttendanceController`).
-const String Function(String token)? attendanceQrPayload = null;
