@@ -71,6 +71,14 @@ dependencies:
   # scanned on the teacher's phone.
   qr_flutter: ^4.1.0
 
+  # The student's camera QR scanner for attendance check-in (Issue #384),
+  # approved for this task. iOS: Apple Vision, iOS 12+, Swift Package
+  # Manager like the plugins above; needs `NSCameraUsageDescription`.
+  # Android: CameraX with ML Kit barcode scanning **bundled** (the
+  # default — no `useUnbundled` flag), minSdk 23; the plugin declares the
+  # CAMERA permission itself.
+  mobile_scanner: ^7.4.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
