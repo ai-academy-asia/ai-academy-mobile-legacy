@@ -7,6 +7,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../attendance/presentation/attendance_scanner_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../contracts/domain/contract_repository.dart';
 import '../../contracts/presentation/contract_screen.dart';
@@ -261,7 +262,14 @@ class _DashboardView extends StatelessWidget {
         ProgramCard(
           program: program,
           live: program.nextLesson?.isLiveAt(now) ?? false,
-          onRegisterAttendance: noDestinationYet,
+          // The student attendance scanner (Issue #386) — the same screen
+          // the Junior Home check-in node opens. The card keeps it live only
+          // while the lesson is under way.
+          onRegisterAttendance: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AttendanceScannerScreen(),
+            ),
+          ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>

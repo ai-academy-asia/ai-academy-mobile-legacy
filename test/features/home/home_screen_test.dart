@@ -19,6 +19,8 @@ import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_header.dart';
+import 'package:aia_mobile/features/attendance/presentation/attendance_scanner_screen.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -306,6 +308,52 @@ void main() {
 
       final action = semanticsLabelled(tester, HomeStrings.attendanceAction);
       expect(action.properties.enabled, isTrue);
+    });
+
+    Finder attendanceAction() =>
+        find.widgetWithText(PillButton, HomeStrings.attendanceAction);
+
+    testWidgets('while live, it opens the attendance scanner — the Junior '
+        'check-in\'s screen — and back returns Home (Issue #386)', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(dashboard: scheduledDashboard()),
+        now: duringLesson,
+      );
+      await tester.ensureVisible(attendanceAction());
+      await tester.pumpAndSettle();
+      await tester.tap(attendanceAction());
+      await tester.pumpAndSettle();
+      expect(find.byType(AttendanceScannerScreen), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.descendant(
+            of: find.byType(AttendanceScannerScreen),
+            matching: find.byType(AppBackButton),
+          ),
+          matching: find.byType(InkWell),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AttendanceScannerScreen), findsNothing);
+      expect(find.byType(ProgramCard), findsOneWidget);
+    });
+
+    testWidgets('before the lesson, tapping it opens nothing', (tester) async {
+      await pumpHome(
+        tester,
+        FakeHomeDashboardRepository(dashboard: scheduledDashboard()),
+        now: beforeLesson,
+      );
+      await tester.ensureVisible(attendanceAction());
+      await tester.pumpAndSettle();
+      expect(tester.widget<PillButton>(attendanceAction()).onPressed, isNull);
+      await tester.tap(attendanceAction(), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(AttendanceScannerScreen), findsNothing);
     });
   });
 
