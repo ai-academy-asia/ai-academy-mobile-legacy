@@ -39,7 +39,6 @@ abstract final class TeacherHomeStrings {
 
   // --- Bottom navigation ----------------------------------------------------
 
-  static const String navHome = HomeStrings.navHome;
   static const String navSchedule = 'Хуваарь';
   static const String navGrades = 'Дүнгийн хуудас';
   static const String navProfile = HomeStrings.navProfile;

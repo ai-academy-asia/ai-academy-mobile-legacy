@@ -76,7 +76,8 @@ void main() {
     expect((junior as JuniorStudentShell).initialTab, StudentTab.home);
     final teacher = app.routes?['/teacher-home']?.call(context);
     expect(teacher, isA<TeacherShell>());
-    expect((teacher as TeacherShell).initialTab, TeacherTab.home);
+    // A teacher lands on Хуваарь, the Teacher area's first tab (Issue #370).
+    expect((teacher as TeacherShell).initialTab, TeacherTab.schedule);
     expect(app.routes, isNot(contains('/dev/junior-home')));
   });
 

@@ -23,18 +23,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
 import 'fake_teacher_gradebook_repository.dart';
-import 'fake_teacher_home_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_gradebook_screen_test.dart' show classRepository;
-import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
+import 'teacher_home_screen_test.dart' show tuesday;
 import 'teacher_schedule_screen_test.dart' show upcomingLabel, weekRepository;
 
 /// The Teacher tabs as one persistent shell (Issue #241): one bar, owned by
 /// the shell, that never moves or is rebuilt as a route while the content
-/// above it switches. Профайл is the Teacher Profile (Issue #243).
+/// above it switches. Профайл is the Teacher Profile (Issue #243). Three
+/// tabs since Issue #370 — Хуваарь, Дүнгийн хуудас, Профайл — with Хуваарь
+/// first and the default.
 void main() {
   late GlobalKey<NavigatorState> navigatorKey;
-  late FakeTeacherHomeRepository home;
   late FakeTeacherScheduleRepository schedule;
   late FakeTeacherGradebookRepository grades;
 
@@ -46,11 +46,10 @@ void main() {
 
   Future<void> pumpShell(
     WidgetTester tester, {
-    TeacherTab initialTab = TeacherTab.home,
+    TeacherTab initialTab = TeacherTab.schedule,
   }) async {
     tallView(tester);
     navigatorKey = GlobalKey<NavigatorState>();
-    home = FakeTeacherHomeRepository(classes: [sampleClass()]);
     schedule = weekRepository();
     grades = classRepository();
     await tester.pumpWidget(
@@ -61,11 +60,6 @@ void main() {
         routes: {
           HomeRoutes.teacher: (_) => TeacherShell(
             initialTab: initialTab,
-            home: TeacherHomeScreen(
-              repository: home,
-              clock: tuesday,
-              showBottomNav: false,
-            ),
             schedule: TeacherScheduleScreen(
               repository: schedule,
               clock: tuesday,
@@ -98,10 +92,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Exactly one of the four teacher tab screens is on display: [type].
+  /// Exactly one of the three teacher tab screens is on display: [type].
   void expectShowing(Type type) {
     for (final screen in [
-      TeacherHomeScreen,
       TeacherScheduleScreen,
       TeacherGradebookScreen,
       TeacherProfileScreen,
@@ -114,21 +107,20 @@ void main() {
     }
   }
 
-  testWidgets('starts on Нүүр, with Нүүр selected', (tester) async {
+  testWidgets('starts on Хуваарь, with Хуваарь selected', (tester) async {
     await pumpShell(tester);
 
-    expectShowing(TeacherHomeScreen);
-    expect(selectedTab(tester), TeacherTab.home.index);
+    expectShowing(TeacherScheduleScreen);
+    expect(selectedTab(tester), TeacherTab.schedule.index);
+    expect(selectedTab(tester), 0);
   });
 
-  testWidgets('keeps Нүүр, Хуваарь, Дүнгийн хуудас, Профайл in that order', (
-    tester,
-  ) async {
+  testWidgets('keeps Хуваарь, Дүнгийн хуудас, Профайл in that order, with no '
+      'Нүүр', (tester) async {
     await pumpShell(tester);
 
     final xs = [
       for (final label in [
-        TeacherHomeStrings.navHome,
         TeacherHomeStrings.navSchedule,
         TeacherHomeStrings.navGrades,
         TeacherHomeStrings.navProfile,
@@ -138,8 +130,10 @@ void main() {
     expect(xs, orderedEquals([...xs]..sort()));
     expect(
       tester.widget<AppBottomNav>(find.byType(AppBottomNav)).items,
-      hasLength(4),
+      hasLength(3),
     );
+    expect(barLabel('Нүүр'), findsNothing);
+    expect(find.byType(TeacherHomeScreen, skipOffstage: false), findsNothing);
   });
 
   testWidgets('each tab selects itself and shows its own content', (
@@ -147,17 +141,13 @@ void main() {
   ) async {
     await pumpShell(tester);
 
-    await tapTab(tester, TeacherHomeStrings.navSchedule);
-    expectShowing(TeacherScheduleScreen);
-    expect(selectedTab(tester), TeacherTab.schedule.index);
-
     await tapTab(tester, TeacherHomeStrings.navGrades);
     expectShowing(TeacherGradebookScreen);
     expect(selectedTab(tester), TeacherTab.grades.index);
 
-    await tapTab(tester, TeacherHomeStrings.navHome);
-    expectShowing(TeacherHomeScreen);
-    expect(selectedTab(tester), TeacherTab.home.index);
+    await tapTab(tester, TeacherHomeStrings.navProfile);
+    expectShowing(TeacherProfileScreen);
+    expect(selectedTab(tester), TeacherTab.profile.index);
 
     await tapTab(tester, TeacherHomeStrings.navGrades);
     await tapTab(tester, TeacherHomeStrings.navSchedule);
@@ -170,7 +160,6 @@ void main() {
     await pumpShell(tester);
 
     for (final label in [
-      TeacherHomeStrings.navHome,
       TeacherHomeStrings.navSchedule,
       TeacherHomeStrings.navGrades,
     ]) {
@@ -187,14 +176,12 @@ void main() {
     tester,
   ) async {
     await pumpShell(tester);
-    await tapTab(tester, TeacherHomeStrings.navSchedule);
     await tapTab(tester, TeacherHomeStrings.navGrades);
 
     await tapTab(tester, TeacherHomeStrings.navProfile);
 
     expect(find.byType(TeacherBottomNav), findsOneWidget);
     for (final screen in [
-      TeacherHomeScreen,
       TeacherScheduleScreen,
       TeacherGradebookScreen,
       TeacherProfileScreen,
@@ -217,15 +204,12 @@ void main() {
     final rect = tester.getRect(find.byType(AppBottomNav));
 
     for (final label in [
-      TeacherHomeStrings.navSchedule,
       TeacherHomeStrings.navGrades,
       TeacherHomeStrings.navProfile,
-      TeacherHomeStrings.navHome,
+      TeacherHomeStrings.navSchedule,
       TeacherHomeStrings.navProfile,
       TeacherHomeStrings.navGrades,
       TeacherHomeStrings.navSchedule,
-      TeacherHomeStrings.navProfile,
-      TeacherHomeStrings.navHome,
     ]) {
       await tester.tap(barLabel(label));
       // One frame: a page transition would still be running here, with the
@@ -253,8 +237,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: TeacherHomeScreen(
-          repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
+        home: TeacherScheduleScreen(
+          repository: weekRepository(),
           clock: tuesday,
         ),
       ),
@@ -270,31 +254,21 @@ void main() {
     await pumpShell(tester);
 
     expect(
-      find.byType(TeacherScheduleScreen, skipOffstage: false),
-      findsNothing,
-    );
-    expect(
       find.byType(TeacherGradebookScreen, skipOffstage: false),
       findsNothing,
     );
-    final homeState = tester.state(find.byType(TeacherHomeScreen));
-
-    await tapTab(tester, TeacherHomeStrings.navSchedule);
-    final scheduleState = tester.state(find.byType(TeacherScheduleScreen));
-    await tapTab(tester, TeacherHomeStrings.navGrades);
-    await tapTab(tester, TeacherHomeStrings.navHome);
-    await tapTab(tester, TeacherHomeStrings.navSchedule);
-    await tapTab(tester, TeacherHomeStrings.navGrades);
-    await tapTab(tester, TeacherHomeStrings.navHome);
-
     expect(
-      identical(tester.state(find.byType(TeacherHomeScreen)), homeState),
-      isTrue,
+      find.byType(TeacherProfileScreen, skipOffstage: false),
+      findsNothing,
     );
-    expect(home.callCount, 1, reason: 'Нүүр is not reloaded on return');
-    expect(schedule.sessionCalls, hasLength(1), reason: 'nor is Хуваарь');
-    expect(grades.classCalls, 1, reason: 'nor is Дүнгийн хуудас');
+    final scheduleState = tester.state(find.byType(TeacherScheduleScreen));
+
+    await tapTab(tester, TeacherHomeStrings.navGrades);
+    final gradesState = tester.state(find.byType(TeacherGradebookScreen));
     await tapTab(tester, TeacherHomeStrings.navSchedule);
+    await tapTab(tester, TeacherHomeStrings.navGrades);
+    await tapTab(tester, TeacherHomeStrings.navSchedule);
+
     expect(
       identical(
         tester.state(find.byType(TeacherScheduleScreen)),
@@ -302,14 +276,24 @@ void main() {
       ),
       isTrue,
     );
+    expect(
+      schedule.sessionCalls,
+      hasLength(1),
+      reason: 'Хуваарь is not reloaded on return',
+    );
+    expect(grades.classCalls, 1, reason: 'nor is Дүнгийн хуудас');
+    await tapTab(tester, TeacherHomeStrings.navGrades);
+    expect(
+      identical(tester.state(find.byType(TeacherGradebookScreen)), gradesState),
+      isTrue,
+    );
   });
 
-  testWidgets('system back on another tab returns to Нүүр, and does not '
+  testWidgets('system back on another tab returns to Хуваарь, and does not '
       'leave the shell', (tester) async {
     await pumpShell(tester);
 
     for (final label in [
-      TeacherHomeStrings.navSchedule,
       TeacherHomeStrings.navGrades,
       TeacherHomeStrings.navProfile,
     ]) {
@@ -317,22 +301,17 @@ void main() {
       await navigatorKey.currentState!.maybePop();
       await tester.pumpAndSettle();
 
-      expectShowing(TeacherHomeScreen);
-      expect(selectedTab(tester), TeacherTab.home.index);
+      expectShowing(TeacherScheduleScreen);
+      expect(selectedTab(tester), TeacherTab.schedule.index);
       expect(find.byType(TeacherShell), findsOneWidget);
     }
   });
 
   testWidgets('opens on the tab its route names', (tester) async {
-    for (final tab in [
-      TeacherTab.schedule,
-      TeacherTab.grades,
-      TeacherTab.profile,
-    ]) {
+    for (final tab in TeacherTab.values) {
       await pumpShell(tester, initialTab: tab);
 
       expect(selectedTab(tester), tab.index);
-      expect(find.byType(TeacherHomeScreen, skipOffstage: false), findsNothing);
     }
   });
 

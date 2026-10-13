@@ -76,6 +76,8 @@ abstract final class HomeRoutes {
   /// Home for a student in kids mode — `JuniorHomeScreen`.
   static const String junior = '/junior-home';
 
-  /// Home for a teacher — `TeacherHomeScreen` (Issue #229).
+  /// Where a teacher lands — `TeacherShell` on Хуваарь, the Teacher area's
+  /// first tab (Issue #370; it was `TeacherHomeScreen`, Issue #229, until
+  /// the redesign dropped the Нүүр tab). The path keeps its name.
   static const String teacher = '/teacher-home';
 }

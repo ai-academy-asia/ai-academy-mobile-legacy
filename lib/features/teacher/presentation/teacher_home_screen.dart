@@ -13,11 +13,12 @@ import '../domain/teacher_class.dart';
 import '../domain/teacher_home_repository.dart';
 import 'teacher_home_controller.dart';
 import 'teacher_home_strings.dart';
-import 'widgets/teacher_bottom_nav.dart';
 import 'widgets/teacher_class_card.dart';
 
-/// The teacher's Home — where a `user_type: "teacher"` account lands after
-/// sign-in (Issue #229).
+/// The teacher's former Home (Issue #229). **Not reachable since Issue #370:**
+/// the redesign dropped the Нүүр tab, and a teacher now lands on Хуваарь.
+/// Kept, without a tab bar of its own (there is no Нүүр tab to select), for
+/// a later redesign task to reuse or remove.
 ///
 /// Built against the `teacher-homepage` reference: the student Home's brand
 /// header and rule, "Өнөөдрийн хичээл", then one card per class that meets
@@ -35,7 +36,6 @@ class TeacherHomeScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.clock,
-    this.showBottomNav = true,
     this.notifications,
   });
 
@@ -49,10 +49,6 @@ class TeacherHomeScreen extends StatefulWidget {
 
   /// Decides which day is "today". Injected in tests.
   final DateTime Function()? clock;
-
-  /// Whether this screen draws its tab bar itself. False inside
-  /// `TeacherShell`, which owns the one persistent bar (Issue #241).
-  final bool showBottomNav;
 
   @override
   State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
@@ -105,9 +101,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       value: AppSystemUi.page(context, navigationBar: context.palette.surface),
       child: Scaffold(
         backgroundColor: context.palette.surfaceSubtle,
-        bottomNavigationBar: widget.showBottomNav
-            ? const TeacherBottomNav()
-            : null,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

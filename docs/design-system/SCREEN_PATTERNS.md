@@ -48,7 +48,7 @@ Every reachable screen is one of a few kinds, and screens of a kind share one he
 | Kind | Header | Content |
 |---|---|---|
 | **Primary tab with a title** — Courses; the Adult, Junior and Teacher Profiles; Teacher Gradebook | `TabTitleBar`: `screenTitle` left on the gutter, centred in a 63pt white band behind the status bar, a 1pt `divider` rule | `tabContentTop` 16 below the rule; `cardGap` 16 between cards; `pageBottom` 24 above the bottom nav |
-| **Primary tab led by the brand** — Adult Home, Junior Home, Junior Progress, Teacher Home | `HomeHeader` (logo + bell) and its rule — a documented exception, below; Teacher Home's title stays in its content, `tabContentTop` under the rule and above the first card | as above |
+| **Primary tab led by the brand** — Adult Home, Junior Home, Junior Progress | `HomeHeader` (logo + bell) and its rule — a documented exception, below | as above |
 | **Pushed page** — E-Contract, Certificate, Notification and its detail, Change password, Attendance detail, Teacher Request, Gradebook class / student / submission | `BackTitleHeader`: the arrow `AppBackButton` on the gutter 12 below the inset, `headerTitle` centred on it (wraps; never under the button), fixed above the scroll | `pageContentTop` 24 below the header; `cardGap` 16; `pageBottom` 24 + the bottom inset |
 | **Specialised** — see §3 | its own | the same gutter, cap, card gap and bottom where it has them |
 
@@ -62,7 +62,7 @@ Every pushed page offers its way back: a back button in every state, loading and
 | Login | `/login` | none | `auth` (real) |
 | Reset Password | `/reset-password` (required change: auth layout, no back); pushed from every Profile as Change password | the required change: none, its own heading; Change password: `BackTitleHeader` carrying the title | `auth` (real) |
 | Home | `/home` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | composed (real) |
-| Teacher Home | `/teacher-home` (in `TeacherShell`) | teacher bottom nav — the shell's, persistent (four tabs; 10pt labels per its reference) | `teacher` — `GET /teachers/{actor_id}/schedule` (real) |
+| Teacher landing | `/teacher-home` — `TeacherShell` on **Хуваарь**, the Teacher area's first tab (Issue #370: the redesign dropped the Нүүр tab; `TeacherHomeScreen` remains in the code, unreachable) | teacher bottom nav — the shell's, persistent (three tabs: Хуваарь, Дүнгийн хуудас, Профайл; 10pt labels per its reference) | as Teacher Schedule |
 | Teacher Schedule | `/teacher-schedule` (in `TeacherShell`) | blue date header + week strip; the shell's teacher bottom nav, Хуваарь selected | `teacher` — schedule + `GET /teacher/cohorts/{id}/sessions`, sheets read `GET /teacher/sessions/{id}/attendance` (real) |
 | Teacher Gradebook | `/teacher-gradebook` (in `TeacherShell`; student list, student detail, submission detail pushed on top with `BackTitleHeader`, no bottom nav) | `TabTitleBar`; the shell's teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
 | Cohort List (Courses tab) | `/my-cohorts` (in `AdultStudentShell`), `/cohorts` | `TabTitleBar` on the `surfaceSubtle` page; bottom nav — the shell's on `/my-cohorts`, its own on `/cohorts` | `cohorts` + `enrollments` (real) |
@@ -83,7 +83,7 @@ Every pushed page offers its way back: a back button in every state, loading and
 
 Each of these breaks the default skeleton on purpose. The reasoning is recorded in the code; do not "normalise" them without a Figma frame saying otherwise.
 
-**The brand-led tabs — `HomeHeader` instead of a title band.** Adult Home, Junior Home, Junior Progress and Teacher Home open with the logo lockup and the bell (Issue #188), not `TabTitleBar`. Teacher Home keeps its "Өнөөдрийн хичээл" title in its content, on the standard spacing (Issue #368, product decision).
+**The brand-led tabs — `HomeHeader` instead of a title band.** Adult Home, Junior Home and Junior Progress open with the logo lockup and the bell (Issue #188), not `TabTitleBar`. (The unreachable `TeacherHomeScreen` draws the same, its title in its content.)
 
 **Teacher Schedule — the blue date band.** Its header is the date control and week strip on `scheduleBand`, drawn behind the status bar; the grid runs full width (no 480 cap) under it. Its gutter is the standard 16.
 

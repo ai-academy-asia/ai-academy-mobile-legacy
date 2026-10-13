@@ -276,8 +276,15 @@ class _Header extends StatelessWidget {
               style: _headerStyle.copyWith(color: palette.onPrimary),
             ),
           ),
-          const SizedBox(width: 10),
-          Icon(AppIcons.caretDown, size: 16, color: palette.onPrimary),
+          const SizedBox(width: _dateToDropdown),
+          // The redesign's own chevron (Issue #370): the supplied 11 x 7
+          // export, drawn at its own size in its own white — untinted, so
+          // the geometry is exactly the design's.
+          SvgPicture.asset(
+            _dateDropdownIcon,
+            width: _dateDropdownWidth,
+            height: _dateDropdownHeight,
+          ),
         ],
       ),
     ),
@@ -634,6 +641,14 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
+
+/// The date header's dropdown chevron (Issue #370): the redesign's 11 x 7
+/// export, its ink 25 after the date's — measured off the Teacher Schedule
+/// reference at 3x.
+const String _dateDropdownIcon = 'assets/icons/date_dropdown.svg';
+const double _dateDropdownWidth = 11;
+const double _dateDropdownHeight = 7;
+const double _dateToDropdown = 24;
 
 /// The date on the header band.
 const TextStyle _headerStyle = AppTypography.headerTitle;
