@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 
+import '../../../core/api/api_config.dart';
 import '../../auth/data/authenticated_client.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../../home/domain/lesson_schedule.dart';
@@ -36,15 +37,13 @@ class HttpTeacherScheduleRepository implements TeacherScheduleRepository {
     TeacherHomeRepository? classes,
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? AuthenticatedClient.instance,
-       _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
+       _baseUrl = baseUrl ?? ApiConfig.baseUrl,
        _sessionStore = sessionStore ?? AuthSessionStore.instance,
        _classes =
            classes ??
            HttpTeacherHomeRepository(
              sessionStore: sessionStore ?? AuthSessionStore.instance,
            );
-
-  static const String defaultBaseUrl = 'https://api.ai-academy.asia';
 
   final http.Client _client;
   final Uri _baseUrl;

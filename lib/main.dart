@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/api/api_config.dart';
 import 'core/theme/app_theme_controller.dart';
 import 'core/theme/theme_preference.dart';
 import 'features/auth/data/secure_session_persistence.dart';
@@ -10,6 +11,11 @@ import 'features/auth/presentation/account_theme.dart';
 import 'features/auth/presentation/sign_out.dart';
 
 Future<void> main() async {
+  // Which API this build talks to, decided first (Issue #388): an invalid
+  // debug override stops here, before any request — it never falls back
+  // to production. Release builds always use production.
+  final api = ApiConfig.current;
+  if (api.isOverride) debugPrint('AIA API override: ${api.label}');
   WidgetsFlutterBinding.ensureInitialized();
   // The session outlives the process — the OS killing a backgrounded app is
   // not a sign-out (Issue #235). Restored before the first frame, so Splash

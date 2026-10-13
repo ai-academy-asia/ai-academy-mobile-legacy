@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'core/api/api_config.dart';
+import 'core/api/api_override_banner.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_theme_controller.dart';
 import 'features/auth/presentation/home_route.dart';
@@ -53,6 +55,14 @@ class AiAcademyApp extends StatelessWidget {
       navigatorKey: appNavigatorKey,
       title: 'AI academy Asia',
       debugShowCheckedModeBanner: false,
+      // A debug build pointed at another API says so on every screen
+      // (Issue #388); otherwise nothing is added.
+      builder: ApiConfig.current.isOverride
+          ? (context, child) => ApiOverrideBanner(
+              label: ApiConfig.current.label,
+              child: child ?? const SizedBox.shrink(),
+            )
+          : null,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

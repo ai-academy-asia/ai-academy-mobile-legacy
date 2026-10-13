@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_config.dart';
 import '../../../core/api/api_failure.dart';
 import '../../../core/models/localized_text.dart';
 import '../domain/course.dart';
@@ -33,9 +34,7 @@ class HttpCourseRepository implements CourseRepository {
     Uri? baseUrl,
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? http.Client(),
-       _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl);
-
-  static const String defaultBaseUrl = 'https://api.ai-academy.asia';
+       _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;
   final Uri _baseUrl;

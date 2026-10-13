@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 
+import '../../../core/api/api_config.dart';
 import '../../../core/api/api_failure.dart';
 import '../../auth/data/authenticated_client.dart';
 import '../../auth/data/http_current_user_repository.dart';
@@ -48,7 +49,7 @@ class HttpTeacherHomeRepository implements TeacherHomeRepository {
   }) : // The shared client that renews an expired session and retries
        // once (Issue #176). Injected in tests.
        _client = client ?? AuthenticatedClient.instance,
-       _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
+       _baseUrl = baseUrl ?? ApiConfig.baseUrl,
        _sessionStore = sessionStore ?? AuthSessionStore.instance,
        _currentUser =
            currentUser ??
@@ -56,8 +57,6 @@ class HttpTeacherHomeRepository implements TeacherHomeRepository {
              sessionStore: sessionStore ?? AuthSessionStore.instance,
            ),
        _courses = courses ?? HttpCourseRepository();
-
-  static const String defaultBaseUrl = 'https://api.ai-academy.asia';
 
   final http.Client _client;
   final Uri _baseUrl;

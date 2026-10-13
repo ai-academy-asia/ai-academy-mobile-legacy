@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/api/api_config.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session.dart';
@@ -41,9 +42,7 @@ class HttpAuthRepository implements AuthRepository {
     Uri? baseUrl,
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? http.Client(),
-       _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl);
-
-  static const String defaultBaseUrl = 'https://api.ai-academy.asia';
+       _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;
   final Uri _baseUrl;
