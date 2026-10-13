@@ -40,6 +40,8 @@ abstract final class TeacherHomeStrings {
   // --- Bottom navigation ----------------------------------------------------
 
   static const String navSchedule = 'Хуваарь';
-  static const String navGrades = 'Дүнгийн хуудас';
+
+  /// Хөтөлбөрүүд — formerly "Дүнгийн хуудас" (Issue #390).
+  static const String navGrades = 'Хөтөлбөрүүд';
   static const String navProfile = HomeStrings.navProfile;
 }

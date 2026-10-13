@@ -7,7 +7,7 @@ import 'teacher_schedule_screen.dart';
 import 'widgets/teacher_bottom_nav.dart';
 import 'widgets/teacher_tabs.dart';
 
-/// The Teacher app's tabs — Хуваарь, Дүнгийн хуудас, Профайл — under one
+/// The Teacher app's tabs — Хуваарь, Хөтөлбөрүүд, Профайл — under one
 /// persistent [TeacherBottomNav] (Issue #241), as [PersistentTabShell]
 /// describes: a tab switch changes only the content above the bar, never
 /// pushes a route, and keeps each opened tab as it was left.
@@ -19,9 +19,9 @@ import 'widgets/teacher_tabs.dart';
 ///
 /// The Teacher landing route (`/teacher-home`, where sign-in sends a teacher)
 /// and `/teacher-schedule` open it on Хуваарь, `/teacher-gradebook` on
-/// Дүнгийн хуудас; Профайл has no route of its own — it is reached from the
-/// bar. Deeper screens — session sheets, the request screen, Gradebook's
-/// class, student and submission screens, Profile's Change password — are
+/// Хөтөлбөрүүд; Профайл has no route of its own — it is reached from the
+/// bar. Deeper screens — session sheets, the request screen, Programs'
+/// student list and student detail, Profile's Change password — are
 /// still pushed over the whole shell.
 class TeacherShell extends StatelessWidget {
   const TeacherShell({

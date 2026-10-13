@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 
+import '../../../core/api/api_client.dart';
 import '../../../core/api/api_config.dart';
 import '../../../core/models/localized_text.dart';
 import '../../auth/data/authenticated_client.dart';
@@ -12,13 +13,24 @@ import '../domain/teacher_submission.dart';
 import 'http_teacher_home_repository.dart';
 import 'teacher_http.dart';
 
-/// Reads Teacher Gradebook against the AI Academy API (Issue #233):
+/// Teacher Programs (formerly the Gradebook) against the AI Academy API
+/// (Issues #233, #390):
 ///
-///     GET https://api.ai-academy.asia/teachers/{actor_id}/schedule
-///     GET https://api.ai-academy.asia/teacher/cohorts/{cohort_id}/assignments
-///     GET https://api.ai-academy.asia/teacher/assignments/{assignment_id}/submissions
-///     GET https://api.ai-academy.asia/teacher/submissions/{submission_id}
+///     GET  https://api.ai-academy.asia/teachers/{actor_id}/schedule
+///     GET  https://api.ai-academy.asia/teacher/cohorts/{cohort_id}/students
+///     GET  https://api.ai-academy.asia/teacher/cohorts/{cohort_id}/assignments
+///     GET  https://api.ai-academy.asia/teacher/assignments/{assignment_id}/submissions
+///     GET  https://api.ai-academy.asia/teacher/submissions/{submission_id}
+///     POST https://api.ai-academy.asia/teacher/submissions/{submission_id}/review
 ///     Authorization: Bearer <access_token>
+///
+/// The roster and the review are verified from the backend's source
+/// (`app/services/attendance/sessions.py` `cohort_students`,
+/// `app/services/assignments/review.py` `review`); no live response is
+/// captured for them. The review takes `{feedback, score}` — feedback
+/// required (trimmed, ≤ 5000), score required when the assignment has a
+/// `max_score` — overwrites any earlier review, and answers the submission
+/// as stored.
 ///
 /// All confirmed by captured responses. The classes are Teacher Home's own
 /// read ([HttpTeacherHomeRepository]). The submissions list answers
@@ -26,11 +38,8 @@ import 'teacher_http.dart';
 /// submission per student; a list entry and the detail are read by the one
 /// [submissionFromJson].
 ///
-/// Not called: `GET /teacher/cohorts/{id}/students` (confirmed, but the
-/// Gradebook's rows are submissions, which carry their student),
-/// `GET /teacher/submissions/{id}/file` (response not verified), and
-/// `POST /teacher/submissions/{id}/review` (request `{score, feedback}`
-/// confirmed; success and error responses not).
+/// Not called: `GET /teacher/submissions/{id}/file` (response not
+/// verified).
 class HttpTeacherGradebookRepository implements TeacherGradebookRepository {
   HttpTeacherGradebookRepository({
     http.Client? client,
@@ -85,6 +94,35 @@ class HttpTeacherGradebookRepository implements TeacherGradebookRepository {
     return submissionFromJson(teacherJsonObject(body), id: submissionId);
   }
 
+  @override
+  Future<List<CohortStudent>> getStudents(int cohortId) async {
+    final body = await _get('/teacher/cohorts/$cohortId/students');
+    return cohortStudentsFromJson(teacherJsonObject(body));
+  }
+
+  @override
+  Future<TeacherSubmission> reviewSubmission({
+    required int submissionId,
+    required String feedback,
+    num? score,
+  }) async {
+    ensureTeacherSession(_sessionStore);
+    final response = await teacherSend(
+      send: (headers) => postJsonRaw(
+        client: _client,
+        url: _baseUrl.resolve('/teacher/submissions/$submissionId/review'),
+        body: {'feedback': feedback, 'score': score},
+        headers: headers,
+        timeout: timeout,
+      ),
+      sessionStore: _sessionStore,
+    );
+    return submissionFromJson(
+      teacherJsonObject(response.body),
+      id: submissionId,
+    );
+  }
+
   Future<String> _get(String path) async {
     ensureTeacherSession(_sessionStore);
     final response = await teacherGet(
@@ -110,13 +148,33 @@ TeacherAssignment _assignment(Object? entry) {
   if (entry is! Map<String, dynamic>) throw _shape('assignment: not an object');
   final id = entry['id'];
   if (id is! int) throw _shape('assignment: id');
+  final maxScore = entry['max_score'];
+  if (maxScore != null && maxScore is! num) {
+    throw _shape('assignment $id: max_score');
+  }
   return TeacherAssignment(
     id: id,
     title: LocalizedText(
       mn: _string(entry, 'title_mn') ?? _string(entry, 'title'),
       en: _string(entry, 'title_en') ?? _string(entry, 'title'),
     ),
+    maxScore: maxScore as num?,
   );
+}
+
+/// `{cohort_id, students: [{student_id, enrollment_id, name, phone}]}` —
+/// only `student_id` and `name` are read.
+List<CohortStudent> cohortStudentsFromJson(Map<String, dynamic> json) {
+  final list = json['students'];
+  if (list is! List) throw _shape('students: expected a list');
+  return [
+    for (final entry in list)
+      switch (entry) {
+        {'student_id': final int id, 'name': final String name} =>
+          CohortStudent(id: id, name: name),
+        _ => throw _shape('student: expected {student_id, name}'),
+      },
+  ];
 }
 
 /// A submission — a list entry ([requireStudent]) or the detail. [id] is
@@ -149,6 +207,8 @@ TeacherSubmission submissionFromJson(
     student: student,
     score: score as num?,
     feedback: _feedback(json['feedback']),
+    feedbackAt: _feedbackAt(json['feedback']),
+    mentor: _mentor(json['feedback']),
     description: _string(json, 'description'),
     link: _string(json, 'link'),
     submittedAt: submittedAt == null
@@ -168,12 +228,34 @@ SubmissionStudent? _student(Object? json) => switch (json) {
 };
 
 /// `feedback` is `{created_at, mentor, message}` (confirmed on the list),
-/// or `null` before review. Only `message` is read.
+/// or `null` before review. Its `message`; [_feedbackAt] and [_mentor] read
+/// the rest.
 String? _feedback(Object? json) => switch (json) {
   null => null,
   {'message': final String? message} => message,
   Map<String, dynamic>() => null,
   _ => throw _shape('feedback: expected an object'),
+};
+
+/// `feedback.created_at` — when the review was saved.
+DateTime? _feedbackAt(Object? json) => switch (json) {
+  {'created_at': final String at} => DateTime.tryParse(at)?.toLocal(),
+  _ => null,
+};
+
+/// `feedback.mentor` — `{id, name, initials, role}`; null for a staff
+/// reviewer.
+SubmissionStudent? _mentor(Object? json) => switch (json) {
+  {'mentor': {'id': final int id, 'name': final String name}} =>
+    SubmissionStudent(
+      id: id,
+      name: name,
+      initials: switch (json['mentor']) {
+        {'initials': final String initials} => initials,
+        _ => null,
+      },
+    ),
+  _ => null,
 };
 
 /// A nullable string field; a value of another type is a `server` failure.

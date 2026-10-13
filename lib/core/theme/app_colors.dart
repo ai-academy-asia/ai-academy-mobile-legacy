@@ -349,4 +349,7 @@ abstract final class AppColors {
   /// needs (Issue #374).
   static const Color qrInk = Color(0xFF000000);
   static const Color qrBackground = Color(0xFFFFFFFF);
+
+  /// The Junior program card's pattern tint — `junior.svg`'s own orange.
+  static const Color programJuniorTint = Color(0xFFE16D31);
 }

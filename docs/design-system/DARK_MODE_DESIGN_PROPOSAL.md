@@ -562,6 +562,7 @@ Counts: **48 PROPOSED, 35 DERIVED, 11 UNRESOLVED**, 94 roles in all. None is app
 | `onStudentAvatar` | `#FFFFFFFF` | UNRESOLVED | no value; the light fill stands in (Issue #374) |
 | `qrInk` | `#FF000000` | DERIVED | a scanner needs dark on light in either theme (Issue #374) |
 | `qrBackground` | `#FFFFFFFF` | DERIVED | a scanner needs dark on light in either theme (Issue #374) |
+| `programJuniorTint` | `#FFE16D31` | UNRESOLVED | no value; the light tint stands in (Issue #390) |
 
 ### Measured contrast of the candidate (WCAG 2.x)
 

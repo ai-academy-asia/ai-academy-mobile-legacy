@@ -9,7 +9,7 @@ enum TeacherTab {
   /// Хуваарь — Teacher Schedule (Issue #231).
   schedule,
 
-  /// Дүнгийн хуудас — Teacher Gradebook (Issue #233).
+  /// Хөтөлбөрүүд — Teacher Programs (Issues #233, #390).
   grades,
 
   /// Профайл — Teacher Profile (Issue #243), a tab of `TeacherShell` only.
@@ -29,7 +29,7 @@ abstract final class TeacherTabRoutes {
 /// Switches the teacher tab bar to [tab] from a bar drawn outside
 /// `TeacherShell`, the way `openStudentTab` switches the student bars: the
 /// Teacher area's landing route — Хуваарь — is the root of the stack, reached
-/// by popping back to it; Дүнгийн хуудас is pushed directly on top of it.
+/// by popping back to it; Хөтөлбөрүүд is pushed directly on top of it.
 /// Профайл has no route, so it is never passed here.
 void openTeacherTab(BuildContext context, TeacherTab tab) {
   final navigator = Navigator.of(context);

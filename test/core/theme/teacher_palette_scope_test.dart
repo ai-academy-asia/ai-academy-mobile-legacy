@@ -72,7 +72,7 @@ void main() {
         'teacher_home_screen.dart',
         'teacher_schedule_screen.dart',
         'teacher_profile_screen.dart',
-        'gradebook_submission_screen.dart',
+        'gradebook_student_screen.dart',
         'widgets/teacher_week_grid.dart',
         'widgets/teacher_session_sheet.dart',
       ]),

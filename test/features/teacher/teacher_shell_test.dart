@@ -4,7 +4,6 @@ import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart
 import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_class_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_student_screen.dart';
-import 'package:aia_mobile/features/teacher/presentation/gradebook_submission_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
@@ -14,10 +13,12 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_bottom_nav.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_card.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_session_sheet.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_tabs.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/widgets/program_widgets.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -335,26 +336,26 @@ void main() {
     expect(selectedTab(tester), TeacherTab.schedule.index);
   });
 
-  testWidgets('Дүнгийн хуудас: class, student and submission still open over '
-      'the shell, and back out to Дүнгийн хуудас', (tester) async {
+  testWidgets('Хөтөлбөрүүд: the class\'s actions, its students and a student '
+      'open over the shell, and back out to Хөтөлбөрүүд', (tester) async {
     await pumpShell(tester);
     await tapTab(tester, TeacherHomeStrings.navGrades);
 
-    await tester.tap(find.byType(TeacherClassCard));
+    await tester.tap(
+      find.widgetWithText(PillButton, TeacherGradebookStrings.details),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CohortActionSheet), findsOneWidget);
+    await tester.tap(find.text(TeacherGradebookStrings.studentsInfo));
     await tester.pumpAndSettle();
     expect(find.byType(GradebookClassScreen), findsOneWidget);
     expect(find.byType(AppBottomNav), findsNothing);
 
-    await tester.tap(find.bySemanticsLabel('Student A, Даалгавар 2'));
+    await tester.tap(find.text('Student A'));
     await tester.pumpAndSettle();
     expect(find.byType(GradebookStudentScreen), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel('Student A, Assignment 3'));
-    await tester.pumpAndSettle();
-    expect(find.byType(GradebookSubmissionScreen), findsOneWidget);
-    expect(grades.submissionCalls, [30]);
-
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 2; i++) {
       navigatorKey.currentState!.pop();
       await tester.pumpAndSettle();
     }

@@ -130,6 +130,7 @@ void main() {
       'onStudentAvatar': (light.onStudentAvatar, const Color(0xFFFFFFFF)),
       'qrInk': (light.qrInk, const Color(0xFF000000)),
       'qrBackground': (light.qrBackground, const Color(0xFFFFFFFF)),
+      'programJuniorTint': (light.programJuniorTint, const Color(0xFFE16D31)),
     };
     for (final MapEntry(key: role, value: (actual, shipped)) in roles.entries) {
       expect(actual, shipped, reason: role);

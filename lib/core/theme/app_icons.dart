@@ -91,7 +91,7 @@ abstract final class AppIcons {
   /// "Хуваарь" (Schedule) tab — Phosphor "Calendar" (the "12" page).
   static const IconData calendar = IconData(0xe108, fontFamily: _family);
 
-  /// "Дүнгийн хуудас" (Gradebook) tab — Phosphor "Exam" (the "A+" sheet).
+  /// "Хөтөлбөрүүд" (Programs, formerly Gradebook) tab — Phosphor "Exam" (the "A+" sheet).
   static const IconData exam = IconData(0xe742, fontFamily: _family);
 
   /// A class's room — Phosphor "MapPin".

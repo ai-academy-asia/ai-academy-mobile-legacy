@@ -3,22 +3,33 @@ import '../../../core/models/localized_text.dart';
 /// An assignment of a teacher's class —
 /// `GET /teacher/cohorts/{cohort_id}/assignments` (Issue #233).
 ///
-/// Only what the Gradebook reads is modelled: `id` and the title
-/// (`title_mn` / `title_en`, falling back to `title`). The other confirmed
-/// fields — `cohort_id`, `lesson_id`, `instructions`, `due_date`,
-/// `max_score`, `submitted_students`, `teacher_id`, `is_active`,
-/// `attachment` / `attachment_material_id` — are unread.
+/// Only what the Gradebook reads is modelled: `id`, the title
+/// (`title_mn` / `title_en`, falling back to `title`) and `max_score`. The
+/// other confirmed fields — `cohort_id`, `lesson_id`, `instructions`,
+/// `due_date`, `submitted_students`, `teacher_id`, `is_active`,
+/// `attachment` / `attachment_material_id` — are unread. No field names the
+/// assignment's module (BACKEND GAP, Issue #390).
 class TeacherAssignment {
-  const TeacherAssignment({required this.id, required this.title});
+  const TeacherAssignment({
+    required this.id,
+    required this.title,
+    this.maxScore,
+  });
 
   final int id;
   final LocalizedText title;
+
+  /// The most a review may score. When set, a review must carry a score
+  /// from 0 to it (`invalid_score` otherwise); when null, feedback alone is
+  /// a review.
+  final num? maxScore;
 
   /// Mongolian first, as every course title is shown.
   String get displayTitle => title.preferred ?? '#$id';
 }
 
-/// The student a submission belongs to — its `student` object.
+/// A person on a submission — its `student`, or its feedback's `mentor`
+/// (`{id, name, initials}`).
 class SubmissionStudent {
   const SubmissionStudent({
     required this.id,
@@ -54,6 +65,8 @@ class TeacherSubmission {
     this.description,
     this.link,
     this.submittedAt,
+    this.feedbackAt,
+    this.mentor,
   });
 
   final int id;
@@ -80,6 +93,12 @@ class TeacherSubmission {
 
   final DateTime? submittedAt;
 
+  /// When the review was saved — `feedback.created_at`.
+  final DateTime? feedbackAt;
+
+  /// Who reviewed it — `feedback.mentor`; null for a staff reviewer.
+  final SubmissionStudent? mentor;
+
   bool get isReviewed => status == SubmissionStatus.reviewed;
   bool get isPending => status == SubmissionStatus.submitted;
 }
@@ -92,24 +111,3 @@ abstract final class SubmissionStatus {
   /// Reviewed, with a score and feedback — "Дүгнэгдсэн".
   static const String reviewed = 'reviewed';
 }
-
-/// The Gradebook student list's filter chips.
-enum GradebookFilter {
-  /// Бүгд — every row.
-  all,
-
-  /// Хүлээгдэж буй — `status: "submitted"`.
-  pending,
-
-  /// Дүгнэгдсэн — `status: "reviewed"`.
-  graded,
-}
-
-/// Whether a submission with the wire [status] belongs under [filter]. A
-/// status other than the two confirmed ones shows under Бүгд only — it is
-/// never guessed into pending or graded.
-bool matchesFilter(String status, GradebookFilter filter) => switch (filter) {
-  GradebookFilter.all => true,
-  GradebookFilter.pending => status == SubmissionStatus.submitted,
-  GradebookFilter.graded => status == SubmissionStatus.reviewed,
-};

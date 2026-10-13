@@ -47,9 +47,9 @@ Every reachable screen is one of a few kinds, and screens of a kind share one he
 
 | Kind | Header | Content |
 |---|---|---|
-| **Primary tab with a title** — Courses; the Adult, Junior and Teacher Profiles; Teacher Gradebook | `TabTitleBar`: `screenTitle` left on the gutter, centred in a 63pt white band behind the status bar, a 1pt `divider` rule | `tabContentTop` 16 below the rule; `cardGap` 16 between cards; `pageBottom` 24 above the bottom nav |
+| **Primary tab with a title** — Courses; the Adult, Junior and Teacher Profiles; Teacher Programs (Хөтөлбөрүүд) | `TabTitleBar`: `screenTitle` left on the gutter, centred in a 63pt white band behind the status bar, a 1pt `divider` rule | `tabContentTop` 16 below the rule; `cardGap` 16 between cards; `pageBottom` 24 above the bottom nav |
 | **Primary tab led by the brand** — Adult Home, Junior Home, Junior Progress | `HomeHeader` (logo + bell) and its rule — a documented exception, below | as above |
-| **Pushed page** — E-Contract, Certificate, Notification and its detail, Change password, Attendance detail, Teacher Request (40 below its header — §3), Gradebook class / student / submission | `BackTitleHeader`: the arrow `AppBackButton` on the gutter 12 below the inset, `headerTitle` centred on it (wraps; never under the button), fixed above the scroll | `pageContentTop` 24 below the header; `cardGap` 16; `pageBottom` 24 + the bottom inset |
+| **Pushed page** — E-Contract, Certificate, Notification and its detail, Change password, Attendance detail, Teacher Request (40 below its header — §3) | `BackTitleHeader`: the arrow `AppBackButton` on the gutter 12 below the inset, `headerTitle` centred on it (wraps; never under the button), fixed above the scroll | `pageContentTop` 24 below the header; `cardGap` 16; `pageBottom` 24 + the bottom inset |
 | **Specialised** — see §3 | its own | the same gutter, cap, card gap and bottom where it has them |
 
 Every pushed page offers its way back: a back button in every state, loading and error included. One back glyph: the arrow. Two tiles sharing a line sit `tileGap` 8 apart; content cards are `homeCardRadius` 16.
@@ -62,9 +62,9 @@ Every pushed page offers its way back: a back button in every state, loading and
 | Login | `/login` | none | `auth` (real) |
 | Reset Password | `/reset-password` (required change: auth layout, no back); pushed from every Profile as Change password | the required change: none, its own heading; Change password: `BackTitleHeader` carrying the title | `auth` (real) |
 | Home | `/home` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | composed (real) |
-| Teacher landing | `/teacher-home` — `TeacherShell` on **Хуваарь**, the Teacher area's first tab (Issue #370: the redesign dropped the Нүүр tab; `TeacherHomeScreen` remains in the code, unreachable) | teacher bottom nav — the shell's, persistent (three tabs: Хуваарь, Дүнгийн хуудас, Профайл; 10pt labels per its reference) | as Teacher Schedule |
+| Teacher landing | `/teacher-home` — `TeacherShell` on **Хуваарь**, the Teacher area's first tab (Issue #370: the redesign dropped the Нүүр tab; `TeacherHomeScreen` remains in the code, unreachable) | teacher bottom nav — the shell's, persistent (three tabs: Хуваарь, Хөтөлбөрүүд, Профайл; 10pt labels per its reference) | as Teacher Schedule |
 | Teacher Schedule | `/teacher-schedule` (in `TeacherShell`) | blue date header + week strip; the shell's teacher bottom nav, Хуваарь selected | `teacher` — schedule + `GET /teacher/cohorts/{id}/sessions`, sheets read `GET /teacher/sessions/{id}/attendance` (real) |
-| Teacher Gradebook | `/teacher-gradebook` (in `TeacherShell`; student list, student detail, submission detail pushed on top with `BackTitleHeader`, no bottom nav) | `TabTitleBar`; the shell's teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
+| Teacher Programs (Хөтөлбөрүүд) | `/teacher-gradebook` (in `TeacherShell`; the action sheet, then the student list and student detail pushed on top with `ProgramPageHeader`, no bottom nav) | `TabTitleBar`; the shell's teacher bottom nav, Хөтөлбөрүүд selected | `teacher` — schedule, roster, class assignments and their submissions, the review write (real); announcements not (`BACKEND GAP`) |
 | Cohort List (Courses tab) | `/my-cohorts` (in `AdultStudentShell`), `/cohorts` | `TabTitleBar` on the `surfaceSubtle` page; bottom nav — the shell's on `/my-cohorts`, its own on `/cohorts` | `cohorts` + `enrollments` (real) |
 | Profile | `/profile` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | `auth` current user (real) |
 | Certificate | pushed from the Certificate row of the Adult and Junior Profiles (`CertificateScreen.open`) | `BackTitleHeader` — `AppBackButton` (arrow) with the title centred on its row; no bottom nav | `certificates` — enrolled cohorts + §2.9 certificate per course + download (real) |
@@ -88,6 +88,8 @@ Each of these breaks the default skeleton on purpose. The reasoning is recorded 
 **Teacher Schedule — the blue date band.** Its header is the date control and week strip on `scheduleBand`, drawn behind the status bar; the grid runs full width (no 480 cap) under it. Its gutter is the standard 16.
 
 **Teacher "Багш нар" — 40 below the header.** The `tsag-solih` reference sets its first teacher row 40 below `BackTitleHeader`, not the standard `pageContentTop` 24 (Issue #372). The header itself is the shared one, unchanged.
+
+**Teacher Programs — `ProgramPageHeader`.** The Programs student list and student detail (Issue #390) set the cohort caption and title **left-aligned beside** the back control, with a rule under the band, as their Figma frames draw them — not `BackTitleHeader`'s centred title. `test/shared/page_layout_test.dart` holds both to `ProgramPageHeader`.
 
 **Junior Home — the map.** Full-bleed scenery under `HomeHeader`; no column cap.
 
