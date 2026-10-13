@@ -2,6 +2,7 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
+import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_class.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_failure.dart';
@@ -223,29 +224,14 @@ void main() {
     expect(repository.callCount, 2);
   });
 
-  testWidgets('the tab bar draws the four teacher tabs, Нүүр selected and '
-      'the unbuilt one inert', (tester) async {
+  testWidgets('draws no tab bar: Нүүр is no longer a teacher tab (Issue '
+      '#370)', (tester) async {
     await pumpScreen(
       tester,
       FakeTeacherHomeRepository(classes: [sampleClass()]),
     );
 
-    for (final label in [
-      TeacherHomeStrings.navHome,
-      TeacherHomeStrings.navSchedule,
-      TeacherHomeStrings.navGrades,
-      TeacherHomeStrings.navProfile,
-    ]) {
-      expect(find.text(label), findsOneWidget, reason: label);
-    }
-
-    // Tapping the unbuilt tab goes nowhere. Хуваарь's and Дүнгийн хуудас's
-    // routes are covered in teacher_schedule_screen_test.dart and
-    // teacher_gradebook_screen_test.dart.
-    for (final label in [TeacherHomeStrings.navProfile]) {
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherHomeScreen), findsOneWidget);
-    }
+    expect(find.byType(AppBottomNav), findsNothing);
+    expect(find.text(TeacherHomeStrings.navSchedule), findsNothing);
   });
 }

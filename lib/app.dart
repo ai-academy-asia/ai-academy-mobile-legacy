@@ -73,6 +73,8 @@ class AiAcademyApp extends StatelessWidget {
         // The junior and teacher tabs are persistent shells too (Issue #241):
         // each of their routes opens the shell on that tab.
         HomeRoutes.junior: (_) => const JuniorStudentShell(),
+        // The Teacher landing route opens on Хуваарь, the Teacher area's
+        // first tab (Issue #370).
         HomeRoutes.teacher: (_) => const TeacherShell(),
         // The teacher bar's Хуваарь (Issue #231) and Дүнгийн хуудас (#233).
         TeacherTabRoutes.schedule: (_) =>

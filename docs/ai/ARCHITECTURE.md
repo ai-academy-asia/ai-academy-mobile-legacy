@@ -63,7 +63,7 @@ Conventions that hold across the codebase:
 | `/reset-password` | `ResetPasswordScreen` — the authenticated change-password form: from Profile's Change password, from Login's "Нууц үг сэргээх" only while a live session is held, and in place of Home when `must_change_password` (#182). Signed out, "Нууц үг сэргээх" and the "Менежертэй холбогдоорой" card open the contact sheet instead (`chooseManagerContact`, Issue #186): "Утасдах" opens `tel:+97675051055`, "Email бичих" `mailto:info@ai-academy.asia` — the business-confirmed contact (`ManagerContact`, Issue #184) — and dismissing the sheet (barrier, drag, back; it has no cancel button since #239) opens nothing |
 | `/home` | `AdultStudentShell` on Нүүр (`HomeScreen`) — the adult tabs' persistent shell (Issue #237) |
 | `/junior-home` | `JuniorStudentShell` on Нүүр (`JuniorHomeScreen`) — the junior tabs' persistent shell (Issue #241); `homeRouteFor` picks between the Homes by `user_type` |
-| `/teacher-home` | `TeacherShell` on Нүүр (`TeacherHomeScreen`, Issue #229) — the teacher tabs' persistent shell (Issue #241), where `user_type: "teacher"` lands |
+| `/teacher-home` | `TeacherShell` on Хуваарь (Issue #370; Нүүр, `TeacherHomeScreen` of Issue #229, is no longer a tab) — the teacher tabs' persistent shell (Issue #241), where `user_type: "teacher"` lands. System back on another tab returns to Хуваарь |
 | `/teacher-schedule` | `TeacherShell` on Хуваарь (`TeacherScheduleScreen`, Issue #231) |
 | `/teacher-gradebook` | `TeacherShell` on Дүнгийн хуудас (`TeacherGradebookScreen`, Issue #233); the fourth tab, Профайл, is `TeacherProfileScreen` (Issue #243), reached from the bar only — it has no route of its own |
 | `/my-cohorts` | `AdultStudentShell` on Хичээл (`CohortListScreen(enrolledOnly: true)`) |

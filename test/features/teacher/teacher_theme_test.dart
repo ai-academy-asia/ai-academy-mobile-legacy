@@ -170,15 +170,21 @@ void main() {
           .map((b) => b.color);
       expect(bands, contains(scheduleBand));
 
-      final header = find.ancestor(
-        of: find.byType(SvgPicture).first,
-        matching: find.byType(ColoredBox),
+      Finder svg(String asset) => find.byWidgetPredicate(
+        (w) => w is SvgPicture && w.bytesLoader.toString().contains(asset),
       );
+      final bell = svg('notification');
+      final header = find.ancestor(of: bell, matching: find.byType(ColoredBox));
       expect(tester.widget<ColoredBox>(header.first).color, scheduleBand);
       expect(
-        tester.widget<SvgPicture>(find.byType(SvgPicture).first).colorFilter,
+        tester.widget<SvgPicture>(bell).colorFilter,
         ColorFilter.mode(onPrimary, BlendMode.srcIn),
       );
+      // The date's dropdown chevron (Issue #370) is the design's own white
+      // export, drawn untinted at its 11 x 7.
+      final chevron = tester.widget<SvgPicture>(svg('date_dropdown.svg'));
+      expect(chevron.colorFilter, isNull);
+      expect((chevron.width, chevron.height), (11.0, 7.0));
 
       final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
         find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first,

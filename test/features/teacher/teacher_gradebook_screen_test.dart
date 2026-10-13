@@ -10,7 +10,6 @@ import 'package:aia_mobile/features/teacher/presentation/gradebook_student_scree
 import 'package:aia_mobile/features/teacher/presentation/gradebook_submission_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_strings.dart';
-import 'package:aia_mobile/features/teacher/presentation/teacher_home_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
@@ -22,7 +21,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
 import 'fake_teacher_gradebook_repository.dart';
-import 'fake_teacher_home_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
 
@@ -528,11 +526,6 @@ void main() {
           // The app's own: the tabs inside one persistent shell (#241).
           routes: {
             HomeRoutes.teacher: (_) => TeacherShell(
-              home: TeacherHomeScreen(
-                repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
-                clock: tuesday,
-                showBottomNav: false,
-              ),
               schedule: TeacherScheduleScreen(
                 repository: FakeTeacherScheduleRepository(),
                 clock: tuesday,
@@ -554,13 +547,11 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('keeps Нүүр, Хуваарь, Дүнгийн хуудас, Профайл in that order', (
-      tester,
-    ) async {
+    testWidgets('keeps Хуваарь, Дүнгийн хуудас, Профайл in that order (Issue '
+        '#370)', (tester) async {
       await pumpApp(tester);
       final xs = [
         for (final label in [
-          TeacherHomeStrings.navHome,
           TeacherHomeStrings.navSchedule,
           TeacherHomeStrings.navGrades,
           TeacherHomeStrings.navProfile,
@@ -570,8 +561,8 @@ void main() {
       expect(xs, orderedEquals([...xs]..sort()));
     });
 
-    testWidgets('Дүнгийн хуудас opens the Gradebook from Home and Schedule, '
-        'and Нүүр returns', (tester) async {
+    testWidgets('Дүнгийн хуудас opens the Gradebook from Schedule, and '
+        'Хуваарь returns', (tester) async {
       await pumpApp(tester);
 
       await tester.tap(find.text(TeacherHomeStrings.navGrades));
@@ -587,9 +578,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TeacherGradebookScreen), findsOneWidget);
 
-      await tester.tap(find.text(TeacherHomeStrings.navHome));
+      await tester.tap(find.text(TeacherHomeStrings.navSchedule));
       await tester.pumpAndSettle();
-      expect(find.byType(TeacherHomeScreen), findsOneWidget);
+      expect(find.byType(TeacherScheduleScreen), findsOneWidget);
       expect(find.byType(TeacherGradebookScreen), findsNothing);
     });
 

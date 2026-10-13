@@ -55,14 +55,14 @@ void main() {
       ),
     ),
     'teacher': (
+      // Three tabs, Хуваарь first (Issue #370).
       const [
-        TeacherHomeStrings.navHome,
         TeacherHomeStrings.navSchedule,
         TeacherHomeStrings.navGrades,
         TeacherHomeStrings.navProfile,
       ],
       (selected) => TeacherBottomNav(
-        current: TeacherTab.home,
+        current: TeacherTab.schedule,
         onSelect: (tab) => selected.add(tab.index),
       ),
     ),

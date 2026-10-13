@@ -1,6 +1,8 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_tabs.dart';
+import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_failure.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_session.dart';
@@ -17,7 +19,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
-import 'fake_teacher_home_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
 
@@ -324,11 +325,6 @@ void main() {
           // The app's own: the tabs inside one persistent shell (#241).
           routes: {
             HomeRoutes.teacher: (_) => TeacherShell(
-              home: TeacherHomeScreen(
-                repository: FakeTeacherHomeRepository(classes: [sampleClass()]),
-                clock: tuesday,
-                showBottomNav: false,
-              ),
               schedule: TeacherScheduleScreen(
                 repository: schedule,
                 clock: tuesday,
@@ -345,26 +341,22 @@ void main() {
       return schedule;
     }
 
-    testWidgets('Хуваарь opens Teacher Schedule, and Нүүр returns Home', (
-      tester,
-    ) async {
+    testWidgets('the Teacher landing route opens on Teacher Schedule, '
+        'Хуваарь selected, with no Нүүр tab (Issue #370)', (tester) async {
       await pumpApp(tester);
 
-      await tester.tap(find.text(TeacherHomeStrings.navSchedule));
-      await tester.pumpAndSettle();
       expect(find.byType(TeacherScheduleScreen), findsOneWidget);
-
-      await tester.tap(find.text(TeacherHomeStrings.navHome));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherScheduleScreen), findsNothing);
-      expect(find.byType(TeacherHomeScreen), findsOneWidget);
+      expect(
+        tester.widget<AppBottomNav>(find.byType(AppBottomNav)).currentIndex,
+        TeacherTab.schedule.index,
+      );
+      expect(find.text('Нүүр'), findsNothing);
+      expect(find.byType(TeacherHomeScreen, skipOffstage: false), findsNothing);
     });
 
     testWidgets('Профайл opens the Teacher Profile (Issue #243); the current '
         'tab does nothing', (tester) async {
       await pumpApp(tester);
-      await tester.tap(find.text(TeacherHomeStrings.navSchedule));
-      await tester.pumpAndSettle();
 
       // The current tab does nothing.
       await tester.tap(find.text(TeacherHomeStrings.navSchedule));

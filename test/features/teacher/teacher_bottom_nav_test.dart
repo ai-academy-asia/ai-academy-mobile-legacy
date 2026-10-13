@@ -15,15 +15,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const blue = Color(0xFF2970FF);
 
-  /// In bar order: each tab's outline glyph and its filled export.
-  const glyphs = [
-    AppIcons.house,
-    AppIcons.calendar,
-    AppIcons.exam,
-    AppIcons.user,
-  ];
+  /// In bar order — three tabs, Хуваарь first (Issue #370): each tab's
+  /// outline glyph and its filled export.
+  const glyphs = [AppIcons.calendar, AppIcons.exam, AppIcons.user];
   const filled = [
-    'nav_home_selected.svg',
     'nav_schedule_active.svg',
     'nav_grades_active.svg',
     'nav_profile_selected.svg',
@@ -61,12 +56,14 @@ void main() {
     });
   }
 
-  testWidgets('keeps Нүүр, Хуваарь, Дүнгийн хуудас, Профайл, with Профайл '
-      'inert', (tester) async {
-    await pumpNav(tester, TeacherTab.home);
+  testWidgets('keeps Хуваарь, Дүнгийн хуудас, Профайл — no Нүүр — with '
+      'Профайл inert outside the shell', (tester) async {
+    await pumpNav(tester, TeacherTab.schedule);
 
     final items = tester.widget<AppBottomNav>(find.byType(AppBottomNav)).items;
     expect([for (final item in items) item.icon], glyphs);
+    expect(items, hasLength(3));
+    expect(find.byIcon(AppIcons.house), findsNothing);
     expect(items.last.onTap, isNull);
   });
 
