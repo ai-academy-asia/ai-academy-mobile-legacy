@@ -188,8 +188,9 @@ class AssignmentFileUploadCard extends StatelessWidget {
 }
 
 /// A single bordered row, shared by the idle and complete states — same
-/// 329 x 72 geometry as `CourseMaterialCard`, just with the leading icon,
-/// two text lines and trailing control passed in.
+/// 329 x 72 geometry as `CourseMaterialCard`, growing with larger system
+/// text the same way, just with the leading icon, two text lines and
+/// trailing control passed in.
 class _AttachmentRow extends StatelessWidget {
   const _AttachmentRow({
     required this.leading,
@@ -208,8 +209,9 @@ class _AttachmentRow extends StatelessWidget {
     final palette = context.palette;
     return Container(
       width: 329,
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      // A minimum, as `CourseMaterialCard`'s (Issue #363).
+      constraints: const BoxConstraints(minHeight: 72),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(12),
