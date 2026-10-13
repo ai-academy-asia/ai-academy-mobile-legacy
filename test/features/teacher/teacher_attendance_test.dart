@@ -640,6 +640,186 @@ void main() {
     });
   });
 
+  group('server changes before saving (Issue #378)', () {
+    Future<(FakeTeacherAttendanceRepository, ManualAttendanceController)>
+    loaded() async {
+      final repo = FakeTeacherAttendanceRepository(students: referenceRoster());
+      final controller = ManualAttendanceController(
+        repository: repo,
+        sessionId: 41,
+      );
+      await controller.load();
+      return (repo, controller);
+    }
+
+    AttendanceRow rowOf(ManualAttendanceController c, int id) =>
+        c.rows!.firstWhere((r) => r.student.studentId == id);
+
+    test('a QR check-in after the roster loaded: that row is not sent, the '
+        'others are; the roster is read again first', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 2), AttendanceStatus.present); // absent → present
+      c.choose(rowOf(c, 6), AttendanceStatus.absent); // present → absent
+      repo.serverChange(2, AttendanceStatus.late, 'qr'); // student 2 scans
+
+      expect(await c.submit(), AttendanceSubmitResult.conflicts);
+      expect(repo.readCalls, [41, 41]);
+      expect(repo.markCalls, [(41, 6, AttendanceStatus.absent)]);
+      final conflict = rowOf(c, 2).conflict!;
+      expect(conflict.status, AttendanceStatus.late);
+      expect(conflict.method, 'qr');
+      expect(rowOf(c, 2).current, AttendanceStatus.present);
+      expect(c.canConfirm, isFalse);
+      // A conflicted row cannot be edited past the decision.
+      c.choose(rowOf(c, 2), AttendanceStatus.excused);
+      expect(rowOf(c, 2).current, AttendanceStatus.present);
+    });
+
+    test('keep the server\'s value: the QR record stands, nothing is sent '
+        'for it, and the confirm completes for the writes it made', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 2), AttendanceStatus.present);
+      c.choose(rowOf(c, 6), AttendanceStatus.absent);
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+      await c.submit();
+
+      c.keepServer(rowOf(c, 2));
+      expect(rowOf(c, 2).current, AttendanceStatus.late);
+      expect(rowOf(c, 2).changed, isFalse);
+      expect(await c.submit(), AttendanceSubmitResult.allSaved);
+      expect(repo.markCalls, [(41, 6, AttendanceStatus.absent)]);
+      expect(repo.students[1].status, AttendanceStatus.late);
+      expect(repo.students[1].method, 'qr');
+    });
+
+    test('keeping the server\'s value when nothing else was written reports '
+        'no success — there was no write', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 2), AttendanceStatus.present);
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+      expect(await c.submit(), AttendanceSubmitResult.conflicts);
+      c.keepServer(rowOf(c, 2));
+      expect(await c.submit(), AttendanceSubmitResult.nothingSent);
+      expect(repo.markCalls, isEmpty);
+    });
+
+    test(
+      'apply my choice: sent on the next confirm, after another re-read',
+      () async {
+        final (repo, c) = await loaded();
+        c.choose(rowOf(c, 2), AttendanceStatus.present);
+        repo.serverChange(2, AttendanceStatus.late, 'qr');
+        await c.submit();
+
+        c.applyMine(rowOf(c, 2));
+        expect(c.canConfirm, isTrue);
+        expect(await c.submit(), AttendanceSubmitResult.allSaved);
+        expect(repo.readCalls, hasLength(3));
+        expect(repo.markCalls, [(41, 2, AttendanceStatus.present)]);
+        expect(repo.students[1].method, 'manual');
+      },
+    );
+
+    test('apply my choice, but the record moves again: a new conflict, '
+        'still not sent', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 2), AttendanceStatus.present);
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+      await c.submit();
+      c.applyMine(rowOf(c, 2));
+      repo.serverChange(2, AttendanceStatus.excused, 'manual');
+
+      expect(await c.submit(), AttendanceSubmitResult.conflicts);
+      expect(repo.markCalls, isEmpty);
+      expect(rowOf(c, 2).conflict!.status, AttendanceStatus.excused);
+    });
+
+    test('a manual change by someone else is a conflict too', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 5), AttendanceStatus.present); // late (qr) → present
+      repo.serverChange(5, AttendanceStatus.excused, 'manual');
+      expect(await c.submit(), AttendanceSubmitResult.conflicts);
+      expect(repo.markCalls, isEmpty);
+    });
+
+    test('with a conflict and a failure: stored rows are never resent; the '
+        'retry sends only the failed row and the resolved one', () async {
+      final (repo, c) = await loaded();
+      repo.failingStudents.add(6);
+      c.choose(rowOf(c, 2), AttendanceStatus.present);
+      c.choose(rowOf(c, 6), AttendanceStatus.absent);
+      c.choose(rowOf(c, 9), AttendanceStatus.present);
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+
+      expect(await c.submit(), AttendanceSubmitResult.conflicts);
+      expect(rowOf(c, 6).write, AttendanceWrite.failed);
+      expect(rowOf(c, 9).changed, isFalse);
+
+      repo
+        ..failingStudents.clear()
+        ..markCalls.clear();
+      c.applyMine(rowOf(c, 2));
+      expect(await c.submit(), AttendanceSubmitResult.allSaved);
+      expect(repo.markCalls, [
+        (41, 2, AttendanceStatus.present),
+        (41, 6, AttendanceStatus.absent),
+      ]);
+    });
+
+    test(
+      'a write that landed though its answer was lost is not sent again',
+      () async {
+        final (repo, c) = await loaded();
+        repo.failingStudents.add(2);
+        c.choose(rowOf(c, 2), AttendanceStatus.present);
+        expect(await c.submit(), AttendanceSubmitResult.someFailed);
+        // It had reached the server after all.
+        repo
+          ..serverChange(2, AttendanceStatus.present, 'manual')
+          ..failingStudents.clear()
+          ..markCalls.clear();
+        expect(await c.submit(), AttendanceSubmitResult.allSaved);
+        expect(repo.markCalls, isEmpty);
+      },
+    );
+
+    test('a failed re-read sends nothing and says so', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 2), AttendanceStatus.present);
+      repo.readFailure = const TeacherFailure(TeacherFailureKind.network);
+      expect(await c.submit(), AttendanceSubmitResult.checkFailed);
+      expect(repo.markCalls, isEmpty);
+      expect(c.checkError, isNotNull);
+      expect(c.submitting, isFalse);
+
+      repo.readFailure = null;
+      expect(await c.submit(), AttendanceSubmitResult.allSaved);
+      expect(c.checkError, isNull);
+      expect(repo.markCalls, [(41, 2, AttendanceStatus.present)]);
+    });
+
+    test('untouched rows show the server\'s latest after a confirm', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 6), AttendanceStatus.absent);
+      repo.serverChange(4, AttendanceStatus.late, 'qr');
+      await c.submit();
+      expect(rowOf(c, 4).current, AttendanceStatus.late);
+      expect(rowOf(c, 4).changed, isFalse);
+    });
+
+    test('a changed student no longer on the roster is not sent', () async {
+      final (repo, c) = await loaded();
+      c.choose(rowOf(c, 2), AttendanceStatus.present);
+      repo.students = [
+        for (final s in repo.students)
+          if (s.studentId != 2) s,
+      ];
+      expect(await c.submit(), AttendanceSubmitResult.someFailed);
+      expect(repo.markCalls, isEmpty);
+      expect(rowOf(c, 2).write, AttendanceWrite.failed);
+    });
+  });
+
   group('the manual screen', () {
     Future<FakeTeacherAttendanceRepository> openManualFromQr(
       WidgetTester tester, {
@@ -792,6 +972,108 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('a QR scan after loading: the sheet shows the server\'s '
+        'record and the teacher\'s choice; keeping the server sends nothing '
+        'and shows no success', (tester) async {
+      final repo = await openManualFromQr(tester);
+      await tester.tap(control('Саруул Батбаатар'));
+      await tester.pump();
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AttendanceConflictSheet), findsOneWidget);
+      expect(find.text('Серверт: Хоцорсон (QR)'), findsWidgets);
+      expect(find.text('Таны сонголт: Ирсэн'), findsWidgets);
+      await tester.tap(find.text('Серверийнхийг үлдээх: Хоцорсон'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AttendanceConflictSheet), findsNothing);
+      expect(repo.markCalls, isEmpty);
+      expect(find.byType(TeacherConfirmationCard), findsNothing);
+      // The row now shows the server's late.
+      expect(find.text('Хоцорсон'), findsNWidgets(2));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('applying the teacher\'s choice sends it and then shows '
+        'success', (tester) async {
+      final repo = await openManualFromQr(tester);
+      await tester.tap(control('Саруул Батбаатар'));
+      await tester.pump();
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Миний сонголтыг хадгалах: Ирсэн'));
+      await tester.pumpAndSettle();
+
+      expect(repo.markCalls, [(41, 2, AttendanceStatus.present)]);
+      expect(find.text('Амжилттай баталгаажлаа'), findsOneWidget);
+      await tester.tap(find.text('Ойлголоо'));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('dismissing the sheet decides nothing: the row stays flagged, '
+        'confirm waits, and tapping the row asks again', (tester) async {
+      final repo = await openManualFromQr(tester);
+      await tester.tap(control('Саруул Батбаатар'));
+      await tester.pump();
+      repo.serverChange(2, AttendanceStatus.late, 'qr');
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(196, 100));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AttendanceConflictSheet), findsNothing);
+      expect(
+        find.text(TeacherAttendanceStrings.conflictsPending(1)),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TeacherPillButton>(pill(TeacherAttendanceStrings.confirm))
+            .onPressed,
+        isNull,
+      );
+      expect(repo.markCalls, isEmpty);
+
+      await tester.tap(find.text('Саруул Батбаатар'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AttendanceConflictSheet), findsOneWidget);
+      await tester.tap(find.text('Миний сонголтыг хадгалах: Ирсэн'));
+      await tester.pumpAndSettle();
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+      expect(repo.markCalls, [(41, 2, AttendanceStatus.present)]);
+      expect(find.text('Амжилттай баталгаажлаа'), findsOneWidget);
+      await tester.tap(find.text('Ойлголоо'));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a failed re-read: nothing sent, the reason shown, confirm '
+        'can be tried again', (tester) async {
+      final repo = await openManualFromQr(tester);
+      await tester.tap(control('Саруул Батбаатар'));
+      await tester.pump();
+      repo.readFailure = const TeacherFailure(TeacherFailureKind.network);
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+      expect(repo.markCalls, isEmpty);
+      expect(
+        find.textContaining('Сүүлийн ирцийг шалгаж чадсангүй'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TeacherPillButton>(pill(TeacherAttendanceStrings.confirm))
+            .onPressed,
+        isNotNull,
+      );
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('a late student\'s control opens the four statuses — never '
         'flipped silently', (tester) async {
       final repo = await openManualFromQr(tester);
@@ -853,6 +1135,38 @@ void main() {
           }
           expect(errors, isEmpty);
           await tester.pumpWidget(const SizedBox());
+        });
+      }
+    }
+  });
+
+  group('the conflict sheet\'s layout', () {
+    for (final width in [320.0, 393.0]) {
+      for (final scale in [1.0, 2.0, 3.0]) {
+        testWidgets('${width.toInt()} wide, text ×$scale: no overflow', (
+          tester,
+        ) async {
+          expect(
+            await pumpApp(
+              tester,
+              const Scaffold(
+                body: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: AttendanceConflictSheet(
+                    name: 'Доржпалам Сүхбаатар',
+                    conflict: AttendanceConflict(
+                      status: AttendanceStatus.late,
+                      method: 'qr',
+                    ),
+                    mine: AttendanceStatus.present,
+                  ),
+                ),
+              ),
+              width: width,
+              scale: scale,
+            ),
+            isEmpty,
+          );
         });
       }
     }

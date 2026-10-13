@@ -82,6 +82,25 @@ class FakeTeacherAttendanceRepository implements TeacherAttendanceRepository {
     if (failingStudents.contains(studentId)) {
       throw const TeacherFailure(TeacherFailureKind.network);
     }
+    // As the backend's `mark`: the record is overwritten, its method
+    // `manual` — so the next read sees it.
+    students = [
+      for (final s in students)
+        s.studentId == studentId
+            ? student(studentId, s.name, status, method: 'manual')
+            : s,
+    ];
     return status;
+  }
+
+  /// A change made on the server since a read — a QR check-in, or another
+  /// teacher's mark — as the next read will report it.
+  void serverChange(int studentId, AttendanceStatus status, String? method) {
+    students = [
+      for (final s in students)
+        s.studentId == studentId
+            ? student(studentId, s.name, status, method: method)
+            : s,
+    ];
   }
 }

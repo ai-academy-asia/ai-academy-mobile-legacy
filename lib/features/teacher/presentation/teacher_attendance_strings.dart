@@ -41,6 +41,31 @@ abstract final class TeacherAttendanceStrings {
   static String failedRows(int count) =>
       '$count сурагчийн ирц хадгалагдсангүй. Дахин оролдоно уу.';
 
+  // --- Server changes before saving (Issue #378) ---
+  static const String conflictTitle = 'Ирц өөрчлөгдсөн байна';
+  static const String conflictBody =
+      'Жагсаалтыг нээснээс хойш энэ сурагчийн ирц серверт өөрчлөгдсөн. '
+      'Аль утгыг хадгалахаа сонгоно уу.';
+  static String conflictServer(AttendanceStatus status, String? method) =>
+      'Серверт: ${statusLabel(status)} (${methodLabel(method)})';
+  static String conflictMine(AttendanceStatus status) =>
+      'Таны сонголт: ${statusLabel(status)}';
+  static String keepServer(AttendanceStatus status) =>
+      'Серверийнхийг үлдээх: ${statusLabel(status)}';
+  static String applyMine(AttendanceStatus status) =>
+      'Миний сонголтыг хадгалах: ${statusLabel(status)}';
+  static String conflictsPending(int count) =>
+      '$count сурагчийн ирц серверт өөрчлөгдсөн. Мөр дээр дарж шийдвэрлэнэ үү.';
+  static String checkFailed(String reason) =>
+      'Сүүлийн ирцийг шалгаж чадсангүй — юу ч илгээгдсэнгүй. $reason';
+
+  /// How a server record was made: the backend's `method`.
+  static String methodLabel(String? method) => switch (method) {
+    'qr' => 'QR',
+    'manual' => 'гараар',
+    _ => 'бүртгэлгүй',
+  };
+
   /// The status picker's heading.
   static const String chooseStatus = 'Ирцийн төлөв';
 
