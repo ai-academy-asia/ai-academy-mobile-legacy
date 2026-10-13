@@ -124,9 +124,9 @@ abstract interface class TeacherAttendanceRepository {
 /// to say. Until they do this stays null, and the QR screen asks for no
 /// token and draws no code — manual registration works meanwhile.
 ///
-/// **Required before setting this** (PR #375 review): the manual screen
-/// compares each row against the roster it loaded, so a QR check-in that
-/// lands after it loaded can be overwritten by a teacher's change to that
-/// row (a `late` scan replaced by `present`, its method by `manual`).
-/// Re-read the roster before confirming and flag rows the server moved.
+/// The manual screen's guard against overwriting a QR check-in made after
+/// it loaded is in place (Issue #378): it re-reads the roster before saving
+/// and holds any changed row whose server record moved. A window of seconds
+/// between that re-read and each unconditional PUT remains
+/// (`ManualAttendanceController`).
 const String Function(String token)? attendanceQrPayload = null;

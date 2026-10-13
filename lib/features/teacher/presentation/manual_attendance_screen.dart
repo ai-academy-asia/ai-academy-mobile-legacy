@@ -52,11 +52,46 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
     super.dispose();
   }
 
+  /// Saves, and — where a student's record moved on the server since it
+  /// was read (Issue #378) — asks the teacher about each one before going
+  /// on. Every pass re-reads the roster first; a conflict left unanswered
+  /// stays on its row and holds the save.
   Future<void> _confirm() async {
-    final result = await _controller.submit();
+    var result = await _controller.submit();
+    while (mounted && result == AttendanceSubmitResult.conflicts) {
+      for (final row in _controller.conflicts) {
+        if (!mounted) return;
+        await _resolve(row);
+      }
+      if (!mounted || _controller.conflicts.isNotEmpty) return;
+      result = await _controller.submit();
+    }
     if (!mounted || result != AttendanceSubmitResult.allSaved) return;
     await showAttendanceSavedCard(context);
     if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Asks how to settle [row]'s server change. Dismissed, it stays open.
+  Future<void> _resolve(AttendanceRow row) async {
+    final conflict = row.conflict;
+    if (conflict == null) return;
+    final keep = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: context.palette.surfaceElevated,
+      barrierColor: context.palette.barrier,
+      constraints: const BoxConstraints(maxWidth: AppDimens.maxContentWidth),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => AttendanceConflictSheet(
+        name: row.student.name,
+        conflict: conflict,
+        mine: row.current,
+      ),
+    );
+    if (keep == true) _controller.keepServer(row);
+    if (keep == false) _controller.applyMine(row);
   }
 
   Future<void> _pickStatus(AttendanceRow row) async {
@@ -75,6 +110,10 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
   }
 
   void _toggle(AttendanceRow row) {
+    if (row.conflict != null) {
+      _resolve(row);
+      return;
+    }
     switch (row.current) {
       case AttendanceStatus.present:
         _controller.choose(row, AttendanceStatus.absent);
@@ -181,7 +220,7 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
           row: row,
           enabled: !_controller.submitting,
           onToggle: () => _toggle(row),
-          onPick: () => _pickStatus(row),
+          onPick: () => row.conflict != null ? _resolve(row) : _pickStatus(row),
         );
       },
     );
@@ -189,7 +228,18 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
 
   Widget _footer(BuildContext context) {
     final failed = _controller.failedCount;
-    final canSend = _controller.hasChanges && !_controller.submitting;
+    final pending = _controller.conflicts.length;
+    final checkError = _controller.checkError;
+    final canSend = _controller.canConfirm;
+    final String? notice = _controller.submitting
+        ? null
+        : checkError != null
+        ? TeacherAttendanceStrings.checkFailed(checkError)
+        : pending > 0
+        ? TeacherAttendanceStrings.conflictsPending(pending)
+        : failed > 0
+        ? TeacherAttendanceStrings.failedRows(failed)
+        : null;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         AppDimens.screenPadding,
@@ -200,11 +250,11 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (failed > 0 && !_controller.submitting) ...[
+          if (notice != null) ...[
             Semantics(
               liveRegion: true,
               child: Text(
-                TeacherAttendanceStrings.failedRows(failed),
+                notice,
                 style: AppTypography.supporting.copyWith(
                   color: context.palette.errorInk,
                 ),
@@ -276,15 +326,22 @@ class AttendanceStudentRow extends StatelessWidget {
     final palette = context.palette;
     final status = row.current;
     final label = TeacherAttendanceStrings.statusLabel(status);
-    final String? note = switch (row.write) {
-      AttendanceWrite.saving => TeacherAttendanceStrings.saving,
-      AttendanceWrite.failed => TeacherAttendanceStrings.saveFailed,
-      AttendanceWrite.idle =>
-        status == AttendanceStatus.late || status == AttendanceStatus.excused
-            ? label
-            : null,
-    };
-    final noteInk = row.write == AttendanceWrite.failed
+    final conflict = row.conflict;
+    // A server change since the roster was read (Issue #378): the server's
+    // record and the teacher's pending choice, side by side.
+    final String? note = conflict != null
+        ? '${TeacherAttendanceStrings.conflictServer(conflict.status, conflict.method)}'
+              ' · ${TeacherAttendanceStrings.conflictMine(status)}'
+        : switch (row.write) {
+            AttendanceWrite.saving => TeacherAttendanceStrings.saving,
+            AttendanceWrite.failed => TeacherAttendanceStrings.saveFailed,
+            AttendanceWrite.idle =>
+              status == AttendanceStatus.late ||
+                      status == AttendanceStatus.excused
+                  ? label
+                  : null,
+          };
+    final noteInk = row.write == AttendanceWrite.failed || conflict != null
         ? palette.errorInk
         : status == AttendanceStatus.late
         ? palette.warningInk
@@ -297,9 +354,10 @@ class AttendanceStudentRow extends StatelessWidget {
       child: Semantics(
         button: true,
         enabled: enabled,
-        label:
-            '${row.student.name}, $label'
-            '${row.write == AttendanceWrite.failed ? ', ${TeacherAttendanceStrings.saveFailed}' : ''}',
+        label: conflict != null
+            ? '${row.student.name}, ${TeacherAttendanceStrings.conflictTitle}, $note'
+            : '${row.student.name}, $label'
+                  '${row.write == AttendanceWrite.failed ? ', ${TeacherAttendanceStrings.saveFailed}' : ''}',
         excludeSemantics: true,
         onTap: enabled ? onPick : null,
         child: InkWell(
@@ -352,7 +410,8 @@ class AttendanceStudentRow extends StatelessWidget {
                 else
                   AttendanceStatusControl(
                     status: status,
-                    failed: row.write == AttendanceWrite.failed,
+                    failed:
+                        row.write == AttendanceWrite.failed || conflict != null,
                     onTap: enabled ? onToggle : null,
                   ),
               ],
@@ -490,6 +549,96 @@ const double _avatarSize = 40;
 String initialsOf(String name) {
   final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
   return words.take(2).map((w) => w.characters.first.toUpperCase()).join();
+}
+
+/// A changed student whose server record moved since the roster was read
+/// (Issue #378): the server's record and the teacher's choice, and the two
+/// ways out — pops `true` to keep the server's, `false` to apply the
+/// teacher's. Dismissed, it decides nothing.
+class AttendanceConflictSheet extends StatelessWidget {
+  const AttendanceConflictSheet({
+    required this.name,
+    required this.conflict,
+    required this.mine,
+    super.key,
+  });
+
+  final String name;
+  final AttendanceConflict conflict;
+  final AttendanceStatus mine;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.screenPadding,
+          8,
+          AppDimens.screenPadding,
+          AppDimens.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const TeacherSheetHandle(),
+            const SizedBox(height: 16),
+            Semantics(
+              header: true,
+              child: Text(
+                TeacherAttendanceStrings.conflictTitle,
+                style: AppTypography.sectionTitle.copyWith(
+                  color: palette.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: AppTypography.bodyStrong.copyWith(
+                color: palette.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              TeacherAttendanceStrings.conflictBody,
+              style: AppTypography.supporting.copyWith(
+                color: palette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              TeacherAttendanceStrings.conflictServer(
+                conflict.status,
+                conflict.method,
+              ),
+              style: AppTypography.body.copyWith(color: palette.textPrimary),
+            ),
+            Text(
+              TeacherAttendanceStrings.conflictMine(mine),
+              style: AppTypography.body.copyWith(color: palette.textPrimary),
+            ),
+            const SizedBox(height: 24),
+            TeacherPillButton(
+              label: TeacherAttendanceStrings.keepServer(conflict.status),
+              variant: TeacherPillVariant.outlined,
+              wrapLabel: true,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: AppDimens.tileGap),
+            TeacherPillButton(
+              label: TeacherAttendanceStrings.applyMine(mine),
+              variant: TeacherPillVariant.filled,
+              wrapLabel: true,
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// The four statuses to choose from, the current one marked.
