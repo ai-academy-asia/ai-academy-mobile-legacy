@@ -176,7 +176,7 @@ void main() {
         'lib/features/teacher/presentation/teacher_schedule_screen.dart',
         'lib/features/teacher/presentation/widgets/teacher_week_grid.dart',
         // Sized to their container.
-        'lib/features/teacher/presentation/widgets/teacher_session_sheet.dart',
+        'lib/features/teacher/presentation/widgets/attendance_tally.dart',
         'lib/features/junior_home/presentation/widgets/junior_certificate_card.dart',
         // Four tabs where the student bars have three.
         'lib/features/teacher/presentation/widgets/teacher_bottom_nav.dart',

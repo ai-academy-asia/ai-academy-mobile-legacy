@@ -556,6 +556,12 @@ Counts: **48 PROPOSED, 35 DERIVED, 11 UNRESOLVED**, 94 roles in all. None is app
 | `dangerOutline` | `#FFC2453F` | DERIVED | §4.5 error outline |
 | `avatarPlaceholder` | `#FF20252E` | UNRESOLVED | no value; surfaceMuted stands in |
 | `avatarPlaceholderInk` | `#FF6E7682` | UNRESOLVED | no value; textInactive stands in |
+| `studentAvatarBlue` | `#FF3B79B7` | UNRESOLVED | no value; the light fill stands in (Issue #374) |
+| `studentAvatarRed` | `#FFB74C3B` | UNRESOLVED | no value; the light fill stands in (Issue #374) |
+| `studentAvatarTeal` | `#FF00BCA3` | UNRESOLVED | no value; the light fill stands in (Issue #374) |
+| `onStudentAvatar` | `#FFFFFFFF` | UNRESOLVED | no value; the light fill stands in (Issue #374) |
+| `qrInk` | `#FF000000` | DERIVED | a scanner needs dark on light in either theme (Issue #374) |
+| `qrBackground` | `#FFFFFFFF` | DERIVED | a scanner needs dark on light in either theme (Issue #374) |
 
 ### Measured contrast of the candidate (WCAG 2.x)
 

@@ -214,6 +214,28 @@ void main() {
       const Color(0xFF6E7682),
       'UNRESOLVED',
     ),
+    'studentAvatarBlue': (
+      dark.studentAvatarBlue,
+      const Color(0xFF3B79B7),
+      'UNRESOLVED',
+    ),
+    'studentAvatarRed': (
+      dark.studentAvatarRed,
+      const Color(0xFFB74C3B),
+      'UNRESOLVED',
+    ),
+    'studentAvatarTeal': (
+      dark.studentAvatarTeal,
+      const Color(0xFF00BCA3),
+      'UNRESOLVED',
+    ),
+    'onStudentAvatar': (
+      dark.onStudentAvatar,
+      const Color(0xFFFFFFFF),
+      'UNRESOLVED',
+    ),
+    'qrInk': (dark.qrInk, const Color(0xFF000000), 'DERIVED'),
+    'qrBackground': (dark.qrBackground, const Color(0xFFFFFFFF), 'DERIVED'),
   };
 
   test('every role has a candidate dark value and a recorded status', () {
@@ -221,7 +243,7 @@ void main() {
     final declared = RegExp(
       r'required this\.(\w+),',
     ).allMatches(source).map((m) => m.group(1)!).toList();
-    expect(declared, hasLength(94));
+    expect(declared, hasLength(100));
     expect(roles.keys.toSet(), declared.toSet());
     for (final MapEntry(key: role, value: (actual, expected, status))
         in roles.entries) {

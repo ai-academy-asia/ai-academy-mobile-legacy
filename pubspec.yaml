@@ -65,6 +65,12 @@ dependencies:
   # on Android.
   pdfx: 2.11.0
 
+  # Draws the attendance QR the teacher shows for students to scan
+  # (`POST /teacher/sessions/{id}/qr`, Issue #374). Approved for this task.
+  # Pure Dart — no plugin, no platform code, no permission; nothing is
+  # scanned on the teacher's phone.
+  qr_flutter: ^4.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

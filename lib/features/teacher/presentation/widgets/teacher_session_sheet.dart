@@ -4,25 +4,35 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../domain/teacher_attendance.dart';
 import '../../domain/teacher_failure.dart';
 import '../../domain/teacher_schedule_repository.dart';
 import '../../domain/teacher_session.dart';
+import '../attendance_qr_screen.dart';
 import '../teacher_home_strings.dart';
 import '../teacher_request_screen.dart';
 import '../teacher_schedule_strings.dart';
+import 'attendance_tally.dart';
 import 'teacher_class_card.dart';
 import 'teacher_pill_button.dart';
 import 'teacher_request_parts.dart';
 
 /// Opens a tapped session's sheet (Issue #231): the class action sheet —
-/// "Цаг солих" and "Ирц бүртгэх" (Issue #372) — while the session is still
-/// ahead or under way, the `huvaari-deerh-orson-angi` sheet with its
+/// "Цаг солих" and "Ирц бүртгэх" (Issues #372, #374) — while the session is
+/// still ahead or under way, the `huvaari-deerh-orson-angi` sheet with its
 /// attendance summary once it is over.
+///
+/// [attendanceOpen]: the session is on today's date in Ulaanbaatar
+/// (`attendanceOpenOn`) — the only day the backend issues its QR — so
+/// "Ирц бүртгэх" opens [AttendanceQrScreen]; any other day it is drawn
+/// disabled.
 Future<void> showTeacherSessionSheet(
   BuildContext context, {
   required ScheduledSession entry,
   required bool held,
   required TeacherScheduleRepository repository,
+  bool attendanceOpen = false,
+  TeacherAttendanceRepository? attendanceRepository,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
@@ -35,8 +45,13 @@ Future<void> showTeacherSessionSheet(
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
   ),
-  builder: (_) =>
-      TeacherSessionSheet(entry: entry, held: held, repository: repository),
+  builder: (_) => TeacherSessionSheet(
+    entry: entry,
+    held: held,
+    repository: repository,
+    attendanceOpen: attendanceOpen,
+    attendanceRepository: attendanceRepository,
+  ),
 );
 
 /// The sheet: a drag handle over Teacher Home's class card, filled with the
@@ -47,6 +62,8 @@ class TeacherSessionSheet extends StatelessWidget {
     required this.held,
     required this.repository,
     super.key,
+    this.attendanceOpen = false,
+    this.attendanceRepository,
   });
 
   final ScheduledSession entry;
@@ -55,6 +72,12 @@ class TeacherSessionSheet extends StatelessWidget {
   final bool held;
 
   final TeacherScheduleRepository repository;
+
+  /// Today is the session's date (Ulaanbaatar): "Ирц бүртгэх" is live.
+  final bool attendanceOpen;
+
+  /// For the attendance screens; defaults to the HTTP repository.
+  final TeacherAttendanceRepository? attendanceRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -96,16 +119,29 @@ class TeacherSessionSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Not available yet (Issue #372): taking attendance by QR
-                // waits on a verified `POST /teacher/sessions/{id}/qr`
-                // response and a QR-display design. Drawn disabled — it
-                // calls nothing.
-                second: const TeacherPillButton(
-                  label: TeacherScheduleStrings.registerAttendance,
-                  wrapLabel: true,
-                  variant: TeacherPillVariant.disabled,
-                  onPressed: null,
-                ),
+                // Live only on the session's date (Issue #374) — the backend
+                // issues its QR on no other day. Any other day it is drawn
+                // disabled and calls nothing.
+                second: attendanceOpen
+                    ? TeacherPillButton(
+                        label: TeacherScheduleStrings.registerAttendance,
+                        wrapLabel: true,
+                        variant: TeacherPillVariant.filled,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AttendanceQrScreen(
+                              sessionId: entry.session.id,
+                              repository: attendanceRepository,
+                            ),
+                          ),
+                        ),
+                      )
+                    : const TeacherPillButton(
+                        label: TeacherScheduleStrings.registerAttendance,
+                        wrapLabel: true,
+                        variant: TeacherPillVariant.disabled,
+                        onPressed: null,
+                      ),
               ),
             ],
           ],
@@ -175,7 +211,10 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
 
     final Widget body;
     if (counts != null) {
-      body = _Summary(counts: counts);
+      body = AttendanceTally(
+        counts: counts,
+        caption: TeacherScheduleStrings.attendedCaption,
+      );
     } else if (error != null) {
       body = Column(
         children: [
@@ -224,79 +263,3 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
     );
   }
 }
-
-class _Summary extends StatelessWidget {
-  const _Summary({required this.counts});
-
-  final AttendanceCounts counts;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          label: '${counts.attended} / ${counts.total}',
-          excludeSemantics: true,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '${counts.attended}',
-                style: _countStyle.copyWith(color: palette.accentText),
-              ),
-              Text(
-                ' / ${counts.total}',
-                style: _totalStyle.copyWith(color: palette.teacherDetailInk),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          TeacherScheduleStrings.attendedCaption,
-          style: _captionStyle.copyWith(color: palette.teacherCaptionInk),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        // A plain bar: Material 3's indicator adds a stop dot and a gap the
-        // reference does not draw.
-        ClipRRect(
-          key: const ValueKey('attendance-bar'),
-          borderRadius: BorderRadius.circular(4),
-          child: Container(
-            height: 8,
-            // `outlineSubtle`'s documented "Teacher's bar track".
-            color: palette.outlineSubtle,
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: counts.fraction.clamp(0, 1),
-              heightFactor: 1,
-              child: ColoredBox(
-                key: const ValueKey('attendance-fill'),
-                color: palette.accent,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The attended count — sized to the sheet's hero, a container-sized exception
-/// to the type scale (`DESIGN_SYSTEM.md` §3).
-final TextStyle _countStyle = AppTypography.display.copyWith(
-  fontSize: 36,
-  height: 44 / 36,
-  fontWeight: FontWeight.w800,
-);
-
-/// "/ total" beside the count.
-final TextStyle _totalStyle = AppTypography.bodyStrong.copyWith(height: 1.2);
-
-/// "оюутан ирцэд бүртгэгдсэн".
-const TextStyle _captionStyle = AppTypography.body;

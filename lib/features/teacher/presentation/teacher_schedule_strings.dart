@@ -49,9 +49,8 @@ abstract final class TeacherScheduleStrings {
   /// The upcoming session sheet's actions.
   static const String changeTime = 'Цаг солих';
 
-  /// Drawn disabled (Issue #372): taking attendance by QR waits on a
-  /// verified `POST /teacher/sessions/{id}/qr` response and a QR-display
-  /// design.
+  /// Opens attendance registration (Issue #374) — live only on the
+  /// session's date in Ulaanbaatar, drawn disabled any other day.
   static const String registerAttendance = 'Ирц бүртгэх';
 
   /// Under the held session's "14 / 24".

@@ -77,7 +77,13 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
-        home: TeacherScheduleScreen(repository: repository(), clock: clock),
+        home: TeacherScheduleScreen(
+          repository: repository(),
+          clock: clock,
+          // The reference's session is on today's date: "Ирц бүртгэх" live,
+          // in every time zone this runs in (Issue #374).
+          attendanceOpen: (_, _) => true,
+        ),
       ),
     );
     await tester.pumpAndSettle();

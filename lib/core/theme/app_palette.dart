@@ -126,6 +126,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.dangerOutline,
     required this.avatarPlaceholder,
     required this.avatarPlaceholderInk,
+    required this.studentAvatarBlue,
+    required this.studentAvatarRed,
+    required this.studentAvatarTeal,
+    required this.onStudentAvatar,
+    required this.qrInk,
+    required this.qrBackground,
   });
 
   /// Today's app, unchanged.
@@ -224,6 +230,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     dangerOutline: AppColors.dangerOutline,
     avatarPlaceholder: AppColors.avatarPlaceholder,
     avatarPlaceholderInk: AppColors.avatarPlaceholderInk,
+    studentAvatarBlue: AppColors.studentAvatarBlue,
+    studentAvatarRed: AppColors.studentAvatarRed,
+    studentAvatarTeal: AppColors.studentAvatarTeal,
+    onStudentAvatar: AppColors.onStudentAvatar,
+    qrInk: AppColors.qrInk,
+    qrBackground: AppColors.qrBackground,
   );
 
   /// The **candidate** dark palette (Dark Mode Phase 9, Issue #276). **Not
@@ -428,6 +440,18 @@ class AppPalette extends ThemeExtension<AppPalette> {
     avatarPlaceholder: _Dark.muted,
     // UNRESOLVED: no value; textInactive stands in
     avatarPlaceholderInk: _Dark.inactive,
+    // UNRESOLVED: no value; the light fill stands in
+    studentAvatarBlue: AppColors.studentAvatarBlue,
+    // UNRESOLVED: no value; the light fill stands in
+    studentAvatarRed: AppColors.studentAvatarRed,
+    // UNRESOLVED: no value; the light fill stands in
+    studentAvatarTeal: AppColors.studentAvatarTeal,
+    // UNRESOLVED: no value; the light fill stands in
+    onStudentAvatar: AppColors.onStudentAvatar,
+    // DERIVED: a scanner needs dark on light in either theme
+    qrInk: AppColors.qrInk,
+    // DERIVED: a scanner needs dark on light in either theme
+    qrBackground: AppColors.qrBackground,
   );
 
   // --- Grounds ---------------------------------------------------------------
@@ -778,6 +802,27 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// [disabledInk], a disabled control's label that only shares its value.
   final Color avatarPlaceholderInk;
 
+  /// A student's initials avatar — the first of the manual attendance
+  /// reference's three fills (Issue #374).
+  final Color studentAvatarBlue;
+
+  /// A student's initials avatar — the reference's second fill.
+  final Color studentAvatarRed;
+
+  /// A student's initials avatar — the reference's third fill.
+  final Color studentAvatarTeal;
+
+  /// The initials on a student avatar. Not [onPrimary], a primary
+  /// button's label that only shares its value.
+  final Color onStudentAvatar;
+
+  /// The attendance QR's modules — black in either theme: a scanner reads
+  /// dark on light (Issue #374).
+  final Color qrInk;
+
+  /// Behind the attendance QR — white in either theme, for the same reason.
+  final Color qrBackground;
+
   @override
   AppPalette copyWith({
     Color? pageBackground,
@@ -874,6 +919,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? dangerOutline,
     Color? avatarPlaceholder,
     Color? avatarPlaceholderInk,
+    Color? studentAvatarBlue,
+    Color? studentAvatarRed,
+    Color? studentAvatarTeal,
+    Color? onStudentAvatar,
+    Color? qrInk,
+    Color? qrBackground,
   }) => AppPalette(
     pageBackground: pageBackground ?? this.pageBackground,
     surfaceSubtle: surfaceSubtle ?? this.surfaceSubtle,
@@ -970,6 +1021,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     dangerOutline: dangerOutline ?? this.dangerOutline,
     avatarPlaceholder: avatarPlaceholder ?? this.avatarPlaceholder,
     avatarPlaceholderInk: avatarPlaceholderInk ?? this.avatarPlaceholderInk,
+    studentAvatarBlue: studentAvatarBlue ?? this.studentAvatarBlue,
+    studentAvatarRed: studentAvatarRed ?? this.studentAvatarRed,
+    studentAvatarTeal: studentAvatarTeal ?? this.studentAvatarTeal,
+    onStudentAvatar: onStudentAvatar ?? this.onStudentAvatar,
+    qrInk: qrInk ?? this.qrInk,
+    qrBackground: qrBackground ?? this.qrBackground,
   );
 
   @override
@@ -1080,6 +1137,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
         avatarPlaceholderInk,
         other.avatarPlaceholderInk,
       ),
+      studentAvatarBlue: mix(studentAvatarBlue, other.studentAvatarBlue),
+      studentAvatarRed: mix(studentAvatarRed, other.studentAvatarRed),
+      studentAvatarTeal: mix(studentAvatarTeal, other.studentAvatarTeal),
+      onStudentAvatar: mix(onStudentAvatar, other.onStudentAvatar),
+      qrInk: mix(qrInk, other.qrInk),
+      qrBackground: mix(qrBackground, other.qrBackground),
     );
   }
 }
