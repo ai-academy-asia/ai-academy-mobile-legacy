@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_config.dart';
 import '../../auth/data/authenticated_client.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../domain/teacher_attendance.dart';
@@ -29,8 +30,7 @@ class HttpTeacherAttendanceRepository implements TeacherAttendanceRepository {
     AuthSessionStore? sessionStore,
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? AuthenticatedClient.instance,
-       _baseUrl =
-           baseUrl ?? Uri.parse(HttpTeacherScheduleRepository.defaultBaseUrl),
+       _baseUrl = baseUrl ?? ApiConfig.baseUrl,
        _sessionStore = sessionStore ?? AuthSessionStore.instance;
 
   final http.Client _client;

@@ -95,12 +95,10 @@ Every HTTP repository follows the same constructor shape:
 ```dart
 HttpXRepository({http.Client? client, Uri? baseUrl, Duration? timeout, AuthSessionStore? sessionStore})
   : _client = client ?? http.Client(),
-    _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl);
-
-static const String defaultBaseUrl = 'https://api.ai-academy.asia';
+    _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 ```
 
-`defaultBaseUrl` is **repeated as a constant in each HTTP repository** rather than centralised. Everything is injectable so tests can pass a `MockClient` and a fake base URL.
+The base URL is **one shared configuration**, `ApiConfig.baseUrl` (`lib/core/api/api_config.dart`, Issue #388): production, unless a **debug** build sets `--dart-define=AIA_API_BASE_URL=<origin>` for a local backend ([DATA_AND_API.md](DATA_AND_API.md) §3.1). Everything is injectable, so tests can pass a `MockClient` and a fake base URL.
 
 ## 5. Theme system
 

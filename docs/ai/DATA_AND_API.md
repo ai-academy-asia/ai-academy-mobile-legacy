@@ -4,7 +4,7 @@
 
 ## 1. Endpoints the app actually calls
 
-Base URL `https://api.ai-academy.asia`, declared as `defaultBaseUrl` in each HTTP repository.
+Base URL `https://api.ai-academy.asia`, held once in `ApiConfig` and used by every HTTP repository; a debug build may point elsewhere (§3.1).
 
 | Method | Path | Auth | Caller | Transport |
 |---|---|---|---|---|
@@ -183,6 +183,37 @@ Two entry points, split by failure family — not by accident:
 - **`lib/features/auth/data/auth_http.dart`** — `postJson`, which encodes a JSON body and reports `AuthFailure`.
 
 `getJson`'s shared status mapping has no 401 case on purpose: it serves endpoints confirmed to need no auth, so a 401 there would be the API misbehaving, and giving it a "session expired" reading would force that case onto every public caller's `switch`.
+
+### 3.1 API base URL and a local backend (debug only, Issue #388)
+
+**One configuration.** `ApiConfig` (`lib/core/api/api_config.dart`) holds the API origin. All 16 HTTP repositories default to `ApiConfig.baseUrl`; a test may still inject its own `baseUrl`. That includes sign-in and session refresh (`HttpAuthRepository`, which `SessionRefresher` uses), the teacher endpoints, and attendance check-in. No other file in `lib/` names the production URL, and `test/core/api/api_config_test.dart` enforces both rules.
+
+**Production unless a debug build says otherwise.** `--dart-define=AIA_API_BASE_URL=<origin>` is honoured **only when `kDebugMode`**. Release and profile builds ignore it and always use `https://api.ai-academy.asia`. An empty value, or the production URL itself, means production. The value must be a bare `http(s)://host[:port]` origin, with no credentials, path, query or fragment. **Anything else stops the app at startup** (`InvalidApiBaseUrl`, from `main`), rather than falling back to production; the message names the broken rule, never the value. While an override is active, every screen shows a red **"API: host:port"** pill at the top (`ApiOverrideBanner`), and the debug console logs `AIA API override: host:port`.
+
+**Running against a local backend.** These steps start and seed a *local* server; nothing here touches production. The backend is `ai-academy-asia/ai-academy-backend`; see its `README.md`.
+1. **Backend on the Mac:**
+   - Python virtualenv and `pip install -r requirements.txt`.
+   - `cp .env.example .env`, local values only.
+   - `docker compose --profile dev up -d` (the README notes Postgres on host port 5433).
+   - `flask db upgrade` (the migrations exist; skip the README's `flask db init` / `migrate`).
+   - Test data with `flask seed programme <key>`: `@test.ai-academy.asia` accounts and class sessions on the programme's weekdays. If today is not a class day, create today's session locally through the teacher endpoint.
+   - Run `python wsgi.py`; it listens on `0.0.0.0:8000`. Its "today" is Ulaanbaatar's.
+2. **iOS simulator:** `flutter run --dart-define=AIA_API_BASE_URL=http://localhost:8000`. The simulator shares the Mac's network, and has no camera, so the student scanner shows its "unsupported" state there.
+3. **Physical iPhone** (needed for the camera): put the Mac and the iPhone on the same Wi-Fi.
+   - Find the Mac's LAN address (`ipconfig getifaddr en0`).
+   - Run `flutter run --dart-define=AIA_API_BASE_URL=http://<mac-lan-ip>:8000`.
+   - Allow Python through the macOS firewall when asked.
+   - Allow **Local Network** access when iOS asks: iOS 14+ asks before an app reaches a LAN address.
+4. **An end-to-end QR check:**
+   - Sign the teacher in on the simulator and open today's session → "Ирц бүртгэх"; the QR appears.
+   - Sign the student in on the iPhone and open the check-in entry (Junior node, or Adult "Ирц бүртгүүлэх" during the lesson), then scan the simulator's screen.
+   - The teacher's count updates within 15 seconds.
+
+**Limitations:**
+- **Plain HTTP:** the app's HTTP client is `dart:io`, which iOS's App Transport Security and Android's cleartext policy are not expected to block. This is **not yet verified on a device**.
+- **Android emulator:** reaches the Mac at `http://10.0.2.2:8000`.
+- **Saved sign-ins don't follow the server:** a saved session belongs to the server that issued it, but the session store does not record which. **Sign out before switching** between a local and a production build. Otherwise the saved token is sent to the other server, where it is refused (401, which clears it) or, for a production token, exposed to the local machine.
+- **Seeded accounts may also exist in production,** so check the "API: host:port" pill before signing in with one.
 
 ## 4. Failure taxonomy
 

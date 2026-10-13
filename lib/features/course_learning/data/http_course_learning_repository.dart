@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_config.dart';
 import '../../../core/api/api_failure.dart';
 import '../../../core/models/localized_text.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -90,11 +91,9 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
   }) : // The shared client that renews an expired session and retries
        // once (Issue #176). Injected in tests.
        _client = client ?? AuthenticatedClient.instance,
-       _baseUrl = baseUrl ?? Uri.parse(defaultBaseUrl),
+       _baseUrl = baseUrl ?? ApiConfig.baseUrl,
        _sessionStore = sessionStore ?? AuthSessionStore.instance,
        _clock = clock ?? DateTime.now;
-
-  static const String defaultBaseUrl = 'https://api.ai-academy.asia';
 
   /// The one hero illustration the design has exported. The contract states
   /// `illustrationAsset` stays client-side, and there is no confirmed mapping

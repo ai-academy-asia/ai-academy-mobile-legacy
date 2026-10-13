@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:aia_mobile/core/api/api_config.dart';
 import 'package:aia_mobile/features/auth/data/http_current_user_repository.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
@@ -399,11 +400,9 @@ void main() {
   });
 
   group('configuration', () {
-    test('the default base URL is the contract host', () {
-      expect(
-        HttpCurrentUserRepository.defaultBaseUrl,
-        'https://api.ai-academy.asia',
-      );
+    test('the default base URL is the shared ApiConfig — the contract host '
+        'when no override is defined (Issue #388)', () {
+      expect(ApiConfig.baseUrl, Uri.parse('https://api.ai-academy.asia'));
     });
 
     test('a base URL can be overridden without touching the path', () async {
