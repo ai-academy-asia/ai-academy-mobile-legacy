@@ -266,6 +266,7 @@ class TeacherIncomingRequestSheet extends StatelessWidget {
             TeacherClassCard(
               teacherClass: teacherClass,
               timeLabel: sessionLabel,
+              compactDetails: true,
             ),
             const SizedBox(height: 24),
             TeacherPillPair(

@@ -71,7 +71,7 @@ class TeacherRequestScreen extends StatelessWidget {
                     : ListView.separated(
                         padding: EdgeInsets.fromLTRB(
                           AppDimens.screenPadding,
-                          AppDimens.pageContentTop,
+                          _headerToFirstRow,
                           AppDimens.screenPadding,
                           AppDimens.pageBottom +
                               MediaQuery.paddingOf(context).bottom,
@@ -91,6 +91,12 @@ class TeacherRequestScreen extends StatelessWidget {
     );
   }
 }
+
+/// Below the header to the first row: the `tsag-solih` reference's 40 (the
+/// back button's foot at 96, the first avatar's top at 136) — wider than
+/// the pages' standard `pageContentTop` 24, a screen-specific exception
+/// (`SCREEN_PATTERNS.md` §3). The header itself is the shared one.
+const double _headerToFirstRow = 40;
 
 class _Unavailable extends StatelessWidget {
   const _Unavailable();

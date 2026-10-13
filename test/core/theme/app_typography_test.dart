@@ -180,6 +180,8 @@ void main() {
         'lib/features/junior_home/presentation/widgets/junior_certificate_card.dart',
         // Four tabs where the student bars have three.
         'lib/features/teacher/presentation/widgets/teacher_bottom_nav.dart',
+        // The incoming-request sheet's room and date/time on one line.
+        'lib/features/teacher/presentation/widgets/teacher_class_card.dart',
       };
       // A size taken from a role (`AppTypography.x.fontSize!`, scaled or
       // not) or handed through a parameter is not a size of one's own.

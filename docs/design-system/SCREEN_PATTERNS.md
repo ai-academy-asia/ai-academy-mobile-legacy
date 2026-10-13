@@ -49,7 +49,7 @@ Every reachable screen is one of a few kinds, and screens of a kind share one he
 |---|---|---|
 | **Primary tab with a title** — Courses; the Adult, Junior and Teacher Profiles; Teacher Gradebook | `TabTitleBar`: `screenTitle` left on the gutter, centred in a 63pt white band behind the status bar, a 1pt `divider` rule | `tabContentTop` 16 below the rule; `cardGap` 16 between cards; `pageBottom` 24 above the bottom nav |
 | **Primary tab led by the brand** — Adult Home, Junior Home, Junior Progress | `HomeHeader` (logo + bell) and its rule — a documented exception, below | as above |
-| **Pushed page** — E-Contract, Certificate, Notification and its detail, Change password, Attendance detail, Teacher Request, Gradebook class / student / submission | `BackTitleHeader`: the arrow `AppBackButton` on the gutter 12 below the inset, `headerTitle` centred on it (wraps; never under the button), fixed above the scroll | `pageContentTop` 24 below the header; `cardGap` 16; `pageBottom` 24 + the bottom inset |
+| **Pushed page** — E-Contract, Certificate, Notification and its detail, Change password, Attendance detail, Teacher Request (40 below its header — §3), Gradebook class / student / submission | `BackTitleHeader`: the arrow `AppBackButton` on the gutter 12 below the inset, `headerTitle` centred on it (wraps; never under the button), fixed above the scroll | `pageContentTop` 24 below the header; `cardGap` 16; `pageBottom` 24 + the bottom inset |
 | **Specialised** — see §3 | its own | the same gutter, cap, card gap and bottom where it has them |
 
 Every pushed page offers its way back: a back button in every state, loading and error included. One back glyph: the arrow. Two tiles sharing a line sit `tileGap` 8 apart; content cards are `homeCardRadius` 16.
@@ -86,6 +86,8 @@ Each of these breaks the default skeleton on purpose. The reasoning is recorded 
 **The brand-led tabs — `HomeHeader` instead of a title band.** Adult Home, Junior Home and Junior Progress open with the logo lockup and the bell (Issue #188), not `TabTitleBar`. (The unreachable `TeacherHomeScreen` draws the same, its title in its content.)
 
 **Teacher Schedule — the blue date band.** Its header is the date control and week strip on `scheduleBand`, drawn behind the status bar; the grid runs full width (no 480 cap) under it. Its gutter is the standard 16.
+
+**Teacher "Багш нар" — 40 below the header.** The `tsag-solih` reference sets its first teacher row 40 below `BackTitleHeader`, not the standard `pageContentTop` 24 (Issue #372). The header itself is the shared one, unchanged.
 
 **Junior Home — the map.** Full-bleed scenery under `HomeHeader`; no column cap.
 

@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_string
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_pill_button.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_request_parts.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_session_sheet.dart';
+import 'package:aia_mobile/shared/widgets/back_title_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -333,6 +334,24 @@ void main() {
       semantics.dispose();
     });
 
+    testWidgets('393 wide: Room 204 and the date and times share one line, '
+        'as the reference draws them', (tester) async {
+      await pumpSheet(tester, sheet());
+      final room = tester.getRect(find.text('Room 204'));
+      final time = tester.getRect(find.text('11-р сарын 17 • 14:00-17:00'));
+      expect(time.top, room.top);
+      expect(time.left, greaterThan(room.right));
+    });
+
+    testWidgets('320 wide: the date and times wrap under the room, whole', (
+      tester,
+    ) async {
+      expect(await pumpSheet(tester, sheet(), width: 320), isEmpty);
+      final room = tester.getRect(find.text('Room 204'));
+      final time = tester.getRect(find.text('11-р сарын 17 • 14:00-17:00'));
+      expect(time.top, greaterThan(room.bottom));
+    });
+
     for (final width in widths) {
       for (final scale in scales) {
         testWidgets('${width.toInt()} wide, text ×$scale: no overflow, the '
@@ -360,6 +379,29 @@ void main() {
         });
       }
     }
+  });
+
+  testWidgets('"Багш нар" sets its first row 40 below the shared header, as '
+      'the reference does', (tester) async {
+    useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const TeacherRequestScreen(
+          candidates: [
+            TeacherRequestCandidate(
+              name: 'Баатар',
+              status: TeacherRequestStatus.notSent,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final header = tester.getRect(find.byType(BackTitleHeader));
+    final row = tester.getRect(find.byType(TeacherRequestRow));
+    expect(header.bottom, 44 + 52);
+    expect(row.top - header.bottom, 40);
   });
 
   test('nothing in the app opens the request sheets yet: no request data '
