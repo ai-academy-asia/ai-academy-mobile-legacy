@@ -9,8 +9,9 @@ enum AttendanceFailureKind {
   /// has run out, or the API refused the token with a 401.
   sessionExpired,
 
-  /// The API refused the request itself — a 4xx other than 401. No error
-  /// codes are documented for this endpoint.
+  /// The API refused the request itself — a 4xx other than 401. The
+  /// attendance read documents no codes; a check-in's refusal carries its
+  /// backend code in [AttendanceFailure.code].
   rejected,
 
   /// The request never completed — no connectivity, DNS failure, timeout.
@@ -25,14 +26,22 @@ enum AttendanceFailureKind {
 }
 
 class AttendanceFailure implements Exception {
-  const AttendanceFailure(this.kind, {this.detail});
+  const AttendanceFailure(this.kind, {this.detail, this.code});
 
   final AttendanceFailureKind kind;
+
+  /// The backend's own error code — the `error` of its `{"error": code}`
+  /// body — when a check-in was refused with one (Issue #382):
+  /// `token_required`, `invalid_token`, `not_enrolled`. Null otherwise.
+  /// Never the token.
+  final String? code;
 
   /// Technical context for logs — never shown to the user.
   final String? detail;
 
   @override
   String toString() =>
-      'AttendanceFailure(${kind.name}${detail == null ? '' : ': $detail'})';
+      'AttendanceFailure(${kind.name}'
+      '${code == null ? '' : ' [$code]'}'
+      '${detail == null ? '' : ': $detail'})';
 }

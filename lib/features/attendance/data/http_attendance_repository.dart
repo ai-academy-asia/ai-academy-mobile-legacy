@@ -5,15 +5,17 @@ import 'package:http/http.dart' as http;
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_failure.dart';
 import '../../auth/domain/auth_session_store.dart';
+import '../domain/attendance_check_in.dart';
 import '../domain/attendance_failure.dart';
 import '../domain/attendance_repository.dart';
 import '../domain/course_attendance.dart';
 import '../../auth/data/authenticated_client.dart';
 
-/// Reads the signed-in student's attendance in one course against the AI
-/// Academy API.
+/// Reads the signed-in student's attendance in one course, and checks the
+/// student in from a teacher's QR, against the AI Academy API.
 ///
-///     GET https://api.ai-academy.asia/me/attendance?course={course_slug}
+///     GET  https://api.ai-academy.asia/me/attendance?course={course_slug}
+///     POST https://api.ai-academy.asia/me/attendance/check-in  {"token"}
 ///     Authorization: Bearer <access_token>
 ///
 /// Field names are the verified production responses' — see
@@ -89,6 +91,145 @@ class HttpAttendanceRepository implements AttendanceRepository {
 
     return _attendanceFromBody(response.body);
   }
+
+  /// `POST /me/attendance/check-in` with `{"token": token}` — the token
+  /// exactly as given (the backend trims it). Verified from the backend's
+  /// source (`app/services/attendance/checkin.py`, `check_in`); no live
+  /// response is captured. `201` is a first check-in, `200` a repeat that
+  /// returns the existing record; both answer `{session_id, status,
+  /// method, checked_in_at}`. Refusals are `{"error": code}`, kept as
+  /// [AttendanceFailure.code]. The token is never put in a failure.
+  @override
+  Future<AttendanceCheckIn> checkIn(String token) async {
+    _ensureSession();
+
+    final http.Response response;
+    try {
+      response = await postJsonRaw(
+        client: _client,
+        url: _baseUrl.resolve('/me/attendance/check-in'),
+        body: {'token': token},
+        headers: _sessionStore.authorizationHeader,
+        timeout: timeout,
+      );
+    } on ApiFailure catch (failure) {
+      throw AttendanceFailure(
+        AttendanceFailureKind.network,
+        detail: failure.detail,
+      );
+    }
+
+    final failure = _failureForStatus(response.statusCode);
+    if (failure != null) {
+      if (failure.kind == AttendanceFailureKind.sessionExpired) {
+        _sessionStore.clear();
+      }
+      throw AttendanceFailure(
+        failure.kind,
+        detail: failure.detail,
+        code: _errorCode(response.body),
+      );
+    }
+    final first = switch (response.statusCode) {
+      201 => true,
+      200 => false,
+      _ => throw AttendanceFailure(
+        AttendanceFailureKind.unexpected,
+        detail: 'HTTP ${response.statusCode}',
+      ),
+    };
+    return _checkInFromBody(response.body, firstCheckIn: first);
+  }
+
+  void _ensureSession() {
+    if (!_sessionStore.isSignedIn) {
+      throw const AttendanceFailure(
+        AttendanceFailureKind.sessionExpired,
+        detail: 'no session held',
+      );
+    }
+    if (_sessionStore.isExpired()) {
+      throw const AttendanceFailure(
+        AttendanceFailureKind.sessionExpired,
+        detail: 'session lifetime ran out',
+      );
+    }
+  }
+}
+
+/// The `error` of a `{"error": code, ...}` body, or null for any other body.
+String? _errorCode(String body) {
+  try {
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) {
+      final code = decoded['error'];
+      if (code is String && code.isNotEmpty) return code;
+    }
+  } on FormatException {
+    // Not JSON: no code to read.
+  }
+  return null;
+}
+
+/// `{session_id, status, method, checked_in_at}`, every field kept as sent.
+/// A detail names the field, never a value — the body is the server's, but
+/// nothing here should echo what was posted.
+AttendanceCheckIn _checkInFromBody(String body, {required bool firstCheckIn}) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException {
+    throw const AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'check-in: malformed JSON',
+    );
+  }
+  if (decoded is! Map<String, dynamic>) {
+    throw const AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'check-in: response was not a JSON object',
+    );
+  }
+
+  final sessionId = decoded['session_id'];
+  final status = decoded['status'];
+  final method = decoded['method'];
+  final checkedInAt = decoded['checked_in_at'];
+  if (sessionId is! int) {
+    throw const AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'check-in: session_id: expected an int',
+    );
+  }
+  if (status is! String || status.isEmpty) {
+    throw const AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'check-in: status: expected a string',
+    );
+  }
+  if (method != null && method is! String) {
+    throw const AttendanceFailure(
+      AttendanceFailureKind.server,
+      detail: 'check-in: method: expected a string or null',
+    );
+  }
+  DateTime? at;
+  if (checkedInAt != null) {
+    at = checkedInAt is String ? DateTime.tryParse(checkedInAt) : null;
+    if (at == null) {
+      throw const AttendanceFailure(
+        AttendanceFailureKind.server,
+        detail: 'check-in: checked_in_at: expected a timestamp or null',
+      );
+    }
+  }
+  return AttendanceCheckIn(
+    sessionId: sessionId,
+    status: status,
+    method: method as String?,
+    checkedInAt: at,
+    firstCheckIn: firstCheckIn,
+  );
 }
 
 /// Same mapping every other authenticated GET keeps its own copy of.
