@@ -198,7 +198,7 @@ class _ClassesView extends StatelessWidget {
           padding: const EdgeInsets.only(top: 32),
           child: Text(
             TeacherHomeStrings.empty,
-            style: AppTypography.cardSupporting.copyWith(
+            style: AppTypography.supporting.copyWith(
               color: context.palette.textSecondary,
             ),
             textAlign: TextAlign.center,
@@ -243,7 +243,8 @@ const double _titleToFirstCard = 9;
 /// Between cards: 16 in the reference.
 const double _cardGap = 16;
 
-final TextStyle _titleStyle = AppTypography.heading.copyWith();
+/// The tab's title — a top-level screen's heading.
+const TextStyle _titleStyle = AppTypography.screenTitle;
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
@@ -281,7 +282,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,

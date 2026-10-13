@@ -233,7 +233,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -381,18 +381,14 @@ class _Hero extends StatelessWidget {
             children: [
               Text(
                 path.courseTitle,
-                style: AppTypography.heading.copyWith(
-                  fontSize: 18,
-                  height: 26 / 18,
+                style: AppTypography.cardTitle.copyWith(
                   color: context.palette.textTitle,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 path.description,
-                style: AppTypography.statLabel.copyWith(
-                  fontSize: 12,
-                  height: 18 / 12,
+                style: AppTypography.supporting.copyWith(
                   color: context.palette.textSupporting,
                 ),
               ),
@@ -570,9 +566,7 @@ class _CertificationSection extends StatelessWidget {
                   children: [
                     Text(
                       CourseLearningStrings.certificationLabel,
-                      style: AppTypography.catalogSectionLabel.copyWith(
-                        fontSize: 12,
-                        height: 16 / 12,
+                      style: AppTypography.caption.copyWith(
                         color: context.palette.textSupporting,
                       ),
                     ),
@@ -582,9 +576,7 @@ class _CertificationSection extends StatelessWidget {
                     const SizedBox(height: 1),
                     Text(
                       CourseLearningStrings.certificationTitle,
-                      style: AppTypography.catalogTitle.copyWith(
-                        fontSize: 18,
-                        height: 26 / 18,
+                      style: AppTypography.sectionTitle.copyWith(
                         color: context.palette.textTitle,
                       ),
                     ),

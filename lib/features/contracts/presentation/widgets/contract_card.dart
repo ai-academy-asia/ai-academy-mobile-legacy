@@ -333,22 +333,11 @@ class _ActionPill extends StatelessWidget {
   }
 }
 
-/// `ProgramCard`'s caption and title: 12 over 18/700.
-final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 12,
-  height: 18 / 12,
-);
+/// The cohort's name over the course's, as on every card that names a course.
+const TextStyle _captionStyle = AppTypography.caption;
 
-final TextStyle _titleStyle = AppTypography.cardHeading.copyWith(
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-);
+/// The course's name — the same style on every card and page that shows one.
+const TextStyle _titleStyle = AppTypography.cardTitle;
 
-const TextStyle _actionStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w500,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Гэрээ татах" / "Гэрээ байгуулах" — a button's label.
+const TextStyle _actionStyle = AppTypography.buttonLabel;

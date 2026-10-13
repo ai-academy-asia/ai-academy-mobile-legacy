@@ -10,9 +10,9 @@ import 'fake_course_learning_repository.dart';
 
 /// The Course Module List's module cards at larger system text sizes (Issue
 /// #349). A card used to be a fixed 86 tall, so from 1.5× its last line —
-/// the module's date and time — was clipped. 86 is now its minimum: at the
-/// default size every card is exactly 86, and it grows when its text needs
-/// the room.
+/// the module's date and time — was clipped. 86 is now its minimum, and it
+/// grows when its text needs the room — at the default size, since Issue
+/// #366's type scale, to its content's 94.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -69,7 +69,9 @@ void main() {
             find.byElementPredicate((e) => e == card),
           );
           expect(rect.height, greaterThanOrEqualTo(86), reason: module.title);
-          if (scale == 1.0) expect(rect.height, 86, reason: module.title);
+          // Its content's 94 at the default size since Issue #366's type
+          // scale; 86 stays the minimum.
+          if (scale == 1.0) expect(rect.height, 94, reason: module.title);
 
           final lines = [
             for (final element in within(

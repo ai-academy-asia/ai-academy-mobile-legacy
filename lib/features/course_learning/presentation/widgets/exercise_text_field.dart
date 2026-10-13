@@ -22,11 +22,9 @@ import '../../../../core/theme/app_typography.dart';
 /// `FloatingLabelBehavior.always`, not the rising-on-focus behaviour
 /// `AppTextField` uses, since the reference never shows it resting inside the
 /// box.
-/// Solved from the reference frame's ink widths at 1:1. Local to this screen:
-/// `fieldValue`/`fieldPlaceholder`/`fieldFloatingLabel` are the shared
-/// `AppTextField` styles that Login and Reset Password render with.
-const double _valueSize = 14;
-const double _labelSize = 12;
+///
+/// Its type is `AppTextField`'s: [AppTypography.fieldText] typed and resting,
+/// [AppTypography.fieldLabel] floated.
 
 class ExerciseTextField extends StatelessWidget {
   const ExerciseTextField({
@@ -74,24 +72,18 @@ class ExerciseTextField extends StatelessWidget {
         enabled: enabled,
         maxLines: multiline ? 6 : 1,
         textAlignVertical: TextAlignVertical.top,
-        style: AppTypography.fieldValue.copyWith(
-          fontSize: _valueSize,
-          color: palette.textPrimary,
-        ),
+        style: AppTypography.fieldText.copyWith(color: palette.textPrimary),
         cursorColor: palette.borderFocused,
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: AppTypography.fieldPlaceholder.copyWith(
-            fontSize: _valueSize,
+          hintStyle: AppTypography.fieldText.copyWith(
             color: palette.textSecondary,
           ),
           labelText: label,
-          labelStyle: AppTypography.fieldPlaceholder.copyWith(
-            fontSize: _valueSize,
+          labelStyle: AppTypography.fieldText.copyWith(
             color: palette.textSecondary,
           ),
-          floatingLabelStyle: AppTypography.fieldFloatingLabel.copyWith(
-            fontSize: _labelSize,
+          floatingLabelStyle: AppTypography.fieldLabel.copyWith(
             color: palette.textSecondary,
           ),
           floatingLabelBehavior: label == null

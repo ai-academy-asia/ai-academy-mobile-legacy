@@ -174,17 +174,11 @@ String _clock(String wire) {
 const double _badgeToCaption = 16;
 const double _titleToDetails = 8;
 
-final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 12,
-  height: 18 / 12,
-);
+/// The cohort's name over the course's, as on every card that names a course.
+const TextStyle _captionStyle = AppTypography.caption;
 
-final TextStyle _titleStyle = AppTypography.programTitle.copyWith(
-  fontSize: 18,
-  height: 26 / 18,
-);
+/// The course's name — the same style on every card and page that shows one.
+const TextStyle _titleStyle = AppTypography.cardTitle;
 
-final TextStyle _detailStyle = AppTypography.programTitle.copyWith(
-  fontSize: 14,
-  height: 20 / 14,
-);
+/// The room and time lines — values.
+const TextStyle _detailStyle = AppTypography.bodyStrong;

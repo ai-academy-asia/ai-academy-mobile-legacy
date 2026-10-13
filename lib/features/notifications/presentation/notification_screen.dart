@@ -326,7 +326,7 @@ class _Message extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.statLabel.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -367,26 +367,11 @@ const double _dotSize = 8;
 /// Read by a screen reader before an unread row's title.
 const String _unreadLabel = 'Шинэ';
 
-const TextStyle _rowTitleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// A row's title — a list row's primary line.
+const TextStyle _rowTitleStyle = AppTypography.itemTitle;
 
-const TextStyle _bodyStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The row's body.
+const TextStyle _bodyStyle = AppTypography.body;
 
-const TextStyle _ageStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The row's age, in the app's secondary ink.
+const TextStyle _ageStyle = AppTypography.dateTime;

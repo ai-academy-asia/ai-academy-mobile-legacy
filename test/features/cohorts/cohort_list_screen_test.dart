@@ -3,6 +3,7 @@ import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
+import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
@@ -331,15 +332,16 @@ void main() {
       expect(tester.getTopLeft(find.byType(AppBottomNav)).dy, 748);
     });
 
-    testWidgets('the heading is the reference\'s 24 over a 34 line', (
+    testWidgets('the heading is the shared screen title, 26 over a 34 line', (
       tester,
     ) async {
       await pumpCatalog(tester);
 
-      // A size up from [AppTypography.heading]'s 22, which four other screens
-      // share; the line box stays 34 so the heading's top edge does not drift.
+      // Every top-level screen's heading is [AppTypography.screenTitle]
+      // (Issue #366); its 34 line keeps the heading's top edge where it was.
       final style = tester.widget<Text>(find.text('Courses')).style!;
-      expect(style.fontSize, 24);
+      expect(style.fontSize, AppTypography.screenTitle.fontSize);
+      expect(style.fontSize, 26);
       expect(style.fontSize! * style.height!, 34);
     });
   });
@@ -1138,8 +1140,9 @@ void main() {
           ),
           findsNothing,
         );
-        // Figma's no-progress card: 361 Fill x 148 Hug.
-        expect(tester.getSize(card), const Size(361, 148));
+        // Figma's no-progress card, 361 Fill x 148 Hug — 150 since the
+        // course name's line is [AppTypography.cardTitle]'s 28 (Issue #366).
+        expect(tester.getSize(card), const Size(361, 150));
       },
     );
 
@@ -1161,8 +1164,10 @@ void main() {
       // carries only `{cohortId, progressPct}`. The line is left out rather
       // than filled with a guess, so the card is correspondingly shorter.
       final height = tester.getSize(find.byType(CohortCard)).height;
-      expect(height, greaterThan(148));
-      expect(height, closeTo(194, 1));
+      // 198 since Issue #366: the title's 28 line and the 20 of
+      // [AppTypography.supporting] under the bar each add 2.
+      expect(height, greaterThan(150));
+      expect(height, closeTo(198, 1));
     });
 
     testWidgets('lays the card\'s parts out to Figma\'s measurements', (
@@ -1183,8 +1188,9 @@ void main() {
           .ancestor(of: find.text(text), matching: find.byType(Container))
           .first;
 
-      // 361 x 148, its content inset 16 either side: Figma's 329 Fill.
-      expect(card.size, const Size(361, 148));
+      // 361 x 150 (148 before Issue #366's 28 title line), its content inset
+      // 16 either side: Figma's 329 Fill.
+      expect(card.size, const Size(361, 150));
 
       // Adult badge 88.92 x 32, 24 below the top and 16 in from the edge; its
       // icon 19.92 square.
@@ -1196,26 +1202,28 @@ void main() {
       expect(icon.size.width, closeTo(19.92, 0.01));
       expect(icon.size.height, closeTo(19.92, 0.01));
 
-      // Status pill 83 x 24, right-aligned to the same 16 inset, centred on
+      // Status pill 87.2 x 24, right-aligned to the same 16 inset, centred on
       // the badge's row.
       final pill = inCard(boxAround('Finished'));
       expect(pill.size.height, 24);
-      expect(pill.size.width, closeTo(83, 0.5));
+      // 87.2, Figma's 83 with the label at [AppTypography.badge]'s 13
+      // rather than 12 (Issue #366).
+      expect(pill.size.width, closeTo(87.2, 0.5));
       expect(pill.right, closeTo(345, 0.01));
       expect(pill.center.dy, badge.center.dy);
       expect(
         tester.widget<Text>(find.text('Finished')).style,
         isA<TextStyle>()
-            .having((style) => style.fontSize, 'fontSize', 12)
-            .having((style) => style.height, 'height', 16 / 12),
+            .having((style) => style.fontSize, 'fontSize', 13)
+            .having((style) => style.height, 'height', 16 / 13),
       );
 
-      // Caption 18 high, 24 under the badge row; the title 26 high, flush
-      // under it.
+      // Caption 18 high, 24 under the badge row; the title 28 high
+      // ([AppTypography.cardTitle]), flush under it.
       final caption = inCard(find.text('Cohort 01'));
       final title = inCard(find.text('Зуны бүтээлч кэмп'));
       expect(caption.height, 18);
-      expect(title.height, 26);
+      expect(title.height, 28);
       expect(caption.top - badge.bottom, 24);
       expect(title.top, caption.bottom);
       expect(caption.left, 16);

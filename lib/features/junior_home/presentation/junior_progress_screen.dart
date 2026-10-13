@@ -572,7 +572,7 @@ class _StateMessage extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textPrimary,
               ),
               textAlign: TextAlign.center,
@@ -609,29 +609,12 @@ class _PanelRule extends StatelessWidget {
 // Sizes read off the frame's cap heights (Manrope's cap height is 0.72 em).
 // None bakes a colour: each use supplies the palette's (Issue #272).
 
-/// "3 хоног дутуу". 14 bold; blue (`accentText`), or `errorInk` overdue.
-const TextStyle _statusStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "3 хоног дутуу" — a status's value; blue (`accentText`), or `errorInk`
+/// overdue.
+const TextStyle _statusStyle = AppTypography.bodyStrong;
 
-/// A card's supporting line. 14 regular.
-const TextStyle _bodyStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// A card's supporting line.
+const TextStyle _bodyStyle = AppTypography.body;
 
-/// "Төлбөр төлөх". 14 semibold, `onPrimary`.
-const TextStyle _payStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 16,
-  fontWeight: FontWeight.w600,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Төлбөр төлөх" — a button's label, `onPrimary`.
+const TextStyle _payStyle = AppTypography.buttonLabel;

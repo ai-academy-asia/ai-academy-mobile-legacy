@@ -35,9 +35,14 @@ class ContactManagerCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         child: Container(
-          height: AppDimens.cardHeight,
+          // The card's height is a minimum: at the default size its two lines
+          // sit centred in it, and larger system text grows it rather than
+          // spilling them out (Issue #366). The 12 above and below only
+          // matters once it has grown.
+          constraints: const BoxConstraints(minHeight: AppDimens.cardHeight),
           padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.cardPadding,
+            vertical: 12,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -55,19 +60,19 @@ class ContactManagerCard extends StatelessWidget {
                   children: [
                     Text(
                       supportingText,
-                      style: AppTypography.cardSupporting.copyWith(
+                      style: AppTypography.caption.copyWith(
                         color: context.palette.textSecondary,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: AppDimens.cardLineGap),
                     Text(
                       title,
-                      style: AppTypography.cardTitle.copyWith(
+                      style: AppTypography.itemTitle.copyWith(
                         color: context.palette.textPrimary,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

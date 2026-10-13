@@ -143,7 +143,7 @@ class _NoteTabState extends State<NoteTab> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       errorMessage,
-                      style: AppTypography.fieldError.copyWith(
+                      style: AppTypography.fieldHelper.copyWith(
                         color: context.palette.error,
                       ),
                     ),
@@ -206,10 +206,7 @@ class _ExistingNoteCard extends StatelessWidget {
                 backgroundColor: palette.primary,
                 child: Text(
                   note.authorInitials,
-                  style: AppTypography.buttonLabel.copyWith(
-                    color: palette.onPrimary,
-                    fontSize: 13,
-                  ),
+                  style: AppTypography.badge.copyWith(color: palette.onPrimary),
                 ),
               ),
               const SizedBox(width: 10),
@@ -219,13 +216,13 @@ class _ExistingNoteCard extends StatelessWidget {
                 children: [
                   Text(
                     note.authorName,
-                    style: AppTypography.cardHeading.copyWith(
+                    style: AppTypography.itemTitle.copyWith(
                       color: palette.textPrimary,
                     ),
                   ),
                   Text(
                     note.authorLabel,
-                    style: AppTypography.cardSupporting.copyWith(
+                    style: AppTypography.caption.copyWith(
                       color: palette.textSecondary,
                     ),
                   ),
@@ -236,14 +233,12 @@ class _ExistingNoteCard extends StatelessWidget {
           const SizedBox(height: _avatarToMessage),
           Text(
             note.message,
-            style: AppTypography.settingsRowLabel.copyWith(
-              color: palette.textPrimary,
-            ),
+            style: AppTypography.body.copyWith(color: palette.textPrimary),
           ),
           const SizedBox(height: _messageToTimestamp),
           Text(
             note.timestampLabel,
-            style: AppTypography.cardSupporting.copyWith(
+            style: AppTypography.dateTime.copyWith(
               color: palette.textSecondary,
             ),
           ),

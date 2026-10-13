@@ -55,9 +55,10 @@ class JuniorCourseProgressCard extends StatelessWidget {
                 progress.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.heading.copyWith(
-                  fontSize: 18 * scale,
-                  height: 26 / 18,
+                // The course's name ([AppTypography.cardTitle]), scaled with
+                // the map like everything on it.
+                style: AppTypography.cardTitle.copyWith(
+                  fontSize: AppTypography.cardTitle.fontSize! * scale,
                   color: context.palette.textPrimary,
                 ),
               ),

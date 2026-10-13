@@ -38,7 +38,7 @@ class QuizResultQuestionRow extends StatelessWidget {
               width: 20,
               child: Text(
                 '$number',
-                style: AppTypography.cardSupporting.copyWith(
+                style: AppTypography.supporting.copyWith(
                   color: context.palette.textSecondary,
                 ),
               ),
@@ -47,7 +47,7 @@ class QuizResultQuestionRow extends StatelessWidget {
             Expanded(
               child: Text(
                 CourseLearningStrings.quizResultQuestionLabel,
-                style: AppTypography.settingsRowLabel.copyWith(
+                style: AppTypography.itemLabel.copyWith(
                   color: context.palette.textPrimary,
                 ),
               ),

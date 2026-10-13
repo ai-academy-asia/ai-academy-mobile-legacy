@@ -24,13 +24,10 @@ import '../../domain/course_exercise.dart';
 /// none). Tapping it opens the link — see
 /// `CourseExerciseDetailController.downloadMaterial`.
 /// Solved from the reference frame at 1:1 — the glyph sits on a 32 tile
-/// (`AppPalette.surfaceTile`) and the row's two lines are a size apart, both
-/// lighter than the shared `cardHeading`/`cardSupporting` this screen
-/// inherits them from.
+/// (`AppPalette.surfaceTile`). The name is [AppTypography.itemLabel], the
+/// lighter row role: the row is a file, not a heading.
 const double _tileSize = 32;
 const double _glyphSize = 20;
-const double _titleSize = 14;
-const double _sizeLabelSize = 13;
 
 class CourseMaterialCard extends StatelessWidget {
   const CourseMaterialCard({
@@ -99,9 +96,7 @@ class CourseMaterialCard extends StatelessWidget {
               children: [
                 Text(
                   material.name,
-                  style: AppTypography.cardHeading.copyWith(
-                    fontSize: _titleSize,
-                    fontWeight: FontWeight.w500,
+                  style: AppTypography.itemLabel.copyWith(
                     color: palette.textPrimary,
                   ),
                   maxLines: 1,
@@ -110,8 +105,7 @@ class CourseMaterialCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   material.sizeLabel,
-                  style: AppTypography.cardSupporting.copyWith(
-                    fontSize: _sizeLabelSize,
+                  style: AppTypography.supporting.copyWith(
                     color: palette.textSecondary,
                   ),
                 ),

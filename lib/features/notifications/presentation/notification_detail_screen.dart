@@ -162,34 +162,15 @@ const double _titleToDate = 4;
 const double _metaToRule = AppDimens.headingToForm;
 const double _ruleToBody = AppDimens.headingToForm;
 
-/// The header title's size on the row title's 24 line — still the page's
-/// strongest text, a step under the old 20/28.
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 24 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The notification's title — the page's strongest text under the header.
+const TextStyle _titleStyle = AppTypography.sectionTitle;
 
-/// The row's age type, in the app's secondary ink.
-const TextStyle _dateStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// When it was sent, in the app's secondary ink.
+const TextStyle _dateStyle = AppTypography.dateTime;
 
-/// The row's body (14/20), a step up and in the primary ink: here it is the
-/// thing being read.
-const TextStyle _bodyStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The notification's body, in the primary ink: here it is the thing being
+/// read.
+const TextStyle _bodyStyle = AppTypography.body;
 
 /// [text] with each paragraph's last word bound to the one before it by a
 /// no-break space, when that last word is short — so a body never ends on a

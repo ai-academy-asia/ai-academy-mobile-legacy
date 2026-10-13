@@ -222,7 +222,7 @@ void main() {
         // What the notch shows: Material scales the style by 0.75.
         expect(
           style.fontSize! * 0.75,
-          closeTo(AppTypography.fieldFloatingLabel.fontSize!, 0.001),
+          closeTo(AppTypography.fieldLabel.fontSize!, 0.001),
           reason: 'field $index',
         );
         expect(
@@ -574,7 +574,7 @@ void main() {
     // These kept drifting heavy across passes, so they are pinned: the design
     // is small, light and neutral, and body text is black at an opacity — not
     // the brand navy.
-    testWidgets('the heading is 22/34 bold and neutral, not ExtraBold navy', (
+    testWidgets('the heading is 26/34 bold and neutral, not ExtraBold navy', (
       tester,
     ) async {
       await pumpLogin(tester, FakeAuthRepository());
@@ -590,14 +590,15 @@ void main() {
           )
           .style!;
 
-      expect(style.fontSize, 22);
+      // [AppTypography.screenTitle], every top-level heading's (Issue #366).
+      expect(style.fontSize, 26);
       expect(style.height! * style.fontSize!, 34);
       expect(style.fontWeight, FontWeight.w700);
       expect(style.color, AppColors.textPrimary);
       expect(style.fontFamily, 'Manrope');
     });
 
-    testWidgets('button labels are 12/20 semibold', (tester) async {
+    testWidgets('button labels are 16/24 semibold', (tester) async {
       await pumpLogin(tester, FakeAuthRepository());
 
       for (final finder in [signInButton(), resetButton()]) {
@@ -606,7 +607,9 @@ void main() {
               find.descendant(of: finder, matching: find.byType(Text)).first,
             )
             .style!;
-        expect(style.fontSize, 12);
+        // [AppTypography.buttonLabel], every button's (Issue #366).
+        expect(style.fontSize, 16);
+        expect(style.fontSize! * style.height!, 24);
         expect(style.fontWeight, FontWeight.w600);
       }
     });

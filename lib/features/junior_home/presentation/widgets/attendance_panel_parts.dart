@@ -198,67 +198,25 @@ class AttendanceLegend extends StatelessWidget {
 // None bakes a colour: each use supplies the palette's (Dark Mode Phase 7,
 // Issue #272) — the two public styles are also drawn by Adult attendance.
 
-/// The summary cards' titles — "Хичээлийн ирц", "Шалгалтын дүн". 16 bold,
-/// `textPrimary` at use.
-const TextStyle attendanceCardTitleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The summary cards' titles — "Хичээлийн ирц", "Шалгалтын дүн": two cards
+/// share a row, so a row's title, not a section heading. `textPrimary` at use.
+const TextStyle attendanceCardTitleStyle = AppTypography.itemTitle;
 
-/// The smaller titles — "Дараанийн төлөлт:", "Дараагийн хичээл:",
-/// "Тайлбар:". 14 semibold, `textPrimary` at use.
-const TextStyle attendanceLabelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w600,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The smaller titles — "Дараанийн төлөлт:", "Дараагийн хичээл:", "Тайлбар:" —
+/// a label leading its value, as on Home's program card. `textPrimary` at use.
+const TextStyle attendanceLabelStyle = AppTypography.bodyStrong;
 
-/// The summary badges. 14 medium, blue.
-const TextStyle _badgeStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w500,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The summary badges, blue.
+const TextStyle _badgeStyle = AppTypography.badge;
 
-/// "08/08 • 09:00 – 11:00". 15 regular, blue.
-const TextStyle _timeStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 15,
-  height: 22 / 15,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "08/08 • 09:00 – 11:00", blue.
+const TextStyle _timeStyle = AppTypography.dateTime;
 
-/// "Наймдугаар сар, 2026". 14 regular, grey.
-const TextStyle _monthStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 22 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Наймдугаар сар, 2026", grey.
+const TextStyle _monthStyle = AppTypography.dateTime;
 
-/// The legend's hint, two lines. 14 regular, grey.
-const TextStyle _hintStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The legend's hint, two lines, grey.
+const TextStyle _hintStyle = AppTypography.supporting;
 
-/// A legend row's label. 14 regular, grey.
-const TextStyle _legendLabelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// A legend row's label, grey.
+const TextStyle _legendLabelStyle = AppTypography.supporting;

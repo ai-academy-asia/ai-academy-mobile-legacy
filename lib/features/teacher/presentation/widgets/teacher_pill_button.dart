@@ -111,10 +111,9 @@ class TeacherPillButton extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.programTitle.copyWith(
+                  style: AppTypography.buttonLabel.copyWith(
                     fontSize: fontSize,
                     height: 1.2,
-                    fontWeight: FontWeight.w600,
                     color: ink,
                   ),
                 ),

@@ -271,7 +271,7 @@ class _MapMessage extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textPrimary,
               ),
               textAlign: TextAlign.center,

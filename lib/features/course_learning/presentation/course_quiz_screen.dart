@@ -42,12 +42,11 @@ import 'widgets/quiz_progress_header.dart';
 /// failure's copy and an outlined retry (`CourseExerciseDetailScreen`'s
 /// `_ErrorView`). An answer in flight leaves the options inert until the
 /// server replies; a failed answer or finish shows its copy in
-/// [AppTypography.fieldError], as the Note and Assignment tabs do.
+/// [AppTypography.fieldHelper], as the Note tab does.
 /// Sampled off the Quiz frames at 1:1. The page (`AppPalette.surfaceSubtle`)
 /// is a shade lighter than the app-wide `pageBackground`, the question in
 /// `textTitle`, and the CTA runs the full content column rather than the 329
 /// the Exercise frames inset it to.
-const double _titleSize = 18;
 const double _titleToOptions = 15;
 
 /// 12 of layout between the boxes; the 4 of band under each one overlaps it,
@@ -156,8 +155,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
               children: [
                 Text(
                   question.prompt,
-                  style: AppTypography.heading.copyWith(
-                    fontSize: _titleSize,
+                  style: AppTypography.sectionTitle.copyWith(
                     color: context.palette.textTitle,
                   ),
                 ),
@@ -183,7 +181,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
                   const SizedBox(height: _toError),
                   Text(
                     answerError,
-                    style: AppTypography.fieldError.copyWith(
+                    style: AppTypography.fieldHelper.copyWith(
                       color: context.palette.error,
                     ),
                   ),
@@ -207,7 +205,7 @@ class _CourseQuizScreenState extends State<CourseQuizScreen> {
             ),
             child: Text(
               finishError,
-              style: AppTypography.fieldError.copyWith(
+              style: AppTypography.fieldHelper.copyWith(
                 color: context.palette.error,
               ),
               textAlign: TextAlign.center,
@@ -292,7 +290,7 @@ class _StartFailedView extends StatelessWidget {
                 children: [
                   Text(
                     message,
-                    style: AppTypography.cardSupporting.copyWith(
+                    style: AppTypography.supporting.copyWith(
                       color: context.palette.textSecondary,
                     ),
                     textAlign: TextAlign.center,

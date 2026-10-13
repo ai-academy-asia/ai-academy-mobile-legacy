@@ -134,9 +134,7 @@ class CourseModuleCard extends StatelessWidget {
                   children: [
                     Text(
                       '${CourseLearningStrings.moduleCaption} ${module.order}',
-                      style: AppTypography.catalogSectionLabel.copyWith(
-                        fontSize: 12,
-                        height: 16 / 12,
+                      style: AppTypography.caption.copyWith(
                         color: palette.textSupporting,
                       ),
                     ),
@@ -145,10 +143,7 @@ class CourseModuleCard extends StatelessWidget {
                     // boxes' own leading, not a gap.
                     Text(
                       module.title,
-                      style: AppTypography.cardHeading.copyWith(
-                        fontSize: 14,
-                        height: 20 / 14,
-                        fontWeight: FontWeight.w700,
+                      style: AppTypography.itemTitle.copyWith(
                         color: locked ? palette.textLocked : palette.textTitle,
                       ),
                       maxLines: 1,
@@ -157,9 +152,7 @@ class CourseModuleCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       module.scheduleLabel,
-                      style: AppTypography.cardSupporting.copyWith(
-                        fontSize: 12,
-                        height: 16 / 12,
+                      style: AppTypography.supporting.copyWith(
                         color: palette.textSupporting,
                       ),
                     ),

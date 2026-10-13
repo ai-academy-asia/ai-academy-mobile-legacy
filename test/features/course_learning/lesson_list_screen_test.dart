@@ -219,7 +219,7 @@ void main() {
       expect(find.text('3:00:00'), findsOneWidget);
     });
 
-    testWidgets('the lesson title is 14 ExtraBold, smaller than the module '
+    testWidgets('the lesson title is a row title, smaller than the module '
         'title', (tester) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
@@ -231,9 +231,10 @@ void main() {
           .widget<Text>(find.text('Language Model Training'))
           .style!;
 
-      expect(lessonTitle.fontSize, 14);
-      expect(lessonTitle.fontSize! * lessonTitle.height!, closeTo(20, 0.01));
-      expect(lessonTitle.fontWeight, FontWeight.w800);
+      // [AppTypography.itemTitle], as a module row's title is (Issue #366).
+      expect(lessonTitle.fontSize, 16);
+      expect(lessonTitle.fontSize! * lessonTitle.height!, closeTo(22, 0.01));
+      expect(lessonTitle.fontWeight, FontWeight.w700);
       // The module title is unchanged, and stays the larger heading.
       expect(moduleTitle.fontSize, 18);
       expect(moduleTitle.fontSize!, greaterThan(lessonTitle.fontSize!));

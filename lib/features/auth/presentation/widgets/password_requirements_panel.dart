@@ -53,7 +53,7 @@ class PasswordRequirementsPanel extends StatelessWidget {
       children: [
         Text(
           ResetPasswordStrings.requirementsTitle,
-          style: AppTypography.cardTitle.copyWith(
+          style: AppTypography.itemTitle.copyWith(
             color: context.palette.textPrimary,
           ),
         ),
@@ -152,8 +152,13 @@ class _RequirementRow extends StatelessWidget {
       label: label,
       checked: evaluated && met,
       child: ExcludeSemantics(
-        child: SizedBox(
-          height: AppDimens.requirementRowHeight,
+        // The row's height is a minimum, and the rule may wrap: one line at
+        // the reference size, two rather than a cut rule at larger text
+        // (Issue #366).
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: AppDimens.requirementRowHeight,
+          ),
           child: Row(
             children: [
               Icon(icon, size: AppDimens.requirementIconSize, color: color),
@@ -161,8 +166,8 @@ class _RequirementRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: AppTypography.cardSupporting.copyWith(color: color),
-                  maxLines: 1,
+                  style: AppTypography.supporting.copyWith(color: color),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

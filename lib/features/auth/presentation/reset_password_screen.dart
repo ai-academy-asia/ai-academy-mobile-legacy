@@ -118,10 +118,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         appBar: widget.showBackButton
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(52),
-                child: SafeArea(
-                  bottom: false,
-                  child: AppBackButton(),
-                ),
+                child: SafeArea(bottom: false, child: AppBackButton()),
               )
             : null,
         body: GestureDetector(
@@ -159,7 +156,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                                 Text(
                                   ResetPasswordStrings.title,
-                                  style: AppTypography.heading.copyWith(
+                                  style: AppTypography.screenTitle.copyWith(
                                     color: context.palette.textPrimary,
                                   ),
                                 ),
@@ -168,7 +165,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 ),
                                 Text(
                                   ResetPasswordStrings.supporting,
-                                  style: AppTypography.cardSupporting.copyWith(
+                                  style: AppTypography.supporting.copyWith(
                                     color: context.palette.textSecondary,
                                   ),
                                 ),
@@ -303,7 +300,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         alignment: Alignment.centerLeft,
         child: Text(
           message,
-          style: AppTypography.fieldError.copyWith(
+          style: AppTypography.fieldHelper.copyWith(
             color: context.palette.error,
           ),
           maxLines: 2,

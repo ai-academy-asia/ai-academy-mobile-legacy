@@ -103,7 +103,7 @@ class GradebookFilterBar extends StatelessWidget {
                     ? TeacherPillVariant.filled
                     : TeacherPillVariant.outlined,
                 height: 36,
-                fontSize: 15,
+                fontSize: AppTypography.buttonSmall.fontSize!,
                 onPressed: () => onChanged(filter),
               ),
             ),
@@ -303,7 +303,7 @@ class GradebookNotice extends StatelessWidget {
       ),
       child: Text(
         message,
-        style: AppTypography.cardSupporting.copyWith(
+        style: AppTypography.supporting.copyWith(
           color: context.palette.textSecondary,
         ),
         textAlign: TextAlign.center,
@@ -312,32 +312,19 @@ class GradebookNotice extends StatelessWidget {
   }
 }
 
-final TextStyle gradebookTitleStyle = AppTypography.programTitle.copyWith(
-  fontSize: 20,
-  height: 28 / 20,
-  fontWeight: FontWeight.w700,
-);
+/// The course's name over the gradebook screens — the same style on every card
+/// and page that shows one.
+const TextStyle gradebookTitleStyle = AppTypography.cardTitle;
 
-final TextStyle _nameStyle = AppTypography.programTitle.copyWith(
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w600,
-);
+/// A student's name over the row's title.
+const TextStyle _nameStyle = AppTypography.caption;
 
-final TextStyle _rowTitleStyle = AppTypography.programTitle.copyWith(
-  fontSize: 17,
-  height: 24 / 17,
-  fontWeight: FontWeight.w600,
-);
+/// A row's title — a list row's primary line.
+const TextStyle _rowTitleStyle = AppTypography.itemTitle;
 
-final TextStyle _initialsStyle = AppTypography.programTitle.copyWith(
-  fontSize: 16,
-  height: 1.2,
-  fontWeight: FontWeight.w700,
-);
+/// A student's initials in their avatar.
+final TextStyle _initialsStyle = AppTypography.itemTitle.copyWith(height: 1.2);
 
-final TextStyle _statTitleStyle = AppTypography.programTitle.copyWith(
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-);
+/// "Хичээлийн ирц" / "Шалгалтын дүн" — the student summary cards' titles, as on
+/// the attendance panels.
+const TextStyle _statTitleStyle = AppTypography.itemTitle;

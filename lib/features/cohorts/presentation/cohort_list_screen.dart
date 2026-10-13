@@ -24,11 +24,8 @@ import 'cohort_list_controller.dart';
 import 'cohort_list_strings.dart';
 import 'widgets/cohort_card.dart';
 
-/// The heading's size and the rule beneath it, measured off the reference at
-/// 1:1. The heading is a size up from [AppTypography.heading]'s 22, which four
-/// other screens share, so it is overridden here rather than on the token; the
-/// rule is a lighter grey than the global [AppColors.border].
-const double _headingSize = 24;
+/// The rule beneath the heading, measured off the reference at 1:1 — a
+/// lighter grey than the global [AppColors.border].
 const double _headingToRule = 14;
 
 /// The heading's line box starts flush with the safe-area inset — this screen
@@ -194,16 +191,9 @@ class _CohortListScreenState extends State<CohortListScreen> {
                       // way Figma draws it, with no back control.
                       child: Text(
                         CohortListStrings.heading,
-                        style: AppTypography.heading
-                            .copyWith(color: context.palette.textPrimary)
-                            .copyWith(
-                              fontSize: _headingSize,
-                              // The line box stays the 34 the token sets, so only
-                              // the glyphs grow and the heading's top edge does not
-                              // drift: the reference's ink is what was measured,
-                              // its leading was not.
-                              height: 34 / _headingSize,
-                            ),
+                        style: AppTypography.screenTitle.copyWith(
+                          color: context.palette.textPrimary,
+                        ),
                       ),
                     ),
                     // The header's own bottom rule — this screen had none
@@ -297,7 +287,7 @@ class _EmptyView extends StatelessWidget {
         ),
         child: Text(
           message,
-          style: AppTypography.cardSupporting.copyWith(
+          style: AppTypography.supporting.copyWith(
             color: context.palette.textSecondary,
           ),
           textAlign: TextAlign.center,
@@ -325,7 +315,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -427,7 +417,7 @@ class _CohortList extends StatelessWidget {
 ///
 /// Not [AppButton] for the retry action: that widget is documented as "a
 /// 44pt full-width button", which reads wrong for a single inline word next
-/// to a line of text. An [InkWell] on [AppTypography.buttonLabel] in the
+/// to a line of text. An [InkWell] on [AppTypography.buttonSmall] in the
 /// brand blue is the smallest control this design system already has.
 class _EnrolledCohortsErrorBanner extends StatelessWidget {
   const _EnrolledCohortsErrorBanner({
@@ -452,7 +442,7 @@ class _EnrolledCohortsErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: AppTypography.fieldError.copyWith(
+              style: AppTypography.fieldHelper.copyWith(
                 color: context.palette.error,
               ),
               maxLines: 2,
@@ -467,7 +457,7 @@ class _EnrolledCohortsErrorBanner extends StatelessWidget {
               onTap: onRetry,
               child: Text(
                 CohortListStrings.retry,
-                style: AppTypography.buttonLabel.copyWith(
+                style: AppTypography.buttonSmall.copyWith(
                   color: context.palette.primary,
                 ),
               ),

@@ -56,18 +56,23 @@ class JuniorCertificateCard extends StatelessWidget {
           Text(
             certificate.courseName,
             textAlign: TextAlign.center,
-            style: AppTypography.heading.copyWith(
-              fontSize: 18 * scale,
+            // The course's name ([AppTypography.cardTitle]), scaled with the
+            // map like everything on it; its line stays the card's tight 1.1.
+            style: AppTypography.cardTitle.copyWith(
+              fontSize: AppTypography.cardTitle.fontSize! * scale,
               height: 1.1,
               color: palette.accentText,
             ),
           ),
-          SizedBox(height: 21.2 * scale),
+          // The frame's 21.2, less the 2.2 the name's line gained at
+          // [AppTypography.cardTitle]'s 20 (Issue #366) — so the description
+          // and the card's foot stay exactly where the frame puts them.
+          SizedBox(height: 19 * scale),
           Text(
             certificate.description,
             textAlign: TextAlign.center,
-            style: AppTypography.heading.copyWith(
-              fontSize: 18 * scale,
+            style: AppTypography.sectionTitle.copyWith(
+              fontSize: AppTypography.sectionTitle.fontSize! * scale,
               height: 1.1,
               color: palette.textPrimary,
             ),
@@ -115,9 +120,12 @@ class _TrackPill extends StatelessWidget {
           SizedBox(width: 8 * scale),
           Text(
             label,
-            style: AppTypography.heading.copyWith(
+            // The track's name, sized to its pill as `TrackBadge`'s is — a
+            // container-sized exception to the scale (`DESIGN_SYSTEM.md` §3).
+            style: AppTypography.trackLabel.copyWith(
               fontSize: 14 * scale,
               height: 1.1,
+              fontWeight: FontWeight.w700,
               color: palette.textPrimary,
             ),
           ),

@@ -31,9 +31,9 @@ The reference artboard is **393 × 852**. The spine is `393 − 2×16 = 361`, wi
 
 ## 4. Typography from a frame
 
-**Do not copy the frame's pixel sizes directly.** The shipped scale sits about **15% below the measured Figma values** by a deliberate, documented decision (`AppTypography`'s doc comment: measured heading 26 → shipped 22; body 13 → 12; small 11 → 10), while **line heights were kept at the layout's values**.
+**Map the frame's text to a role, not a size.** `AppTypography` is a semantic scale (Issue #366, [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) §3): decide what each piece of text *is* — a course's name (`cardTitle`), a row's title (`itemTitle`), a date (`dateTime`), a button's label (`buttonLabel`)… — and use that role, with only a palette colour in `.copyWith()`. The same role is the same on every screen, even where two frames drew it a size apart.
 
-So: map the frame's role to the nearest existing style, then `.copyWith()` for a local size/weight nudge. Introduce a new top-level style only when the scale genuinely lacks the role — and say so.
+A size that fits no role is an exception — a dense grid, text sized to its container — and says why where it is made. Introduce a new role only when the scale genuinely lacks one, and document it in §3.
 
 ## 5. Handling states the frame does not show
 

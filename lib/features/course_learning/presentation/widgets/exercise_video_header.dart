@@ -86,7 +86,7 @@ class ExerciseVideoHeader extends StatelessWidget {
                 bottom: 16,
                 child: Text(
                   durationLabel,
-                  style: AppTypography.buttonLabel.copyWith(
+                  style: AppTypography.dateTime.copyWith(
                     color: palette.onMedia,
                   ),
                 ),
@@ -123,10 +123,7 @@ class _RecordingBadge extends StatelessWidget {
         color: onMedia.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        label,
-        style: AppTypography.badgeLabel.copyWith(color: onMedia),
-      ),
+      child: Text(label, style: AppTypography.badge.copyWith(color: onMedia)),
     );
   }
 }

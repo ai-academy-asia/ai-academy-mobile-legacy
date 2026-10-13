@@ -129,14 +129,16 @@ void main() {
     );
 
     final title = tester.widget<Text>(find.text('Short title'));
+    // [AppTypography.sectionTitle] (Issue #366).
     expect(title.style?.fontSize, 18);
-    expect(title.style?.height, 24 / 18);
+    expect(title.style?.height, 26 / 18);
     expect(title.style?.fontWeight, FontWeight.w700);
     expect(title.style?.color, AppColors.textPrimary);
     expect(title.textAlign, TextAlign.center);
 
     final date = tester.widget<Text>(find.text('2026.10.08 · 15:18'));
-    expect(date.style?.fontSize, 14);
+    // [AppTypography.dateTime] (Issue #366).
+    expect(date.style?.fontSize, 15);
     expect(date.style?.color, AppColors.textSecondary);
     expect(date.textAlign, TextAlign.center);
     expect(

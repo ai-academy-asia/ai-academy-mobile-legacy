@@ -108,12 +108,15 @@ void main() {
     final heading = tester.widget<Text>(
       find.text(LoginStrings.contactSheetTitle),
     );
-    expect(heading.style, AppTypography.catalogTitle);
+    expect(
+      heading.style,
+      AppTypography.sectionTitle.copyWith(color: AppColors.textPrimary),
+    );
     expect(heading.textAlign, TextAlign.center);
     final message = tester.widget<Text>(find.text(LoginStrings.contactMessage));
     expect(
       message.style,
-      AppTypography.statLabel.copyWith(color: AppColors.textPrimary),
+      AppTypography.body.copyWith(color: AppColors.textPrimary),
     );
     expect(
       tester.getTopLeft(find.text(LoginStrings.contactMessage)).dy,
@@ -153,11 +156,11 @@ void main() {
       );
       expect(
         tester.widget<Text>(find.text(label)).style,
-        AppTypography.cardHeading,
+        AppTypography.itemTitle.copyWith(color: AppColors.textPrimary),
       );
       expect(
         tester.widget<Text>(find.text(value)).style,
-        AppTypography.statLabel,
+        AppTypography.supporting.copyWith(color: AppColors.textSecondary),
       );
       // 80 is the card's minimum since Issue #343; at the default size it
       // is exactly 80.

@@ -28,9 +28,11 @@ const String _profileFilled = 'assets/icons/nav_profile_selected.svg';
 /// tab centres fall at 61, 151, 242 and 332, where the references put them.
 ///
 /// The one override is [AppBottomNav.labelSize]: the reference sets its
-/// labels at 10, not the student bars' 12 — every label's ink measures 0.82
-/// of the 12pt one, width and height alike — which is what keeps
-/// "Дүнгийн хуудас" on one line in its 90pt tab.
+/// labels at 10, not [AppTypography.navLabel]'s 12 — every label's ink
+/// measures 0.82 of the 12pt one, width and height alike — which is what
+/// keeps "Дүнгийн хуудас" (93 wide at 12) on one line in its 90pt tab. A
+/// documented exception to the type scale (Issue #366, `DESIGN_SYSTEM.md`
+/// §3): four tabs share the width the student bars give three.
 ///
 /// Нүүр, Хуваарь (Issue #231) and Дүнгийн хуудас (Issue #233) switch
 /// through [openTeacherTab]. Профайл (Issue #243) is a tab of `TeacherShell`

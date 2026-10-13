@@ -68,7 +68,7 @@ class _SignOutConfirmationDialogState extends State<SignOutConfirmationDialog> {
               // styles for exactly that pairing.
               Text(
                 SignOutStrings.title,
-                style: AppTypography.cardHeading.copyWith(
+                style: AppTypography.sectionTitle.copyWith(
                   color: context.palette.textPrimary,
                 ),
                 textAlign: TextAlign.center,
@@ -76,7 +76,7 @@ class _SignOutConfirmationDialogState extends State<SignOutConfirmationDialog> {
               const SizedBox(height: AppDimens.titleToSupporting),
               Text(
                 SignOutStrings.message,
-                style: AppTypography.statLabel.copyWith(
+                style: AppTypography.body.copyWith(
                   color: context.palette.textSecondary,
                 ),
                 textAlign: TextAlign.center,

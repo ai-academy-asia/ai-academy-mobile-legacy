@@ -15,11 +15,9 @@ import 'widgets/quiz_result_question_row.dart';
 /// correct/incorrect list — never a score worked out here. "Дуусгах" pops
 /// back to Exercise Detail, whose `QuizPreviewCard` then shows the quiz's
 /// refreshed `last_result`.
-/// Sampled off the Quiz result frame at 1:1. The title fits one line there;
-/// at the 22 this used it wrapped to two and pulled the whole column up.
-/// The page is `AppPalette.surfaceSubtle`, the title `textTitle` and the
-/// score amber ink (`warningInk`).
-const double _titleSize = 18;
+/// Sampled off the Quiz result frame at 1:1. The page is
+/// `AppPalette.surfaceSubtle`, the title `textTitle` and the score amber ink
+/// (`warningInk`).
 
 /// The reference opens the column well below the safe area — there is no
 /// header on this screen, so the title carries the whole top inset.
@@ -70,8 +68,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: AppTypography.heading.copyWith(
-                        fontSize: _titleSize,
+                      style: AppTypography.sectionTitle.copyWith(
                         color: palette.textTitle,
                       ),
                     ),
@@ -79,8 +76,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                     Text(
                       CourseLearningStrings.yourScoreLabel,
                       textAlign: TextAlign.center,
-                      style: AppTypography.cardSupporting.copyWith(
-                        fontSize: 14,
+                      style: AppTypography.supporting.copyWith(
                         color: palette.textSecondary,
                       ),
                     ),
@@ -88,8 +84,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                     Text(
                       '${result.percent}%',
                       textAlign: TextAlign.center,
-                      style: AppTypography.heading.copyWith(
-                        fontSize: 32,
+                      style: AppTypography.display.copyWith(
                         color: palette.warningInk,
                       ),
                     ),
@@ -103,7 +98,7 @@ class CourseQuizResultScreen extends StatelessWidget {
                           result.total,
                           result.correct,
                         ),
-                        style: AppTypography.settingsRowLabel.copyWith(
+                        style: AppTypography.body.copyWith(
                           color: palette.textSecondary,
                         ),
                       ),

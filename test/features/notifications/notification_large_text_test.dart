@@ -108,8 +108,10 @@ void main() {
 
         for (final (i, tile) in tiles.indexed) {
           final rect = rects[i];
-          expect(rect.height, greaterThanOrEqualTo(72));
-          if (scale == 1) expect(rect.height, 72);
+          // 74 at the default size since Issue #366: the title's 22 line and
+          // the body's [AppTypography.body] 24 (was 24 + 20).
+          expect(rect.height, greaterThanOrEqualTo(74));
+          if (scale == 1) expect(rect.height, 74);
 
           for (final element
               in find
@@ -157,13 +159,13 @@ void main() {
     }
   }
 
-  testWidgets('2.0× on the reference phone: the rows have grown past 72, the '
+  testWidgets('2.0× on the reference phone: the rows have grown past 74, the '
       'age centred in each', (tester) async {
     final errors = await pump(tester, width: 393, scale: 2);
     expect(errors, isEmpty);
     for (final title in [unreadTitle, readTitle]) {
       final row = tester.getRect(tileOf(title));
-      expect(row.height, greaterThan(72));
+      expect(row.height, greaterThan(74));
       final age = tester.getRect(
         find.descendant(
           of: tileOf(title),

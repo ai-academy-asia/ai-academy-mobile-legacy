@@ -21,7 +21,7 @@ The most important rule in this document. Every visual value belongs to exactly 
 
 | Tier | Lives in | Example |
 |---|---|---|
-| **Global token** | `lib/core/theme/` | `AppColors.blue`, `AppDimens.screenPadding`, `AppTypography.heading` |
+| **Global token** | `lib/core/theme/` | `AppColors.blue`, `AppDimens.screenPadding`, `AppTypography.cardTitle` |
 | **Screen/feature-local token** | a `const` at the top of that feature's file | `_tileTintOpacity` (0.24) in `CourseModuleCard` |
 | **Screen-specific exception** | inline, with a comment saying why | the 164.5 × 40 "Continue learning" button on Module List |
 
@@ -114,38 +114,52 @@ Two deliberate rules encoded here: **body text is black at two opacities, never 
 
 ## 3. Typography
 
-Manrope, five weights, bundled (`assets/fonts/`), full Cyrillic coverage for the Mongolian copy.
+Manrope, five weights, bundled (`assets/fonts/`), full Cyrillic coverage for the Mongolian copy. It is the app's only typeface (`ThemeData.fontFamily`). The two "AI academy Asia" wordmarks — splash and header — are SVG exports (`splash_wordmark.svg`), not text, so no type style touches them.
 
-**Read this before changing any size:** `AppTypography`'s own doc comment records that the scale was set **by eye against the Figma render and then taken ~15% below the measured values** (measured: heading 26, body 13, small 11 → shipped: 22, 12, 10), while **line heights were kept at the layout's values** so boxes and gaps did not move. That is a deliberate, documented decision. Changing it is a design decision requiring Figma confirmation — not a bug fix.
+**One role, one style, every screen** (Issue #366). `AppTypography` is a semantic scale: pick the role a piece of text plays, not a size. The same role draws the same on every screen — a course's name is `cardTitle` on Home, the Courses tab, the module list, certificates, contracts and teacher cards alike. The sizes are Figma's own, a modest step up from the earlier scale (which had been set ~15% below the measured Figma values; that rule is retired).
 
-| Style | Size / line-height / weight | Used for |
+| Role | Size / line / weight | Used for |
 |---|---|---|
-| `heading` | 22 / 34 / 700 | Screen heading |
-| `programTitle` | 24 / 30 / 700 | Home cohort name — the dashboard's anchor |
-| `catalogPrice` | 20 / 26 / 700 | Catalog card price |
-| `splashWordmark` | 20 / 24 / 800 | Splash brand mark |
-| `catalogTitle` | 17 / 22 / 700 | Catalog card title |
-| `profileName` | 16 / 22 / 700 | Profile header name |
-| `cardHeading` | 15 / 20 / 600 | Repeating list-item title |
-| `statValue` | 15 / 20 / 700 | Statistic value |
-| `settingsRowLabel` | 14 / 20 / 500 | Settings row label |
-| `catalogSectionValue` | 13 / 18 / 600 | Value under a card caption |
-| `statLabel` | 13 / 18 / 500 | Statistic caption |
-| `fieldValue` · `fieldPlaceholder` | 12 / 20 / 500 | Field text / placeholder |
-| `buttonLabel` | 12 / 20 / 600 | Button label |
-| `cardTitle` | 12 / 20 / 600 | Bottom-card title |
-| `checkboxLabel` | 12 / 20 / 500 | Checkbox label |
-| `profileJoinedDate` | 12 / 16 / 500 | Join date |
-| `segmentLabel` | 12 / 16 / 700 | MN/EN segment |
-| `catalogSectionLabel` | 11 / 16 / 500 | Card section caption |
-| `catalogTrackLabel` | 11 / 14 / 600 | Track badge label |
-| `catalogStatusLabel` | 11 / 14 / 700 | Open/Full pill |
-| `cardSupporting` | 10 / 16 / 500 | Supporting line |
-| `fieldFloatingLabel` | 10 / 16 / 500 | Floated field label |
-| `badgeLabel` | 10 / 14 / 600 | Pill label |
-| `fieldError` | 10 / 16 / 500 | Field error text |
+| `display` | 32 / 40 / 700 | A figure that is the point of its screen — a quiz score |
+| `screenTitle` | 26 / 34 / 700 | A top-level screen's heading: tabs (Courses, Profile, Gradebook, Teacher Home), Login, Reset Password |
+| `headerTitle` | 20 / 28 / 700 | The centred title of a pushed screen's back header |
+| `cardTitle` | 20 / 28 / 700 | **A course's name**, wherever drawn; a profile's name |
+| `sectionTitle` | 18 / 26 / 700 | A heading inside a screen: module / exercise title, quiz question, sheet and dialog titles |
+| `itemTitle` | 16 / 22 / 700 | A list row's primary line: module, lesson, notification, gradebook rows, names; summary-card and banner titles |
+| `itemLabel` | 16 / 22 / 500 | A row's lighter primary line, where the row is content: a material's file name, a settings row, a quiz answer, a checkbox |
+| `body` | 16 / 24 / 400 | Running text: descriptions, messages, notification bodies |
+| `bodyStrong` | 16 / 24 / 700 | A label leading a value ("Дараагийн хичээл:"), a statistic's or status's value |
+| `supporting` | 14 / 20 / 500 | Secondary lines: "35% complete", a stat's caption, durations, file sizes, empty and error messages |
+| `caption` | 13 / 18 / 500 | A small line over or under a title: the cohort over a course's name, "Modules 5", section captions, card metadata |
+| `dateTime` | 15 / 22 / 500, tabular figures | Dates and times: a lesson's time, a notification's age, a month |
+| `buttonLabel` | 16 / 24 / 600 | Primary and pill buttons |
+| `buttonSmall` | 14 / 20 / 600 | Compact controls: retry links, filter and small pills, the fixed-width "Continue learning" CTA, "Read more" |
+| `tabLabel` | 16 / 22 / 500, `w700` selected | Tabs |
+| `navLabel` | 12 / 16 / 600 | Bottom navigation |
+| `badge` | 13 / 16 / 700 | Status capsules, the MN/EN segment, avatar initials |
+| `fieldText` | 16 / 24 / 500 | What is typed into a field, and its resting label / placeholder |
+| `fieldLabel` | 12 / 16 / 500 | A field's floated label (`AppTextField` hands Material 16 so its 75% float lands on 12) |
+| `fieldHelper` | 13 / 18 / 500 | The line under a field: its error or hint; inline error lines |
 
-All carry `leadingDistribution: TextLeadingDistribution.even`. Local `.copyWith(fontSize: …, fontWeight: …)` off the nearest base style is an accepted idiom and is used widely; **inventing a new top-level style is not** unless a Figma frame needs one the scale genuinely lacks.
+All carry `leadingDistribution: TextLeadingDistribution.even` and **no colour**: every use supplies one from `context.palette`, so light and dark both apply. `AppTheme` maps Material's `bodyMedium` (snack bars) to `body` and `labelLarge` (`TextButton`) to `buttonSmall`.
+
+**Rules.**
+- A local `copyWith` sets the colour, and at most a role's documented variant (`tabLabel` in `w700`). **No local size, weight or line height** — that is a different role, or an exception below.
+- A screen-local style is an alias of a role (`const TextStyle _titleStyle = AppTypography.cardTitle;`), named for what it draws.
+- Fixed heights around text are minimums (`BoxConstraints(minHeight: …)`), so system text scaling grows them; text that must stay one line ellipsizes only where a deliberate decision says so (notification rows, #359; module titles, #349). Where two items share a row, a `Wrap` lets the second drop under the first rather than overflow.
+- System text scaling is never capped.
+
+**Documented exceptions** (each says so where it is made):
+
+| Where | Why |
+|---|---|
+| Attendance calendar's weekday letters and day numbers (13) | Dense grid — seven columns share the width |
+| Teacher week grid's hour labels (12) and session blocks (11); the week strip (12 / 14) | Dense grid, with its own large-text fallback (#357) |
+| Teacher bottom bar's labels (10, `AppBottomNav.labelSize`) | Four tabs share the width the student bars give three; "Дүнгийн хуудас" is 93 wide at 12 in a 90 tab |
+| Junior map cards (course card, certificate card) | Scale with the map's width from the role sizes; the certificate card's gap under the name absorbs its growth so the card stays the frame's |
+| `trackLabel` 16 / 1 / 600 ("Adult" / "Junior"), the session sheet's 36 / 800 count, the Junior ring's % | Sized to their container |
+
+**Legacy.** The old screen-named tokens (`heading`, `cardSupporting`, `cardHeading`, `catalog…`, `statLabel`, `fieldError`, …) remain in `AppTypography`'s *Legacy* section only for code deliberately left unmigrated — the Assignment-only widgets, the unreachable Course catalog / detail and E-Contract signing screens, and the debug-only payment preview. Do not use them in new code; migrate a screen to the roles when it is next touched.
 
 ## 4. Spacing, sizing and radii
 

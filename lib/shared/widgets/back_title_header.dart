@@ -41,7 +41,9 @@ class BackTitleHeader extends StatelessWidget {
             child: Center(
               child: Text(
                 title,
-                style: _titleStyle.copyWith(color: context.palette.textTitle),
+                style: AppTypography.headerTitle.copyWith(
+                  color: context.palette.textTitle,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -63,11 +65,3 @@ const double _backButtonSize = 40;
 /// circle and 8 between them — mirrored on the right so the title stays
 /// centred on the row.
 const double _titleInset = AppDimens.screenPadding + _backButtonSize + 8;
-
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);

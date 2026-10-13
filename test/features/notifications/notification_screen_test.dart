@@ -182,14 +182,15 @@ void main() {
       );
     });
 
-    testWidgets('rows are 72 including their rule, in a mixed list', (
+    testWidgets('rows are 74 including their rule, in a mixed list', (
       tester,
     ) async {
       await pumpScreen(tester);
 
       final first = tester.getRect(tileOf('Unread title'));
       final second = tester.getRect(tileOf('Read title'));
-      expect(first.height, 72);
+      // 72 before Issue #366's type scale: the body is now 16 on a 24 line.
+      expect(first.height, 74);
       expect(second.top, first.bottom);
       expect(first.top, 44 + 52 + 12);
     });
@@ -208,7 +209,7 @@ void main() {
       await pumpScreen(tester);
 
       expect(tester.takeException(), isNull);
-      expect(tester.getRect(find.byType(NotificationTile)).height, 72);
+      expect(tester.getRect(find.byType(NotificationTile)).height, 74);
       expect(find.text('2h'), findsOneWidget);
     });
   });

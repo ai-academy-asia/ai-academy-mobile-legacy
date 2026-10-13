@@ -194,9 +194,11 @@ void main() {
       for (final row in find.byType(CourseProgressCtaRow).evaluate())
         tester.getRect(within(row, find.byType(ContinueLearningButton))),
     ];
-    // The hero's bar, then the certification panel's.
-    expect(bars[0].width, moreOrLessEquals(54.5, epsilon: 0.5));
-    expect(bars[1].width, moreOrLessEquals(36.5, epsilon: 0.5));
+    // The hero's bar, then the certification panel's. 1.4 wider than before
+    // Issue #366: "% complete" is now [AppTypography.supporting] (500, not
+    // 600), a little narrower, and the bar takes what it leaves.
+    expect(bars[0].width, moreOrLessEquals(55.9, epsilon: 0.5));
+    expect(bars[1].width, moreOrLessEquals(37.9, epsilon: 0.5));
     for (var i = 0; i < 2; i++) {
       expect(buttons[i].height, 40);
       expect(buttons[i].top, lessThan(bars[i].bottom));

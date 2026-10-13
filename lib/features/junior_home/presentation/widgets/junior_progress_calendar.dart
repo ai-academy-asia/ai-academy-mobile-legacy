@@ -381,7 +381,9 @@ class _AttendedDisc extends StatelessWidget {
   }
 }
 
-/// S M T W T F S — 13 semibold.
+/// S M T W T F S — 13 semibold. This grid's two styles are a dense-grid
+/// exception to the type scale (`DESIGN_SYSTEM.md` §3): seven columns share
+/// the width, so they stay at the reference's 13.
 const TextStyle _weekdayStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 13,

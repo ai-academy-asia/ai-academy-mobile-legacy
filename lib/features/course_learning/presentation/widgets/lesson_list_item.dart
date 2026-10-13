@@ -14,15 +14,6 @@ const double _inset = 16;
 const double _numberSlot = 28;
 const double _checkSize = 20;
 
-/// The lesson title's type, calibrated against the reference (Issue #217):
-/// its four lesson titles' ink widths match Manrope 14 ExtraBold to within
-/// 0.7pt, where 16 Bold runs 11–20pt wide. The line box is
-/// `CourseModuleCard`'s 14pt title's 20. The module title above (18) stays
-/// the larger heading.
-const double _titleSize = 14;
-const double _titleLineHeight = 20;
-const FontWeight _titleWeight = FontWeight.w800;
-
 /// The reference's card outline (`AppPalette.outlineFaint`) and the flat
 /// 4pt band under it (`cardDepth`), as `CourseModuleCard` draws them. Kept as
 /// this file's own offset rather than extracted: that card's is private.
@@ -75,13 +66,7 @@ class LessonListItem extends StatelessWidget {
     // locked ink (`textLocked`) are `CourseModuleCard`'s own, since the
     // reference draws neither on a lesson card.
     final palette = context.palette;
-    final lineStyle = TextStyle(
-      fontFamily: AppTypography.fontFamily,
-      fontSize: 16,
-      height: 22 / 16,
-      leadingDistribution: TextLeadingDistribution.even,
-      color: locked ? palette.textLocked : palette.textStrong,
-    );
+    final ink = locked ? palette.textLocked : palette.textStrong;
 
     return Material(
       color: palette.surface,
@@ -120,8 +105,7 @@ class LessonListItem extends StatelessWidget {
                       constraints: const BoxConstraints(minWidth: _numberSlot),
                       child: Text(
                         lesson.order.toString().padLeft(2, '0'),
-                        style: lineStyle.copyWith(
-                          fontWeight: FontWeight.w400,
+                        style: AppTypography.itemLabel.copyWith(
                           color: locked
                               ? palette.textLocked
                               : palette.textMuted,
@@ -135,20 +119,15 @@ class LessonListItem extends StatelessWidget {
                         children: [
                           Text(
                             lesson.title,
-                            style: lineStyle.copyWith(
-                              fontSize: _titleSize,
-                              height: _titleLineHeight / _titleSize,
-                              fontWeight: _titleWeight,
-                            ),
+                            // A list row's title, as `CourseModuleCard`'s is.
+                            style: AppTypography.itemTitle.copyWith(color: ink),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             lesson.durationLabel,
-                            style: AppTypography.cardSupporting.copyWith(
-                              fontSize: 12,
-                              height: 16 / 12,
+                            style: AppTypography.supporting.copyWith(
                               color: palette.textSupporting,
                             ),
                           ),

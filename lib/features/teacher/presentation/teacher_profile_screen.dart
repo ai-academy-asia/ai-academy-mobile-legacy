@@ -323,13 +323,7 @@ class _Hero extends StatelessWidget {
 /// One hero line's box.
 const double _lineHeight = 24;
 
-/// The email and phone under the name: 14pt regular in the frame's cool grey
+/// The email and phone under the name, in the frame's cool grey
 /// (`AppPalette.teacherDetailInk`) — the same grey Teacher Schedule's
 /// attendance summary uses.
-const TextStyle _detailStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 24 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle _detailStyle = AppTypography.body;

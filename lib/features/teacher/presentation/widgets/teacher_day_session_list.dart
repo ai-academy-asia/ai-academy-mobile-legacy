@@ -61,7 +61,7 @@ class TeacherDaySessionList extends StatelessWidget {
               padding: const EdgeInsets.only(top: 32),
               child: Text(
                 TeacherScheduleStrings.emptyDay,
-                style: AppTypography.cardSupporting.copyWith(
+                style: AppTypography.supporting.copyWith(
                   color: context.palette.textSecondary,
                 ),
                 textAlign: TextAlign.center,

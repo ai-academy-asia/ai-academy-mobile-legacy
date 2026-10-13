@@ -44,18 +44,11 @@ const double _progressBarHeight = 8;
 /// The badge row to the caption: 24 in Figma.
 const double _rowToCaptionGap = 24;
 
-/// Figma's caption (12 on an 18 line) and title (18 bold on a 26 line). Only
-/// the size and line height are set here; colour and family come from the
-/// shared styles the rest of the app uses.
-final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 12,
-  height: 18 / 12,
-);
-final TextStyle _titleStyle = AppTypography.cardHeading.copyWith(
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-);
+/// The cohort's name over the course's, as on every card that names a course.
+const TextStyle _captionStyle = AppTypography.caption;
+
+/// The course's name — the same style on every card and page that shows one.
+const TextStyle _titleStyle = AppTypography.cardTitle;
 
 /// One cohort in the list — matches the Figma "Course Catalog" (cohorts)
 /// frame's card: an Adult badge and a status pill on top, the cohort's
@@ -155,12 +148,23 @@ class CohortCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const _AdultBadge(),
-                          _StatusPill(cohort.status),
-                        ],
+                      // One line, badge left and status right, as the
+                      // reference draws it; only where enlarged text leaves no
+                      // room for both does the status drop under the badge
+                      // rather than overflow (Issue #366). Full width, so the
+                      // space between them reaches the far edge.
+                      SizedBox(
+                        width: double.infinity,
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            const _AdultBadge(),
+                            _StatusPill(cohort.status),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: _rowToCaptionGap),
 
@@ -222,7 +226,7 @@ class CohortCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           message,
-                          style: AppTypography.fieldError.copyWith(
+                          style: AppTypography.fieldHelper.copyWith(
                             color: context.palette.error,
                           ),
                         ),
@@ -255,7 +259,7 @@ class _Progress extends StatelessWidget {
           alignment: Alignment.centerRight,
           child: Text(
             CohortListStrings.percentComplete(percent),
-            style: AppTypography.catalogSectionValue.copyWith(
+            style: AppTypography.supporting.copyWith(
               color: context.palette.textPrimary,
             ),
           ),
@@ -325,9 +329,9 @@ class _AdultBadge extends StatelessWidget {
           const SizedBox(width: 9),
           Text(
             'Adult',
-            style: AppTypography.catalogTrackLabel
-                .copyWith(color: context.palette.textPrimary)
-                .copyWith(fontSize: 16, height: 1),
+            style: AppTypography.trackLabel.copyWith(
+              color: context.palette.textPrimary,
+            ),
           ),
         ],
       ),
@@ -381,22 +385,24 @@ class _StatusPill extends StatelessWidget {
     };
 
     return Container(
-      // Figma: 24 high, its text 12 on a 16 line. The width is the label's
-      // plus 15 each side and the 1pt border — 83 for "Finished".
-      height: _pillHeight,
-      alignment: Alignment.center,
+      // Figma: 24 high, its label on a 16 line. The width is the label's
+      // plus 15 each side and the 1pt border. 24 is a minimum, so larger
+      // system text grows the pill rather than clipping its label; and the
+      // label is centred at its own width, so the pill never stretches
+      // across the badge row's [Wrap] (Issue #366).
+      constraints: const BoxConstraints(minHeight: _pillHeight),
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: outline, width: AppDimens.borderWidth),
       ),
-      child: Text(
-        _capitalize(status),
-        style: AppTypography.catalogStatusLabel.copyWith(
-          color: label,
-          fontSize: 12,
-          height: 16 / 12,
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          _capitalize(status),
+          style: AppTypography.badge.copyWith(color: label),
         ),
       ),
     );

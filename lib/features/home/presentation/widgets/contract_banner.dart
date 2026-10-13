@@ -91,7 +91,9 @@ class ContractBanner extends StatelessWidget {
                         style: _supportingStyle.copyWith(
                           color: context.palette.textSecondary,
                         ),
-                        maxLines: 1,
+                        // Two lines where a narrow phone needs them, rather
+                        // than cutting the message (Issue #366).
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -112,20 +114,8 @@ class ContractBanner extends StatelessWidget {
   }
 }
 
-/// 16 bold on a 24 line.
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The banner's title — one row beside its icon and chevron, so a row's title.
+const TextStyle _titleStyle = AppTypography.itemTitle;
 
-/// 14 regular on a 20 line.
-const TextStyle _supportingStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The banner's message.
+const TextStyle _supportingStyle = AppTypography.body;

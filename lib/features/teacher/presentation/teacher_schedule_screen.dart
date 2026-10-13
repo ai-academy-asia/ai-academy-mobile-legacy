@@ -220,7 +220,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                 top: TeacherWeekGridMetrics.topInset + 24,
                 child: Text(
                   TeacherScheduleStrings.empty,
-                  style: AppTypography.cardSupporting.copyWith(
+                  style: AppTypography.supporting.copyWith(
                     color: context.palette.textSecondary,
                   ),
                   textAlign: TextAlign.center,
@@ -618,7 +618,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -636,12 +636,11 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-final TextStyle _headerStyle = AppTypography.programTitle.copyWith(
-  fontSize: 20,
-  height: 28 / 20,
-  fontWeight: FontWeight.w700,
-);
+/// The date on the header band.
+const TextStyle _headerStyle = AppTypography.headerTitle;
 
+/// The week strip's weekday and date: a dense-grid exception to the type
+/// scale (`DESIGN_SYSTEM.md` §3) — seven columns share the width.
 const TextStyle _weekdayStyle = TextStyle(
   fontFamily: AppTypography.fontFamily,
   fontSize: 12,

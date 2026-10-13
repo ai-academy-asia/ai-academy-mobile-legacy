@@ -45,9 +45,7 @@ class CourseProgressCtaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = CourseLearningStrings.percentComplete(percent);
-    final labelStyle = AppTypography.catalogSectionValue.copyWith(
-      fontSize: 14,
-      height: 20 / 14,
+    final labelStyle = AppTypography.supporting.copyWith(
       color: context.palette.textTitle,
     );
     final bar = Expanded(
@@ -189,11 +187,8 @@ class ContinueLearningButton extends StatelessWidget {
                   child: ExcludeSemantics(
                     child: Text(
                       CourseLearningStrings.continueLearning,
-                      style: TextStyle(
-                        fontFamily: AppTypography.fontFamily,
-                        fontSize: 14,
-                        height: 20 / 14,
-                        fontWeight: FontWeight.w600,
+                      // A compact pill's label: the CTA is a fixed 148 wide.
+                      style: AppTypography.buttonSmall.copyWith(
                         color: palette.onPrimary,
                       ),
                     ),
