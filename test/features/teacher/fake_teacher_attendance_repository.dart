@@ -36,6 +36,9 @@ class FakeTeacherAttendanceRepository implements TeacherAttendanceRepository {
   /// Thrown by [issueQr] when set.
   TeacherFailure? qrFailure;
 
+  /// When set, [issueQr] waits on it — to hold a token request in flight.
+  Completer<void>? qrGate;
+
   /// Thrown by [getSessionAttendance] when set.
   TeacherFailure? readFailure;
 
@@ -54,6 +57,7 @@ class FakeTeacherAttendanceRepository implements TeacherAttendanceRepository {
   @override
   Future<AttendanceQrToken> issueQr(int sessionId) async {
     qrCalls.add(sessionId);
+    await qrGate?.future;
     final failure = qrFailure;
     if (failure != null) throw failure;
     _tokens++;

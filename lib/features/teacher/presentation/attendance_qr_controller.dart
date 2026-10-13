@@ -9,10 +9,6 @@ import 'teacher_home_strings.dart';
 
 /// What the QR screen's code area shows.
 enum AttendanceQrPhase {
-  /// What a QR should encode is not confirmed (Issue #374, open question
-  /// 1): no token is asked for and no code drawn.
-  awaitingContract,
-
   /// The first token is on its way.
   loading,
 
@@ -38,22 +34,21 @@ enum AttendanceQrPhase {
 /// with a `_disposed` guard, so an answer arriving after the screen closed
 /// changes nothing. [dispose] cancels every timer.
 ///
-/// [qrPayload] turns a token into what the QR encodes. It is null until the
-/// backend owner confirms that format — and while it is null no token is
-/// issued at all (each issue voids the previous one, so asking for a token
-/// nobody can show would only cancel a code shown elsewhere).
+/// The code encodes the issued `token` itself, raw — no URL or JSON around
+/// it — exactly what the student's check-in sends back as `{"token"}`
+/// (Issue #380; the backend's own tests do the same). The token is never
+/// logged or put in an error message, and the code widget is keyed by
+/// [tokenGeneration], not by the token.
 class AttendanceQrController extends ChangeNotifier {
   AttendanceQrController({
     required this._repository,
     required this.sessionId,
-    required this.qrPayload,
     this.refreshEvery = const Duration(minutes: 4),
     this.pollEvery = const Duration(seconds: 15),
   });
 
   final TeacherAttendanceRepository _repository;
   final int sessionId;
-  final String Function(String token)? qrPayload;
 
   /// Before the token's [AttendanceQrToken.lifetime] runs out.
   final Duration refreshEvery;
@@ -66,6 +61,7 @@ class AttendanceQrController extends ChangeNotifier {
 
   AttendanceQrPhase _phase = AttendanceQrPhase.loading;
   AttendanceQrToken? _token;
+  int _tokenGeneration = 0;
   String? _qrError;
   AttendanceCounts? _counts;
   String? _countsError;
@@ -78,13 +74,17 @@ class AttendanceQrController extends ChangeNotifier {
 
   AttendanceQrPhase get phase => _phase;
 
-  /// What the QR encodes — only in [AttendanceQrPhase.showing].
+  /// What the QR encodes: the raw token — only in
+  /// [AttendanceQrPhase.showing].
   String? get qrData {
     final token = _token;
-    final payload = qrPayload;
     if (_phase != AttendanceQrPhase.showing || token == null) return null;
-    return payload?.call(token.token);
+    return token.token;
   }
+
+  /// Counts the tokens received — a new one is a new picture. Safe to put
+  /// in a key or a log, unlike the token.
+  int get tokenGeneration => _tokenGeneration;
 
   /// The message for [AttendanceQrPhase.failed].
   String? get qrError => _qrError;
@@ -99,22 +99,15 @@ class AttendanceQrController extends ChangeNotifier {
   void start() {
     if (_started) return;
     _started = true;
-    if (qrPayload == null) {
-      _phase = AttendanceQrPhase.awaitingContract;
-      _notify();
-    } else {
-      issue();
-    }
+    issue();
     refreshCounts();
     _pollTimer = Timer.periodic(pollEvery, (_) => refreshCounts());
   }
 
   /// Fetches a fresh token — the first, a scheduled refresh, or a retry.
-  /// Joins one in flight.
-  Future<void> issue() {
-    if (qrPayload == null) return Future.value();
-    return _issuing ??= _issue().whenComplete(() => _issuing = null);
-  }
+  /// Joins one in flight: a retry or a refresh never overlaps another.
+  Future<void> issue() =>
+      _issuing ??= _issue().whenComplete(() => _issuing = null);
 
   Future<void> _issue() async {
     if (_token == null) {
@@ -126,6 +119,7 @@ class AttendanceQrController extends ChangeNotifier {
       final token = await _repository.issueQr(sessionId);
       if (_disposed) return;
       _token = token;
+      _tokenGeneration++;
       _phase = AttendanceQrPhase.showing;
       _qrError = null;
       _schedule();

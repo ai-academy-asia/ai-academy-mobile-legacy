@@ -29,10 +29,6 @@ import 'teacher_schedule_screen_test.dart' show upcomingLabel, weekRepository;
 /// retries, the success card only after confirmed writes, and the session
 /// sheet's date rule. Fakes only — no production call, no real record.
 
-/// A test-only QR payload: what the code encodes is unconfirmed, so the
-/// production default draws none ([attendanceQrPayload]).
-String testPayload(String token) => 'test-payload:$token';
-
 List<StudentAttendance> referenceRoster() => [
   student(1, 'Болд Батаа', AttendanceStatus.present, method: 'qr'),
   student(2, 'Саруул Батбаатар', AttendanceStatus.absent),
@@ -132,9 +128,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(AttendanceQrScreen), findsOneWidget);
       expect(attendance.readCalls, [session.id]);
-      // The production default: what the QR encodes is not confirmed, so no
-      // token is asked for.
-      expect(attendance.qrCalls, isEmpty);
+      // On the session's date the QR screen asks for its token at once.
+      expect(attendance.qrCalls, [session.id]);
     });
 
     group('through the schedule screen, with its real default rule', () {
@@ -415,17 +410,14 @@ void main() {
       final repo = FakeTeacherAttendanceRepository();
       await pumpApp(
         tester,
-        AttendanceQrScreen(
-          sessionId: 41,
-          repository: repo,
-          qrPayload: testPayload,
-        ),
+        AttendanceQrScreen(sessionId: 41, repository: repo),
       );
       expect(repo.qrCalls, [41]);
       expect(repo.readCalls, [41]);
+      // The raw token, nothing around it.
       expect(
-        tester.widget<QrImageView>(find.byType(QrImageView)).key,
-        const ValueKey('test-payload:token-1'),
+        tester.widget<AttendanceQrCode>(find.byType(AttendanceQrCode)).data,
+        'token-1',
       );
 
       await tester.pump(const Duration(seconds: 15));
@@ -438,8 +430,8 @@ void main() {
       );
       expect(repo.qrCalls, hasLength(2));
       expect(
-        tester.widget<QrImageView>(find.byType(QrImageView)).key,
-        const ValueKey('test-payload:token-2'),
+        tester.widget<AttendanceQrCode>(find.byType(AttendanceQrCode)).data,
+        'token-2',
       );
 
       await tester.pumpWidget(const SizedBox());
@@ -460,11 +452,7 @@ void main() {
         );
       await pumpApp(
         tester,
-        AttendanceQrScreen(
-          sessionId: 41,
-          repository: repo,
-          qrPayload: testPayload,
-        ),
+        AttendanceQrScreen(sessionId: 41, repository: repo),
       );
       expect(find.text(TeacherAttendanceStrings.qrNotToday), findsOneWidget);
       expect(find.byType(QrImageView), findsNothing);
@@ -478,11 +466,7 @@ void main() {
       final repo = FakeTeacherAttendanceRepository();
       await pumpApp(
         tester,
-        AttendanceQrScreen(
-          sessionId: 41,
-          repository: repo,
-          qrPayload: testPayload,
-        ),
+        AttendanceQrScreen(sessionId: 41, repository: repo),
       );
       repo.qrFailure = const TeacherFailure(TeacherFailureKind.network);
       await tester.pump(const Duration(minutes: 4));
@@ -501,24 +485,120 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('until the payload is confirmed: no token is issued, the '
-        'counts still poll, and manual entry is open', (tester) async {
+    testWidgets('no code before a token arrives: loading while the request '
+        'is in flight, then the raw token', (tester) async {
+      final repo = FakeTeacherAttendanceRepository()
+        ..qrGate = Completer<void>();
+      await pumpApp(
+        tester,
+        AttendanceQrScreen(sessionId: 41, repository: repo),
+      );
+      expect(find.byType(AttendanceQrCode), findsNothing);
+      expect(find.text(TeacherAttendanceStrings.qrHint), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsWidgets);
+
+      repo.qrGate!.complete();
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester.widget<AttendanceQrCode>(find.byType(AttendanceQrCode)).data,
+        'token-1',
+      );
+      expect(find.text(TeacherAttendanceStrings.qrHint), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a first request that fails: no code, its reason and a retry '
+        'that asks again', (tester) async {
+      final repo = FakeTeacherAttendanceRepository()
+        ..qrFailure = const TeacherFailure(TeacherFailureKind.server);
+      await pumpApp(
+        tester,
+        AttendanceQrScreen(sessionId: 41, repository: repo),
+      );
+      expect(find.byType(AttendanceQrCode), findsNothing);
+      repo.qrFailure = null;
+      await tester.tap(find.text('Дахин оролдох').first);
+      await tester.pump();
+      await tester.pump();
+      expect(repo.qrCalls, [41, 41]);
+      expect(find.byType(AttendanceQrCode), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('requests never overlap: a refresh still in flight when the '
+        'code expires is joined by the retry, and its token is drawn', (
+      tester,
+    ) async {
       final repo = FakeTeacherAttendanceRepository();
       await pumpApp(
         tester,
         AttendanceQrScreen(sessionId: 41, repository: repo),
       );
-      expect(find.text(TeacherAttendanceStrings.qrPending), findsOneWidget);
-      expect(find.byType(QrImageView), findsNothing);
-      expect(find.text('14'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 15));
-      expect(repo.qrCalls, isEmpty);
-      expect(repo.readCalls, hasLength(2));
+      repo.qrGate = Completer<void>();
+      await tester.pump(const Duration(minutes: 4)); // refresh starts, hangs
+      expect(repo.qrCalls, [41, 41]);
+      expect(find.byType(AttendanceQrCode), findsOneWidget); // still valid
+
+      await tester.pump(const Duration(minutes: 1)); // the first expires
+      expect(find.byType(AttendanceQrCode), findsNothing);
+      expect(find.text(TeacherAttendanceStrings.qrExpired), findsOneWidget);
+      await tester.tap(find.text('Дахин оролдох').first);
+      await tester.pump();
+      expect(repo.qrCalls, [41, 41]); // joined, not a third request
+
+      repo.qrGate!.complete();
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester.widget<AttendanceQrCode>(find.byType(AttendanceQrCode)).data,
+        'token-2',
+      );
       await tester.pumpWidget(const SizedBox());
     });
 
-    test('the production default encodes no QR', () {
-      expect(attendanceQrPayload, isNull);
+    testWidgets('a token arriving after the screen closed changes nothing', (
+      tester,
+    ) async {
+      final repo = FakeTeacherAttendanceRepository()
+        ..qrGate = Completer<void>();
+      await pumpApp(
+        tester,
+        AttendanceQrScreen(sessionId: 41, repository: repo),
+      );
+      await tester.pumpWidget(const SizedBox());
+      repo.qrGate!.complete();
+      await tester.pump();
+      await tester.pump(const Duration(minutes: 10));
+      expect(repo.qrCalls, [41]);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the token is kept out of keys, diagnostics and semantics', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final repo = FakeTeacherAttendanceRepository();
+      await pumpApp(
+        tester,
+        AttendanceQrScreen(sessionId: 41, repository: repo),
+      );
+      expect(find.byType(AttendanceQrCode), findsOneWidget);
+      final tree = tester.binding.rootElement!.toStringDeep();
+      expect(tree, isNot(contains('token-1')));
+      expect(
+        tester.getSemantics(find.byType(AttendanceQrCode)).label,
+        TeacherAttendanceStrings.qrLabel,
+      );
+      expect(
+        AttendanceQrToken(
+          token: 'secret-token',
+          expiresAt: DateTime.utc(2026),
+        ).toString(),
+        isNot(contains('secret-token')),
+      );
+      handle.dispose();
+      await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets('a counts read that fails before any arrive offers a retry', (
@@ -1104,11 +1184,7 @@ void main() {
           expect(
             await pumpApp(
               tester,
-              AttendanceQrScreen(
-                sessionId: 41,
-                repository: repo,
-                qrPayload: testPayload,
-              ),
+              AttendanceQrScreen(sessionId: 41, repository: repo),
               width: width,
               scale: scale,
             ),
@@ -1173,7 +1249,7 @@ void main() {
   });
 
   group('goldens, against the three references', () {
-    testWidgets('QR attendance (test payload — the real one is unconfirmed)', (
+    testWidgets('QR attendance — the fake\'s raw token "token-1"', (
       tester,
     ) async {
       await pumpApp(
@@ -1181,31 +1257,12 @@ void main() {
         AttendanceQrScreen(
           sessionId: 41,
           repository: FakeTeacherAttendanceRepository(),
-          qrPayload: testPayload,
         ),
         height: 946,
       );
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('../../goldens/teacher_attendance_qr.png'),
-      );
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('QR attendance as shipped: payload awaiting confirmation', (
-      tester,
-    ) async {
-      await pumpApp(
-        tester,
-        AttendanceQrScreen(
-          sessionId: 41,
-          repository: FakeTeacherAttendanceRepository(),
-        ),
-        height: 946,
-      );
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('../../goldens/teacher_attendance_qr_pending.png'),
       );
       await tester.pumpWidget(const SizedBox());
     });

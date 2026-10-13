@@ -26,14 +26,16 @@ import 'widgets/teacher_pill_button.dart';
 /// re-read every 15 seconds while the screen is open
 /// ([AttendanceQrController]).
 ///
-/// What the code encodes is not yet confirmed ([attendanceQrPayload]):
-/// until it is, the code area says so and no token is asked for.
+/// The code is the issued token itself, raw (Issue #380) — what the
+/// student's check-in sends back as `{"token"}`. No success is shown for a
+/// request alone: the code appears only once a token has arrived, and
+/// loading, failure (with a retry), `session_not_today` and expiry each
+/// have their own state.
 class AttendanceQrScreen extends StatefulWidget {
   const AttendanceQrScreen({
     required this.sessionId,
     super.key,
     this.repository,
-    this.qrPayload = attendanceQrPayload,
     this.refreshEvery = const Duration(minutes: 4),
     this.pollEvery = const Duration(seconds: 15),
   });
@@ -42,9 +44,6 @@ class AttendanceQrScreen extends StatefulWidget {
 
   /// Defaults to the HTTP repository.
   final TeacherAttendanceRepository? repository;
-
-  /// What the QR encodes for a token — null until confirmed.
-  final String Function(String token)? qrPayload;
 
   final Duration refreshEvery;
   final Duration pollEvery;
@@ -59,7 +58,6 @@ class _AttendanceQrScreenState extends State<AttendanceQrScreen> {
   late final AttendanceQrController _controller = AttendanceQrController(
     repository: _repository,
     sessionId: widget.sessionId,
-    qrPayload: widget.qrPayload,
     refreshEvery: widget.refreshEvery,
     pollEvery: widget.pollEvery,
   )..start();
@@ -182,29 +180,11 @@ class _CodeArea extends StatelessWidget {
     final palette = context.palette;
     final data = controller.qrData;
     if (data != null) {
-      return Semantics(
-        label: TeacherAttendanceStrings.qrLabel,
-        image: true,
-        child: SizedBox.square(
-          dimension: _codeSize,
-          // Black on white in either theme: a scanner needs the contrast.
-          child: QrImageView(
-            // A new code is a new picture, never a repaint of the last.
-            key: ValueKey(data),
-            data: data,
-            size: _codeSize,
-            padding: EdgeInsets.zero,
-            backgroundColor: palette.qrBackground,
-            eyeStyle: QrEyeStyle(
-              eyeShape: QrEyeShape.square,
-              color: palette.qrInk,
-            ),
-            dataModuleStyle: QrDataModuleStyle(
-              dataModuleShape: QrDataModuleShape.square,
-              color: palette.qrInk,
-            ),
-          ),
-        ),
+      return AttendanceQrCode(
+        // A new token is a new picture, never a repaint of the last — keyed
+        // by its count, never by the token, which a key would print.
+        key: ValueKey(controller.tokenGeneration),
+        data: data,
       );
     }
 
@@ -230,11 +210,12 @@ class _CodeArea extends StatelessWidget {
         false,
       ),
       AttendanceQrPhase.expired => (TeacherAttendanceStrings.qrExpired, true),
-      AttendanceQrPhase.failed => (
+      AttendanceQrPhase.failed ||
+      AttendanceQrPhase.loading ||
+      AttendanceQrPhase.showing => (
         controller.qrError ?? TeacherAttendanceStrings.qrExpired,
         true,
       ),
-      _ => (TeacherAttendanceStrings.qrPending, false),
     };
     // A placeholder the code's size at least, growing with large text.
     return ConstrainedBox(
@@ -327,6 +308,45 @@ class _Tally extends StatelessWidget {
           child: CircularProgressIndicator(
             strokeWidth: 2.5,
             color: context.palette.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The attendance code: [data] — the raw token — drawn 235 square, black on
+/// white in either theme (a scanner needs the contrast), read out as
+/// "Ирцийн QR код" and never as its content.
+///
+/// [data] is a live check-in credential: nothing here prints it — no key,
+/// no diagnostics property, no semantics label.
+class AttendanceQrCode extends StatelessWidget {
+  const AttendanceQrCode({required this.data, super.key});
+
+  final String data;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Semantics(
+      label: TeacherAttendanceStrings.qrLabel,
+      image: true,
+      excludeSemantics: true,
+      child: SizedBox.square(
+        dimension: _codeSize,
+        child: QrImageView(
+          data: data,
+          size: _codeSize,
+          padding: EdgeInsets.zero,
+          backgroundColor: palette.qrBackground,
+          eyeStyle: QrEyeStyle(
+            eyeShape: QrEyeShape.square,
+            color: palette.qrInk,
+          ),
+          dataModuleStyle: QrDataModuleStyle(
+            dataModuleShape: QrDataModuleShape.square,
+            color: palette.qrInk,
           ),
         ),
       ),

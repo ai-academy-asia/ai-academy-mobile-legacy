@@ -16,12 +16,6 @@ abstract final class TeacherAttendanceStrings {
 
   static const String manualEntry = 'Гар аргаар бүртгэх';
 
-  /// No QR is drawn until the backend owner confirms what it encodes
-  /// (Issue #374, open question 1).
-  static const String qrPending =
-      'QR кодоор бүртгэх боломж удахгүй нэмэгдэнэ. Одоогоор гар аргаар '
-      'бүртгэнэ үү.';
-
   /// `409 session_not_today`.
   static const String qrNotToday =
       'QR кодыг зөвхөн хичээлийн өдөр үүсгэх боломжтой.';
