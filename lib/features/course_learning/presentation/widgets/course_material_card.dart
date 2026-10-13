@@ -58,8 +58,12 @@ class CourseMaterialCard extends StatelessWidget {
     final palette = context.palette;
     return Container(
       width: 329,
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      // 72 at the default text size; larger system text grows it rather
+      // than spilling the name and size out of it (Issue #363). The 12
+      // above and below only takes effect once it has grown — the content
+      // is centred in 72 with more than that to spare.
+      constraints: const BoxConstraints(minHeight: 72),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(12),

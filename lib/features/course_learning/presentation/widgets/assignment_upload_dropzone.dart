@@ -6,8 +6,15 @@ import '../../../../core/theme/app_typography.dart';
 import '../course_learning_strings.dart';
 
 /// Measured off the reference frames at 1:1: a 329 x 125 dashed area, its
-/// content centred, with the accepted-types line under the label.
+/// content centred, with the accepted-types line under the label. 125 is a
+/// minimum: larger system text grows the area rather than spilling the
+/// label and types line out of it (Issue #363).
 const double _height = 125;
+
+/// Kept between the content and the dashes once the area has grown. At the
+/// default size the content is centred in 125 with more than this to spare,
+/// so it changes nothing there.
+const double _minVerticalInset = 16;
 const double _radius = 12;
 const double _dashLength = 6;
 const double _dashGap = 5;
@@ -56,35 +63,40 @@ class AssignmentUploadDropzone extends StatelessWidget {
         onTap: onTap,
         child: CustomPaint(
           painter: _DashedBorderPainter(color: context.palette.outline),
-          child: SizedBox(
-            height: _height,
-            width: double.infinity,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  'assets/images/course_learning/exercise_upload.svg',
-                  width: _iconBox,
-                  height: _iconBox,
-                ),
-                const SizedBox(height: _iconToLabel),
-                Text(
-                  CourseLearningStrings.uploadFile,
-                  style: AppTypography.cardHeading.copyWith(
-                    fontSize: _labelSize,
-                    fontWeight: FontWeight.w500,
-                    color: context.palette.textPrimary,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: double.infinity,
+              minHeight: _height,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: _minVerticalInset),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/course_learning/exercise_upload.svg',
+                    width: _iconBox,
+                    height: _iconBox,
                   ),
-                ),
-                const SizedBox(height: _labelToTypes),
-                Text(
-                  CourseLearningStrings.uploadFileTypes,
-                  style: AppTypography.cardSupporting.copyWith(
-                    fontSize: _typesSize,
-                    color: context.palette.textSecondary,
+                  const SizedBox(height: _iconToLabel),
+                  Text(
+                    CourseLearningStrings.uploadFile,
+                    style: AppTypography.cardHeading.copyWith(
+                      fontSize: _labelSize,
+                      fontWeight: FontWeight.w500,
+                      color: context.palette.textPrimary,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: _labelToTypes),
+                  Text(
+                    CourseLearningStrings.uploadFileTypes,
+                    style: AppTypography.cardSupporting.copyWith(
+                      fontSize: _typesSize,
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
