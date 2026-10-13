@@ -12,10 +12,11 @@ import '../teacher_request_screen.dart';
 import '../teacher_schedule_strings.dart';
 import 'teacher_class_card.dart';
 import 'teacher_pill_button.dart';
+import 'teacher_request_parts.dart';
 
-/// Opens a tapped session's sheet (Issue #231): the
-/// `huvaari-deerh-oroh-angi` sheet with "Цаг солих" while the session is
-/// still ahead or under way, the `huvaari-deerh-orson-angi` sheet with its
+/// Opens a tapped session's sheet (Issue #231): the class action sheet —
+/// "Цаг солих" and "Ирц бүртгэх" (Issue #372) — while the session is still
+/// ahead or under way, the `huvaari-deerh-orson-angi` sheet with its
 /// attendance summary once it is over.
 Future<void> showTeacherSessionSheet(
   BuildContext context, {
@@ -71,16 +72,7 @@ class TeacherSessionSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 72,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: context.palette.sheetHandle,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
+            const TeacherSheetHandle(),
             const SizedBox(height: 16),
             TeacherClassCard(
               teacherClass: entry.teacherClass,
@@ -94,12 +86,25 @@ class TeacherSessionSheet extends StatelessWidget {
             ),
             if (!held) ...[
               const SizedBox(height: 24),
-              TeacherPillButton(
-                label: TeacherScheduleStrings.changeTime,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const TeacherRequestScreen(),
+              TeacherPillPair(
+                first: TeacherPillButton(
+                  label: TeacherScheduleStrings.changeTime,
+                  wrapLabel: true,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const TeacherRequestScreen(),
+                    ),
                   ),
+                ),
+                // Not available yet (Issue #372): taking attendance by QR
+                // waits on a verified `POST /teacher/sessions/{id}/qr`
+                // response and a QR-display design. Drawn disabled — it
+                // calls nothing.
+                second: const TeacherPillButton(
+                  label: TeacherScheduleStrings.registerAttendance,
+                  wrapLabel: true,
+                  variant: TeacherPillVariant.disabled,
+                  onPressed: null,
                 ),
               ),
             ],

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/back_title_header.dart';
 import '../../../shared/widgets/content_column.dart';
 import 'teacher_schedule_strings.dart';
 import 'widgets/teacher_pill_button.dart';
+import 'widgets/teacher_request_parts.dart';
 
 /// Where a row's request stands, as the `tsag-solih` reference draws it.
 ///
@@ -142,44 +142,7 @@ class TeacherRequestRow extends StatelessWidget {
 
     return Row(
       children: [
-        Container(
-          width: 64,
-          height: 64,
-          // A placeholder avatar on the icon-tile ground (`surfaceSubtle`),
-          // its person glyph `avatarPlaceholderInk`.
-          decoration: BoxDecoration(
-            color: context.palette.surfaceSubtle,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            AppIcons.user,
-            size: 28,
-            color: context.palette.avatarPlaceholderInk,
-          ),
-        ),
-        const SizedBox(width: 17),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                candidate.name,
-                style: _nameStyle.copyWith(
-                  color: context.palette.teacherNameInk,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                TeacherScheduleStrings.teacherRole,
-                style: _roleStyle.copyWith(
-                  color: context.palette.teacherRoleInk,
-                ),
-              ),
-            ],
-          ),
-        ),
+        Expanded(child: TeacherIdentity(name: candidate.name)),
         const SizedBox(width: 8),
         // Wide enough for the reference's longest label; a longer one is
         // cut short rather than pushing the row past the screen.
@@ -197,9 +160,3 @@ class TeacherRequestRow extends StatelessWidget {
     );
   }
 }
-
-/// A teacher's name — a list row's primary line.
-const TextStyle _nameStyle = AppTypography.itemTitle;
-
-/// A teacher's role under the name.
-const TextStyle _roleStyle = AppTypography.caption;

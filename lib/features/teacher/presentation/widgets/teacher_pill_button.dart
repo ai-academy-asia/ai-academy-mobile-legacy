@@ -14,8 +14,15 @@ enum TeacherPillVariant {
   /// "Хүсэлт илгээх", "Цаг солих".
   outlined,
 
-  /// White, red outline and label — "Татгалзсан".
+  /// White, red outline and label — "Татгалзсан", "Татгалзах".
   danger,
+
+  /// An action that is not available yet (Issue #372): the app's muted
+  /// treatment for a disabled action — `ExerciseSubmitButton`'s — a
+  /// `surfaceSubtle` pill in `outline` with a `disabledInk` label, so it
+  /// reads as unavailable rather than as a live blue action. Exposed to
+  /// assistive technology as a disabled button.
+  disabled,
 }
 
 /// A rounded pill with a centred label, as the Teacher Schedule references
@@ -35,6 +42,7 @@ class TeacherPillButton extends StatelessWidget {
     this.height = 44,
     this.fontSize = 16,
     this.horizontalPadding = 16,
+    this.wrapLabel = false,
   });
 
   final String label;
@@ -46,6 +54,13 @@ class TeacherPillButton extends StatelessWidget {
   final double height;
   final double fontSize;
   final double horizontalPadding;
+
+  /// Lets a label too long for one line wrap, the pill growing past
+  /// [height] to hold it, instead of cutting it short (Issue #372) — for a
+  /// pill given the full width it needs, as a sheet's actions are. Off, the
+  /// pill stays [height] tall and a long label ends in an ellipsis, as a
+  /// row's trailing pill must.
+  final bool wrapLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -70,12 +85,18 @@ class TeacherPillButton extends StatelessWidget {
         palette.dangerOutline,
         palette.errorInk,
       ),
+      TeacherPillVariant.disabled => (
+        palette.surfaceSubtle,
+        palette.outline,
+        palette.disabledInk,
+      ),
     };
+    final disabled = variant == TeacherPillVariant.disabled;
     final radius = BorderRadius.circular(height / 2);
 
     return Semantics(
       button: true,
-      enabled: onPressed != null,
+      enabled: onPressed != null && !disabled,
       label: label,
       excludeSemantics: true,
       child: DecoratedBox(
@@ -98,19 +119,24 @@ class TeacherPillButton extends StatelessWidget {
             side: BorderSide(color: outline),
           ),
           child: InkWell(
-            onTap: onPressed,
+            onTap: disabled ? null : onPressed,
             customBorder: RoundedRectangleBorder(borderRadius: radius),
             child: Container(
-              height: height,
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              height: wrapLabel ? null : height,
+              constraints: wrapLabel ? BoxConstraints(minHeight: height) : null,
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: wrapLabel ? _wrapVerticalPadding : 0,
+              ),
               // Hugs the label under loose constraints (a row's trailing
               // pill); fills a stretched parent (the sheet's full width).
               child: Align(
                 widthFactor: 1,
                 child: Text(
                   label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: wrapLabel ? null : 1,
+                  overflow: wrapLabel ? null : TextOverflow.ellipsis,
+                  textAlign: wrapLabel ? TextAlign.center : null,
                   style: AppTypography.buttonLabel.copyWith(
                     fontSize: fontSize,
                     height: 1.2,
@@ -125,3 +151,6 @@ class TeacherPillButton extends StatelessWidget {
     );
   }
 }
+
+/// Above and below a wrapped label, inside the pill's edge.
+const double _wrapVerticalPadding = 10;
