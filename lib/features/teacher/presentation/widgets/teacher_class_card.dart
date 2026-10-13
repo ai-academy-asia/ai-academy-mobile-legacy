@@ -32,6 +32,7 @@ class TeacherClassCard extends StatelessWidget {
     this.timeLabel,
     this.footer,
     this.showDetails = true,
+    this.compactDetails = false,
   });
 
   final TeacherClass teacherClass;
@@ -47,12 +48,18 @@ class TeacherClassCard extends StatelessWidget {
   /// (`dungiin-huudas`, Issue #233) ends at the course title.
   final bool showDetails;
 
+  /// Sets the room and time a step smaller ([_compactDetailStyle]) so a date
+  /// and times share the room's line — the incoming-request sheet
+  /// (Issue #372). They still wrap where they do not fit.
+  final bool compactDetails;
+
   @override
   Widget build(BuildContext context) {
     final cohort = teacherClass.cohort;
     final track = teacherClass.track;
     final title = cohort.course.title.preferred ?? cohort.course.slug;
     final room = cohort.classroom?.name;
+    final detailStyle = compactDetails ? _compactDetailStyle : _detailStyle;
 
     final palette = context.palette;
     final students = CardCapsule(
@@ -111,6 +118,7 @@ class TeacherClassCard extends StatelessWidget {
                     icon: AppIcons.mapPin,
                     label: room,
                     semanticsLabel: TeacherHomeStrings.room,
+                    style: detailStyle,
                   ),
                 _Detail(
                   icon: AppIcons.clock,
@@ -118,6 +126,7 @@ class TeacherClassCard extends StatelessWidget {
                       timeLabel ??
                       '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
                   semanticsLabel: TeacherHomeStrings.time,
+                  style: detailStyle,
                 ),
               ],
             ),
@@ -135,11 +144,13 @@ class _Detail extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.semanticsLabel,
+    required this.style,
   });
 
   final IconData icon;
   final String label;
   final String semanticsLabel;
+  final TextStyle style;
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +167,7 @@ class _Detail extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: _detailStyle.copyWith(color: context.palette.accentText),
+              style: style.copyWith(color: context.palette.accentText),
             ),
           ),
         ],
@@ -182,3 +193,13 @@ const TextStyle _titleStyle = AppTypography.cardTitle;
 
 /// The room and time lines — values.
 const TextStyle _detailStyle = AppTypography.bodyStrong;
+
+/// The room and time a step smaller and untracked — an exception to the
+/// type scale (`DESIGN_SYSTEM.md` §3). The incoming-request reference sets
+/// "Room 204" and "11-р сарын 17 • 14:00-17:00" on one line, untracked; in
+/// Manrope at 16, with the 0.25 tracking the theme's `bodyMedium` lends
+/// every text, they measure 353 of the card's 329 — at 15, untracked, 328.
+final TextStyle _compactDetailStyle = AppTypography.bodyStrong.copyWith(
+  fontSize: 15,
+  letterSpacing: 0,
+);

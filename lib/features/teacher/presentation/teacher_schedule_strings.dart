@@ -46,8 +46,13 @@ abstract final class TeacherScheduleStrings {
   /// only by the muted card.
   static const String finished = 'Дууссан';
 
-  /// The upcoming session sheet's action.
+  /// The upcoming session sheet's actions.
   static const String changeTime = 'Цаг солих';
+
+  /// Drawn disabled (Issue #372): taking attendance by QR waits on a
+  /// verified `POST /teacher/sessions/{id}/qr` response and a QR-display
+  /// design.
+  static const String registerAttendance = 'Ирц бүртгэх';
 
   /// Under the held session's "14 / 24".
   static const String attendedCaption = 'оюутан ирцэд бүртгэгдсэн';
@@ -62,6 +67,18 @@ abstract final class TeacherScheduleStrings {
   static const String requestSend = 'Хүсэлт илгээх';
   static const String requestPending = 'Хүлээгдэж байна';
   static const String requestRejected = 'Татгалзсан';
+
+  // --- The request's sheets (Issue #372) -----------------------------------
+  //
+  // UI only: nothing in the app opens them until a request contract exists.
+
+  /// The acknowledgement once a request is confirmed sent.
+  static const String requestSentTitle = 'Хүсэлт илгээгдлээ';
+  static const String requestSentDismiss = 'Ойлголоо';
+
+  /// The receiving teacher's two answers.
+  static const String requestDecline = 'Татгалзах';
+  static const String requestAccept = 'Зөвшөөрөх';
 
   /// What "Багш нар" shows in place of its rows: no verified endpoint lists
   /// the teachers or carries a request (BACKEND GAP, Issue #231). Not drawn

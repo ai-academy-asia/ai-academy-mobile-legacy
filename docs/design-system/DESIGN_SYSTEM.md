@@ -157,6 +157,7 @@ All carry `leadingDistribution: TextLeadingDistribution.even` and **no colour**:
 | Teacher week grid's hour labels (12) and session blocks (11); the week strip (12 / 14) | Dense grid, with its own large-text fallback (#357) |
 | Teacher bottom bar's labels (10, `AppBottomNav.labelSize`) | The reference sets them at 10 — its "Дүнгийн хуудас" measures 77 wide, 10pt's own width (93 at 12); kept when the redesign dropped Нүүр for three tabs (Issue #370) |
 | Junior map cards (course card, certificate card) | Scale with the map's width from the role sizes; the certificate card's gap under the name absorbs its growth so the card stays the frame's |
+| The incoming-request sheet's room and date/time (`bodyStrong` at 15, letter spacing 0, `TeacherClassCard.compactDetails`) | The reference sets them on one line, untracked; Manrope at 16 with the theme's inherited 0.25 tracking measures 353 of the card's 329, at 15 untracked 328 (Issue #372). They still wrap where they do not fit |
 | `trackLabel` 16 / 1 / 600 ("Adult" / "Junior"), the session sheet's 36 / 800 count, the Junior ring's % | Sized to their container |
 
 **Legacy.** The old screen-named tokens (`heading`, `cardSupporting`, `cardHeading`, `catalog…`, `statLabel`, `fieldError`, …) remain in `AppTypography`'s *Legacy* section only for code deliberately left unmigrated — the Assignment-only widgets, the unreachable Course catalog / detail and E-Contract signing screens, and the debug-only payment preview. Do not use them in new code; migrate a screen to the roles when it is next touched.
