@@ -1,31 +1,29 @@
+import 'dart:async';
+
 import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
-import 'package:aia_mobile/features/auth/presentation/home_route.dart';
-import 'package:aia_mobile/features/home/presentation/home_strings.dart';
-import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_failure.dart';
+import 'package:aia_mobile/features/teacher/domain/teacher_gradebook_repository.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_submission.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_class_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/gradebook_student_screen.dart';
-import 'package:aia_mobile/features/teacher/presentation/gradebook_submission_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_home_strings.dart';
-import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
-import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
-import 'package:aia_mobile/features/teacher/presentation/teacher_shell.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/gradebook_widgets.dart';
-import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_card.dart';
+import 'package:aia_mobile/features/teacher/presentation/widgets/program_widgets.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
+import 'package:aia_mobile/shared/widgets/pill_button.dart';
+import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../profile/fake_current_user_repository.dart';
+import '../../support/screenshot.dart';
 import 'fake_teacher_gradebook_repository.dart';
-import 'fake_teacher_schedule_repository.dart';
-import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
+import 'teacher_home_screen_test.dart' show sampleClass;
 
-/// Rows as a future verified source would supply them. Test values only:
-/// nothing in the app builds a [GradebookRow] yet (BACKEND GAP).
+/// Teacher Programs — formerly the Gradebook (Issues #233, #390). Fakes
+/// only: no production call, no review or announcement written anywhere.
+
 /// Class 2's assignments and their latest-per-student submissions, in the
 /// confirmed shapes. Test values only.
 const assignments = [
@@ -61,6 +59,13 @@ final submissionsOf = {
   ],
 };
 
+/// Class 2's roster, in the API's order. Student C has submitted nothing.
+const roster = [
+  CohortStudent(id: 13, name: 'Student A'),
+  CohortStudent(id: 9, name: 'Student B'),
+  CohortStudent(id: 21, name: 'Student C'),
+];
+
 FakeTeacherGradebookRepository classRepository() =>
     FakeTeacherGradebookRepository(
       classes: [sampleClass()],
@@ -71,537 +76,445 @@ FakeTeacherGradebookRepository classRepository() =>
         19: submissionsOf[2]![1],
         30: submissionsOf[3]![0],
       },
+      students: {2: roster},
     );
-
-/// Student A's rows, as the student list hands them on.
-final studentRows = [
-  GradebookRow(
-    submission: submissionsOf[3]![0],
-    assignmentTitle: 'Assignment 3',
-  ),
-  GradebookRow(
-    submission: submissionsOf[2]![0],
-    assignmentTitle: 'Даалгавар 2',
-  ),
-];
 
 void main() {
-  void tallView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(393, 1000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-  }
+  setUpAll(loadAppFonts);
 
-  /// Taps a filter chip, scrolling the chip row to it first.
-  Future<void> tapChip(WidgetTester tester, String label) async {
-    await tester.ensureVisible(find.text(label));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(label));
-    await tester.pumpAndSettle();
-  }
-
-  Future<void> pump(
+  Future<List<String>> pump(
     WidgetTester tester,
     Widget home, {
-    bool settle = true,
+    double width = 393,
+    double height = 1000,
+    double scale = 1,
   }) async {
-    tallView(tester);
-    await tester.pumpWidget(MaterialApp(theme: AppTheme.light, home: home));
-    if (settle) await tester.pumpAndSettle();
-  }
-
-  group('Gradebook', () {
-    testWidgets('shows a spinner while the first load runs', (tester) async {
-      final repository = FakeTeacherGradebookRepository(
-        classes: [sampleClass()],
-        hold: true,
-      );
-      await pump(
-        tester,
-        TeacherGradebookScreen(repository: repository),
-        settle: false,
-      );
-      await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      repository.release();
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherClassCard), findsOneWidget);
-    });
-
-    testWidgets(
-      'draws one card per class from its data, without room or time',
-      (tester) async {
-        await pump(
-          tester,
-          TeacherGradebookScreen(
-            repository: FakeTeacherGradebookRepository(
-              classes: [
-                sampleClass(),
-                sampleClass(id: 3, track: 'junior'),
-              ],
-            ),
-          ),
-        );
-
-        // The title, and the selected tab's label.
-        expect(find.text(TeacherGradebookStrings.title), findsNWidgets(2));
-        expect(find.byType(TeacherClassCard), findsNWidgets(2));
-        expect(find.byType(TrackBadge), findsNWidgets(2));
-        expect(find.text('Junior'), findsOneWidget);
-        expect(find.text('Cohort 01'), findsNWidgets(2));
-        expect(find.text('AI Engineer'), findsNWidgets(2));
-        expect(find.text('24 Students'), findsNWidgets(2));
-        expect(find.text('Room 204'), findsNothing);
-        expect(find.text('14:00-17:00'), findsNothing);
-        // No submission summary is invented.
-        expect(find.textContaining('Даалгавар илгээсэн'), findsNothing);
-      },
-    );
-
-    testWidgets('says so when there is no class', (tester) async {
-      await pump(
-        tester,
-        TeacherGradebookScreen(repository: FakeTeacherGradebookRepository()),
-      );
-      expect(find.text(TeacherGradebookStrings.empty), findsOneWidget);
-    });
-
-    testWidgets('a failure shows its message, and retry loads again', (
-      tester,
-    ) async {
-      final repository = FakeTeacherGradebookRepository(
-        classes: [sampleClass()],
-        failure: const TeacherFailure(TeacherFailureKind.network),
-      );
-      await pump(tester, TeacherGradebookScreen(repository: repository));
-      expect(find.text(HomeStrings.networkError), findsOneWidget);
-
-      repository.failure = null;
-      await tester.tap(find.text(TeacherHomeStrings.retry));
-      await tester.pumpAndSettle();
-      expect(repository.classCalls, 2);
-      expect(find.byType(TeacherClassCard), findsOneWidget);
-    });
-
-    testWidgets('pull to refresh asks again', (tester) async {
-      final repository = FakeTeacherGradebookRepository(
-        classes: [sampleClass()],
-      );
-      await pump(tester, TeacherGradebookScreen(repository: repository));
-      await tester.fling(
-        find.byType(TeacherClassCard),
-        const Offset(0, 400),
-        1000,
-      );
-      await tester.pumpAndSettle();
-      expect(repository.classCalls, 2);
-    });
-
-    testWidgets('a tap on a class opens its student list', (tester) async {
-      await pump(
-        tester,
-        TeacherGradebookScreen(
-          repository: FakeTeacherGradebookRepository(classes: [sampleClass()]),
+    useLogicalViewport(tester, Size(width, height), padding: iPhonePadding);
+    tester.platformDispatcher.textScaleFactorTestValue = scale;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final errors = <String>[];
+    final previous = FlutterError.onError;
+    FlutterError.onError = (details) => errors.add(details.toString());
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: home,
         ),
       );
-      await tester.tap(find.byType(TeacherClassCard));
       await tester.pumpAndSettle();
-
-      expect(find.byType(GradebookClassScreen), findsOneWidget);
-      expect(find.text('AI Engineer'), findsOneWidget);
-    });
-  });
-
-  group('student list', () {
-    Future<FakeTeacherGradebookRepository> pumpList(
-      WidgetTester tester, [
-      FakeTeacherGradebookRepository? repository,
-    ]) async {
-      final repo = repository ?? classRepository();
-      await pump(
-        tester,
-        GradebookClassScreen(teacherClass: sampleClass(), repository: repo),
-      );
-      return repo;
+    } finally {
+      FlutterError.onError = previous;
     }
+    return errors;
+  }
 
-    testWidgets('lists every submission of every assignment, newest first, '
-        'from the class\'s own data', (tester) async {
-      final repository = await pumpList(tester);
+  Finder pill(String label) => find.widgetWithText(PillButton, label);
 
-      expect(repository.assignmentCalls, [2]);
-      expect(repository.submissionListCalls, unorderedEquals([2, 3]));
-      final labels = [
-        for (final card in tester.widgetList<GradebookRowCard>(
-          find.byType(GradebookRowCard),
-        ))
-          '${card.row.studentName}, ${card.row.assignmentTitle}',
-      ];
-      expect(labels, [
-        'Student A, Assignment 3',
-        'Student B, Даалгавар 2',
-        'Student A, Даалгавар 2',
-      ]);
-      // The confirmed initials stand in for a photo.
-      expect(find.text('ХЦ'), findsNWidgets(2));
-      expect(find.text('SB'), findsOneWidget);
-    });
-
-    testWidgets('only students who submitted appear', (tester) async {
-      final repository = classRepository()..submissionsOf = {2: [], 3: []};
-      await pumpList(tester, repository);
-
-      expect(find.byType(GradebookRowCard), findsNothing);
-      expect(find.text(TeacherGradebookStrings.noRows), findsOneWidget);
-    });
-
-    testWidgets('the filters keep submitted under Хүлээгдэж буй and reviewed '
-        'under Дүгнэгдсэн', (tester) async {
-      await pumpList(tester);
-      expect(find.byType(GradebookRowCard), findsNWidgets(3));
-
-      await tapChip(tester, TeacherGradebookStrings.filterPending);
-      expect(find.byType(GradebookRowCard), findsNWidgets(2));
-      expect(find.bySemanticsLabel('Student A, Даалгавар 2'), findsNothing);
-
-      await tapChip(tester, TeacherGradebookStrings.filterGraded);
-      expect(find.byType(GradebookRowCard), findsOneWidget);
-      expect(find.bySemanticsLabel('Student A, Даалгавар 2'), findsOneWidget);
-
-      await tapChip(tester, TeacherGradebookStrings.filterAll);
-      expect(find.byType(GradebookRowCard), findsNWidgets(3));
-    });
-
-    testWidgets('a filter with nothing under it says so', (tester) async {
-      final repository = classRepository()
-        ..submissionsOf = {
-          2: [submissionsOf[2]![0]],
-        };
-      await pumpList(tester, repository);
-      await tapChip(tester, TeacherGradebookStrings.filterPending);
-      expect(find.text(TeacherGradebookStrings.noRows), findsOneWidget);
-    });
-
-    testWidgets('a failure shows its message, and retry loads again', (
+  Future<FakeTeacherGradebookRepository> openOverview(
+    WidgetTester tester, {
+    FakeTeacherGradebookRepository? repository,
+  }) async {
+    final repo = repository ?? classRepository();
+    await pump(
       tester,
-    ) async {
-      final repository = classRepository()
-        ..failure = const TeacherFailure(TeacherFailureKind.server);
-      await pumpList(tester, repository);
-      expect(find.text(HomeStrings.serverError), findsOneWidget);
+      TeacherGradebookScreen(repository: repo, showBottomNav: false),
+    );
+    return repo;
+  }
 
-      repository.failure = null;
+  Future<void> openStudents(WidgetTester tester) async {
+    await tester.tap(pill(TeacherGradebookStrings.details));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(TeacherGradebookStrings.studentsInfo));
+    await tester.pumpAndSettle();
+  }
+
+  Future<FakeTeacherGradebookRepository> openStudent(
+    WidgetTester tester,
+    String name, {
+    FakeTeacherGradebookRepository? repository,
+  }) async {
+    final repo = await openOverview(tester, repository: repository);
+    await openStudents(tester);
+    await tester.tap(find.text(name));
+    await tester.pumpAndSettle();
+    expect(find.byType(GradebookStudentScreen), findsOneWidget);
+    return repo;
+  }
+
+  Finder replyField() => find.byWidgetPredicate(
+    (w) =>
+        w is TextField &&
+        w.decoration?.labelText == TeacherGradebookStrings.replyLabel,
+  );
+
+  group('Хөтөлбөрүүд', () {
+    test('is the tab label and the title — formerly "Дүнгийн хуудас"', () {
+      expect(TeacherGradebookStrings.title, 'Хөтөлбөрүүд');
+      expect(TeacherHomeStrings.navGrades, 'Хөтөлбөрүүд');
+    });
+
+    testWidgets('a program card: the badge, the cohort over the course, '
+        '"Нийт сурагч" and its count, and "Дэлгэрэнгүй"', (tester) async {
+      await openOverview(tester);
+      expect(find.text('Хөтөлбөрүүд'), findsOneWidget);
+      expect(find.byType(TeacherProgramCard), findsOneWidget);
+      expect(find.byType(TrackBadge), findsOneWidget);
+      expect(find.text('Cohort 01'), findsOneWidget);
+      expect(find.text('AI Engineer'), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.totalStudents), findsOneWidget);
+      expect(find.text('24'), findsOneWidget);
+      expect(pill(TeacherGradebookStrings.details), findsOneWidget);
+    });
+
+    testWidgets('"Дэлгэрэнгүй" opens the two actions; dismissing opens '
+        'nothing', (tester) async {
+      final repo = await openOverview(tester);
+      await tester.tap(pill(TeacherGradebookStrings.details));
+      await tester.pumpAndSettle();
+      expect(find.byType(CohortActionSheet), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.announce), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.studentsInfo), findsOneWidget);
+
+      await tester.tapAt(const Offset(196, 100));
+      await tester.pumpAndSettle();
+      expect(find.byType(CohortActionSheet), findsNothing);
+      expect(find.byType(GradebookClassScreen), findsNothing);
+      expect(repo.studentCalls, isEmpty);
+    });
+
+    testWidgets('"Сурагчдын мэдээлэл" opens the class\'s students; back '
+        'returns to the cards', (tester) async {
+      await openOverview(tester);
+      await openStudents(tester);
+      expect(find.byType(GradebookClassScreen), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppBackButton),
+          matching: find.byType(InkWell),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(TeacherProgramCard), findsOneWidget);
+    });
+
+    testWidgets('"Зар тараах" opens the composer: the counter follows the '
+        'text, and Submit never sends — no endpoint lets a teacher '
+        'announce', (tester) async {
+      await openOverview(tester);
+      await tester.tap(pill(TeacherGradebookStrings.details));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(TeacherGradebookStrings.announce));
+      await tester.pumpAndSettle();
+      expect(find.byType(AnnouncementSheet), findsOneWidget);
+      expect(find.text('0/100'), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.announceHint), findsOneWidget);
+      expect(
+        find.text(TeacherGradebookStrings.announceUnavailable),
+        findsOneWidget,
+      );
+      Finder submit() => find.descendant(
+        of: find.byType(AnnouncementSheet),
+        matching: pill(TeacherGradebookStrings.submit),
+      );
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), 'Маргааш хичээл 19:00');
+      await tester.pump();
+      expect(find.text('20/100'), findsOneWidget);
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+    });
+
+    testWidgets('a failed read says so, and retry asks again', (tester) async {
+      final repo = classRepository()
+        ..failure = const TeacherFailure(TeacherFailureKind.network);
+      await openOverview(tester, repository: repo);
+      expect(find.text(TeacherHomeStrings.retry), findsOneWidget);
+      repo.failure = null;
       await tester.tap(find.text(TeacherHomeStrings.retry));
       await tester.pumpAndSettle();
-      expect(find.byType(GradebookRowCard), findsNWidgets(3));
+      expect(find.byType(TeacherProgramCard), findsOneWidget);
     });
 
-    testWidgets('pull to refresh asks again', (tester) async {
-      final repository = await pumpList(tester);
-      await tester.fling(
-        find.byType(GradebookRowCard).first,
-        const Offset(0, 400),
-        1000,
-      );
-      await tester.pumpAndSettle();
-      expect(repository.assignmentCalls, [2, 2]);
-    });
-
-    testWidgets('a tap on a student opens them, with their own submissions', (
-      tester,
-    ) async {
-      await pumpList(tester);
-      await tester.tap(find.bySemanticsLabel('Student A, Даалгавар 2'));
-      await tester.pumpAndSettle();
-
-      final screen = tester.widget<GradebookStudentScreen>(
-        find.byType(GradebookStudentScreen),
-      );
-      expect(screen.student.studentId, 13);
-      expect(screen.student.assignmentTitle, 'Даалгавар 2');
-      expect([for (final s in screen.submissions) s.submissionId], [30, 18]);
+    testWidgets('no class: the empty line', (tester) async {
+      await openOverview(tester, repository: FakeTeacherGradebookRepository());
+      expect(find.text(TeacherGradebookStrings.empty), findsOneWidget);
     });
   });
 
-  group('student detail', () {
-    Widget detail(FakeTeacherGradebookRepository repository) =>
-        GradebookStudentScreen(
-          courseTitle: 'AI Engineer',
-          student: studentRows[1],
-          submissions: studentRows,
-          repository: repository,
-        );
-
-    testWidgets('draws the student and no invented figure', (tester) async {
-      await pump(tester, detail(classRepository()));
-
+  group('the students', () {
+    testWidgets('the real roster, in order, each with its awaiting-review '
+        'badge — none for a student with nothing pending', (tester) async {
+      final repo = await openOverview(tester);
+      await openStudents(tester);
+      expect(repo.studentCalls, [2]);
+      expect(repo.assignmentCalls, [2]);
+      expect(repo.submissionListCalls, [2, 3]);
+      expect(find.text('Cohort 01'), findsOneWidget);
       expect(find.text('AI Engineer'), findsOneWidget);
-      expect(find.text('ХЦ'), findsOneWidget);
+      expect(
+        find.text(TeacherGradebookStrings.studentsHeading),
+        findsOneWidget,
+      );
+
+      final rows = tester.widgetList<ProgramStudentRow>(
+        find.byType(ProgramStudentRow),
+      );
+      expect(
+        [for (final r in rows) r.student.name],
+        ['Student A', 'Student B', 'Student C'],
+      );
+      expect([for (final r in rows) r.pending], [1, 1, 0]);
+    });
+
+    testWidgets('a failed read offers retry; an empty roster says so', (
+      tester,
+    ) async {
+      final repo = classRepository();
+      await openOverview(tester, repository: repo);
+      repo.failure = const TeacherFailure(TeacherFailureKind.server);
+      await openStudents(tester);
+      expect(find.text(TeacherHomeStrings.retry), findsOneWidget);
+
+      repo
+        ..failure = null
+        ..students = {2: const []};
+      await tester.tap(find.text(TeacherHomeStrings.retry));
+      await tester.pumpAndSettle();
+      expect(find.text(TeacherGradebookStrings.noStudents), findsOneWidget);
+    });
+
+    test('a badge reads "9+" past nine', () {
+      expect(TeacherGradebookStrings.badge(1), '1');
+      expect(TeacherGradebookStrings.badge(9), '9');
+      expect(TeacherGradebookStrings.badge(10), '9+');
+    });
+  });
+
+  group('a student', () {
+    testWidgets('opens on the assignment waiting for review: the selector, '
+        'the "—" figures, and the student\'s note with its time', (
+      tester,
+    ) async {
+      await openStudent(tester, 'Student A');
       expect(find.text(TeacherGradebookStrings.attendance), findsOneWidget);
       expect(find.text(TeacherGradebookStrings.examScore), findsOneWidget);
       expect(find.text(TeacherGradebookStrings.noFigure), findsNWidgets(2));
-      expect(find.textContaining('%'), findsNothing);
-      expect(find.byType(GradebookRowCard), findsNWidgets(2));
-    });
-
-    testWidgets('a tap on a submission opens it', (tester) async {
-      final repository = classRepository();
-      await pump(tester, detail(repository));
-      await tester.tap(find.bySemanticsLabel('Student A, Assignment 3'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(GradebookSubmissionScreen), findsOneWidget);
-      expect(repository.submissionCalls, [30]);
-    });
-  });
-
-  group('submission detail', () {
-    Widget submissionScreen(FakeTeacherGradebookRepository repository) =>
-        GradebookSubmissionScreen(
-          courseTitle: 'AI Engineer',
-          submissionId: 7,
-          repository: repository,
-        );
-
-    testWidgets('a reviewed submission shows its status, score and feedback', (
-      tester,
-    ) async {
-      await pump(
-        tester,
-        submissionScreen(
-          FakeTeacherGradebookRepository(
-            submissions: {
-              7: const TeacherSubmission(
-                id: 7,
-                status: 'reviewed',
-                score: 85,
-                feedback: 'Сайн байна',
-              ),
-            },
-          ),
-        ),
-      );
-
-      expect(find.text(TeacherGradebookStrings.tabAssignment), findsOneWidget);
-      expect(find.text(TeacherGradebookStrings.tabNote), findsOneWidget);
-      expect(find.text(TeacherGradebookStrings.filterGraded), findsOneWidget);
-      expect(find.text('Оноо: 85'), findsOneWidget);
-      expect(find.text('Сайн байна'), findsOneWidget);
-      expect(
-        find.text(TeacherGradebookStrings.contentUnavailable),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('draws the submitted link and description from its data, '
-        'and opens the link', (tester) async {
-      final opened = <Uri>[];
-      final repository = classRepository();
-      await pump(
-        tester,
-        GradebookSubmissionScreen(
-          courseTitle: 'AI Engineer',
-          submissionId: 18,
-          repository: repository,
-          openUrl: (url) async {
-            opened.add(url);
-            return true;
-          },
-        ),
-      );
-
-      expect(find.text('https://github.com/example/hw-2'), findsOneWidget);
-      expect(find.text(TeacherGradebookStrings.description), findsOneWidget);
+      // Assignment 3, second in the class's list, waits for review.
+      expect(find.text('Даалгавар 2'), findsOneWidget);
+      expect(find.text('Assignment 3'), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.roleStudent), findsOneWidget);
       expect(find.text('Засварласан хувилбар.'), findsOneWidget);
-      expect(find.text('Оноо: 80'), findsOneWidget);
-      expect(find.text('Validation хэсэг дутуу байна.'), findsOneWidget);
-      expect(
-        find.text(TeacherGradebookStrings.contentUnavailable),
-        findsNothing,
-      );
-
-      await tester.tap(find.text('https://github.com/example/hw-2'));
-      await tester.pumpAndSettle();
-      expect(opened, [Uri.parse('https://github.com/example/hw-2')]);
-      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('05/05, 00:00'), findsOneWidget);
+      expect(replyField(), findsOneWidget);
     });
 
-    testWidgets('a link the OS will not open says so', (tester) async {
-      await pump(
-        tester,
-        GradebookSubmissionScreen(
-          courseTitle: 'AI Engineer',
-          submissionId: 18,
-          repository: classRepository(),
-          openUrl: (_) async => false,
-        ),
-      );
-      await tester.tap(find.text('https://github.com/example/hw-2'));
-      await tester.pumpAndSettle();
-      expect(find.text(HomeStrings.unexpectedError), findsOneWidget);
-    });
-
-    testWidgets('a pending submission shows no score or feedback', (
+    testWidgets('the picker lists every assignment with the selected one '
+        'marked; picking shows that thread — here a saved reply', (
       tester,
     ) async {
-      await pump(
-        tester,
-        submissionScreen(
-          FakeTeacherGradebookRepository(
-            submissions: {
-              7: const TeacherSubmission(id: 7, status: 'submitted'),
-            },
-          ),
-        ),
+      await openStudent(tester, 'Student A');
+      await tester.tap(find.byType(AssignmentSelector));
+      await tester.pumpAndSettle();
+      expect(find.byType(AssignmentPickerSheet), findsOneWidget);
+      final options = tester.widgetList<AssignmentOption>(
+        find.byType(AssignmentOption),
       );
+      expect([for (final o in options) o.selected], [false, true]);
+      expect([for (final o in options) o.pending], [0, 1]);
 
-      expect(find.text(TeacherGradebookStrings.filterPending), findsOneWidget);
-      expect(find.textContaining('Оноо'), findsNothing);
-      expect(find.byType(InputDecorator), findsNothing);
+      await tester.tap(find.byType(AssignmentOption).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(AssignmentPickerSheet), findsNothing);
+      expect(find.text('Validation хэсэг дутуу байна.'), findsOneWidget);
+      expect(find.text(TeacherGradebookStrings.roleTeacher), findsWidgets);
     });
 
-    testWidgets('the Note tab is a BACKEND GAP', (tester) async {
-      await pump(
-        tester,
-        submissionScreen(
-          FakeTeacherGradebookRepository(
-            submissions: {
-              7: const TeacherSubmission(id: 7, status: 'submitted'),
-            },
+    testWidgets('Submit waits for text; a reply is shown only once the '
+        'server answers, and the class list\'s badge follows', (tester) async {
+      final repo = classRepository()..reviewGate = Completer<void>();
+      await openStudent(tester, 'Student A', repository: repo);
+      Finder submit() => pill(TeacherGradebookStrings.submit);
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+      await tester.enterText(replyField(), '   ');
+      await tester.pump();
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+
+      await tester.enterText(replyField(), 'Сайн ажил, үргэлжлүүлээрэй.');
+      await tester.pump();
+      await tester.tap(submit());
+      await tester.pump();
+      expect(repo.reviewCalls, [(30, 'Сайн ажил, үргэлжлүүлээрэй.', null)]);
+      // In flight: no reply yet, and no second send.
+      expect(find.text('Анужин Болд'), findsNothing);
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+
+      repo.reviewGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Сайн ажил, үргэлжлүүлээрэй.'), findsOneWidget);
+      expect(find.text('Анужин Болд'), findsOneWidget);
+      expect(tester.widget<TextField>(replyField()).controller!.text, isEmpty);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(GradebookStudentScreen),
+          matching: find.descendant(
+            of: find.byType(AppBackButton),
+            matching: find.byType(InkWell),
           ),
         ),
       );
-      await tester.tap(find.text(TeacherGradebookStrings.tabNote));
       await tester.pumpAndSettle();
+      final rows = tester.widgetList<ProgramStudentRow>(
+        find.byType(ProgramStudentRow),
+      );
+      expect([for (final r in rows) r.pending], [0, 1, 0]);
+    });
 
+    testWidgets('a refused reply says why, keeps the text, shows no reply', (
+      tester,
+    ) async {
+      final repo = classRepository()
+        ..reviewFailure = const TeacherFailure(
+          TeacherFailureKind.rejected,
+          code: 'feedback_too_long',
+        );
+      await openStudent(tester, 'Student A', repository: repo);
+      await tester.enterText(replyField(), 'Хариулт');
+      await tester.pump();
+      await tester.tap(pill(TeacherGradebookStrings.submit));
+      await tester.pumpAndSettle();
       expect(
-        find.text(TeacherGradebookStrings.noteUnavailable),
+        find.text('Хариулт 5000 тэмдэгтээс хэтэрсэн байна.'),
         findsOneWidget,
       );
       expect(
-        find.text(TeacherGradebookStrings.contentUnavailable),
-        findsNothing,
+        tester.widget<TextField>(replyField()).controller!.text,
+        'Хариулт',
       );
+      expect(find.text('Анужин Болд'), findsNothing);
     });
 
-    testWidgets('Mentor Feedback is drawn but sends nothing', (tester) async {
-      final repository = FakeTeacherGradebookRepository(
-        submissions: {7: const TeacherSubmission(id: 7, status: 'submitted')},
-      );
-      await pump(tester, submissionScreen(repository));
-
-      await tester.tap(find.text(TeacherGradebookStrings.mentorFeedback));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(GradebookSubmissionScreen), findsOneWidget);
-      expect(repository.submissionCalls, [7]);
-    });
-
-    testWidgets('a failure shows its message, and retry loads again', (
+    testWidgets('the edit control puts the saved reply back in the composer', (
       tester,
     ) async {
-      final repository = FakeTeacherGradebookRepository(
-        submissions: {7: const TeacherSubmission(id: 7, status: 'submitted')},
-        submissionFailure: const TeacherFailure(TeacherFailureKind.server),
-      );
-      await pump(tester, submissionScreen(repository));
-      expect(find.text(HomeStrings.serverError), findsOneWidget);
-
-      repository.submissionFailure = null;
-      await tester.tap(find.text(TeacherHomeStrings.retry));
+      await openStudent(tester, 'Student A');
+      await tester.tap(find.byType(AssignmentSelector));
       await tester.pumpAndSettle();
-      expect(repository.submissionCalls, [7, 7]);
-      expect(find.text(TeacherGradebookStrings.filterPending), findsOneWidget);
+      await tester.tap(find.byType(AssignmentOption).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(TeacherGradebookStrings.editReply));
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(replyField()).controller!.text,
+        'Validation хэсэг дутуу байна.',
+      );
+    });
+
+    testWidgets('an assignment with a maximum asks for a score, and refuses '
+        'one out of range', (tester) async {
+      final repo = classRepository()
+        ..assignments = {
+          2: const [
+            TeacherAssignment(
+              id: 2,
+              title: LocalizedText(mn: 'Даалгавар 2'),
+              maxScore: 100,
+            ),
+            TeacherAssignment(
+              id: 3,
+              title: LocalizedText(en: 'Assignment 3'),
+              maxScore: 100,
+            ),
+          ],
+        };
+      await openStudent(tester, 'Student A', repository: repo);
+      final score = find.byWidgetPredicate(
+        (w) =>
+            w is TextField &&
+            w.decoration?.labelText == TeacherGradebookStrings.scoreLabel(100),
+      );
+      expect(score, findsOneWidget);
+      await tester.enterText(replyField(), 'Сайн');
+      await tester.pump();
+      expect(
+        tester
+            .widget<PillButton>(pill(TeacherGradebookStrings.submit))
+            .onPressed,
+        isNull,
+      );
+      await tester.enterText(score, '150');
+      await tester.pump();
+      expect(
+        find.text(TeacherGradebookStrings.scoreInvalid(100)),
+        findsOneWidget,
+      );
+      await tester.enterText(score, '85');
+      await tester.pump();
+      await tester.tap(pill(TeacherGradebookStrings.submit));
+      await tester.pumpAndSettle();
+      expect(repo.reviewCalls, [(30, 'Сайн', 85)]);
+    });
+
+    testWidgets('a student who submitted nothing: no thread, no composer', (
+      tester,
+    ) async {
+      await openStudent(tester, 'Student C');
+      expect(find.text(TeacherGradebookStrings.notSubmitted), findsOneWidget);
+      expect(replyField(), findsNothing);
     });
   });
 
-  group('teacher tab bar', () {
-    Future<void> pumpApp(WidgetTester tester) async {
-      tallView(tester);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          initialRoute: HomeRoutes.teacher,
-          // The app's own: the tabs inside one persistent shell (#241).
-          routes: {
-            HomeRoutes.teacher: (_) => TeacherShell(
-              schedule: TeacherScheduleScreen(
-                repository: FakeTeacherScheduleRepository(),
-                clock: tuesday,
-                showBottomNav: false,
-              ),
-              grades: TeacherGradebookScreen(
-                repository: FakeTeacherGradebookRepository(
-                  classes: [sampleClass()],
-                ),
-                showBottomNav: false,
-              ),
-              profile: TeacherProfileScreen(
-                repository: FakeCurrentUserRepository(),
-              ),
+  group('large text and small screens', () {
+    for (final width in [320.0, 393.0]) {
+      for (final scale in [1.0, 2.0, 3.0]) {
+        testWidgets('${width.toInt()} wide, text ×$scale: cards, sheets, '
+            'roster and student without overflow', (tester) async {
+          final errors = await pump(
+            tester,
+            TeacherGradebookScreen(
+              repository: classRepository(),
+              showBottomNav: false,
             ),
-          },
-        ),
-      );
-      await tester.pumpAndSettle();
+            width: width,
+            height: 900,
+            scale: scale,
+          );
+          final previous = FlutterError.onError;
+          FlutterError.onError = (details) => errors.add(details.toString());
+          try {
+            // At ×3 the card's pill sits below the fold — scroll, as a user
+            // would.
+            await tester.ensureVisible(pill(TeacherGradebookStrings.details));
+            await tester.pumpAndSettle();
+            await tester.tap(pill(TeacherGradebookStrings.details));
+            await tester.pumpAndSettle();
+            await tester.ensureVisible(
+              find.text(TeacherGradebookStrings.announce),
+            );
+            await tester.pumpAndSettle();
+            await tester.tap(find.text(TeacherGradebookStrings.announce));
+            await tester.pumpAndSettle();
+            await tester.enterText(find.byType(TextField), 'Мэдэгдэл');
+            await tester.pumpAndSettle();
+            Navigator.of(tester.element(find.byType(AnnouncementSheet))).pop();
+            await tester.pumpAndSettle();
+
+            await openStudents(tester);
+            await tester.tap(find.text('Student A'));
+            await tester.pumpAndSettle();
+            await tester.tap(find.byType(AssignmentSelector));
+            await tester.pumpAndSettle();
+            await tester.tap(find.byType(AssignmentOption).first);
+            await tester.pumpAndSettle();
+          } finally {
+            FlutterError.onError = previous;
+          }
+          expect(errors, isEmpty);
+        });
+      }
     }
-
-    testWidgets('keeps Хуваарь, Дүнгийн хуудас, Профайл in that order (Issue '
-        '#370)', (tester) async {
-      await pumpApp(tester);
-      final xs = [
-        for (final label in [
-          TeacherHomeStrings.navSchedule,
-          TeacherHomeStrings.navGrades,
-          TeacherHomeStrings.navProfile,
-        ])
-          tester.getCenter(find.text(label)).dx,
-      ];
-      expect(xs, orderedEquals([...xs]..sort()));
-    });
-
-    testWidgets('Дүнгийн хуудас opens the Gradebook from Schedule, and '
-        'Хуваарь returns', (tester) async {
-      await pumpApp(tester);
-
-      await tester.tap(find.text(TeacherHomeStrings.navGrades));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherGradebookScreen), findsOneWidget);
-
-      await tester.tap(find.text(TeacherHomeStrings.navSchedule));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherScheduleScreen), findsOneWidget);
-      expect(find.byType(TeacherGradebookScreen), findsNothing);
-
-      await tester.tap(find.text(TeacherHomeStrings.navGrades));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherGradebookScreen), findsOneWidget);
-
-      await tester.tap(find.text(TeacherHomeStrings.navSchedule));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherScheduleScreen), findsOneWidget);
-      expect(find.byType(TeacherGradebookScreen), findsNothing);
-    });
-
-    testWidgets('Профайл opens the Teacher Profile, and Дүнгийн хуудас '
-        'returns as it was left (Issue #243)', (tester) async {
-      await pumpApp(tester);
-      await tester.tap(find.text(TeacherHomeStrings.navGrades));
-      await tester.pumpAndSettle();
-      final gradebook = tester.state(find.byType(TeacherGradebookScreen));
-
-      await tester.tap(find.text(TeacherHomeStrings.navProfile));
-      await tester.pumpAndSettle();
-      expect(find.byType(TeacherProfileScreen), findsOneWidget);
-      expect(find.byType(TeacherGradebookScreen), findsNothing);
-
-      await tester.tap(find.text(TeacherHomeStrings.navGrades));
-      await tester.pumpAndSettle();
-      expect(
-        identical(tester.state(find.byType(TeacherGradebookScreen)), gradebook),
-        isTrue,
-      );
-    });
   });
 }

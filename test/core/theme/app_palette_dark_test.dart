@@ -236,6 +236,11 @@ void main() {
     ),
     'qrInk': (dark.qrInk, const Color(0xFF000000), 'DERIVED'),
     'qrBackground': (dark.qrBackground, const Color(0xFFFFFFFF), 'DERIVED'),
+    'programJuniorTint': (
+      dark.programJuniorTint,
+      const Color(0xFFE16D31),
+      'UNRESOLVED',
+    ),
   };
 
   test('every role has a candidate dark value and a recorded status', () {
@@ -243,7 +248,7 @@ void main() {
     final declared = RegExp(
       r'required this\.(\w+),',
     ).allMatches(source).map((m) => m.group(1)!).toList();
-    expect(declared, hasLength(100));
+    expect(declared, hasLength(101));
     expect(roles.keys.toSet(), declared.toSet());
     for (final MapEntry(key: role, value: (actual, expected, status))
         in roles.entries) {

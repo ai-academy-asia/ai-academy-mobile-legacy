@@ -252,9 +252,11 @@ void main() {
   // single word is wider than its tab — e.g. "Профайл", 106pt at 2.0× in a
   // 96pt tab on a 320 phone — no break between words can fit it, so it
   // breaks inside the word: the cost of never capping the text scale.
+  // (The teacher bar has no multi-word label since "Дүнгийн хуудас" became
+  // "Хөтөлбөрүүд", Issue #390 — a single word that, like "Профайл", breaks
+  // inside itself where it cannot fit its tab.)
   for (final (role, label, width) in const [
     ('junior', JuniorHomeStrings.navProgress, 393.0),
-    ('teacher', TeacherHomeStrings.navGrades, 393.0),
   ]) {
     testWidgets('$role bar, ${width.toInt()} wide, text ×2.0: "$label" wraps '
         'between its words', (tester) async {

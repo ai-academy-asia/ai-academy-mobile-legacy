@@ -14,20 +14,19 @@ import 'gradebook_class_screen.dart';
 import 'teacher_gradebook_strings.dart';
 import 'teacher_home_controller.dart';
 import 'teacher_home_strings.dart';
+import 'widgets/program_widgets.dart';
 import 'widgets/teacher_bottom_nav.dart';
-import 'widgets/teacher_class_card.dart';
 import 'widgets/teacher_tabs.dart';
 
-/// The teacher's Дүнгийн хуудас tab (Issue #233), built against the
-/// `dungiin-huudas` reference: the title on a white band, then one card per
-/// class the teacher teaches; a tap opens that class's student list.
+/// The teacher's Хөтөлбөрүүд tab — formerly Дүнгийн хуудас (Issues #233,
+/// #390), built against `Sign in - 33`: the title on a white band, then one
+/// [TeacherProgramCard] per class the teacher teaches. "Дэлгэрэнгүй" opens
+/// the class's actions (`Contract(2)`): "Сурагчдын мэдээлэл" opens its
+/// students, "Зар тараах" the announcement composer — which sends nothing,
+/// as no endpoint lets a teacher announce (BACKEND GAP).
 ///
 /// The classes are Teacher Home's own read, loaded by the same
-/// [TeacherHomeController] — here every class, not only today's. Each card
-/// is Teacher Home's [TeacherClassCard] without its room and time, as the
-/// reference draws it. The reference's "12/24 Даалгавар илгээсэн" capsule is
-/// not drawn: no verified response says how many students submitted
-/// (BACKEND GAP); the class's student count sits in its place.
+/// [TeacherHomeController] — here every class, not only today's.
 ///
 /// Spinner, empty line, error + retry and pull-to-refresh follow Teacher
 /// Home; the reference draws none of them.
@@ -64,6 +63,17 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _details(TeacherClass teacherClass) async {
+    final action = await showCohortActionSheet(context);
+    if (!mounted || action == null) return;
+    switch (action) {
+      case CohortAction.students:
+        _open(teacherClass);
+      case CohortAction.announce:
+        await showAnnouncementSheet(context);
+    }
   }
 
   void _open(TeacherClass teacherClass) {
@@ -187,16 +197,9 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
           for (final (index, teacherClass) in list.indexed)
             Padding(
               padding: EdgeInsets.only(top: index == 0 ? 0 : AppDimens.cardGap),
-              child: Semantics(
-                button: true,
-                child: GestureDetector(
-                  onTap: () => _open(teacherClass),
-                  behavior: HitTestBehavior.opaque,
-                  child: TeacherClassCard(
-                    teacherClass: teacherClass,
-                    showDetails: false,
-                  ),
-                ),
+              child: TeacherProgramCard(
+                teacherClass: teacherClass,
+                onDetails: () => _details(teacherClass),
               ),
             ),
         ],

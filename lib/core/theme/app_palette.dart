@@ -132,6 +132,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.onStudentAvatar,
     required this.qrInk,
     required this.qrBackground,
+    required this.programJuniorTint,
   });
 
   /// Today's app, unchanged.
@@ -236,6 +237,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     onStudentAvatar: AppColors.onStudentAvatar,
     qrInk: AppColors.qrInk,
     qrBackground: AppColors.qrBackground,
+    programJuniorTint: AppColors.programJuniorTint,
   );
 
   /// The **candidate** dark palette (Dark Mode Phase 9, Issue #276). **Not
@@ -452,6 +454,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     qrInk: AppColors.qrInk,
     // DERIVED: a scanner needs dark on light in either theme
     qrBackground: AppColors.qrBackground,
+    // UNRESOLVED: no value; the light tint stands in
+    programJuniorTint: AppColors.programJuniorTint,
   );
 
   // --- Grounds ---------------------------------------------------------------
@@ -823,6 +827,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Behind the attendance QR — white in either theme, for the same reason.
   final Color qrBackground;
 
+  /// The Junior program card's background pattern tint — the Junior mark's
+  /// own orange, applied to the shared pattern asset (Issue #390).
+  final Color programJuniorTint;
+
   @override
   AppPalette copyWith({
     Color? pageBackground,
@@ -925,6 +933,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? onStudentAvatar,
     Color? qrInk,
     Color? qrBackground,
+    Color? programJuniorTint,
   }) => AppPalette(
     pageBackground: pageBackground ?? this.pageBackground,
     surfaceSubtle: surfaceSubtle ?? this.surfaceSubtle,
@@ -1027,6 +1036,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     onStudentAvatar: onStudentAvatar ?? this.onStudentAvatar,
     qrInk: qrInk ?? this.qrInk,
     qrBackground: qrBackground ?? this.qrBackground,
+    programJuniorTint: programJuniorTint ?? this.programJuniorTint,
   );
 
   @override
@@ -1143,6 +1153,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       onStudentAvatar: mix(onStudentAvatar, other.onStudentAvatar),
       qrInk: mix(qrInk, other.qrInk),
       qrBackground: mix(qrBackground, other.qrBackground),
+      programJuniorTint: mix(programJuniorTint, other.programJuniorTint),
     );
   }
 }

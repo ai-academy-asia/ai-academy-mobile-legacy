@@ -289,4 +289,180 @@ void main() {
     final classes = await repo.getClasses();
     expect(classes.single.cohort.name, 'Cohort 01');
   });
+
+  group('Programs additions (Issue #390)', () {
+    test(
+      'the roster: GET /teacher/cohorts/{id}/students, id and name only',
+      () async {
+        late http.Request sent;
+        final repo = repositoryReturning((request) async {
+          sent = request;
+          return jsonResponse(
+            jsonEncode({
+              'cohort_id': 2,
+              'students': [
+                {
+                  'student_id': 13,
+                  'enrollment_id': 40,
+                  'name': 'Student A',
+                  'phone': '99112233',
+                },
+                {
+                  'student_id': 9,
+                  'enrollment_id': 41,
+                  'name': 'Student B',
+                  'phone': null,
+                },
+              ],
+            }),
+            200,
+          );
+        });
+        final students = await repo.getStudents(2);
+        expect(sent.method, 'GET');
+        expect(sent.url.path, '/teacher/cohorts/2/students');
+        expect(sent.headers['Authorization'], startsWith('Bearer '));
+        expect(
+          [for (final s in students) (s.id, s.name)],
+          [(13, 'Student A'), (9, 'Student B')],
+        );
+      },
+    );
+
+    test('a roster entry without a student_id is a server failure', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(
+          jsonEncode({
+            'students': [
+              {'name': 'Student A'},
+            ],
+          }),
+          200,
+        ),
+      );
+      expect(
+        (await failureOf(repo.getStudents(2))).kind,
+        TeacherFailureKind.server,
+      );
+    });
+
+    test('an assignment\'s max_score is read; a non-number is a server '
+        'failure', () async {
+      var body = assignmentsBody([
+        {'id': 2, 'title_mn': 'Даалгавар 2', 'max_score': 100},
+        {'id': 3, 'title_en': 'Assignment 3', 'max_score': null},
+      ]);
+      final repo = repositoryReturning((_) async => jsonResponse(body, 200));
+      final list = await repo.getAssignments(2);
+      expect(list.map((a) => a.maxScore), [100, null]);
+      body = assignmentsBody([
+        {'id': 2, 'title': 'x', 'max_score': '100'},
+      ]);
+      expect(
+        (await failureOf(repo.getAssignments(2))).kind,
+        TeacherFailureKind.server,
+      );
+    });
+
+    test('feedback.created_at and feedback.mentor are read', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(submissionsBody([submissionEntry()]), 200),
+      );
+      final submission = (await repo.getSubmissions(2)).single;
+      expect(
+        submission.feedbackAt,
+        DateTime.parse('2026-05-02T14:00:00+00:00').toLocal(),
+      );
+      expect(submission.mentor?.name, 'Mentor');
+      expect(submission.mentor?.id, 4);
+      expect(submission.mentor?.initials, 'БЭ');
+    });
+
+    test('a review: POST {feedback, score}, and the stored submission comes '
+        'back', () async {
+      late http.Request sent;
+      final repo = repositoryReturning((request) async {
+        sent = request;
+        return jsonResponse(
+          jsonEncode(
+            submissionEntry(
+              id: 30,
+              score: 85,
+              feedback: const {
+                'created_at': '2026-10-13T07:05:00+00:00',
+                'mentor': {
+                  'id': 4,
+                  'initials': 'АБ',
+                  'name': 'Анужин Болд',
+                  'role': 'teacher',
+                },
+                'message': 'Сайн ажил.',
+              },
+            ),
+          ),
+          200,
+        );
+      });
+      final saved = await repo.reviewSubmission(
+        submissionId: 30,
+        feedback: 'Сайн ажил.',
+        score: 85,
+      );
+      expect(sent.method, 'POST');
+      expect(sent.url.path, '/teacher/submissions/30/review');
+      expect(sent.headers['Content-Type'], startsWith('application/json'));
+      expect(jsonDecode(sent.body), {'feedback': 'Сайн ажил.', 'score': 85});
+      expect(saved.id, 30);
+      expect(saved.isReviewed, isTrue);
+      expect(saved.feedback, 'Сайн ажил.');
+      expect(saved.score, 85);
+      expect(saved.mentor?.name, 'Анужин Болд');
+    });
+
+    test('a review without a score sends "score": null', () async {
+      late http.Request sent;
+      final repo = repositoryReturning((request) async {
+        sent = request;
+        return jsonResponse(
+          jsonEncode(submissionEntry(id: 30, score: null)),
+          200,
+        );
+      });
+      await repo.reviewSubmission(submissionId: 30, feedback: 'OK');
+      expect(jsonDecode(sent.body), {'feedback': 'OK', 'score': null});
+    });
+
+    for (final (status, code) in [
+      (400, 'feedback_required'),
+      (400, 'feedback_too_long'),
+      (400, 'invalid_score'),
+      (404, 'submission_not_found'),
+    ]) {
+      test('a refused review keeps $code', () async {
+        final repo = repositoryReturning(
+          (_) async => jsonResponse(jsonEncode({'error': code}), status),
+        );
+        final failure = await failureOf(
+          repo.reviewSubmission(submissionId: 30, feedback: 'x', score: 1),
+        );
+        expect(failure.kind, TeacherFailureKind.rejected);
+        expect(failure.code, code);
+      });
+    }
+
+    test('nothing is sent without a session', () async {
+      var sent = 0;
+      final repo = repositoryReturning((_) async {
+        sent++;
+        return jsonResponse('{}', 200);
+      }, sessionStore: AuthSessionStore());
+      expect(
+        (await failureOf(
+          repo.reviewSubmission(submissionId: 30, feedback: 'x'),
+        )).kind,
+        TeacherFailureKind.sessionExpired,
+      );
+      expect(sent, 0);
+    });
+  });
 }

@@ -1,7 +1,8 @@
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_session.dart';
-import 'package:aia_mobile/features/teacher/presentation/gradebook_submission_screen.dart';
+import 'package:aia_mobile/features/teacher/presentation/gradebook_class_controller.dart';
+import 'package:aia_mobile/features/teacher/presentation/gradebook_student_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_request_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
@@ -19,7 +20,8 @@ import '../../support/screenshot.dart';
 import '../profile/fake_current_user_repository.dart';
 import 'fake_teacher_gradebook_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
-import 'teacher_gradebook_screen_test.dart' show assignments, submissionsOf;
+import 'teacher_gradebook_screen_test.dart'
+    show assignments, roster, submissionsOf;
 import 'teacher_home_screen_test.dart' show sampleClass;
 import 'teacher_profile_screen_test.dart' show teacher;
 
@@ -352,33 +354,6 @@ void main() {
   });
 
   group('Gradebook', () {
-    testWidgets('placeholder avatar: avatarPlaceholder (not divider) with '
-        'avatarPlaceholderInk (not disabledInk); initials textMuted', (
-      tester,
-    ) async {
-      await pump(
-        tester,
-        body(
-          const Column(
-            children: [
-              GradebookAvatar(),
-              GradebookAvatar(initials: 'BT'),
-            ],
-          ),
-        ),
-      );
-      final discs = {
-        for (final d in decorations(tester, find.byType(GradebookAvatar)))
-          d.color,
-      };
-      expect(discs, {avatarPlaceholder});
-      expect(
-        tester.widget<Icon>(find.byType(Icon)).color,
-        avatarPlaceholderInk,
-      );
-      expect(textColor(tester, 'BT'), textMuted);
-    });
-
     testWidgets('stat card: outlineFaint edge; infoInk @ 30 % round infoFill, '
         'accentText figure', (tester) async {
       await pump(
@@ -396,36 +371,27 @@ void main() {
       expect(textColor(tester, 'Title'), textStrong);
     });
 
-    testWidgets('submission: accentText tab over an accent underline; '
-        'divider tab rule; linkInk link; outline fields', (tester) async {
+    testWidgets('student thread: outline composer border, outlineFaint card '
+        'edge (Issue #390)', (tester) async {
+      final repository = FakeTeacherGradebookRepository(
+        classes: [sampleClass()],
+        assignments: {2: assignments},
+        submissionsOf: submissionsOf,
+        students: {2: roster},
+      );
+      final controller = GradebookClassController(
+        repository: repository,
+        cohortId: 2,
+      );
+      await tester.runAsync(controller.load);
+      addTearDown(controller.dispose);
       await pump(
         tester,
-        GradebookSubmissionScreen(
-          courseTitle: 'AI Engineer',
-          submissionId: 18,
-          repository: FakeTeacherGradebookRepository(
-            classes: [sampleClass()],
-            assignments: {2: assignments},
-            submissionsOf: submissionsOf,
-            submissions: {18: submissionsOf[2]![0]},
-          ),
+        GradebookStudentScreen(
+          student: roster.first,
+          classController: controller,
+          repository: repository,
         ),
-      );
-      final underlines = {
-        for (final d in decorations(tester, find.byType(Scaffold)))
-          if (d.border case final Border b
-              when b.bottom.width == 2 && b.top == BorderSide.none)
-            b.bottom.color,
-      };
-      expect(underlines, contains(accent));
-      expect(
-        decorations(tester, find.byType(Scaffold)).where(
-          (d) =>
-              d.border is Border &&
-              (d.border! as Border).bottom.color == divider &&
-              (d.border! as Border).bottom.width == 1,
-        ),
-        isNotEmpty,
       );
       final decorators = tester.widgetList<InputDecorator>(
         find.byType(InputDecorator),
@@ -437,6 +403,15 @@ void main() {
           outline,
         );
       }
+      expect(
+        decorations(tester, find.byType(Scaffold)).where(
+          (d) =>
+              d.color == surface &&
+              d.border is Border &&
+              (d.border! as Border).top.color == outlineFaint,
+        ),
+        isNotEmpty,
+      );
     });
   });
 

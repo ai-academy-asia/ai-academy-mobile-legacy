@@ -166,13 +166,23 @@ void main() {
       'auth/presentation/reset_password_screen.dart',
       'home/presentation/attendance_detail_screen.dart',
       'teacher/presentation/teacher_request_screen.dart',
-      'teacher/presentation/gradebook_class_screen.dart',
-      'teacher/presentation/gradebook_student_screen.dart',
-      'teacher/presentation/gradebook_submission_screen.dart',
     ];
     for (final path in pages) {
       test('$path draws BackTitleHeader', () {
         expect(source(path), contains('BackTitleHeader('));
+      });
+    }
+
+    // A documented exception (SCREEN_PATTERNS.md §3, Issue #390): the
+    // Programs frames set the cohort and title left-aligned beside the
+    // back control, so these pages share ProgramPageHeader instead.
+    const programPages = [
+      'teacher/presentation/gradebook_class_screen.dart',
+      'teacher/presentation/gradebook_student_screen.dart',
+    ];
+    for (final path in programPages) {
+      test('$path draws ProgramPageHeader', () {
+        expect(source(path), contains('ProgramPageHeader('));
       });
     }
 

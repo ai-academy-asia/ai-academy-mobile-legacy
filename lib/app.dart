@@ -86,7 +86,7 @@ class AiAcademyApp extends StatelessWidget {
         // The Teacher landing route opens on Хуваарь, the Teacher area's
         // first tab (Issue #370).
         HomeRoutes.teacher: (_) => const TeacherShell(),
-        // The teacher bar's Хуваарь (Issue #231) and Дүнгийн хуудас (#233).
+        // The teacher bar's Хуваарь (Issue #231) and Хөтөлбөрүүд (#233, #390).
         TeacherTabRoutes.schedule: (_) =>
             const TeacherShell(initialTab: TeacherTab.schedule),
         TeacherTabRoutes.gradebook: (_) =>
