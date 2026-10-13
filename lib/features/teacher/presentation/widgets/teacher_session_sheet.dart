@@ -8,7 +8,10 @@ import '../../domain/teacher_attendance.dart';
 import '../../domain/teacher_failure.dart';
 import '../../domain/teacher_schedule_repository.dart';
 import '../../domain/teacher_session.dart';
+import '../../data/http_teacher_attendance_repository.dart';
 import '../attendance_qr_screen.dart';
+import '../manual_attendance_screen.dart';
+import '../teacher_attendance_strings.dart';
 import '../teacher_home_strings.dart';
 import '../teacher_request_screen.dart';
 import '../teacher_schedule_strings.dart';
@@ -56,7 +59,12 @@ Future<void> showTeacherSessionSheet(
 
 /// The sheet: a drag handle over Teacher Home's class card, filled with the
 /// session's own data — never the reference's sample figures.
-class TeacherSessionSheet extends StatelessWidget {
+///
+/// A held session on its own date (Ulaanbaatar) keeps its attendance summary
+/// and adds "Гар аргаар бүртгэх" (Issue #376): the backend takes a manual mark
+/// at any time, so attendance can still be registered or corrected once the
+/// class is over. The summary re-reads when the teacher comes back.
+class TeacherSessionSheet extends StatefulWidget {
   const TeacherSessionSheet({
     required this.entry,
     required this.held,
@@ -73,14 +81,39 @@ class TeacherSessionSheet extends StatelessWidget {
 
   final TeacherScheduleRepository repository;
 
-  /// Today is the session's date (Ulaanbaatar): "Ирц бүртгэх" is live.
+  /// Today is the session's date (Ulaanbaatar): "Ирц бүртгэх" is live on an
+  /// upcoming session, "Гар аргаар бүртгэх" on a held one.
   final bool attendanceOpen;
 
   /// For the attendance screens; defaults to the HTTP repository.
   final TeacherAttendanceRepository? attendanceRepository;
 
   @override
+  State<TeacherSessionSheet> createState() => _TeacherSessionSheetState();
+}
+
+class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
+  /// Bumped when manual attendance closes, so the summary reads again.
+  int _summaryRead = 0;
+
+  Future<void> _openManual() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ManualAttendanceScreen(
+          sessionId: widget.entry.session.id,
+          repository:
+              widget.attendanceRepository ?? HttpTeacherAttendanceRepository(),
+        ),
+      ),
+    );
+    if (mounted) setState(() => _summaryRead++);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final entry = widget.entry;
+    final held = widget.held;
+    final attendanceOpen = widget.attendanceOpen;
     final session = entry.session;
     return SafeArea(
       top: false,
@@ -102,11 +135,23 @@ class TeacherSessionSheet extends StatelessWidget {
               timeLabel: '${session.startLabel}-${session.endLabel}',
               footer: held
                   ? SessionAttendanceSummary(
+                      key: ValueKey(_summaryRead),
                       sessionId: session.id,
-                      repository: repository,
+                      repository: widget.repository,
                     )
                   : null,
             ),
+            // Held, on its date: the summary stays, and the class can still
+            // be marked by hand — the QR is for the class while it runs.
+            if (held && attendanceOpen) ...[
+              const SizedBox(height: 24),
+              TeacherPillButton(
+                label: TeacherAttendanceStrings.manualEntry,
+                variant: TeacherPillVariant.filled,
+                wrapLabel: true,
+                onPressed: _openManual,
+              ),
+            ],
             if (!held) ...[
               const SizedBox(height: 24),
               TeacherPillPair(
@@ -131,7 +176,7 @@ class TeacherSessionSheet extends StatelessWidget {
                           MaterialPageRoute<void>(
                             builder: (_) => AttendanceQrScreen(
                               sessionId: entry.session.id,
-                              repository: attendanceRepository,
+                              repository: widget.attendanceRepository,
                             ),
                           ),
                         ),

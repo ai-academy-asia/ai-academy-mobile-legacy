@@ -238,6 +238,177 @@ void main() {
     });
   });
 
+  group('after a session ends, on its date (Issue #376)', () {
+    final ended = sampleSession(id: 50, date: '2026-10-05');
+    const counts = AttendanceCounts(
+      present: 12,
+      late: 2,
+      absent: 9,
+      excused: 1,
+    );
+
+    Future<(FakeTeacherScheduleRepository, FakeTeacherAttendanceRepository)>
+    pumpSheet(
+      WidgetTester tester, {
+      required bool held,
+      required bool attendanceOpen,
+    }) async {
+      final schedule = FakeTeacherScheduleRepository(
+        attendance: {ended.id: counts},
+      );
+      final attendance = FakeTeacherAttendanceRepository(
+        students: referenceRoster(),
+      );
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: TeacherSessionSheet(
+              entry: ScheduledSession(
+                session: ended,
+                teacherClass: sampleClass(),
+              ),
+              held: held,
+              repository: schedule,
+              attendanceOpen: attendanceOpen,
+              attendanceRepository: attendance,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (schedule, attendance);
+    }
+
+    testWidgets('ended, today: the summary stays and "Гар аргаар бүртгэх" '
+        'opens manual attendance; the summary re-reads on return', (
+      tester,
+    ) async {
+      final (schedule, attendance) = await pumpSheet(
+        tester,
+        held: true,
+        attendanceOpen: true,
+      );
+      expect(find.byType(SessionAttendanceSummary), findsOneWidget);
+      expect(find.text('14'), findsOneWidget);
+      expect(schedule.attendanceCalls, [ended.id]);
+      // The QR path is not offered here.
+      expect(
+        find.text(TeacherScheduleStrings.registerAttendance),
+        findsNothing,
+      );
+
+      await tester.tap(pill(TeacherAttendanceStrings.manualEntry));
+      await tester.pumpAndSettle();
+      expect(find.byType(ManualAttendanceScreen), findsOneWidget);
+      expect(attendance.readCalls, [ended.id]);
+
+      // Marking by hand stores, the success card returns to the sheet.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AttendanceStudentRow).at(1),
+          matching: find.byType(AttendanceStatusControl),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+      expect(attendance.markCalls, [(ended.id, 2, AttendanceStatus.present)]);
+      await tester.tap(find.text('Ойлголоо'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ManualAttendanceScreen), findsNothing);
+      expect(find.byType(SessionAttendanceSummary), findsOneWidget);
+      expect(schedule.attendanceCalls, [ended.id, ended.id]);
+      // Never a QR token: QR stays the upcoming sheet's.
+      expect(attendance.qrCalls, isEmpty);
+    });
+
+    testWidgets('ended, a previous date: the summary only — no manual action', (
+      tester,
+    ) async {
+      await pumpSheet(tester, held: true, attendanceOpen: false);
+      expect(find.byType(SessionAttendanceSummary), findsOneWidget);
+      expect(find.text(TeacherAttendanceStrings.manualEntry), findsNothing);
+      expect(
+        find.text(TeacherScheduleStrings.registerAttendance),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a future date: no summary, "Ирц бүртгэх" disabled, no manual '
+        'action', (tester) async {
+      await pumpSheet(tester, held: false, attendanceOpen: false);
+      expect(find.byType(SessionAttendanceSummary), findsNothing);
+      expect(find.text(TeacherAttendanceStrings.manualEntry), findsNothing);
+      expect(
+        tester
+            .widget<TeacherPillButton>(
+              pill(TeacherScheduleStrings.registerAttendance),
+            )
+            .variant,
+        TeacherPillVariant.disabled,
+      );
+    });
+
+    group('through the schedule screen, with its real default rule', () {
+      // A 00:00-01:00 session on the 5th. At 14:00 UTC on the 5th it has
+      // ended in every time zone (UTC-12 to UTC+14) and it is 22:00 on the
+      // 5th in Ulaanbaatar; at 14:00 UTC on the 6th it is the next day there.
+      // No rule is injected.
+      final early = sampleSession(
+        id: 51,
+        date: '2026-10-05',
+        start: (0, 0),
+        end: (1, 0),
+      );
+
+      Future<void> openEndedSheetAt(WidgetTester tester, DateTime now) async {
+        useLogicalViewport(tester, const Size(393, 1400));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: TeacherScheduleScreen(
+              repository: FakeTeacherScheduleRepository(
+                classes: [sampleClass()],
+                sessions: {
+                  2: [early],
+                },
+                attendance: {early.id: counts},
+              ),
+              attendanceRepository: FakeTeacherAttendanceRepository(
+                students: referenceRoster(),
+              ),
+              clock: () => now,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final block = find.bySemanticsLabel('AI Engineer, 00:00-01:00');
+        await tester.ensureVisible(block);
+        await tester.pumpAndSettle();
+        await tester.tap(block);
+        await tester.pumpAndSettle();
+        expect(find.byType(SessionAttendanceSummary), findsOneWidget);
+      }
+
+      testWidgets('ended earlier today in Ulaanbaatar: manual attendance is '
+          'offered', (tester) async {
+        await openEndedSheetAt(tester, DateTime.utc(2026, 10, 5, 14));
+        await tester.tap(pill(TeacherAttendanceStrings.manualEntry));
+        await tester.pumpAndSettle();
+        expect(find.byType(ManualAttendanceScreen), findsOneWidget);
+      });
+
+      testWidgets('ended on a previous Ulaanbaatar date: it is not', (
+        tester,
+      ) async {
+        await openEndedSheetAt(tester, DateTime.utc(2026, 10, 6, 14));
+        expect(find.text(TeacherAttendanceStrings.manualEntry), findsNothing);
+      });
+    });
+  });
+
   group('the QR screen\'s lifecycle', () {
     testWidgets('issues a token, re-issues it every 4 minutes, and polls the '
         'counts every 15 seconds; disposing stops both', (tester) async {
