@@ -8,10 +8,12 @@ import 'package:aia_mobile/features/teacher/presentation/attendance_qr_screen.da
 import 'package:aia_mobile/features/teacher/presentation/manual_attendance_controller.dart';
 import 'package:aia_mobile/features/teacher/presentation/manual_attendance_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_attendance_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_confirmation_card.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_pill_button.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_session_sheet.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -20,6 +22,7 @@ import '../../support/screenshot.dart';
 import 'fake_teacher_attendance_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass;
+import 'teacher_schedule_screen_test.dart' show upcomingLabel, weekRepository;
 
 /// Teacher attendance registration (Issue #374): the QR screen's token and
 /// polling lifecycle, the manual screen's changed-rows-only writes and
@@ -132,6 +135,78 @@ void main() {
       // The production default: what the QR encodes is not confirmed, so no
       // token is asked for.
       expect(attendance.qrCalls, isEmpty);
+    });
+
+    group('through the schedule screen, with its real default rule', () {
+      // `weekRepository`'s upcoming session: 2026-10-06, 14:00-17:00. Both
+      // clocks are UTC instants hours before it ends in every time zone, so
+      // the tap always opens the upcoming sheet; only the Ulaanbaatar date
+      // differs. Nothing here passes a rule: a screen that stopped applying
+      // `attendanceOpenOn` fails one case or the other.
+      Future<FakeTeacherAttendanceRepository> openSheetAt(
+        WidgetTester tester,
+        DateTime now,
+      ) async {
+        final attendance = FakeTeacherAttendanceRepository(
+          students: referenceRoster(),
+        );
+        useLogicalViewport(tester, const Size(393, 1400));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: TeacherScheduleScreen(
+              repository: weekRepository(),
+              attendanceRepository: attendance,
+              clock: () => now,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.bySemanticsLabel(upcomingLabel));
+        await tester.pumpAndSettle();
+        expect(find.byType(TeacherSessionSheet), findsOneWidget);
+        return attendance;
+      }
+
+      testWidgets('on the session\'s date in Ulaanbaatar (09:00, the 6th): '
+          'live, and it opens the QR screen', (tester) async {
+        final attendance = await openSheetAt(
+          tester,
+          DateTime.utc(2026, 10, 6, 1),
+        );
+        expect(
+          tester
+              .widget<TeacherPillButton>(
+                pill(TeacherScheduleStrings.registerAttendance),
+              )
+              .variant,
+          TeacherPillVariant.filled,
+        );
+        await tester.tap(pill(TeacherScheduleStrings.registerAttendance));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(AttendanceQrScreen), findsOneWidget);
+        expect(attendance.readCalls, [41]);
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('the day before (09:00, the 5th): disabled, opens nothing', (
+        tester,
+      ) async {
+        final attendance = await openSheetAt(
+          tester,
+          DateTime.utc(2026, 10, 5, 1),
+        );
+        final button = tester.widget<TeacherPillButton>(
+          pill(TeacherScheduleStrings.registerAttendance),
+        );
+        expect(button.variant, TeacherPillVariant.disabled);
+        expect(button.onPressed, isNull);
+        await tester.tap(pill(TeacherScheduleStrings.registerAttendance));
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(AttendanceQrScreen), findsNothing);
+        expect(attendance.readCalls, isEmpty);
+      });
     });
 
     testWidgets('any other day it stays disabled and opens nothing', (
@@ -492,6 +567,57 @@ void main() {
       expect(find.text('Амжилттай баталгаажлаа'), findsOneWidget);
       await tester.tap(find.text('Ойлголоо'));
       await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('back is held while a write is in flight — the back button '
+        'and the system gesture — and open again once it finishes', (
+      tester,
+    ) async {
+      final repo = await openManualFromQr(tester);
+      repo
+        ..markGate = Completer<void>()
+        ..failingStudents.add(2);
+      await tester.tap(control('Саруул Батбаатар'));
+      await tester.pump();
+      await tester.tap(pill(TeacherAttendanceStrings.confirm));
+      await tester.pump();
+      expect(find.text(TeacherAttendanceStrings.saving), findsOneWidget);
+
+      // The saving spinner never settles: pump through a page transition's
+      // length instead.
+      const transition = Duration(milliseconds: 600);
+      // The circle itself: AppBackButton's box spans the row, so its centre
+      // is the title, not the button.
+      final manualBack = find.descendant(
+        of: find.descendant(
+          of: find.byType(ManualAttendanceScreen),
+          matching: find.byType(AppBackButton),
+        ),
+        matching: find.byType(InkWell),
+      );
+      // The app's back button.
+      await tester.tap(manualBack);
+      await tester.pump();
+      await tester.pump(transition);
+      expect(find.byType(ManualAttendanceScreen), findsOneWidget);
+      // The system back (Android button, iOS edge swipe's route pop).
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump(transition);
+      expect(find.byType(ManualAttendanceScreen), findsOneWidget);
+      // The write was not cancelled: it is still the one call, in flight.
+      expect(repo.markCalls, [(41, 2, AttendanceStatus.present)]);
+
+      // It finishes — failed here, so no success card — and back works.
+      repo.markGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text(TeacherAttendanceStrings.failedRows(1)), findsOneWidget);
+      expect(find.byType(TeacherConfirmationCard), findsNothing);
+      await tester.tap(manualBack);
+      await tester.pumpAndSettle();
+      expect(find.byType(ManualAttendanceScreen), findsNothing);
+      expect(find.byType(AttendanceQrScreen), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
 

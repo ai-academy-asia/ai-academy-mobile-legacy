@@ -123,4 +123,10 @@ abstract interface class TeacherAttendanceRepository {
 /// QR holds the raw token or a URL/JSON around it is for the backend owner
 /// to say. Until they do this stays null, and the QR screen asks for no
 /// token and draws no code — manual registration works meanwhile.
+///
+/// **Required before setting this** (PR #375 review): the manual screen
+/// compares each row against the roster it loaded, so a QR check-in that
+/// lands after it loaded can be overwritten by a teacher's change to that
+/// row (a `late` scan replaced by `present`, its method by `manual`).
+/// Re-read the roster before confirming and flag rows the server moved.
 const String Function(String token)? attendanceQrPayload = null;

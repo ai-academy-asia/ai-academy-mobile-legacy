@@ -24,7 +24,7 @@ import 'widgets/teacher_request_parts.dart';
 /// its control opens the four as well. Only rows the teacher changed are
 /// sent ([ManualAttendanceController]); the success card shows only once
 /// every one of them is stored, and its "Ойлголоо" returns to the QR
-/// screen.
+/// screen. Back is held while writes are in flight.
 class ManualAttendanceScreen extends StatefulWidget {
   const ManualAttendanceScreen({
     required this.sessionId,
@@ -89,26 +89,36 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Scaffold(
-      backgroundColor: palette.surface,
-      body: SafeArea(
-        bottom: false,
-        child: ContentColumn(
-          child: ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) {
-              final rows = _controller.rows;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const BackTitleHeader(
-                    title: TeacherAttendanceStrings.manualTitle,
-                  ),
-                  Expanded(child: _body(context, rows)),
-                  if (rows != null && rows.isNotEmpty) _footer(context),
-                ],
-              );
-            },
+    // No leaving while a confirm's writes are in flight — the back button
+    // (`maybePop`) and the system back gesture both stop here — so a save
+    // is never cut short with some rows sent and the rest silently dropped.
+    // Leaving is open again the moment the writes finish, stored or failed
+    // (Issue #374), as `ContractPreviewScreen` holds its signing.
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, child) =>
+          PopScope(canPop: !_controller.submitting, child: child!),
+      child: Scaffold(
+        backgroundColor: palette.surface,
+        body: SafeArea(
+          bottom: false,
+          child: ContentColumn(
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final rows = _controller.rows;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const BackTitleHeader(
+                      title: TeacherAttendanceStrings.manualTitle,
+                    ),
+                    Expanded(child: _body(context, rows)),
+                    if (rows != null && rows.isNotEmpty) _footer(context),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
