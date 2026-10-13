@@ -337,4 +337,16 @@ abstract final class AppColors {
 
   /// The person glyph on a placeholder avatar.
   static const Color avatarPlaceholderInk = _greyInk;
+
+  /// A student's initials avatar on the manual attendance list — the
+  /// reference's three fills, and the initials on them (Issue #374).
+  static const Color studentAvatarBlue = Color(0xFF3B79B7);
+  static const Color studentAvatarRed = Color(0xFFB74C3B);
+  static const Color studentAvatarTeal = Color(0xFF00BCA3);
+  static const Color onStudentAvatar = Color(0xFFFFFFFF);
+
+  /// The attendance QR's modules and ground — black on white, as a scanner
+  /// needs (Issue #374).
+  static const Color qrInk = Color(0xFF000000);
+  static const Color qrBackground = Color(0xFFFFFFFF);
 }

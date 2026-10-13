@@ -5,6 +5,7 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/teacher/domain/teacher_session.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_request_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_confirmation_card.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_pill_button.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_request_parts.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_session_sheet.dart';
@@ -239,7 +240,10 @@ void main() {
         tester,
         Padding(
           padding: const EdgeInsets.all(16),
-          child: TeacherRequestSentCard(onDismiss: () => dismissed++),
+          child: TeacherConfirmationCard(
+            title: TeacherScheduleStrings.requestSentTitle,
+            onDismiss: () => dismissed++,
+          ),
         ),
       );
       expect(
@@ -261,7 +265,10 @@ void main() {
         tester,
         const Padding(
           padding: EdgeInsets.all(16),
-          child: TeacherRequestSentCard(onDismiss: null),
+          child: TeacherConfirmationCard(
+            title: TeacherScheduleStrings.requestSentTitle,
+            onDismiss: null,
+          ),
         ),
       );
       expect(
@@ -410,9 +417,13 @@ void main() {
     for (final file in Directory('lib').listSync(recursive: true)) {
       if (file is! File || !file.path.endsWith('.dart')) continue;
       if (file.path.endsWith('teacher_request_parts.dart')) continue;
+      // The strings file defines the title; the confirmation card itself is
+      // shared with attendance (Issue #374), so it is its title that must
+      // not be shown.
+      if (file.path.endsWith('teacher_schedule_strings.dart')) continue;
       final source = file.readAsStringSync();
       for (final name in [
-        'TeacherRequestSentCard(',
+        'TeacherScheduleStrings.requestSentTitle',
         'TeacherIncomingRequestSheet(',
       ]) {
         if (source.contains(name)) opened.add('${file.path}: $name');
@@ -430,7 +441,10 @@ void main() {
           tester,
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 50),
-            child: TeacherRequestSentCard(onDismiss: () {}),
+            child: TeacherConfirmationCard(
+              title: TeacherScheduleStrings.requestSentTitle,
+              onDismiss: () {},
+            ),
           ),
           width: width,
         );

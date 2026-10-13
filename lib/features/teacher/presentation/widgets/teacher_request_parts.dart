@@ -15,9 +15,10 @@ import 'teacher_pill_button.dart';
 // **UI only — blocked by a BACKEND GAP.** No verified endpoint lists the
 // teachers a session can be handed to, creates, lists, accepts or rejects a
 // request, or notifies another teacher (`DATA_AND_API.md`). So nothing in the
-// app opens [TeacherRequestSentCard] or [TeacherIncomingRequestSheet]: they
-// are built and tested, ready for real request data, and every action is a
-// nullable callback — inert without one, never a faked success.
+// app opens [TeacherIncomingRequestSheet], or a [TeacherConfirmationCard]
+// titled "Хүсэлт илгээгдлээ": they are built and tested, ready for real
+// request data, and every action is a nullable callback — inert without
+// one, never a faked success.
 
 /// Two pills side by side under a sheet's card — "Цаг солих" / "Ирц
 /// бүртгэх", "Татгалзах" / "Зөвшөөрөх": 44 tall, sharing the width with 8
@@ -145,75 +146,6 @@ class TeacherIdentity extends StatelessWidget {
 /// The avatar, and its gap to the name: the name's left edge on 97.
 const double _avatarSize = 64;
 const double _avatarToName = 17;
-
-/// The acknowledgement once a schedule-change request is **confirmed sent**
-/// by the server (screenshot 4: "Хүсэлт илгээгдлээ" / "Ойлголоо"): the
-/// success disc, the title, and the full-width "Ойлголоо" that dismisses it.
-///
-/// A post-send success state — so it must only be shown for a request the
-/// server has accepted. Nothing in the app shows it yet (see the file's
-/// notes).
-class TeacherRequestSentCard extends StatelessWidget {
-  const TeacherRequestSentCard({required this.onDismiss, super.key});
-
-  /// "Ойлголоо". Null leaves it inert.
-  final VoidCallback? onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
-      // The reference's 16 / 29 / 16 to the card's outer edge, its 1pt
-      // outline included.
-      padding: const EdgeInsets.fromLTRB(15, 28, 15, 15),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
-        border: Border.all(color: palette.outlineFaint),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: _successDisc,
-              height: _successDisc,
-              decoration: BoxDecoration(
-                color: palette.successFillStrong,
-                shape: BoxShape.circle,
-                border: Border.all(color: palette.successInk, width: 2.5),
-              ),
-              child: Icon(AppIcons.check, size: 18, color: palette.successInk),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Semantics(
-            header: true,
-            liveRegion: true,
-            child: Text(
-              TeacherScheduleStrings.requestSentTitle,
-              textAlign: TextAlign.center,
-              style: AppTypography.sectionTitle.copyWith(
-                color: palette.textPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          TeacherPillButton(
-            label: TeacherScheduleStrings.requestSentDismiss,
-            wrapLabel: true,
-            variant: TeacherPillVariant.filled,
-            onPressed: onDismiss,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The success disc: 37 across with its ring, as the reference draws it.
-const double _successDisc = 37;
 
 /// The sheet a teacher would answer an incoming request on (screenshot 6):
 /// the requesting teacher, the class and its session — the date and times

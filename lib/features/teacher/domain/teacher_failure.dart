@@ -23,14 +23,22 @@ enum TeacherFailureKind {
 }
 
 class TeacherFailure implements Exception {
-  const TeacherFailure(this.kind, {this.detail});
+  const TeacherFailure(this.kind, {this.detail, this.code});
 
   final TeacherFailureKind kind;
+
+  /// The backend's own error code — the `error` of its `{"error": code}`
+  /// body — when a write was refused with one (Issue #374), e.g.
+  /// `session_not_today`. Null for reads, which never parse it, and for any
+  /// answer without one.
+  final String? code;
 
   /// Technical context for logs — never shown to the user.
   final String? detail;
 
   @override
   String toString() =>
-      'TeacherFailure(${kind.name}${detail == null ? '' : ': $detail'})';
+      'TeacherFailure(${kind.name}'
+      '${code == null ? '' : ' [$code]'}'
+      '${detail == null ? '' : ': $detail'})';
 }

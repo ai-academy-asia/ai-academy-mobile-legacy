@@ -76,8 +76,14 @@ void main() {
       'textFaint': (light.textFaint, const Color(0x4D000000)),
       'textDeep': (light.textDeep, const Color(0xFF101828)),
       'textStatLabel': (light.textStatLabel, const Color(0xFF726D6D)),
-      'attendanceGradientStart': (light.attendanceGradientStart, const Color(0xFF175FEF)),
-      'attendanceGradientEnd': (light.attendanceGradientEnd, const Color(0xFF518BFF)),
+      'attendanceGradientStart': (
+        light.attendanceGradientStart,
+        const Color(0xFF175FEF),
+      ),
+      'attendanceGradientEnd': (
+        light.attendanceGradientEnd,
+        const Color(0xFF518BFF),
+      ),
       'surfaceTinted': (light.surfaceTinted, const Color(0xFFF8FAFF)),
       'scrim': (light.scrim, const Color(0x94000000)),
       'learningHeroTint': (light.learningHeroTint, const Color(0xFFE8F3FF)),
@@ -118,6 +124,12 @@ void main() {
         light.avatarPlaceholderInk,
         const Color(0xFFAEAFB0),
       ),
+      'studentAvatarBlue': (light.studentAvatarBlue, const Color(0xFF3B79B7)),
+      'studentAvatarRed': (light.studentAvatarRed, const Color(0xFFB74C3B)),
+      'studentAvatarTeal': (light.studentAvatarTeal, const Color(0xFF00BCA3)),
+      'onStudentAvatar': (light.onStudentAvatar, const Color(0xFFFFFFFF)),
+      'qrInk': (light.qrInk, const Color(0xFF000000)),
+      'qrBackground': (light.qrBackground, const Color(0xFFFFFFFF)),
     };
     for (final MapEntry(key: role, value: (actual, shipped)) in roles.entries) {
       expect(actual, shipped, reason: role);

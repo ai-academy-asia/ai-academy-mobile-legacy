@@ -11,6 +11,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../home/presentation/home_strings.dart';
 import '../../notifications/presentation/notification_screen.dart';
 import '../data/http_teacher_schedule_repository.dart';
+import '../domain/teacher_attendance.dart';
 import '../domain/teacher_schedule_repository.dart';
 import '../domain/teacher_session.dart';
 import 'teacher_home_strings.dart';
@@ -37,12 +38,23 @@ class TeacherScheduleScreen extends StatefulWidget {
   const TeacherScheduleScreen({
     super.key,
     this.repository,
+    this.attendanceRepository,
+    this.attendanceOpen = attendanceOpenOn,
     this.clock,
     this.showBottomNav = true,
   });
 
   /// Defaults to the real API. Injected in tests.
   final TeacherScheduleRepository? repository;
+
+  /// What a session sheet's "Ирц бүртгэх" uses (Issue #374). Defaults to
+  /// the real API. Injected in tests.
+  final TeacherAttendanceRepository? attendanceRepository;
+
+  /// Whether a session's "Ирц бүртгэх" is live at a moment: on its date in
+  /// Ulaanbaatar ([attendanceOpenOn]). Injected in tests, whose local
+  /// clocks name a different Ulaanbaatar date in different time zones.
+  final bool Function(TeacherSession session, DateTime now) attendanceOpen;
 
   /// Decides which day is "today" and which sessions are over. Injected in
   /// tests.
@@ -130,6 +142,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       entry: entry,
       held: entry.session.isOverAt(_controller.now()),
       repository: _repository,
+      attendanceOpen: widget.attendanceOpen(entry.session, _controller.now()),
+      attendanceRepository: widget.attendanceRepository,
     );
   }
 

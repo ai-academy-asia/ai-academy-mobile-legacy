@@ -61,6 +61,51 @@ Future<http.Response> teacherGet({
   return response;
 }
 
+/// An authenticated write — [send] is the transport call (`putJsonRaw`,
+/// `postWithoutBody`), handed the session's authorization header — whose
+/// non-2xx answer is thrown as its [TeacherFailure], carrying the backend's
+/// `{"error": code}` as [TeacherFailure.code] (Issue #374): a write's
+/// refusals differ in what the screen says (`session_not_today` is not
+/// `student_not_found`). Otherwise exactly [teacherGet]'s rules.
+Future<http.Response> teacherSend({
+  required Future<http.Response> Function(Map<String, String> headers) send,
+  required AuthSessionStore sessionStore,
+}) async {
+  final http.Response response;
+  try {
+    response = await send(sessionStore.authorizationHeader);
+  } on ApiFailure catch (failure) {
+    throw TeacherFailure(TeacherFailureKind.network, detail: failure.detail);
+  }
+
+  final failure = teacherFailureForStatus(response.statusCode);
+  if (failure != null) {
+    if (failure.kind == TeacherFailureKind.sessionExpired) {
+      sessionStore.clear();
+    }
+    throw TeacherFailure(
+      failure.kind,
+      detail: failure.detail,
+      code: _errorCode(response.body),
+    );
+  }
+  return response;
+}
+
+/// The `error` of a `{"error": code, ...}` body, or null for any other body.
+String? _errorCode(String body) {
+  try {
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) {
+      final code = decoded['error'];
+      if (code is String && code.isNotEmpty) return code;
+    }
+  } on FormatException {
+    // Not JSON: no code to read.
+  }
+  return null;
+}
+
 /// Same mapping every other authenticated GET keeps its own copy of.
 TeacherFailure? teacherFailureForStatus(int statusCode) {
   if (statusCode == 401) {
