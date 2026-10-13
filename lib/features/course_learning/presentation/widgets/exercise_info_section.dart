@@ -5,24 +5,9 @@ import '../../../../core/theme/app_typography.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
 
-/// Sizes below are solved from the reference frame's own ink widths at 1:1
-/// (a 393pt frame exported at 3x), not estimated: each string's rendered
-/// advance was matched against the width the frame draws it at. They are
-/// screen-local because the shared tokens they override — `cardHeading`,
-/// `cardSupporting`, `catalogSectionLabel` — are sampled from other frames
-/// and used by other screens.
-const double _captionSize = 12;
-const double _titleSize = 18;
-const double _bodySize = 14;
-const double _readMoreSize = 14;
-
-/// Coloured at use (`textSecondary`), so the theme decides the ink.
-const TextStyle _bodyStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: _bodySize,
-  height: 20 / _bodySize,
-  fontWeight: FontWeight.w400,
-);
+/// The description's running text. Coloured at use (`textSecondary`), so
+/// the theme decides the ink.
+const TextStyle _bodyStyle = AppTypography.body;
 
 /// Modules caption, title, the collapsible description, and — once expanded —
 /// whatever [CourseExercise.extraSections] the exercise has.
@@ -53,18 +38,12 @@ class ExerciseInfoSection extends StatelessWidget {
       children: [
         Text(
           exercise.moduleCaption,
-          style: AppTypography.catalogSectionLabel.copyWith(
-            fontSize: _captionSize,
-            height: 16 / _captionSize,
-            color: palette.textSecondary,
-          ),
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: 4),
         Text(
           exercise.title,
-          style: AppTypography.heading.copyWith(
-            fontSize: _titleSize,
-            height: 26 / _titleSize,
+          style: AppTypography.sectionTitle.copyWith(
             color: palette.textPrimary,
           ),
         ),
@@ -80,7 +59,7 @@ class ExerciseInfoSection extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               section.title,
-              style: AppTypography.cardHeading.copyWith(
+              style: AppTypography.itemTitle.copyWith(
                 color: palette.textPrimary,
               ),
             ),
@@ -121,8 +100,7 @@ class _ReadMoreRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: AppTypography.cardHeading.copyWith(
-                  fontSize: _readMoreSize,
+                style: AppTypography.buttonSmall.copyWith(
                   decoration: TextDecoration.underline,
                   color: context.palette.textPrimary,
                 ),

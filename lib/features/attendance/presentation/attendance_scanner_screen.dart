@@ -78,11 +78,7 @@ class AttendanceScannerScreen extends StatelessWidget {
                   child: Text(
                     AttendanceScannerStrings.hint,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: AppTypography.fontFamily,
-                      fontSize: 16,
-                      height: 24 / 16,
-                      leadingDistribution: TextLeadingDistribution.even,
+                    style: AppTypography.body.copyWith(
                       color: context.palette.onPrimary,
                     ),
                   ),
@@ -96,8 +92,6 @@ class AttendanceScannerScreen extends StatelessWidget {
               child: const PillButton(
                 label: AttendanceScannerStrings.manualEntry,
                 height: 44,
-                labelSize: 16,
-                labelWeight: FontWeight.w600,
                 onPressed: _noManualEntryYet,
               ),
             ),

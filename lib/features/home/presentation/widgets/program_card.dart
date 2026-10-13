@@ -187,8 +187,13 @@ class _Summary extends StatelessWidget {
 
               if (progress != null) ...[
                 const SizedBox(height: _groupGap),
-                SizedBox(
-                  height: _progressRowHeight,
+                // A minimum: the module count may take a second line on a
+                // narrow phone or at larger text, rather than being cut
+                // (Issue #366). At the reference size it is one line, as before.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: _progressRowHeight,
+                  ),
                   child: Row(
                     children: [
                       // No module count to caption the bar with — only
@@ -206,7 +211,7 @@ class _Summary extends StatelessWidget {
                                 style: _modulesStyle.copyWith(
                                   color: context.palette.textSecondary,
                                 ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               )
                             : const SizedBox.shrink(),
@@ -381,60 +386,29 @@ class _LiveBadge extends StatelessWidget {
 
 // --- Type, read off the frames -------------------------------------------
 
-/// "Cohort 01" — 12 on an 18 line, `CohortCard`'s caption.
-final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 12,
-  height: 18 / 12,
-);
+/// The cohort's name over the course's — "Cohort 01", as on every card that
+/// names a course.
+const TextStyle _captionStyle = AppTypography.caption;
 
-/// "AI Engineer" — 18 bold on a 26 line, `CohortCard`'s title.
-final TextStyle _titleStyle = AppTypography.cardHeading.copyWith(
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-);
+/// The course's name — "AI Engineer" — the same style on every card and page
+/// that shows one.
+const TextStyle _titleStyle = AppTypography.cardTitle;
 
-/// "Modules 2 of 5 complete".
-final TextStyle _modulesStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 12,
-  height: 18 / 12,
-);
+/// "Modules 2 of 5 complete" — the card's metadata line, a caption beside the
+/// progress figure.
+const TextStyle _modulesStyle = AppTypography.caption;
 
 /// "35% complete".
-const TextStyle _percentStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w500,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle _percentStyle = AppTypography.supporting;
 
-/// "Дараагийн хичээл:".
-const TextStyle _headingStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Дараагийн хичээл:" — a label leading its value.
+const TextStyle _headingStyle = AppTypography.bodyStrong;
 
 /// "08/04 • 09:00 – 11:00".
-const TextStyle _lessonTimeStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w500,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle _lessonTimeStyle = AppTypography.dateTime;
 
 /// "Хичээл эхлсэн та ирцээ бүртгүүлээрэй".
-const TextStyle _hintStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w500,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle _hintStyle = AppTypography.supporting;
 
 /// `"active"` -> `"Active"`. Values are shown verbatim otherwise — status and
 /// UI mode have no confirmed closed set, so this only tidies capitalisation.

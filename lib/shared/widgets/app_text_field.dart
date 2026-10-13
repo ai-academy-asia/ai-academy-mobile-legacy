@@ -20,10 +20,9 @@ import '../../core/theme/app_typography.dart';
 /// [InputDecoration.labelText] at the moment the label leaves the field
 /// reproduces that.
 ///
-/// The risen label is drawn at [AppTypography.fieldFloatingLabel]'s own size.
-/// Material shrinks a floating label to 75% of its style, which left the
-/// token's 10pt at an unreadable 7.5pt, so the style handed to Material is
-/// enlarged by the inverse.
+/// The risen label is drawn at [AppTypography.fieldLabel]'s own size.
+/// Material shrinks a floating label to 75% of its style, so the style handed
+/// to Material is enlarged by the inverse.
 class AppTextField extends StatefulWidget {
   const AppTextField({
     required this.controller,
@@ -129,9 +128,11 @@ class _AppTextFieldState extends State<AppTextField> {
   /// `_kFinalLabelScale`).
   static const double _materialFloatingLabelScale = 0.75;
 
-  static final TextStyle _floatingLabelStyle = AppTypography.fieldFloatingLabel.copyWith(
-    fontSize: AppTypography.fieldFloatingLabel.fontSize! / _materialFloatingLabelScale,
-  );
+  static final TextStyle _floatingLabelStyle = AppTypography.fieldLabel
+      .copyWith(
+        fontSize:
+            AppTypography.fieldLabel.fontSize! / _materialFloatingLabelScale,
+      );
 
   OutlineInputBorder _border(Color color, double width) => OutlineInputBorder(
     borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
@@ -162,7 +163,7 @@ class _AppTextFieldState extends State<AppTextField> {
       textInputAction: widget.textInputAction,
       autofillHints: widget.autofillHints,
       onSubmitted: widget.onSubmitted,
-      style: AppTypography.fieldValue.copyWith(color: palette.textPrimary),
+      style: AppTypography.fieldText.copyWith(color: palette.textPrimary),
       cursorColor: palette.borderFocused,
       cursorWidth: 1.5,
       decoration: InputDecoration(
@@ -170,7 +171,7 @@ class _AppTextFieldState extends State<AppTextField> {
         // short label. Both ride the same slot, so the swap happens exactly as
         // the label lifts.
         labelText: floating ? widget.floatingLabel : widget.placeholder,
-        labelStyle: AppTypography.fieldPlaceholder.copyWith(
+        labelStyle: AppTypography.fieldText.copyWith(
           color: palette.textSecondary,
         ),
         floatingLabelStyle: _floatingLabelStyle.copyWith(color: labelColor),
@@ -182,11 +183,12 @@ class _AppTextFieldState extends State<AppTextField> {
         filled: true,
         fillColor: widget.enabled ? palette.surface : palette.surfaceMuted,
         isDense: false,
-        // 18 + 20 (one line of 15/20 type) + 18 lands the box on the design's
-        // 56pt. Material draws the outline inside this, not around it.
+        // 16 + 24 (one line of `fieldText`) + 16 lands the box on the
+        // design's 56pt. Material draws the outline inside this, not around
+        // it.
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 18,
+          vertical: 16,
         ),
         enabledBorder: _border(
           hasError ? palette.error : palette.border,

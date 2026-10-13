@@ -88,7 +88,8 @@ class HomeStatCard extends StatelessWidget {
         Text(
           value,
           style: _valueStyle.copyWith(color: valueColor),
-          maxLines: 1,
+          // A second line at larger text rather than a cut value (Issue #366).
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -141,20 +142,8 @@ class HomeStatCard extends StatelessWidget {
   }
 }
 
-/// "Дараанийн төлөлт" — 14 on a 20 line.
-const TextStyle _labelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w500,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Дараанийн төлөлт" — a statistic's caption.
+const TextStyle _labelStyle = AppTypography.supporting;
 
-/// "3 хоног дутуу", "1/20  · 10%" — the same size, bold.
-const TextStyle _valueStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "3 хоног дутуу", "1/20  · 10%" — a statistic's value.
+const TextStyle _valueStyle = AppTypography.bodyStrong;

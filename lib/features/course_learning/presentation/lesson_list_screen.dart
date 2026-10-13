@@ -198,18 +198,14 @@ class _ModuleHeader extends StatelessWidget {
             children: [
               Text(
                 '${CourseLearningStrings.moduleCaption} $moduleOrder',
-                style: AppTypography.catalogSectionLabel.copyWith(
-                  fontSize: 12,
-                  height: 16 / 12,
+                style: AppTypography.caption.copyWith(
                   color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 moduleTitle,
-                style: AppTypography.heading.copyWith(
-                  fontSize: 18,
-                  height: 26 / 18,
+                style: AppTypography.sectionTitle.copyWith(
                   color: context.palette.textPrimary,
                 ),
               ),
@@ -333,7 +329,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.cardSupporting.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -448,7 +444,7 @@ class _EmptyView extends StatelessWidget {
         ),
         child: Text(
           CourseLearningStrings.lessonsEmpty,
-          style: AppTypography.cardSupporting.copyWith(
+          style: AppTypography.supporting.copyWith(
             color: context.palette.textSecondary,
           ),
           textAlign: TextAlign.center,

@@ -521,7 +521,7 @@ void main() {
     // beside this one captures the whole page at that frame; these pin the
     // handful of values most likely to drift silently.
 
-    testWidgets('module cards are 86 tall, 361 wide, 102 apart', (
+    testWidgets('module cards are 94 tall, 361 wide, 110 apart', (
       tester,
     ) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
@@ -531,13 +531,15 @@ void main() {
         for (var i = 0; i < 5; i++)
           tester.getRect(find.byType(CourseModuleCard).at(i)),
       ];
+      // 94 since Issue #366's type scale (the reference's 86 is the card's
+      // minimum): caption 18, title 22, 8, date 20, inside 12 + 1 each side.
       for (final card in cards) {
         expect(card.width, 361);
-        expect(card.height, 86);
+        expect(card.height, 94);
       }
-      // 86 of card and 16 of gap — 4 of which the card's own band fills.
+      // 94 of card and 16 of gap — 4 of which the card's own band fills.
       for (var i = 1; i < cards.length; i++) {
-        expect(cards[i].top - cards[i - 1].top, 102);
+        expect(cards[i].top - cards[i - 1].top, 110);
       }
     });
 

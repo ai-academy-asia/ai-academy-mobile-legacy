@@ -120,7 +120,9 @@ void main() {
     required double width,
     required double scale,
     FakeTeacherScheduleRepository? repository,
-    double height = 1600,
+    // Tall enough that the day list builds every card at 3.0× — it is a
+    // lazy list, and the cards grew with the type scale (Issue #366).
+    double height = 2600,
   }) async {
     useLogicalViewport(tester, Size(width, height), padding: iPhonePadding);
     tester.platformDispatcher.textScaleFactorTestValue = scale;
@@ -507,7 +509,7 @@ void main() {
         sessions: longWeek(),
         hold: true,
       );
-      useLogicalViewport(tester, const Size(393, 1600), padding: iPhonePadding);
+      useLogicalViewport(tester, const Size(393, 2600), padding: iPhonePadding);
       tester.platformDispatcher.textScaleFactorTestValue = 3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await tester.pumpWidget(
@@ -550,9 +552,11 @@ void main() {
     testWidgets('pulling down refreshes the day', (tester) async {
       final repository = await open(tester);
       final before = repository.classCalls;
+      // RefreshIndicator arms at a quarter of the viewport's height, so the
+      // pull is sized to the test's tall viewport (see [pump]).
       await tester.fling(
         find.byType(TeacherDaySessionList),
-        const Offset(0, 400),
+        const Offset(0, 1000),
         1000,
       );
       await tester.pumpAndSettle();

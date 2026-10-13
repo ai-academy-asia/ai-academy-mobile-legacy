@@ -64,9 +64,9 @@ import 'splash_strings.dart';
 /// Both halves of the lockup are Figma exports — [SplashAssets.mark] and
 /// [SplashAssets.wordmark] — rather than a bundled icon beside live text, so
 /// the screen matches the Figma frame's own construction. The wordmark is
-/// outlined vector paths there, not a text layer, which is why nothing here
-/// uses `AppTypography.splashWordmark` any more; that token is untouched. The
-/// Home header draws the same wordmark export (Issue #188).
+/// outlined vector paths there, not a text layer, so no text style draws it
+/// and the app's type scale never touches it (Issue #366). The Home header
+/// draws the same wordmark export (Issue #188).
 ///
 /// Geometry comes from the Figma frame (394 x 852): the mark's ink measures
 /// ~96pt tall, and the lockup is centred **within the safe area** rather than

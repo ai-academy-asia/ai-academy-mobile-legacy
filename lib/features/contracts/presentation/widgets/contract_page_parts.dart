@@ -22,7 +22,7 @@ class ContractMessage extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.statLabel.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,

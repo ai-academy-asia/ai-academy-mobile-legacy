@@ -469,55 +469,21 @@ class ProfileRule extends StatelessWidget {
 // None of the styles below bakes a colour (Dark Mode Phase 8, Issue #274):
 // every use — the parts here, Adult and Teacher Profile — applies its role.
 
-/// The title band's "Profile".
-const TextStyle profileHeadingStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 24,
-  height: 32 / 24,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The title band's "Profile" — a top-level screen's heading.
+const TextStyle profileHeadingStyle = AppTypography.screenTitle;
 
 /// The hero's name.
-const TextStyle profileNameStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 24 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle profileNameStyle = AppTypography.cardTitle;
 
 /// A section caption's style. Public so the screens' tests can tell the
 /// "Notification" caption from the "Notification" row.
-const TextStyle captionStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle captionStyle = AppTypography.caption;
 
 /// A settings row's label style — see [captionStyle].
-const TextStyle rowLabelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+const TextStyle rowLabelStyle = AppTypography.itemLabel;
 
-const TextStyle _segmentStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The MN/EN segment's label.
+const TextStyle _segmentStyle = AppTypography.badge;
 
-const TextStyle _logOutStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Гарах" — a button's label.
+const TextStyle _logOutStyle = AppTypography.buttonLabel;

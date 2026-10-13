@@ -150,7 +150,7 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
             children: [
               Text(
                 message,
-                style: AppTypography.cardSupporting.copyWith(
+                style: AppTypography.supporting.copyWith(
                   color: context.palette.textSecondary,
                 ),
                 textAlign: TextAlign.center,
@@ -185,7 +185,7 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
               padding: const EdgeInsets.only(top: 16),
               child: Text(
                 TeacherGradebookStrings.empty,
-                style: AppTypography.cardSupporting.copyWith(
+                style: AppTypography.supporting.copyWith(
                   color: context.palette.textSecondary,
                 ),
                 textAlign: TextAlign.center,
@@ -212,8 +212,5 @@ class _TeacherGradebookScreenState extends State<TeacherGradebookScreen> {
   }
 }
 
-/// The tab's title, sampled off the reference: 24 bold on the white band.
-final TextStyle _titleStyle = AppTypography.heading.copyWith(
-  fontSize: 24,
-  height: 32 / 24,
-);
+/// The tab's title — a top-level screen's heading.
+const TextStyle _titleStyle = AppTypography.screenTitle;

@@ -111,15 +111,9 @@ class CardCapsule extends StatelessWidget {
   }
 }
 
-final TextStyle _badgeLabelStyle = AppTypography.catalogTrackLabel.copyWith(
-  fontSize: 16,
-  height: 1,
-);
+const TextStyle _badgeLabelStyle = AppTypography.trackLabel;
 
-final TextStyle _capsuleStyle = AppTypography.catalogStatusLabel.copyWith(
-  fontSize: 12,
-  height: 16 / 12,
-);
+const TextStyle _capsuleStyle = AppTypography.badge;
 
 String _capitalize(String value) =>
     value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';

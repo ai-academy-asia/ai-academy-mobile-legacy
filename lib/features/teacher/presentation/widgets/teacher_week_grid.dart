@@ -506,14 +506,17 @@ class _GridPainter extends CustomPainter {
       old.line != line;
 }
 
-final TextStyle _hourStyle = AppTypography.cardSupporting.copyWith(
+/// The hour labels: a dense-grid exception to the type scale
+/// (`DESIGN_SYSTEM.md` §3), sized to the grid's hour rows.
+final TextStyle _hourStyle = AppTypography.supporting.copyWith(
   fontSize: 12,
   height: 17 / 12,
   fontWeight: FontWeight.w400,
 );
 
-final TextStyle _blockStyle = AppTypography.programTitle.copyWith(
+/// A session block's course title: a dense-grid exception to the type scale
+/// (`DESIGN_SYSTEM.md` §3), sized to the block.
+final TextStyle _blockStyle = AppTypography.bodyStrong.copyWith(
   fontSize: 11,
   height: 14 / 11,
-  fontWeight: FontWeight.w700,
 );

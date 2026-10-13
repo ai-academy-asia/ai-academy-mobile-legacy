@@ -120,7 +120,7 @@ class QuizAnswerCard extends StatelessWidget {
                           letter,
                           // The letter stays grey in every state — the frames
                           // do not tint it with the answer's own colour.
-                          style: AppTypography.cardHeading.copyWith(
+                          style: AppTypography.itemTitle.copyWith(
                             color: palette.textAnswerLetter,
                           ),
                         ),
@@ -128,7 +128,7 @@ class QuizAnswerCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             label,
-                            style: AppTypography.settingsRowLabel.copyWith(
+                            style: AppTypography.itemLabel.copyWith(
                               color: palette.textStrong,
                             ),
                           ),

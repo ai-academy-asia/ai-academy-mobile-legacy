@@ -113,8 +113,7 @@ class _TabLabel extends StatelessWidget {
                   child: Center(
                     child: Text(
                       label,
-                      style: AppTypography.cardHeading.copyWith(
-                        fontSize: 14,
+                      style: AppTypography.tabLabel.copyWith(
                         fontWeight: selected
                             ? FontWeight.w700
                             : FontWeight.w500,

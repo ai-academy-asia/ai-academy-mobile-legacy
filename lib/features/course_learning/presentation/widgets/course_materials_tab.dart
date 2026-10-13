@@ -75,7 +75,7 @@ class CourseMaterialsTab extends StatelessWidget {
             width: 329,
             child: Text(
               error,
-              style: AppTypography.fieldError.copyWith(
+              style: AppTypography.fieldHelper.copyWith(
                 color: context.palette.error,
               ),
             ),

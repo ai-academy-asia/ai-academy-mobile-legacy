@@ -2,27 +2,243 @@ import 'package:flutter/widgets.dart';
 
 import 'app_colors.dart';
 
-/// Manrope type styles for the login screen.
+/// The app's type scale: one Manrope style per semantic role (Issue #366).
 ///
-/// The design runs smaller and lighter than a Material default would: 12/20
-/// does most of the work, weights sit at 500–600, and only the heading goes
-/// bold. [splashWordmark] is the one ExtraBold in the scale — the splash
-/// screen's brand mark, not body copy, so it is held to the Figma reference's
-/// own heavier weight rather than this scale's usual ceiling.
+/// **One role, one style, every screen.** A course's name is [cardTitle]
+/// wherever it is drawn, a date is [dateTime], a button's label is
+/// [buttonLabel] — so the same kind of text reads the same everywhere. Pick
+/// the role, not a size: a local `copyWith` sets only the colour (always from
+/// `context.palette`), and at most a role's documented variant (e.g. [tabLabel]
+/// in bold when selected). A size or line height of its own is an exception,
+/// and says why where it is made (`DESIGN_SYSTEM.md` §3 lists them).
 ///
-/// These sizes were set by eye against the Figma screenshot rather than by
-/// measuring it. Measuring the reference put the heading nearer 26 and body
-/// text nearer 13–14; side by side at full resolution that still read oversized,
-/// so the scale was taken down about 15% on top of the measurement. If the
-/// screen ever looks *too* small on a real handset, this is the paragraph to
-/// come back to — the measured values were heading 26, body 13, small 11.
+/// **No colour is baked in.** Every use supplies one from the palette, so the
+/// light and dark palettes both apply.
 ///
-/// The *line heights* are deliberately held at the values the layout is built
-/// on — 34 for the heading, 20 for a field line, 16 for a small label. Shrinking
-/// glyphs without touching those keeps every box, gap and control exactly where
-/// the geometry pass put it, so type can be tuned without re-verifying spacing.
+/// The sizes are Figma's own, a modest step up from the earlier scale, which
+/// had been set ~15% below the measured Figma values. Line heights sit on a
+/// 2pt grid and carry `TextLeadingDistribution.even`, so a line's box is
+/// stable and its glyphs centred in it.
+///
+/// System text scaling multiplies all of these as usual; nothing here caps it.
 abstract final class AppTypography {
   static const String fontFamily = 'Manrope';
+
+  // --- Titles ---------------------------------------------------------------
+
+  /// A large figure that is the point of its screen or card — a quiz score.
+  static const TextStyle display = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 32,
+    height: 40 / 32,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A top-level screen's heading: a tab ("Courses", "Profile"), Login.
+  static const TextStyle screenTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 26,
+    height: 34 / 26,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The centred title of a pushed screen's back header.
+  static const TextStyle headerTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 20,
+    height: 28 / 20,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A course's name — "AI for Corporate Leaders" — on every card and page
+  /// that shows one; also a profile's name.
+  static const TextStyle cardTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 20,
+    height: 28 / 20,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A heading inside a screen or card: a module's or exercise's title, a
+  /// quiz question, a panel's title.
+  static const TextStyle sectionTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 18,
+    height: 26 / 18,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A list row's primary line: a module, lesson, notification, quiz or
+  /// gradebook row, a person's name.
+  static const TextStyle itemTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 22 / 16,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A row's lighter primary line, where the row is content rather than a
+  /// heading: a material's file name, a settings row, a quiz answer.
+  static const TextStyle itemLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 22 / 16,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // --- Text -----------------------------------------------------------------
+
+  /// Running text: a description, a notification's body, a message.
+  static const TextStyle body = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 24 / 16,
+    fontWeight: FontWeight.w400,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// [body] in bold: a label leading a value ("Дараагийн хичээл:"), a
+  /// statistic's or status's value.
+  static const TextStyle bodyStrong = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 24 / 16,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A secondary line: progress ("35% complete"), a statistic's caption, a
+  /// duration, a file size, an empty or error message.
+  static const TextStyle supporting = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 20 / 14,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A small line over or under a title: the cohort over a course's name,
+  /// "Modules 5", a settings section's caption.
+  static const TextStyle caption = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 13,
+    height: 18 / 13,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A date or time — a lesson's time, a notification's age. Tabular
+  /// figures, so times line up and do not shift as they change.
+  static const TextStyle dateTime = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    height: 22 / 15,
+    fontWeight: FontWeight.w500,
+    fontFeatures: [FontFeature.tabularFigures()],
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // --- Controls -------------------------------------------------------------
+
+  /// A button's label: primary and pill buttons.
+  static const TextStyle buttonLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 24 / 16,
+    fontWeight: FontWeight.w600,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A secondary control's label: a retry link, a filter or small pill.
+  static const TextStyle buttonSmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 20 / 14,
+    fontWeight: FontWeight.w600,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A tab's label. The selected tab is drawn `w700`.
+  static const TextStyle tabLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 22 / 16,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A bottom-navigation item's label, for every role.
+  static const TextStyle navLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w600,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A label in a pill or capsule — a status, the MN/EN segment.
+  static const TextStyle badge = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 13,
+    height: 16 / 13,
+    fontWeight: FontWeight.w700,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // --- Fields ---------------------------------------------------------------
+
+  /// What is typed into a field, and its placeholder.
+  static const TextStyle fieldText = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 24 / 16,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// A field's label once it has floated into the border.
+  static const TextStyle fieldLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The line under a field: its error, or a hint.
+  static const TextStyle fieldHelper = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 13,
+    height: 18 / 13,
+    fontWeight: FontWeight.w500,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // --- Exceptions -----------------------------------------------------------
+
+  /// "Adult" / "Junior" beside a track's logo: sized to the badge's own 16
+  /// box, as the reference draws it, rather than a step of the scale — a
+  /// container-sized exception (`DESIGN_SYSTEM.md` §3).
+  static const TextStyle trackLabel = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    height: 1,
+    fontWeight: FontWeight.w600,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // --- Legacy ---------------------------------------------------------------
+  //
+  // The scale before Issue #366, kept only for code deliberately left
+  // unmigrated: Assignment-only widgets, screens nothing reaches, and the
+  // debug-only payment preview. Do not use these in new code.
 
   /// Screen heading. Figma text box: 361 x 34.
   static const TextStyle heading = TextStyle(
@@ -31,45 +247,6 @@ abstract final class AppTypography {
     height: 34 / 22,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// Text the user has typed into a field.
-  static const TextStyle fieldValue = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 12,
-    height: 20 / 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// The label at rest, sitting inside an empty field.
-  static const TextStyle fieldPlaceholder = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 12,
-    height: 20 / 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// The label once it has risen into the border notch. Its colour is set at
-  /// the call site — grey at rest, dark when focused, red on error.
-  static const TextStyle fieldFloatingLabel = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 10,
-    height: 16 / 10,
-    fontWeight: FontWeight.w500,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// Label on either button. The colour comes from the variant.
-  static const TextStyle buttonLabel = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 12,
-    height: 20 / 12,
-    fontWeight: FontWeight.w600,
     leadingDistribution: TextLeadingDistribution.even,
   );
 
@@ -90,16 +267,6 @@ abstract final class AppTypography {
     height: 16 / 10,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// Title line in the bottom card.
-  static const TextStyle cardTitle = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 12,
-    height: 20 / 12,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     leadingDistribution: TextLeadingDistribution.even,
   );
 
@@ -200,28 +367,6 @@ abstract final class AppTypography {
 
   // --- Profile --------------------------------------------------------------
 
-  /// The name in the profile header — the largest text on the screen after
-  /// the heading itself.
-  static const TextStyle profileName = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 16,
-    height: 22 / 16,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// The join date under the profile name. [cardSupporting]'s 10pt reads too
-  /// small against the 17pt name beside it.
-  static const TextStyle profileJoinedDate = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 12,
-    height: 16 / 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
   /// A settings row's label ("Certificate", "Change password", …). Lighter
   /// than [cardHeading], which reads too heavy for a long list of rows.
   static const TextStyle settingsRowLabel = TextStyle(
@@ -230,16 +375,6 @@ abstract final class AppTypography {
     height: 20 / 14,
     fontWeight: FontWeight.w500,
     color: AppColors.textPrimary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// The label on one half of the MN/EN segmented control. Colour is set at
-  /// the call site — blue on the selected half, white on the other.
-  static const TextStyle segmentLabel = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 12,
-    height: 16 / 12,
-    fontWeight: FontWeight.w700,
     leadingDistribution: TextLeadingDistribution.even,
   );
 
@@ -255,19 +390,6 @@ abstract final class AppTypography {
 
   // --- Home dashboard --------------------------------------------------------
 
-  /// The cohort's course name on Home — the largest text on the dashboard.
-  /// A step above [heading]: Home has no heading line of its own (the brand
-  /// lockup sits where one would), so the cohort's name is the screen's
-  /// anchor and the reference draws it larger than a section title.
-  static const TextStyle programTitle = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 24,
-    height: 30 / 24,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
   /// A statistic's caption — "Дараанийн төлөлт", "Хичээлийн ирц", the cohort
   /// caption over the title. [catalogSectionLabel]'s 11pt reads too small
   /// beside the 15pt value under it on these cards.
@@ -277,37 +399,6 @@ abstract final class AppTypography {
     height: 18 / 13,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  /// A statistic's value — "1/20 · 10%", "3 хоног дутуу". Colour is set at the
-  /// call site: blue at rest, red when a payment is late, white on the filled
-  /// attendance card.
-  static const TextStyle statValue = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 15,
-    height: 20 / 15,
-    fontWeight: FontWeight.w700,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
-
-  // --- Splash ---------------------------------------------------------------
-
-  /// The "AI academy Asia" wordmark beside the logo mark on the splash
-  /// screen. Coloured with [AppColors.navy] — the logo's own wordmark
-  /// colour, documented there for exactly this use — rather than
-  /// [AppColors.textPrimary], since this is the brand mark, not body copy.
-  ///
-  /// ExtraBold (800), a full step over [heading]'s Bold (700): the Figma
-  /// reference's wordmark reads heavier than this scale's usual ceiling, and
-  /// the weight is bundled already (`Manrope-ExtraBold.ttf`), so reaching for
-  /// it costs nothing.
-  static const TextStyle splashWordmark = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 20,
-    height: 24 / 20,
-    fontWeight: FontWeight.w800,
-    color: AppColors.navy,
     leadingDistribution: TextLeadingDistribution.even,
   );
 }

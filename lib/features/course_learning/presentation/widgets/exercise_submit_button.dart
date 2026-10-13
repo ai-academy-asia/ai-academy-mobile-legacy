@@ -100,10 +100,7 @@ class ExerciseSubmitButton extends StatelessWidget {
             ),
             child: Text(
               label,
-              style: TextStyle(
-                fontFamily: AppTypography.fontFamily,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+              style: AppTypography.buttonLabel.copyWith(
                 color: _filled ? palette.onPrimary : palette.disabledInk,
               ),
             ),

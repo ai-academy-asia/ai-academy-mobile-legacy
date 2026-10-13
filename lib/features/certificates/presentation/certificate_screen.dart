@@ -258,23 +258,32 @@ class _CertificateCard extends StatelessWidget {
           if (certificate.isIssued) ...[
             if (issuedAt != null) ...[
               const SizedBox(height: _titleToDate),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
+              // "Completed" left and the date right on one line, as the
+              // reference draws them; only where enlarged text leaves no room
+              // for both does the date drop under it rather than overflow
+              // (Issue #366). Full width, so the space between them reaches
+              // the far edge.
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    Text(
                       CertificateStrings.completedDate,
                       style: _dateStyle.copyWith(
                         color: context.palette.textSupporting,
                       ),
                     ),
-                  ),
-                  Text(
-                    CertificateStrings.date(issuedAt),
-                    style: _dateStyle.copyWith(
-                      color: context.palette.textSupporting,
+                    Text(
+                      CertificateStrings.date(issuedAt),
+                      style: _dateStyle.copyWith(
+                        color: context.palette.textSupporting,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: _dateToDownload),
@@ -405,7 +414,7 @@ class _Message extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTypography.statLabel.copyWith(
+              style: AppTypography.supporting.copyWith(
                 color: context.palette.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -448,34 +457,14 @@ const double _iconToLabel = 6;
 const String _downloadGlyph =
     'assets/images/course_learning/exercise_download.svg';
 
-const TextStyle _captionStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The cohort's name over the course's, as on every card that names a course.
+const TextStyle _captionStyle = AppTypography.caption;
 
-const TextStyle _cardTitleStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 26 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The course's name — the same style on every card and page that shows one.
+const TextStyle _cardTitleStyle = AppTypography.cardTitle;
 
-const TextStyle _dateStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Completed" and the date it was completed.
+const TextStyle _dateStyle = AppTypography.dateTime;
 
-const TextStyle _downloadStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w600,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Download" — a small action's label.
+const TextStyle _downloadStyle = AppTypography.buttonSmall;

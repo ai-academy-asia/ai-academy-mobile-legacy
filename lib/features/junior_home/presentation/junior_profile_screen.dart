@@ -736,50 +736,20 @@ class _Rule extends StatelessWidget {
 // cap height is 0.72 em). None bakes a colour: each use supplies the palette's
 // (Issue #272), the same roles Adult's `profile_parts` draws.
 
-const TextStyle _headingStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 24,
-  height: 32 / 24,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The title band's "Profile" — a top-level screen's heading.
+const TextStyle _headingStyle = AppTypography.screenTitle;
 
-const TextStyle _nameStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 18,
-  height: 24 / 18,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The hero's name.
+const TextStyle _nameStyle = AppTypography.cardTitle;
 
-const TextStyle _captionStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// A settings section's caption.
+const TextStyle _captionStyle = AppTypography.caption;
 
-const TextStyle _rowLabelStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w400,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// A settings row's label.
+const TextStyle _rowLabelStyle = AppTypography.itemLabel;
 
-const TextStyle _segmentStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// The MN/EN segment's label.
+const TextStyle _segmentStyle = AppTypography.badge;
 
-const TextStyle _logOutStyle = TextStyle(
-  fontFamily: AppTypography.fontFamily,
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w700,
-  leadingDistribution: TextLeadingDistribution.even,
-);
+/// "Гарах" — a button's label.
+const TextStyle _logOutStyle = AppTypography.buttonLabel;

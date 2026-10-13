@@ -9,8 +9,9 @@ import 'app_typography.dart';
 /// Deliberately thin: screens paint themselves from [AppPalette] roles,
 /// [AppTypography] and `AppDimens` rather than from Material component themes,
 /// because the design is not a Material design. What lives here is only what
-/// the framework needs in order to not contradict it — the font family, the
-/// scaffold background, and the text-selection colours — plus [AppPalette],
+/// the framework needs in order to not contradict it — the font family and
+/// the stock widgets' type, the scaffold background, and the text-selection
+/// colours — plus [AppPalette],
 /// the colour roles migrated widgets read instead of [AppColors] (Issue #252).
 ///
 /// [dark] is the **candidate** dark theme (Dark Mode Phase 9, Issue #276):
@@ -18,9 +19,19 @@ import 'app_typography.dart';
 /// It is wired into `MaterialApp` but unreachable — `AppThemeController`
 /// stays [ThemeMode.light] until Phase 10.
 abstract final class AppTheme {
+  /// The stock widgets' type, on the app's scale (Issue #366): a snack bar's
+  /// message is [AppTypography.body] (Material reads `bodyMedium`), a
+  /// `TextButton`'s label [AppTypography.buttonSmall] (`labelLarge`). No
+  /// colours — the theme's own stay, so light and dark both apply.
+  static const TextTheme _textTheme = TextTheme(
+    bodyMedium: AppTypography.body,
+    labelLarge: AppTypography.buttonSmall,
+  );
+
   static ThemeData get light => ThemeData(
     useMaterial3: true,
     fontFamily: AppTypography.fontFamily,
+    textTheme: _textTheme,
     scaffoldBackgroundColor: AppColors.background,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.blue,
@@ -50,6 +61,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       fontFamily: AppTypography.fontFamily,
+      textTheme: _textTheme,
       scaffoldBackgroundColor: palette.pageBackground,
       colorScheme: ColorScheme.fromSeed(
         seedColor: palette.accent,

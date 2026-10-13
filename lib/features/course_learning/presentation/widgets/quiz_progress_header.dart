@@ -47,8 +47,7 @@ class QuizProgressHeader extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               CourseLearningStrings.quizProgressCounter(current, total),
-              style: AppTypography.cardHeading.copyWith(
-                fontSize: 13,
+              style: AppTypography.caption.copyWith(
                 color: context.palette.textTitle,
               ),
             ),

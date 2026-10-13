@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                 Text(
                                   LoginStrings.heading,
-                                  style: AppTypography.heading.copyWith(
+                                  style: AppTypography.screenTitle.copyWith(
                                     color: context.palette.textPrimary,
                                   ),
                                 ),
@@ -352,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 message,
-                style: AppTypography.fieldError.copyWith(
+                style: AppTypography.fieldHelper.copyWith(
                   color: context.palette.error,
                 ),
                 maxLines: 2,

@@ -39,8 +39,13 @@ class RememberMeCheckbox extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDimens.checkboxRadius),
           child: Padding(
             padding: const EdgeInsets.only(left: AppDimens.checkboxInset),
-            child: SizedBox(
-              height: AppDimens.checkboxRowHeight,
+            // The row's height is a minimum, and the label may wrap: at the
+            // default size it is one line centred in the row, and larger
+            // system text grows the row rather than spilling it (Issue #366).
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: AppDimens.checkboxRowHeight,
+              ),
               child: Row(
                 children: [
                   AnimatedContainer(
@@ -74,12 +79,14 @@ class RememberMeCheckbox extends StatelessWidget {
                         : null,
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    label,
-                    style: AppTypography.checkboxLabel.copyWith(
-                      color: enabled
-                          ? context.palette.textPrimary
-                          : context.palette.textSecondary,
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: AppTypography.itemLabel.copyWith(
+                        color: enabled
+                            ? context.palette.textPrimary
+                            : context.palette.textSecondary,
+                      ),
                     ),
                   ),
                 ],

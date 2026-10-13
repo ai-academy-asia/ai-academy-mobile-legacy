@@ -176,7 +176,7 @@ class _SessionAttendanceSummaryState extends State<SessionAttendanceSummary> {
         children: [
           Text(
             error,
-            style: AppTypography.cardSupporting.copyWith(
+            style: AppTypography.supporting.copyWith(
               color: context.palette.textSecondary,
             ),
             textAlign: TextAlign.center,
@@ -282,20 +282,16 @@ class _Summary extends StatelessWidget {
   }
 }
 
-final TextStyle _countStyle = AppTypography.programTitle.copyWith(
+/// The attended count — sized to the sheet's hero, a container-sized exception
+/// to the type scale (`DESIGN_SYSTEM.md` §3).
+final TextStyle _countStyle = AppTypography.display.copyWith(
   fontSize: 36,
   height: 44 / 36,
   fontWeight: FontWeight.w800,
 );
 
-final TextStyle _totalStyle = AppTypography.programTitle.copyWith(
-  fontSize: 16,
-  height: 1.2,
-  fontWeight: FontWeight.w700,
-);
+/// "/ total" beside the count.
+final TextStyle _totalStyle = AppTypography.bodyStrong.copyWith(height: 1.2);
 
-final TextStyle _captionStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 16,
-  height: 24 / 16,
-  fontWeight: FontWeight.w400,
-);
+/// "оюутан ирцэд бүртгэгдсэн".
+const TextStyle _captionStyle = AppTypography.body;

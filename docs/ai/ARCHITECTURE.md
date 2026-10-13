@@ -107,10 +107,10 @@ static const String defaultBaseUrl = 'https://api.ai-academy.asia';
 `core/theme/` holds four token files plus a deliberately thin `AppTheme`:
 
 - **`AppColors`** — brand blues sampled from the logo, neutrals, semantic `error`/`success`/`warning`.
-- **`AppTypography`** — Manrope. Its own doc comment records that the scale was taken **~15% below the measured Figma values** by eye, while keeping line heights at the layout's values. That is a deliberate, documented decision; changing it is a design decision, not a bug fix.
+- **`AppTypography`** — Manrope, as a **semantic scale**: one style per role (`screenTitle`, `cardTitle`, `itemTitle`, `body`, `supporting`, `caption`, `dateTime`, `buttonLabel`, …), the same on every screen, with no baked colour (Issue #366). Its roles, exceptions and the legacy tokens left for unmigrated code are in [DESIGN_SYSTEM.md](../design-system/DESIGN_SYSTEM.md) §3.
 - **`AppDimens`** — measurements read from the Figma Login frame (393 artboard, 16 gutter, 361 content, 44 button height, radii, border widths), plus later per-screen additions.
 - **`AppIcons`** — Phosphor icon font codepoints. **Codepoints are confirmed against the bundled font's cmap, never guessed**; where no confirmed Phosphor glyph exists the code falls back to a Material `Icons.*` glyph with a comment saying why.
-- **`AppTheme.light`** — only what the framework needs so it does not contradict the design: font family, scaffold background, colour scheme, text selection. **The app does not style itself through Material component themes**; widgets paint from tokens directly.
+- **`AppTheme.light`** — only what the framework needs so it does not contradict the design: font family, the stock widgets' type (`bodyMedium` → `body`, `labelLarge` → `buttonSmall`), scaffold background, colour scheme, text selection. **The app does not style itself through Material component themes**; widgets paint from tokens directly.
 
 See [../design-system/DESIGN_SYSTEM.md](../design-system/DESIGN_SYSTEM.md) for the token values and the rules about screen-local tokens.
 

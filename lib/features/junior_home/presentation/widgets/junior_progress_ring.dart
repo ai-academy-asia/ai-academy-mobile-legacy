@@ -49,7 +49,9 @@ class JuniorProgressRing extends StatelessWidget {
         child: Center(
           child: Text(
             '$percent%',
-            style: AppTypography.heading.copyWith(
+            // Sized to the ring by its caller — a container-sized exception
+            // to the scale (`DESIGN_SYSTEM.md` §3).
+            style: AppTypography.bodyStrong.copyWith(
               fontSize: labelSize,
               height: 1,
               color: context.palette.textPrimary,

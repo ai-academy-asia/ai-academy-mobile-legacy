@@ -23,15 +23,6 @@ const double _assetGlyphBox = 24;
 /// remainder — set by measuring the render, not by arithmetic on the spec.
 const double _iconToLabelGap = 3;
 
-/// The label size. The Adult Home reference inks its labels at 10pt; the
-/// adult bar uses 12 — two up from [AppTypography.badgeLabel]'s 10, an
-/// existing step of the type scale — so the shell reads at the page
-/// content's scale (a product decision, Issue #188). 13 was tried and its
-/// labels competed with the 24pt icons on a device. The style is shared with
-/// three other widgets, so the size is overridden here rather than on the
-/// token.
-const double _labelSize = 12;
-
 /// One tab of [AppBottomNav].
 class AppBottomNavItem {
   const AppBottomNavItem({
@@ -64,15 +55,16 @@ class AppBottomNavItem {
 /// both edges (tab centres at 76, 196.5 and 317 on a 393pt screen, as the
 /// Adult Home reference places them) and the sizes above — is identical on
 /// all three (Issue #188). The junior tab screens draw it the same way,
-/// through `JuniorBottomNav` (Issue #190); [iconSize] and [labelSize] remain
-/// for a bar that must pin its own.
+/// through `JuniorBottomNav` (Issue #190). Labels are
+/// [AppTypography.navLabel] (Issue #366); [iconSize] and [labelSize] remain
+/// for a bar that must pin its own — only the Teacher bar's four tabs do.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.items,
     required this.currentIndex,
     super.key,
     this.iconSize = _iconSize,
-    this.labelSize = _labelSize,
+    this.labelSize,
     this.horizontalPadding = AppDimens.screenPadding,
     this.selectedColor,
   });
@@ -83,8 +75,8 @@ class AppBottomNav extends StatelessWidget {
   /// The tab icons' nominal size.
   final double iconSize;
 
-  /// The tab labels' font size.
-  final double labelSize;
+  /// Null for [AppTypography.navLabel]'s own size.
+  final double? labelSize;
 
   /// Insets the row of tabs from both edges; the tabs share what is left
   /// equally.
@@ -127,10 +119,10 @@ class AppBottomNav extends StatelessWidget {
                 for (var i = 0; i < items.length; i++)
                   Expanded(
                     child: _NavButton(
+                      labelSize: labelSize,
                       item: items[i],
                       selected: i == currentIndex,
                       iconSize: iconSize,
-                      labelSize: labelSize,
                       selectedColor: selectedColor ?? palette.accentText,
                     ),
                   ),
@@ -155,7 +147,7 @@ class _NavButton extends StatelessWidget {
   final AppBottomNavItem item;
   final bool selected;
   final double iconSize;
-  final double labelSize;
+  final double? labelSize;
   final Color selectedColor;
 
   @override
@@ -195,7 +187,7 @@ class _NavButton extends StatelessWidget {
             ExcludeSemantics(
               child: Text(
                 item.label,
-                style: AppTypography.badgeLabel.copyWith(
+                style: AppTypography.navLabel.copyWith(
                   color: color,
                   fontSize: labelSize,
                 ),

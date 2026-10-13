@@ -62,13 +62,13 @@ class QuizPreviewCard extends StatelessWidget {
             children: [
               Text(
                 moduleCaption,
-                style: AppTypography.catalogSectionLabel.copyWith(
+                style: AppTypography.caption.copyWith(
                   color: palette.textSecondary,
                 ),
               ),
               Text(
                 CourseLearningStrings.quizQuestionCount(quiz.questionCount),
-                style: AppTypography.catalogSectionLabel.copyWith(
+                style: AppTypography.caption.copyWith(
                   color: palette.textSecondary,
                 ),
               ),
@@ -77,11 +77,7 @@ class QuizPreviewCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             quiz.title,
-            style: AppTypography.cardHeading.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: palette.textPrimary,
-            ),
+            style: AppTypography.itemTitle.copyWith(color: palette.textPrimary),
           ),
           const SizedBox(height: 16),
           if (result == null)
@@ -97,7 +93,7 @@ class QuizPreviewCard extends StatelessWidget {
                 children: [
                   Text(
                     CourseLearningStrings.yourScoreLabel,
-                    style: AppTypography.cardSupporting.copyWith(
+                    style: AppTypography.supporting.copyWith(
                       color: palette.textSecondary,
                     ),
                   ),
@@ -106,8 +102,7 @@ class QuizPreviewCard extends StatelessWidget {
                     '${result.percent}%',
                     // `warning`, as this score always was — the result
                     // screen's darker score is `warningInk`.
-                    style: AppTypography.heading.copyWith(
-                      fontSize: 28,
+                    style: AppTypography.display.copyWith(
                       color: palette.warning,
                     ),
                   ),

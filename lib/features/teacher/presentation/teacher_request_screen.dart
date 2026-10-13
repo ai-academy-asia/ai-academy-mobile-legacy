@@ -112,7 +112,7 @@ class _Unavailable extends StatelessWidget {
         ),
         child: Text(
           TeacherScheduleStrings.requestsUnavailable,
-          style: AppTypography.cardSupporting.copyWith(
+          style: AppTypography.supporting.copyWith(
             color: context.palette.textSecondary,
           ),
           textAlign: TextAlign.center,
@@ -198,7 +198,7 @@ class TeacherRequestRow extends StatelessWidget {
             variant: variant,
             onPressed: null,
             height: 40,
-            fontSize: 14,
+            fontSize: AppTypography.buttonSmall.fontSize!,
           ),
         ),
       ],
@@ -206,22 +206,11 @@ class TeacherRequestRow extends StatelessWidget {
   }
 }
 
-final TextStyle _titleStyle = AppTypography.programTitle.copyWith(
-  fontSize: 20,
-  height: 28 / 20,
-  fontWeight: FontWeight.w700,
-);
+/// The screen's title.
+const TextStyle _titleStyle = AppTypography.headerTitle;
 
-/// 17, not the 20 the cap height suggests: sized to the reference's name
-/// widths, as [TeacherPillButton]'s labels are.
-final TextStyle _nameStyle = AppTypography.programTitle.copyWith(
-  fontSize: 17,
-  height: 24 / 17,
-  fontWeight: FontWeight.w700,
-);
+/// A teacher's name — a list row's primary line.
+const TextStyle _nameStyle = AppTypography.itemTitle;
 
-final TextStyle _roleStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 13,
-  height: 18 / 13,
-  fontWeight: FontWeight.w400,
-);
+/// A teacher's role under the name.
+const TextStyle _roleStyle = AppTypography.caption;

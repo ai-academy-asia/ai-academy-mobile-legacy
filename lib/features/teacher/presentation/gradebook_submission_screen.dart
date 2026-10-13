@@ -121,7 +121,6 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
               child: TeacherPillButton(
                 label: TeacherGradebookStrings.mentorFeedback,
                 variant: TeacherPillVariant.filled,
-                fontSize: 18,
                 onPressed: null,
               ),
             ),
@@ -146,7 +145,7 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
             children: [
               Text(
                 error,
-                style: AppTypography.cardSupporting.copyWith(
+                style: AppTypography.supporting.copyWith(
                   color: context.palette.textSecondary,
                 ),
                 textAlign: TextAlign.center,
@@ -210,7 +209,7 @@ class _GradebookSubmissionScreenState extends State<GradebookSubmissionScreen> {
                       )
                     : Text(
                         TeacherGradebookStrings.noteUnavailable,
-                        style: AppTypography.cardSupporting.copyWith(
+                        style: AppTypography.supporting.copyWith(
                           color: context.palette.textSecondary,
                         ),
                       ),
@@ -344,7 +343,7 @@ class _AssignmentTab extends StatelessWidget {
         if (!hasLink && !hasDescription)
           Text(
             TeacherGradebookStrings.contentUnavailable,
-            style: AppTypography.cardSupporting.copyWith(
+            style: AppTypography.supporting.copyWith(
               color: context.palette.textSecondary,
             ),
           ),
@@ -443,39 +442,26 @@ OutlineInputBorder _boxBorder(Color color) => OutlineInputBorder(
   borderSide: BorderSide(color: color),
 );
 
-final TextStyle _tabSelected = AppTypography.programTitle.copyWith(
-  fontSize: 16,
-  height: 22 / 16,
+/// The selected tab's label.
+final TextStyle _tabSelected = AppTypography.tabLabel.copyWith(
   fontWeight: FontWeight.w700,
 );
 
-final TextStyle _tabStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 16,
-  height: 22 / 16,
-  fontWeight: FontWeight.w400,
-);
+/// A tab's label.
+const TextStyle _tabStyle = AppTypography.tabLabel;
 
-final TextStyle _linkStyle = AppTypography.cardSupporting.copyWith(
-  fontSize: 16,
-  height: 22 / 16,
-  fontWeight: FontWeight.w500,
+/// The submission's link, underlined.
+final TextStyle _linkStyle = AppTypography.itemLabel.copyWith(
   decoration: TextDecoration.underline,
 );
 
-final TextStyle _scoreStyle = AppTypography.programTitle.copyWith(
-  fontSize: 14,
-  height: 20 / 14,
-  fontWeight: FontWeight.w700,
-);
+/// The score — a value.
+const TextStyle _scoreStyle = AppTypography.bodyStrong;
 
-final TextStyle _capsuleStyle = AppTypography.catalogStatusLabel.copyWith(
-  fontSize: 12,
-  height: 16 / 12,
-);
+const TextStyle _capsuleStyle = AppTypography.badge;
 
-final TextStyle _boxLabel = AppTypography.cardSupporting.copyWith(fontSize: 14);
+/// The box's label, at [AppTypography.fieldText] at rest: Material floats it at
+/// 75%, which lands it on [AppTypography.fieldLabel]'s 12.
+const TextStyle _boxLabel = AppTypography.fieldText;
 
-final TextStyle _boxText = AppTypography.cardSupporting.copyWith(
-  fontSize: 16,
-  height: 24 / 16,
-);
+const TextStyle _boxText = AppTypography.fieldText;

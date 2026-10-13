@@ -58,25 +58,20 @@ class QuizFeedbackCard extends StatelessWidget {
             correct
                 ? CourseLearningStrings.quizCorrectTitle
                 : CourseLearningStrings.quizWrongTitle,
-            style: AppTypography.heading.copyWith(fontSize: 20, color: color),
+            style: AppTypography.sectionTitle.copyWith(color: color),
           ),
           if (!correct) ...[
             const SizedBox(height: _titleToAnswer),
             Text(
               CourseLearningStrings.quizCorrectAnswerIs(correctLetter),
-              style: AppTypography.settingsRowLabel.copyWith(
-                color: palette.textStrong,
-              ),
+              style: AppTypography.body.copyWith(color: palette.textStrong),
             ),
             const SizedBox(height: _answerToExplanation),
           ] else
             const SizedBox(height: _titleToExplanation),
           Text(
             explanation,
-            style: AppTypography.settingsRowLabel.copyWith(
-              color: palette.textMuted,
-              height: 20 / 14,
-            ),
+            style: AppTypography.body.copyWith(color: palette.textMuted),
           ),
         ],
       ),

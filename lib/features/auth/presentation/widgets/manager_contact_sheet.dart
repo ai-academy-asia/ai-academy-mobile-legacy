@@ -45,16 +45,15 @@ Future<Uri?> chooseManagerContact(BuildContext context) =>
 ///  * a header cue — Phosphor [AppIcons.chatCircleDots] in [AppColors.blue]
 ///    on a round [AppDimens.avatarSize] tile of the same pale blue as the
 ///    options' own tiles — over the heading, "Танд асуух зүйл байна уу?", in
-///    [AppTypography.catalogTitle]: a section heading, a step below Login's
-///    22pt screen heading. Under it, [AppDimens.fieldGap] apart, a short
-///    message in [AppTypography.statLabel] darkened to
-///    [AppColors.textPrimary] so it reads as copy rather than a caption;
+///    [AppTypography.sectionTitle]: a section heading, a step below Login's
+///    [AppTypography.screenTitle]. Under it, [AppDimens.fieldGap] apart, a
+///    short message in [AppTypography.body], in [AppColors.textPrimary];
 ///  * each option is the Login frame's contact card — white surface, 1pt
 ///    [AppColors.border], [AppDimens.cardRadius], [AppDimens.cardHeight],
 ///    trailing [AppIcons.caretRight] — led by its Phosphor glyph in
 ///    [AppColors.blue] on a round [AppDimens.statIconTile] tile, with the
-///    action in [AppTypography.cardHeading] over the contact in
-///    [AppTypography.statLabel].
+///    action in [AppTypography.itemTitle] over the contact in
+///    [AppTypography.supporting].
 ///
 /// Spacing is Login's: [AppDimens.screenPadding] at the sides,
 /// [AppDimens.headingToForm] above the cue and between the message and the
@@ -145,7 +144,7 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
                         children: [
                           Text(
                             LoginStrings.contactSheetTitle,
-                            style: AppTypography.catalogTitle.copyWith(
+                            style: AppTypography.sectionTitle.copyWith(
                               color: context.palette.textPrimary,
                             ),
                             textAlign: TextAlign.center,
@@ -153,7 +152,7 @@ class _ManagerContactSheetState extends State<ManagerContactSheet> {
                           const SizedBox(height: AppDimens.fieldGap),
                           Text(
                             LoginStrings.contactMessage,
-                            style: AppTypography.statLabel.copyWith(
+                            style: AppTypography.body.copyWith(
                               color: context.palette.textPrimary,
                             ),
                             textAlign: TextAlign.center,
@@ -303,14 +302,14 @@ class _ContactOption extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: AppTypography.cardHeading.copyWith(
+                        style: AppTypography.itemTitle.copyWith(
                           color: context.palette.textPrimary,
                         ),
                       ),
                       const SizedBox(height: AppDimens.cardLineGap),
                       Text(
                         value,
-                        style: AppTypography.statLabel.copyWith(
+                        style: AppTypography.supporting.copyWith(
                           color: context.palette.textSecondary,
                         ),
                       ),

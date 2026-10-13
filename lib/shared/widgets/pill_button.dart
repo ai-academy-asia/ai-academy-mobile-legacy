@@ -49,8 +49,8 @@ class PillButton extends StatelessWidget {
     this.height = 36,
     this.icon,
     this.raised = true,
-    this.labelSize = 14,
-    this.labelWeight = FontWeight.w700,
+    this.labelSize = 16,
+    this.labelWeight = FontWeight.w600,
   });
 
   final String label;
@@ -72,11 +72,10 @@ class PillButton extends StatelessWidget {
   /// keeps its band: the frames draw one under it.
   final bool raised;
 
-  /// 14 on the Home frames; the Payment screen's full-width "Төлбөр төлөх"
-  /// draws its label at 16.
+  /// [AppTypography.buttonLabel]'s by default, like every button's label
+  /// (Issue #366). Only the unmigrated payment preview still passes these.
   final double labelSize;
 
-  /// Bold on the Home frames; semi-bold on the Payment screen's button.
   final FontWeight labelWeight;
 
   @override
