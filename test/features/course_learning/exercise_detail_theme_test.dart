@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
@@ -165,7 +166,7 @@ void main() {
       expect(rings, [mediaControlOutline]);
       expect(rings, isNot(contains(outline)));
       expect(
-        tester.widget<Icon>(find.byIcon(Icons.arrow_back)).color,
+        tester.widget<Icon>(find.byIcon(AppIcons.arrowLeft)).color,
         onMediaControl,
       );
     });

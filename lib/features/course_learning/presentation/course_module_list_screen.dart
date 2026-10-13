@@ -332,7 +332,7 @@ class _CourseLearningBody extends StatelessWidget {
         AppDimens.screenPadding,
         18,
         AppDimens.screenPadding,
-        AppDimens.screenPadding,
+        AppDimens.pageBottom,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

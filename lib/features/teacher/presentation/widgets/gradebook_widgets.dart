@@ -4,7 +4,6 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/teacher_submission.dart';
 import '../teacher_gradebook_strings.dart';
@@ -26,46 +25,6 @@ class GradebookRow {
   String get studentName => submission.student?.name ?? '';
   String? get initials => submission.student?.initials;
   String get status => submission.status;
-}
-
-/// The white band the drill-down references open with: the back control and
-/// the class's course title centred on it.
-class GradebookBackHeader extends StatelessWidget {
-  const GradebookBackHeader({required this.title, super.key});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.palette.surface,
-      child: SafeArea(
-        bottom: false,
-        child: SizedBox(
-          // The back control's 12 + 40, and 12 under it to the grey body.
-          height: 64,
-          child: Stack(
-            children: [
-              const AppBackButton(icon: AppIcons.arrowLeft),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(64, 12, 64, 12),
-                child: Center(
-                  child: Text(
-                    title,
-                    style: gradebookTitleStyle.copyWith(
-                      color: context.palette.textStrong,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Бүгд / Хүлээгдэж буй / Дүгнэгдсэн — the reference's pills, the selected
@@ -311,10 +270,6 @@ class GradebookNotice extends StatelessWidget {
     );
   }
 }
-
-/// The course's name over the gradebook screens — the same style on every card
-/// and page that shows one.
-const TextStyle gradebookTitleStyle = AppTypography.cardTitle;
 
 /// A student's name over the row's title.
 const TextStyle _nameStyle = AppTypography.caption;

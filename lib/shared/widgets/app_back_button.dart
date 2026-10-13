@@ -18,16 +18,16 @@ import '../../core/theme/app_icons.dart';
 /// inside one feature. It holds its own [label] for the same reason, so
 /// `shared/` depends on no feature.
 class AppBackButton extends StatelessWidget {
-  const AppBackButton({super.key, this.icon = AppIcons.caretLeft});
+  const AppBackButton({super.key, this.icon = AppIcons.arrowLeft});
 
   /// What assistive technology announces. The text it has always had;
   /// `CourseLearningStrings.back` is this.
   static const String label = 'Back';
 
-  static const double _size = 40;
+  static const double _size = AppDimens.backButtonSize;
 
-  /// The glyph in the circle: the caret every Course Learning frame draws by
-  /// default; the Adult attendance frame draws [AppIcons.arrowLeft].
+  /// The glyph in the circle: the arrow, on every page (Issue #368 — the
+  /// Course Learning frames' caret was the one exception, now aligned).
   final IconData icon;
 
   @override
@@ -37,11 +37,11 @@ class AppBackButton extends StatelessWidget {
     // `border` — with a soft black lift and a `textPrimary` glyph.
     final palette = context.palette;
     return Padding(
-      // 12 above, not the screen's 16: the reference puts this control's top
-      // edge 12 below the safe-area inset.
+      // [AppDimens.backButtonTop] above, not the screen's 16: the reference
+      // puts this control's top edge 12 below the safe-area inset.
       padding: const EdgeInsets.fromLTRB(
         AppDimens.screenPadding,
-        12,
+        AppDimens.backButtonTop,
         AppDimens.screenPadding,
         0,
       ),

@@ -11,6 +11,7 @@ import 'package:aia_mobile/features/auth/presentation/reset_password_strings.dar
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/shared/widgets/app_button.dart';
+import 'package:aia_mobile/shared/widgets/back_title_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -400,12 +401,21 @@ void main() {
     ) async {
       await pushVoluntary(tester, FakePasswordRepository());
 
+      // A pushed page's shared back header carries the title (Issue #368);
+      // the form starts under it.
       expect(backControl(), findsOneWidget);
       expect(
-        tester.getRect(find.text(ResetPasswordStrings.title)).top,
-        greaterThan(tester.getRect(backControl()).bottom),
+        find.descendant(
+          of: find.byType(BackTitleHeader),
+          matching: find.text(ResetPasswordStrings.title),
+        ),
+        findsOneWidget,
       );
       expect(find.byType(TextField), findsNWidgets(3));
+      expect(
+        tester.getRect(find.byType(TextField).first).top,
+        greaterThan(tester.getRect(find.byType(BackTitleHeader)).bottom),
+      );
     });
 
     testWidgets('tapping it pops back without sending anything', (

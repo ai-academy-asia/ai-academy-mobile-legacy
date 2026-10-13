@@ -199,17 +199,26 @@ class _CourseExerciseDetailScreenState
 
     final exercise = _controller.exercise;
     if (exercise == null) {
-      return SafeArea(
-        child: Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: context.palette.primary,
+      // The shared back button over the spinner, as the error state has it:
+      // a pushed page always offers its way back (Issue #368), and the video
+      // header that normally carries it is not drawn yet.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const AppBackButton(),
+          Expanded(
+            child: Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: context.palette.primary,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       );
     }
 
@@ -323,11 +332,14 @@ class _ExerciseDetailBody extends StatelessWidget {
                 hasVideo: exercise.hasVideo,
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(
+                // The page's bottom above the home indicator: this body runs
+                // under it (`SafeArea(bottom: false)`), so it reserves the
+                // inset itself (Issue #368).
+                padding: EdgeInsets.fromLTRB(
                   AppDimens.screenPadding,
                   16,
                   AppDimens.screenPadding,
-                  24,
+                  AppDimens.pageBottom + MediaQuery.paddingOf(context).bottom,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

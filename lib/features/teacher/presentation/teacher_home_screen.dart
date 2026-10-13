@@ -223,7 +223,7 @@ class _ClassesView extends StatelessWidget {
           AppDimens.screenPadding,
           _titleTop,
           AppDimens.screenPadding,
-          24,
+          AppDimens.pageBottom,
         ),
         // Always scrollable, so pull-to-refresh works on a short day too.
         physics: const AlwaysScrollableScrollPhysics(),
@@ -233,15 +233,15 @@ class _ClassesView extends StatelessWidget {
   }
 }
 
-/// From the header rule to the title's line box.
-const double _titleTop = 14;
+/// From the header rule to the title's line box, and from the title to the
+/// first card: a tab's [AppDimens.tabContentTop], as on every tab (Issue
+/// #368; the reference drew 14 and 9). The title stays under the logo
+/// header, as the reference places it.
+const double _titleTop = AppDimens.tabContentTop;
+const double _titleToFirstCard = AppDimens.tabContentTop;
 
-/// From the title's 34pt line box to the first card: the reference's card
-/// top at 165, 58 below the header rule.
-const double _titleToFirstCard = 9;
-
-/// Between cards: 16 in the reference.
-const double _cardGap = 16;
+/// Between cards.
+const double _cardGap = AppDimens.cardGap;
 
 /// The tab's title — a top-level screen's heading.
 const TextStyle _titleStyle = AppTypography.screenTitle;

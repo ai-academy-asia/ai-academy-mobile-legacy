@@ -8,6 +8,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../core/theme/theme_preference.dart';
+import '../../../shared/widgets/tab_title_bar.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -177,8 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const ProfileTitleBar(title: ProfileStrings.heading),
-            const ProfileRule(),
+            const TabTitleBar(title: ProfileStrings.heading),
             Expanded(child: profileConstrained(_buildBody())),
           ],
         ),

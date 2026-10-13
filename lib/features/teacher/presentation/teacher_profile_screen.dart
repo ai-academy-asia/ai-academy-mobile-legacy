@@ -7,6 +7,7 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
+import '../../../shared/widgets/tab_title_bar.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -23,20 +24,17 @@ import '../../profile/presentation/widgets/profile_parts.dart';
 /// 9 in with its glyph's own bearing.
 const double _avatarToText = 8;
 
-/// The hero band on this frame: the avatar 33 below the rule above it and 32
-/// above the one under it — a point more each side than the Adult frame's
-/// [ProfileMetrics.heroTop] / [ProfileMetrics.heroBottom], measured off the
-/// Teacher frame at 1:1.
-const double _heroTop = 33;
-const double _heroBottom = 32;
-
-/// The avatar's left edge: 17 on this frame, a point in from the page's 16
-/// margin.
-const double _heroLeft = 17;
+/// The hero band: the Adult profile's own [ProfileMetrics.heroTop] /
+/// [ProfileMetrics.heroBottom], the avatar on the page's
+/// [AppDimens.screenPadding] gutter — the Teacher frame drew it a point
+/// further each way, aligned with the Adult profile in Issue #368.
+const double _heroTop = ProfileMetrics.heroTop;
+const double _heroBottom = ProfileMetrics.heroBottom;
+const double _heroLeft = AppDimens.screenPadding;
 
 /// The gap the frame leaves between the name and the email under it. With
 /// it the text column runs 3 past the avatar, so the band's bottom padding
-/// gives those 3 back and the band stays the frame's 33 + 72 + 32.
+/// gives those 3 back and the band stays the hero's own height.
 const double _nameToDetails = 3;
 
 /// The teacher's account and app settings — the Teacher "Profile" frame
@@ -44,7 +42,7 @@ const double _nameToDetails = 3;
 /// its own: the shell's persistent bar sits under it.
 ///
 /// Drawn from the same measured parts as the Adult Profile
-/// ([ProfileTitleBar], [ProfileCaption], [ProfileRow], …), which the two
+/// ([TabTitleBar], [ProfileCaption], [ProfileRow], …), which the two
 /// frames share at 1:1. The frame's differences: no Account section and no
 /// edit control, and the hero carries the email and phone under the name.
 ///
@@ -156,8 +154,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const ProfileTitleBar(title: ProfileStrings.heading),
-            const ProfileRule(),
+            const TabTitleBar(title: ProfileStrings.heading),
             Expanded(child: profileConstrained(_buildBody())),
           ],
         ),

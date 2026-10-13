@@ -364,7 +364,7 @@ class _LessonListBody extends StatelessWidget {
     // one tall frame.
     return SingleChildScrollView(
       padding: EdgeInsets.only(
-        bottom: AppDimens.screenPadding + MediaQuery.paddingOf(context).bottom,
+        bottom: AppDimens.pageBottom + MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

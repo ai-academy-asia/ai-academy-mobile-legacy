@@ -26,12 +26,15 @@ import 'widgets/junior_progress_calendar.dart';
 // Measured off the Junior Learning Progress frame at 1:1 (393 wide, a 44pt
 // status-bar inset). Every vertical gap below is the frame's own.
 
-/// Header rule to the first card, and the page's bottom margin.
-const double _pageTop = 16;
-const double _pageBottom = 30;
+/// Header rule to the first card, and the page's bottom margin: every tab's
+/// (Issue #368; the frame drew the bottom at 30).
+const double _pageTop = AppDimens.tabContentTop;
+const double _pageBottom = AppDimens.pageBottom;
 
-/// Between the three stacked blocks: banner, payment card, panel.
-const double _blockGap = 8;
+/// Between the three stacked blocks — banner, payment card, panel: the
+/// app's [AppDimens.cardGap], as Home spaces its cards (the frame drew 8;
+/// aligned in Issue #368).
+const double _blockGap = AppDimens.cardGap;
 
 /// The panel's outline — twice the hairline the cards above it use.
 const double _panelBorder = 2;
@@ -425,7 +428,7 @@ class _ProgressPanel extends StatelessWidget {
                       },
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppDimens.tileGap),
                   Expanded(
                     child: _SummaryCard(
                       title: JuniorProgressStrings.exam,

@@ -5,6 +5,8 @@ import '../../../core/theme/app_palette.dart';
 import '../domain/teacher_gradebook_repository.dart';
 import 'gradebook_submission_screen.dart';
 import 'teacher_gradebook_strings.dart';
+import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import 'widgets/gradebook_widgets.dart';
 
 /// A student's detail (Issue #233), built against the `student-detail`
@@ -41,87 +43,97 @@ class GradebookStudentScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.palette.surfaceSubtle,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          GradebookBackHeader(title: courseTitle),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.screenPadding,
-                    21,
-                    AppDimens.screenPadding,
-                    24,
+      // Capped at the content width, as every page is (Issue #368).
+      body: SafeArea(
+        bottom: false,
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              BackTitleHeader(title: courseTitle),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.only(
+                    bottom:
+                        AppDimens.pageBottom +
+                        MediaQuery.paddingOf(context).bottom,
                   ),
-                  child: Row(
-                    children: [
-                      GradebookAvatar(initials: student.initials),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GradebookIdentity(
-                          name: student.studentName,
-                          title: student.assignmentTitle,
-                        ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.screenPadding,
+                        AppDimens.pageContentTop,
+                        AppDimens.screenPadding,
+                        24,
                       ),
-                    ],
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppDimens.screenPadding,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GradebookStatCard(
-                          title: TeacherGradebookStrings.attendance,
-                          value: TeacherGradebookStrings.noFigure,
-                        ),
+                      child: Row(
+                        children: [
+                          GradebookAvatar(initials: student.initials),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: GradebookIdentity(
+                              name: student.studentName,
+                              title: student.assignmentTitle,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 9),
-                      Expanded(
-                        child: GradebookStatCard(
-                          title: TeacherGradebookStrings.examScore,
-                          value: TeacherGradebookStrings.noFigure,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Container(
-                  height: AppDimens.borderWidth,
-                  color: context.palette.divider,
-                ),
-                for (final submission in submissions)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.screenPadding,
-                      14,
-                      AppDimens.screenPadding,
-                      0,
                     ),
-                    child: GradebookRowCard(
-                      row: submission,
-                      showAvatar: false,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => GradebookSubmissionScreen(
-                            courseTitle: courseTitle,
-                            submissionId: submission.submissionId,
-                            repository: repository,
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppDimens.screenPadding,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GradebookStatCard(
+                              title: TeacherGradebookStrings.attendance,
+                              value: TeacherGradebookStrings.noFigure,
+                            ),
+                          ),
+                          SizedBox(width: AppDimens.tileGap),
+                          Expanded(
+                            child: GradebookStatCard(
+                              title: TeacherGradebookStrings.examScore,
+                              value: TeacherGradebookStrings.noFigure,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Container(
+                      height: AppDimens.borderWidth,
+                      color: context.palette.divider,
+                    ),
+                    for (final submission in submissions)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppDimens.screenPadding,
+                          AppDimens.cardGap,
+                          AppDimens.screenPadding,
+                          0,
+                        ),
+                        child: GradebookRowCard(
+                          row: submission,
+                          showAvatar: false,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => GradebookSubmissionScreen(
+                                courseTitle: courseTitle,
+                                submissionId: submission.submissionId,
+                                repository: repository,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

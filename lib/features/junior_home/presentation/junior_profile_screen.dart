@@ -8,6 +8,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../shared/widgets/app_svg_icon.dart';
+import '../../../shared/widgets/tab_title_bar.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -29,9 +30,6 @@ import 'widgets/junior_bottom_nav.dart';
 
 // Measured off the Junior Profile frame at 1:1 (393 wide, a 44pt status-bar
 // inset).
-
-/// The white header under the status bar, down to its rule.
-const double _headerHeight = 63;
 
 /// The hero band: the avatar 32 below the rule above it, 31 above the one
 /// under it.
@@ -59,9 +57,10 @@ const double _capsuleRadius = 8;
 /// The contact rows, which the frame runs without rules between them.
 const double _contactRowHeight = 56;
 
-/// A row's icon box and its gap to the label.
+/// A row's icon box and its gap to the label — the Adult and Teacher
+/// profiles' 8 (the junior frame drew 9; aligned in Issue #368).
 const double _rowIcon = 20;
-const double _iconToLabel = 9;
+const double _iconToLabel = 8;
 
 /// The junior student's profile and settings — the Figma "Kids - Profile"
 /// frame.
@@ -188,34 +187,9 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // White behind the status bar as well as the title, as the frame
-            // draws it.
-            ColoredBox(
-              color: context.palette.surface,
-              child: SafeArea(
-                bottom: false,
-                child: _constrained(
-                  SizedBox(
-                    height: _headerHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.screenPadding,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          JuniorProfileStrings.heading,
-                          style: _headingStyle.copyWith(
-                            color: context.palette.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const _Rule(),
+            // The shared tab header (Issue #368), as the Adult and Teacher
+            // profiles draw it.
+            const TabTitleBar(title: JuniorProfileStrings.heading),
             Expanded(child: _constrained(_buildBody())),
           ],
         ),
@@ -238,7 +212,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
     // A `SingleChildScrollView`, for the reason the adult Profile gives: a
     // fixed, fully-known set of rows whose exact extent one fling must reach.
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: AppDimens.pageBottom),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -735,9 +709,6 @@ class _Rule extends StatelessWidget {
 // Sampled and measured off the frame at 1:1; sizes from cap heights (Manrope's
 // cap height is 0.72 em). None bakes a colour: each use supplies the palette's
 // (Issue #272), the same roles Adult's `profile_parts` draws.
-
-/// The title band's "Profile" — a top-level screen's heading.
-const TextStyle _headingStyle = AppTypography.screenTitle;
 
 /// The hero's name.
 const TextStyle _nameStyle = AppTypography.cardTitle;

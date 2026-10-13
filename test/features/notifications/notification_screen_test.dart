@@ -192,7 +192,8 @@ void main() {
       // 72 before Issue #366's type scale: the body is now 16 on a 24 line.
       expect(first.height, 74);
       expect(second.top, first.bottom);
-      expect(first.top, 44 + 52 + 12);
+      // The back header, then a pushed page's 24 (Issue #368).
+      expect(first.top, 44 + 52 + 24);
     });
 
     testWidgets('long title and body hold one line each, without overflow', (

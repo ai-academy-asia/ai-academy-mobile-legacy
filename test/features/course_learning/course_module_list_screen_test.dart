@@ -82,7 +82,7 @@ void main() {
     (w) => w is SvgPicture && w.bytesLoader.toString().contains(fragment),
   );
 
-  Finder backButton() => find.byIcon(AppIcons.caretLeft);
+  Finder backButton() => find.byIcon(AppIcons.arrowLeft);
 
   group('hero', () {
     testWidgets('renders the course title and description', (tester) async {
@@ -482,7 +482,7 @@ void main() {
 
       // Exercise Detail's own back control is the video header's arrow, not
       // the caret the Module List uses.
-      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.tap(find.byIcon(AppIcons.arrowLeft));
       await tester.pumpAndSettle();
 
       expect(find.byType(CourseExerciseDetailScreen), findsNothing);
@@ -495,7 +495,7 @@ void main() {
       expect(find.byType(LessonListScreen), findsNothing);
       expect(find.byType(CourseModuleListScreen), findsOneWidget);
 
-      await tester.tap(find.byIcon(AppIcons.caretLeft));
+      await tester.tap(find.byIcon(AppIcons.arrowLeft));
       await tester.pumpAndSettle();
 
       expect(find.byType(CourseModuleListScreen), findsNothing);

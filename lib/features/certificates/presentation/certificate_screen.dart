@@ -179,7 +179,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
         AppDimens.screenPadding,
         _headerToCard,
         AppDimens.screenPadding,
-        AppDimens.screenPadding + MediaQuery.paddingOf(context).bottom,
+        AppDimens.pageBottom + MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: entries.length,
       separatorBuilder: (_, _) => const SizedBox(height: _cardGap),
@@ -433,10 +433,10 @@ class _Message extends StatelessWidget {
 // --- Measured off the Figma "Certificate" frame at 1:1 (393 wide, a 44pt
 // status-bar inset) -----------------------------------------------------------
 
-/// The circle's bottom to the first card's top.
-const double _headerToCard = 28;
-
-const double _cardGap = 12;
+/// The header to the first card, and card to card: every pushed page's
+/// (Issue #368), as the E-Contract list's are — the frame drew 28 and 12.
+const double _headerToCard = AppDimens.pageContentTop;
+const double _cardGap = AppDimens.cardGap;
 
 /// The certificate 12 inside its gradient frame, as this frame draws it.
 const double _artworkInset = 12;

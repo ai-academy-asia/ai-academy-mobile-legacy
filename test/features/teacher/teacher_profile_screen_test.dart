@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/auth_failure.dart';
@@ -14,6 +15,7 @@ import 'package:aia_mobile/features/profile/presentation/profile_strings.dart';
 import 'package:aia_mobile/features/profile/presentation/widgets/profile_parts.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_profile_screen.dart';
 import 'package:aia_mobile/shared/widgets/app_bottom_nav.dart';
+import 'package:aia_mobile/shared/widgets/tab_title_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -118,22 +120,24 @@ void main() {
     testWidgets('title band, avatar hero, captions and rows', (tester) async {
       await pump(tester);
 
-      // "Profile" in the 63pt band under the 44pt status bar.
+      // "Profile" in the shared tab header (Issue #368): the 63pt band under
+      // the 44pt status bar, and its 1pt rule.
       expect(find.text(ProfileStrings.heading), findsOneWidget);
-      final firstRule = tester.getTopLeft(find.byType(ProfileRule).first).dy;
-      expect(firstRule, 44 + ProfileMetrics.headerHeight);
+      final header = tester.getRect(find.byType(TabTitleBar));
+      expect(header.top, 0);
+      expect(header.bottom, 44 + AppDimens.tabHeaderHeight + 1);
 
-      // The 72pt avatar, 33 below the rule, 17 in — the Teacher frame's own
-      // hero, a point off the Adult one each way; the text 8 after it.
+      // The 72pt avatar: the Adult profile's own hero, on the page's 16
+      // gutter, 32 below the rule; the text 8 after it.
       final avatar = tester.getRect(find.byType(ProfileAvatar));
       expect(avatar.size, const Size.square(72));
-      expect(avatar.left, 17);
-      expect(avatar.top, firstRule + 1 + 33);
-      expect(tester.getTopLeft(find.text('Test Teacher')).dx, 97);
-      // The band under the hero closes 32 below the avatar.
+      expect(avatar.left, AppDimens.screenPadding);
+      expect(avatar.top, header.bottom + ProfileMetrics.heroTop);
+      expect(tester.getTopLeft(find.text('Test Teacher')).dx, 16 + 72 + 8);
+      // The band under the hero closes 31 below the avatar, as the Adult's.
       expect(
-        tester.getTopLeft(find.byType(ProfileRule).at(1)).dy,
-        avatar.bottom + 32,
+        tester.getTopLeft(find.byType(ProfileRule).first).dy,
+        avatar.bottom + ProfileMetrics.heroBottom,
       );
 
       // The frame's sections, in its order.

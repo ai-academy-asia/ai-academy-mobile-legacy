@@ -9,6 +9,7 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/app_notification.dart';
 import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import 'notification_strings.dart';
 
 /// One notification in full (Issue #248) — what a Notification Center row
@@ -52,89 +53,94 @@ class NotificationDetailScreen extends StatelessWidget {
         backgroundColor: palette.surface,
         body: SafeArea(
           bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const BackTitleHeader(title: NotificationStrings.title),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    AppDimens.screenPadding,
-                    _headerToContent,
-                    AppDimens.screenPadding,
-                    _contentBottom + MediaQuery.paddingOf(context).bottom,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: _discSize,
-                          height: _discSize,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: palette.accentSubtle,
-                            shape: BoxShape.circle,
-                          ),
-                          child: SvgPicture.asset(
-                            HomeIcons.notification,
-                            width: _iconSize,
-                            height: _iconSize,
-                            colorFilter: ColorFilter.mode(
-                              palette.accent,
-                              BlendMode.srcIn,
+          // Capped at the content width, as every page is (Issue #368).
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const BackTitleHeader(title: NotificationStrings.title),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      AppDimens.screenPadding,
+                      _headerToContent,
+                      AppDimens.screenPadding,
+                      _contentBottom + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: _discSize,
+                            height: _discSize,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: palette.accentSubtle,
+                              shape: BoxShape.circle,
                             ),
-                            excludeFromSemantics: true,
+                            child: SvgPicture.asset(
+                              HomeIcons.notification,
+                              width: _iconSize,
+                              height: _iconSize,
+                              colorFilter: ColorFilter.mode(
+                                palette.accent,
+                                BlendMode.srcIn,
+                              ),
+                              excludeFromSemantics: true,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: _discToTitle),
-                      Semantics(
-                        header: true,
-                        child: Text(
-                          notification.title,
-                          style: _titleStyle.copyWith(
-                            color: palette.textPrimary,
+                        const SizedBox(height: _discToTitle),
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            notification.title,
+                            style: _titleStyle.copyWith(
+                              color: palette.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: _titleToDate),
+                        Text(
+                          NotificationStrings.sentAt(notification.createdAt),
+                          style: _dateStyle.copyWith(
+                            color: palette.textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                      ),
-                      const SizedBox(height: _titleToDate),
-                      Text(
-                        NotificationStrings.sentAt(notification.createdAt),
-                        style: _dateStyle.copyWith(
-                          color: palette.textSecondary,
+                        const SizedBox(height: _metaToRule),
+                        SizedBox(
+                          height: AppDimens.borderWidth,
+                          child: ColoredBox(color: palette.divider),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: _metaToRule),
-                      SizedBox(
-                        height: AppDimens.borderWidth,
-                        child: ColoredBox(color: palette.divider),
-                      ),
-                      const SizedBox(height: _ruleToBody),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: palette.pageBackground,
-                          borderRadius: BorderRadius.circular(
-                            AppDimens.cardRadius,
+                        const SizedBox(height: _ruleToBody),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: palette.pageBackground,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.cardRadius,
+                            ),
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppDimens.cardPadding),
-                          child: Text(
-                            bindShortLastWords(notification.body),
-                            style: _bodyStyle.copyWith(
-                              color: palette.textPrimary,
+                          child: Padding(
+                            padding: const EdgeInsets.all(
+                              AppDimens.cardPadding,
+                            ),
+                            child: Text(
+                              bindShortLastWords(notification.body),
+                              style: _bodyStyle.copyWith(
+                                color: palette.textPrimary,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -145,9 +151,9 @@ class NotificationDetailScreen extends StatelessWidget {
 // --- No frame: the app's own spacing — `AppDimens` where it has the value,
 // the Notification row's otherwise ----------------------------------------
 
-/// The space Login and the manager sheet leave under a heading.
-const double _headerToContent = AppDimens.headingToForm;
-const double _contentBottom = AppDimens.headingToForm;
+/// A pushed page's header-to-content gap and bottom (Issue #368).
+const double _headerToContent = AppDimens.pageContentTop;
+const double _contentBottom = AppDimens.pageBottom;
 
 /// The bell at the row's 24pt, on a 48pt disc — present, not dominant.
 const double _discSize = 48;

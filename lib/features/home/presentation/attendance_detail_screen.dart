@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
-import '../../../shared/widgets/app_back_button.dart';
+import '../../../shared/widgets/back_title_header.dart';
+import '../../../shared/widgets/content_column.dart';
 import '../../junior_home/domain/junior_progress.dart';
 import '../../junior_home/presentation/junior_progress_strings.dart';
 import '../../junior_home/presentation/widgets/attendance_panel_parts.dart';
@@ -16,13 +16,6 @@ import 'home_strings.dart';
 
 // Measured off the Figma "HomePage - Adult / attendance" frame at 1:1 (393
 // wide, a 44pt status-bar inset).
-
-/// The back control's bottom (56 + 40) to the header card.
-const double _backToHeader = 28;
-
-/// The header card: 56 tall, and 8 above the panel.
-const double _headerHeight = 56;
-const double _headerToPanel = 8;
 
 /// The cards' outline — the Junior panel's 2pt hairline-twice.
 const double _cardBorder = 2;
@@ -39,9 +32,6 @@ const double _panelTop = 13;
 /// The last legend row to the panel's border — 7 more than the Junior
 /// panel's, as the frame draws it.
 const double _panelBottom = 16;
-
-/// Below the panel, above the home indicator.
-const double _pageBottom = 12;
 
 /// The Adult attendance screen — "Хичээлийн ирц" → "Дэлгэрэнгүй" on Adult
 /// Home (Issue #172).
@@ -115,54 +105,54 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
         backgroundColor: context.palette.surface,
         body: SafeArea(
           bottom: false,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppDimens.maxContentWidth,
-              ),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.paddingOf(context).bottom + _pageBottom,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const AppBackButton(icon: AppIcons.arrowLeft),
-                    const SizedBox(height: _backToHeader),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.screenPadding,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _HeaderCard(
-                            value: JuniorProgressStrings.attendanceValue(
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // A pushed page's shared header carries the title the frame
+                // drew on a card (Issue #368); the card's summary pill stays,
+                // first under it.
+                const BackTitleHeader(title: HomeStrings.attendanceLabel),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      AppDimens.screenPadding,
+                      AppDimens.pageContentTop,
+                      AppDimens.screenPadding,
+                      AppDimens.pageBottom +
+                          MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: AttendancePill(
+                            JuniorProgressStrings.attendanceValue(
                               attendance.attended,
                               attendance.total,
                               attendance.percent,
                             ),
                           ),
-                          const SizedBox(height: _headerToPanel),
-                          _Panel(
-                            nextLesson: widget.nextLesson,
-                            month: _month,
-                            days: _calendar.marksIn(_month),
-                            selectedDay: showingToday ? _today.day : null,
-                            // Not before the cohort's start month
-                            // (Issue #200).
-                            onPreviousMonth: _calendar.hasMonthBefore(_month)
-                                ? () => _page(-1)
-                                : null,
-                            onNextMonth: () => _page(1),
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: AppDimens.cardGap),
+                        _Panel(
+                          nextLesson: widget.nextLesson,
+                          month: _month,
+                          days: _calendar.marksIn(_month),
+                          selectedDay: showingToday ? _today.day : null,
+                          // Not before the cohort's start month
+                          // (Issue #200).
+                          onPreviousMonth: _calendar.hasMonthBefore(_month)
+                              ? () => _page(-1)
+                              : null,
+                          onNextMonth: () => _page(1),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -176,40 +166,6 @@ BoxDecoration _cardDecoration(BuildContext context) => BoxDecoration(
   borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
   border: Border.all(color: context.palette.divider, width: _cardBorder),
 );
-
-/// "Хичээлийн ирц" with the server's `attended/total · percent%` pill at the
-/// trailing edge.
-class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.value});
-
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: _headerHeight,
-      padding: const EdgeInsets.symmetric(horizontal: _cardInset),
-      decoration: _cardDecoration(context),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              HomeStrings.attendanceLabel,
-              // The shared style no longer bakes its colour (Issue #272).
-              style: attendanceCardTitleStyle.copyWith(
-                color: context.palette.textPrimary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          AttendancePill(value),
-        ],
-      ),
-    );
-  }
-}
 
 /// The next lesson, the month and its legend, ruled into two bands.
 class _Panel extends StatelessWidget {

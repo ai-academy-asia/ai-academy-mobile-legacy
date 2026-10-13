@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/lesson.dart';
 
 /// Measured off the Figma level-detail reference at 1:1 (Issue #215): a
-/// 361-wide card, 72 tall with its 1pt outline, radius 12, the number 16 in
+/// 361-wide card, 72 tall with its 1pt outline, the number 16 in
 /// from the outline and the title at 61 — the number's own slot is 28 wide.
 const double _minHeight = 72;
-const double _radius = 12;
+
+/// Every content card's corner, [AppDimens.homeCardRadius] (Issue #368; the
+/// reference drew 12).
+const double _radius = AppDimens.homeCardRadius;
 const double _inset = 16;
 const double _numberSlot = 28;
 const double _checkSize = 20;

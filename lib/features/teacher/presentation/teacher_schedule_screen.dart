@@ -296,11 +296,10 @@ class _Header extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 46),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimens.screenPadding,
-              0,
-              18,
-              0,
+            // The page's gutter on both sides (Issue #368; the reference
+            // set the bell 18 in).
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.screenPadding,
             ),
             child: Row(
               children: [

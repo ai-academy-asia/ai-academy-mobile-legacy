@@ -39,7 +39,20 @@ Five conventions in that skeleton, all worth keeping:
 4. **`ConstrainedBox(maxWidth: 480)` + `Align(topCenter)`** — the column stops and centres instead of stretching on wide screens.
 5. **A single `ListenableBuilder`** around the body; the controller is created in `initState`, disposed in `dispose`.
 
-Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.screenPadding` (16), giving the 361 content width.
+Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.screenPadding` (16), giving the 361 content width. The page ground is the role the screen documents — `surfaceSubtle` for the tabs and most pages, `surface` for the white pushed lists (E-Contract, Certificate, Notifications).
+
+### The page layout standard (Issue #368)
+
+Every reachable screen is one of a few kinds, and screens of a kind share one header and one set of spacing tokens ([DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) §4). The gutter is `screenPadding` 16 and content is capped at `maxContentWidth` 480 (`ContentColumn`) everywhere.
+
+| Kind | Header | Content |
+|---|---|---|
+| **Primary tab with a title** — Courses; the Adult, Junior and Teacher Profiles; Teacher Gradebook | `TabTitleBar`: `screenTitle` left on the gutter, centred in a 63pt white band behind the status bar, a 1pt `divider` rule | `tabContentTop` 16 below the rule; `cardGap` 16 between cards; `pageBottom` 24 above the bottom nav |
+| **Primary tab led by the brand** — Adult Home, Junior Home, Junior Progress, Teacher Home | `HomeHeader` (logo + bell) and its rule — a documented exception, below; Teacher Home's title stays in its content, `tabContentTop` under the rule and above the first card | as above |
+| **Pushed page** — E-Contract, Certificate, Notification and its detail, Change password, Attendance detail, Teacher Request, Gradebook class / student / submission | `BackTitleHeader`: the arrow `AppBackButton` on the gutter 12 below the inset, `headerTitle` centred on it (wraps; never under the button), fixed above the scroll | `pageContentTop` 24 below the header; `cardGap` 16; `pageBottom` 24 + the bottom inset |
+| **Specialised** — see §3 | its own | the same gutter, cap, card gap and bottom where it has them |
+
+Every pushed page offers its way back: a back button in every state, loading and error included. One back glyph: the arrow. Two tiles sharing a line sit `tileGap` 8 apart; content cards are `homeCardRadius` 16.
 
 ## 2. Screen inventory
 
@@ -47,17 +60,18 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 |---|---|---|---|
 | Splash | `/` | none | none — 7000 ms, then `pushReplacement` to `/login` |
 | Login | `/login` | none | `auth` (real) |
-| Reset Password | `/reset-password` | none | `auth` (real) |
+| Reset Password | `/reset-password` (required change: auth layout, no back); pushed from every Profile as Change password | the required change: none, its own heading; Change password: `BackTitleHeader` carrying the title | `auth` (real) |
 | Home | `/home` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | composed (real) |
 | Teacher Home | `/teacher-home` (in `TeacherShell`) | teacher bottom nav — the shell's, persistent (four tabs; 10pt labels per its reference) | `teacher` — `GET /teachers/{actor_id}/schedule` (real) |
 | Teacher Schedule | `/teacher-schedule` (in `TeacherShell`) | blue date header + week strip; the shell's teacher bottom nav, Хуваарь selected | `teacher` — schedule + `GET /teacher/cohorts/{id}/sessions`, sheets read `GET /teacher/sessions/{id}/attendance` (real) |
-| Teacher Gradebook | `/teacher-gradebook` (in `TeacherShell`; student list, student detail, submission detail pushed on top, no bottom nav) | white title band + rule; the shell's teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
-| Cohort List | `/my-cohorts` (in `AdultStudentShell`), `/cohorts` | bottom nav — the shell's on `/my-cohorts`, its own on `/cohorts` | `cohorts` + `enrollments` (real) |
+| Teacher Gradebook | `/teacher-gradebook` (in `TeacherShell`; student list, student detail, submission detail pushed on top with `BackTitleHeader`, no bottom nav) | `TabTitleBar`; the shell's teacher bottom nav, Дүнгийн хуудас selected | `teacher` — schedule, class assignments and their submissions, `GET /teacher/submissions/{id}` (real) |
+| Cohort List (Courses tab) | `/my-cohorts` (in `AdultStudentShell`), `/cohorts` | `TabTitleBar` on the `surfaceSubtle` page; bottom nav — the shell's on `/my-cohorts`, its own on `/cohorts` | `cohorts` + `enrollments` (real) |
 | Profile | `/profile` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | `auth` current user (real) |
 | Certificate | pushed from the Certificate row of the Adult and Junior Profiles (`CertificateScreen.open`) | `BackTitleHeader` — `AppBackButton` (arrow) with the title centred on its row; no bottom nav | `certificates` — enrolled cohorts + §2.9 certificate per course + download (real) |
 | Notification | pushed from any bell (`NotificationScreen.open`) | `BackTitleHeader` — `AppBackButton` (arrow) with "Notification" centred; no bottom nav; 72pt rows with full-width rules | `notifications` — `GET /me/notifications`, mark read (real) |
-| Notification Detail | pushed by any Notification row tap (`NotificationDetailScreen.open`) | no frame (Issue #248, product decision): the Notification header (`BackTitleHeader`); a white scrolling page, nothing new: a centred metadata block — the row's 24pt bell in `HomePalette.accent` on a 48pt `HomePalette.liveFill` disc (the existing pale-blue-behind-accent pairing; quieter than a bare large glyph), `AppDimens.fieldGap`, title 18/24 w700 `textPrimary` (centred, wraps), 4, sent time `2026.10.08 · 15:18` 14/20 `textSecondary` — then `AppDimens.headingToForm` (24) to a `HomePalette.headerRule` rule and 24 to the body: 16/24 `textPrimary`, left-aligned and untruncated, on an `AppColors.background` ground (the app's page grey; `AppDimens.cardRadius`, `AppDimens.cardPadding`, no border or shadow) so a short message reads as a section, not a line floating on white; each paragraph's short last word (≤ 4 characters, pair ≤ 24) is bound to the one before by a no-break space (`bindShortLastWords`) — Flutter has no balanced wrap, and a line a hair over the column otherwise drops a lone `үү.`; 24 under the header and at the end | the tapped `AppNotification`, as already loaded — no request of its own |
-| Teacher Profile | Профайл tab of `TeacherShell` (no route; Change password pushed on top) | white title band + rule; the shell's teacher bottom nav, Профайл selected | `auth` current user (real); log out and change password real; MN/EN, Notification, contact rows inert |
+| Notification Detail | pushed by any Notification row tap (`NotificationDetailScreen.open`) | no frame (Issue #248, product decision): `BackTitleHeader` ("Notification"); a white scrolling page, `pageContentTop` under the header: a centred metadata block — the row's bell on an `accentSubtle` disc, the title in `sectionTitle` (centred, wraps), the sent time in `dateTime` — then a rule and the body in `body`, left-aligned and untruncated, on a `pageBackground` box (`cardRadius`, `cardPadding`); short last words bound to the one before (`bindShortLastWords`); `pageBottom` at the end | the tapped `AppNotification`, as already loaded — no request of its own |
+| Attendance Detail | pushed from Adult Home's attendance card (Issue #172) | `BackTitleHeader` ("Хичээлийн ирц", Issue #368), then the summary pill and the attendance panel | Home's already-loaded attendance and schedule — no request of its own |
+| Teacher Profile | Профайл tab of `TeacherShell` (no route; Change password pushed on top) | `TabTitleBar`; the shell's teacher bottom nav, Профайл selected | `auth` current user (real); log out and change password real; MN/EN, Notification, contact rows inert |
 | Course Catalog | `/courses` | — | `courses` (real) |
 | Course Detail | pushed | — | `courses` (real) |
 | Course Module List | pushed | back button | `course_learning` — `GET /me/courses/{slug}/learning` (real) |
@@ -68,6 +82,12 @@ Body layout: `SingleChildScrollView` with `EdgeInsets` built from `AppDimens.scr
 ## 3. Documented exceptions
 
 Each of these breaks the default skeleton on purpose. The reasoning is recorded in the code; do not "normalise" them without a Figma frame saying otherwise.
+
+**The brand-led tabs — `HomeHeader` instead of a title band.** Adult Home, Junior Home, Junior Progress and Teacher Home open with the logo lockup and the bell (Issue #188), not `TabTitleBar`. Teacher Home keeps its "Өнөөдрийн хичээл" title in its content, on the standard spacing (Issue #368, product decision).
+
+**Teacher Schedule — the blue date band.** Its header is the date control and week strip on `scheduleBand`, drawn behind the status bar; the grid runs full width (no 480 cap) under it. Its gutter is the standard 16.
+
+**Junior Home — the map.** Full-bleed scenery under `HomeHeader`; no column cap.
 
 **Exercise Detail — `SafeArea(bottom: false)` and a full-width video header.** The body is inset at the top only, so the video header starts below the status bar, which stays on the page's light background with `dark` glyphs. `bottom: false` lets the scroll run to the screen's bottom edge. Within the content column the header is full-width, with no `screenPadding` gutter. `ExerciseVideoHeader` still adds `MediaQuery.paddingOf(context).top` to its back button and badge ([COMPONENT_PATTERNS.md](COMPONENT_PATTERNS.md) §5); under this `SafeArea` that inset has already been removed, so it adds 0 here.
 
@@ -92,12 +112,12 @@ Reuse that three-part shape for any future full-screen flow with a persistent bo
 
 **Exercise Detail — the unified tab card.** Tabs and tab content live inside **one** bordered container (`clipBehavior: Clip.antiAlias`, radius 16), not a header plus a separate floating card. Mentor Feedback sits *inside* the Assignment tab's content, below a divider. The Quiz preview is a **separate card below that container**, with a 16pt gap — it is not a tab.
 
-**Profile / Settings rows** — `settingsRowHeight` 40 minimum with a 20pt leading SVG, so rows with and without a trailing control stay the same height.
+**Profile / Settings rows** — `ProfileMetrics.rowHeight` 55 (56 for contact rows) with a 20pt leading SVG 8 from its label, so rows with and without a trailing control stay the same height.
 
 ## 4. Scroll, keyboard and overflow
 
-- Long pages use `SingleChildScrollView`; lists build children with a `for` loop inside a `Column` rather than `ListView.builder` (these lists are short and fixed).
-- Separators between rows are drawn explicitly (a `SizedBox` gap, or a connector rule on Module List) rather than via `ListView.separated`.
+- Long fixed pages use `SingleChildScrollView`; fetched lists use `ListView` / `ListView.separated` (always scrollable, for pull-to-refresh).
+- Gaps between cards are `AppDimens.cardGap`; Module List draws a connector rule in its gaps.
 - **Tab rows scroll horizontally** so a longer label or a large accessibility text scale cannot overflow.
 - Fixed-width inner blocks (the 329 form/action width) live inside a 16pt-padded 361 column — check both when a layout overflows by a few pixels.
 
