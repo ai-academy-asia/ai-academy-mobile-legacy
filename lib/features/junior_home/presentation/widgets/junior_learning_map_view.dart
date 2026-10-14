@@ -45,9 +45,9 @@ import 'junior_map_theme.dart';
 ///
 /// **Taps** (Issue #410): the check-in node, while check-in is actionable at
 /// [now] ([JuniorLearningMap.checkInOpenAt]), calls [onCheckIn]; every other
-/// lesson the server leaves unlocked ([JuniorMapNode.locked]) calls
-/// [onLessonTap] with its lesson; a locked lesson does nothing. The course
-/// card calls [onCourseTap].
+/// lesson that opens ([JuniorMapNode.opens]: unlocked, and completed or the
+/// lesson to continue with) calls [onLessonTap] with its lesson; any other
+/// does nothing. The course card calls [onCourseTap].
 class JuniorLearningMapView extends StatelessWidget {
   const JuniorLearningMapView({
     required this.map,
@@ -89,13 +89,14 @@ class JuniorLearningMapView extends StatelessWidget {
         final checkIn = map.checkInNode;
         final open = map.checkInOpenAt(now);
 
-        // The live check-in opens the scanner; any other lesson the server
-        // leaves unlocked opens itself; a locked one — a completed lesson
-        // whose class moved later included — does nothing (Issue #410).
+        // The live check-in opens the scanner; otherwise a node opens its
+        // lesson only by the one rule every screen asks (Issue #410):
+        // unlocked, and completed or the lesson to continue with. A white
+        // open node waits its turn; a padlock never opens.
         VoidCallback? tapFor(JuniorMapNode node) {
           if (open && identical(node, checkIn)) return onCheckIn;
           final onLessonTap = this.onLessonTap;
-          if (onLessonTap == null || node.locked) return null;
+          if (onLessonTap == null || !node.opens) return null;
           return () => onLessonTap(node);
         }
 

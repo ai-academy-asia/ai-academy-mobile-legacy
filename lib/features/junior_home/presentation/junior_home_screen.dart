@@ -220,12 +220,14 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   /// course screens, reached here without the module in between. The map
   /// reloads on return, so a lesson completed there shows as completed.
   Future<void> _openLesson(JuniorMapNode node) async {
-    // The one lesson opener, as every screen uses: a lesson the server
-    // locks never opens, whatever drew the tap.
+    // The one lesson opener, as every screen uses: only a lesson the rule
+    // lets open ever opens, whatever drew the tap.
     final opened = await openLesson(
       context,
       lessonId: node.id,
       locked: node.locked,
+      completed: node.state == JuniorNodeState.completed,
+      resumeLessonId: _controller.map?.continueLessonId,
       repository: widget.courseLearningRepository,
     );
     if (opened && mounted) await _controller.load(fresh: true);

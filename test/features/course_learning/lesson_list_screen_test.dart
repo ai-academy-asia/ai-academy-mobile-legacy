@@ -44,6 +44,7 @@ void main() {
     int moduleOrder = 2,
     String moduleTitle = 'Language Model Training',
     Size size = const Size(393, 852),
+    int? resumeLessonId,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -65,6 +66,7 @@ void main() {
                       moduleOrder: moduleOrder,
                       moduleTitle: moduleTitle,
                       repository: repository,
+                      resumeLessonId: resumeLessonId,
                     ),
                   ),
                 ),
@@ -371,8 +373,12 @@ void main() {
       expect(item.onTap, isNull);
     });
 
-    testWidgets('an unlocked lesson has a tap target', (tester) async {
-      await pumpScreen(tester, FakeCourseLearningRepository());
+    testWidgets('the lesson to continue with has a tap target', (tester) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(),
+        resumeLessonId: 2,
+      );
       await tester.pumpAndSettle();
 
       final item = tester.widget<LessonListItem>(
@@ -384,10 +390,14 @@ void main() {
   });
 
   group('navigation', () {
-    testWidgets('tapping an unlocked lesson opens Exercise Detail', (
+    testWidgets('tapping the lesson to continue with opens Exercise Detail', (
       tester,
     ) async {
-      await pumpScreen(tester, FakeCourseLearningRepository());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(),
+        resumeLessonId: 2,
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Nesting loops'));
@@ -405,7 +415,7 @@ void main() {
           sampleLesson(id: 205, moduleId: 31, order: 3, title: 'Second'),
         ],
       );
-      await pumpScreen(tester, repository, moduleId: 31);
+      await pumpScreen(tester, repository, moduleId: 31, resumeLessonId: 205);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Second'));

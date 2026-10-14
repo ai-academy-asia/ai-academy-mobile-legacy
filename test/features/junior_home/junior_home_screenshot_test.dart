@@ -126,8 +126,8 @@ void main() {
     );
   });
 
-  testWidgets('three lessons the server leaves open: the resume lesson '
-      'picked out, the other two open — none locked (Issue #410)', (
+  testWidgets('three lessons the server leaves open: the continue lesson '
+      'picked out, the other two waiting their turn (Issue #410)', (
     tester,
   ) async {
     final open = withLessons(List.filled(3, JuniorNodeState.open));
@@ -139,7 +139,7 @@ void main() {
         nextLesson: open.nextLesson,
         attendanceRecorded: false,
         // As the repository picks the resume lesson out.
-        nodes: withResumeLesson(open.nodes),
+        nodes: withResumeLesson(open.nodes, continueLessonId: 1),
       ),
       DateTime(2026, 10, 6, 12),
       'junior_home_open_lessons',

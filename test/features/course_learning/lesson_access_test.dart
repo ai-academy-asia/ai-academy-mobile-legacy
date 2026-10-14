@@ -1,4 +1,5 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson_access.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
@@ -24,6 +25,27 @@ void main() {
     await tester.pumpWidget(MaterialApp(theme: AppTheme.light, home: home));
     await tester.pumpAndSettle();
   }
+
+  group('lessonOpens — the one rule', () {
+    test('unlocked, and completed or the lesson to continue with', () {
+      // (locked, completed, isResume) -> opens
+      const table = <(bool, bool, bool, bool)>[
+        (false, true, false, true), // completed, class date come
+        (false, false, true, true), // the lesson to continue with
+        (false, false, false, false), // date come, but waits its turn
+        (true, false, false, false), // class date not come
+        (true, true, false, false), // completed, its class moved later
+        (true, false, true, false), // a locked "continue" never opens
+      ];
+      for (final (locked, completed, isResume, opens) in table) {
+        expect(
+          lessonOpens(locked: locked, completed: completed, isResume: isResume),
+          opens,
+          reason: 'locked $locked, completed $completed, resume $isResume',
+        );
+      }
+    });
+  });
 
   group('openLesson — the one opener', () {
     Future<BuildContext> pumpContext(WidgetTester tester) async {
@@ -53,6 +75,8 @@ void main() {
         context,
         lessonId: 7,
         locked: true,
+        completed: false,
+        resumeLessonId: 7,
         repository: learning,
       ).then((value) => opened = value);
       await tester.pumpAndSettle();
@@ -62,7 +86,29 @@ void main() {
       expect(learning.exerciseCalls, isEmpty);
     });
 
-    testWidgets('an open lesson is pushed with its own id, and the call '
+    testWidgets('an unlocked, unfinished lesson that is not the one to '
+        'continue with is refused too', (tester) async {
+      final learning = FakeCourseLearningRepository(exercise: sampleExercise());
+      final context = await pumpContext(tester);
+
+      bool? opened;
+      openLesson(
+        context,
+        lessonId: 8,
+        locked: false,
+        completed: false,
+        resumeLessonId: 7,
+        repository: learning,
+      ).then((value) => opened = value);
+      await tester.pumpAndSettle();
+
+      expect(opened, isFalse);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
+    });
+
+    testWidgets('the lesson to continue with is pushed with its own id, and '
+        'the call '
         'completes once it is closed', (tester) async {
       final learning = FakeCourseLearningRepository(exercise: sampleExercise());
       final context = await pumpContext(tester);
@@ -72,6 +118,8 @@ void main() {
         context,
         lessonId: 7,
         locked: false,
+        completed: false,
+        resumeLessonId: 7,
         repository: learning,
       ).then((value) => done = value);
       await tester.pumpAndSettle();
@@ -95,12 +143,14 @@ void main() {
   });
 
   group('Lesson List', () {
-    Widget list(FakeCourseLearningRepository learning) => LessonListScreen(
-      moduleId: 3,
-      moduleOrder: 3,
-      moduleTitle: 'Deep network models',
-      repository: learning,
-    );
+    Widget list(FakeCourseLearningRepository learning, {int? resume}) =>
+        LessonListScreen(
+          moduleId: 3,
+          moduleOrder: 3,
+          moduleTitle: 'Deep network models',
+          repository: learning,
+          resumeLessonId: resume,
+        );
 
     Finder row(String title) => find.ancestor(
       of: find.text(title),
@@ -149,12 +199,61 @@ void main() {
       expect(learning.exerciseCalls, isEmpty);
     });
 
-    testWidgets('a lesson whose class date has come opens', (tester) async {
+    testWidgets('every row, drawn and tapped: done and the continue lesson '
+        'open; a lesson waiting its turn and a locked one do not', (
+      tester,
+    ) async {
+      final learning = FakeCourseLearningRepository(
+        exercise: sampleExercise(),
+        lessons: [
+          sampleLesson(
+            id: 41,
+            moduleId: 3,
+            order: 1,
+            title: 'Done',
+            completed: true,
+          ),
+          sampleLesson(id: 42, moduleId: 3, order: 2, title: 'Next'),
+          sampleLesson(id: 43, moduleId: 3, order: 3, title: 'Later'),
+        ],
+      );
+      await pumpHome(tester, list(learning, resume: 42));
+
+      // Drawn: the done row its check; no padlock on the open ones.
+      expect(
+        svg(row('Done'), 'course_detail_completed_check.svg'),
+        findsOneWidget,
+      );
+      expect(svg(row('Later'), 'course_detail_lock.svg'), findsNothing);
+      // Tapped: what each one does.
+      expect(tester.widget<LessonListItem>(row('Later')).onTap, isNull);
+      await tester.tap(find.text('Later'));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, isEmpty);
+
+      for (final (title, id) in [('Done', 41), ('Next', 42)]) {
+        await tester.tap(find.text(title));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<CourseExerciseDetailScreen>(
+                find.byType(CourseExerciseDetailScreen),
+              )
+              .lessonId,
+          id,
+        );
+        tester.state<NavigatorState>(find.byType(Navigator)).pop();
+        await tester.pumpAndSettle();
+      }
+      expect(learning.exerciseCalls, [41, 42]);
+    });
+
+    testWidgets('the lesson to continue with opens', (tester) async {
       final learning = FakeCourseLearningRepository(
         exercise: sampleExercise(),
         lessons: [sampleLesson(id: 33, moduleId: 3, order: 1, title: 'Open')],
       );
-      await pumpHome(tester, list(learning));
+      await pumpHome(tester, list(learning, resume: 33));
 
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();

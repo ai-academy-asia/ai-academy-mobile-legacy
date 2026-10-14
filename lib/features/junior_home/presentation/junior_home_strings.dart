@@ -90,7 +90,7 @@ abstract final class JuniorHomeStrings {
 
   static const String nodeCompleted = 'completed';
   static const String nodeCurrent = 'current lesson';
-  static const String nodeOpen = 'open';
+  static const String nodeOpen = 'not yet available';
   static const String nodeLocked = 'locked';
 
   static const String checkInOpen = 'attendance check-in open';

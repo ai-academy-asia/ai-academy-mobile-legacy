@@ -172,12 +172,14 @@ void main() {
       expect(map.nodes.map((n) => n.state), [
         JuniorNodeState.completed,
         JuniorNodeState.locked,
-        // Neither flag set: open and unfinished.
-        JuniorNodeState.current,
+        // Neither flag set: open and unfinished — not the server's continue
+        // lesson (none was named), so it waits its turn.
+        JuniorNodeState.open,
       ]);
     });
 
-    group('availability is the server\'s lock alone (Issue #410)', () {
+    group('availability: unlocked, and done or the continue lesson '
+        '(Issue #410)', () {
       // Module 1's class date has come: its lessons are open. Module 2's
       // has not: the server locks it, every lesson alike.
       final path = samplePath(
@@ -201,8 +203,9 @@ void main() {
         ],
       };
 
-      test('every lesson whose class date has come opens; only the '
-          'server-locked ones do not', () {
+      test('states and taps: done and the continue lesson open; a lesson '
+          'whose date has come but whose turn has not waits; server-locked '
+          'ones never open', () {
         final map = juniorMapFrom(path, lessons: lessons);
 
         expect(map.nodes.map((n) => n.state), [
@@ -219,10 +222,17 @@ void main() {
           true,
           true,
         ]);
+        expect(map.nodes.map((n) => n.opens), [
+          true,
+          true,
+          false,
+          false,
+          false,
+        ]);
       });
 
-      test('the resume lesson is picked out for emphasis and check-in — '
-          'availability unchanged', () {
+      test('the continue lesson is picked out — the one unfinished lesson '
+          'that opens, and the check-in node', () {
         final map = juniorMapFrom(path, lessons: lessons);
 
         expect(map.checkInNode?.id, 12);
@@ -232,8 +242,8 @@ void main() {
         );
       });
 
-      test('without a usable continue target, the first open lesson is the '
-          'one picked out', () {
+      test('without a usable continue target, no unfinished lesson is '
+          'guessed: none opens', () {
         for (final continueId in [null, 11, 21, 99]) {
           final map = juniorMapFrom(
             samplePath(
@@ -246,12 +256,14 @@ void main() {
             lessons: lessons,
           );
           expect(
-            map.nodes
-                .where((n) => n.state == JuniorNodeState.current)
-                .map((n) => n.id),
-            [12],
+            map.nodes.where((n) => n.state == JuniorNodeState.current),
+            isEmpty,
             reason: '$continueId',
           );
+          // Only the completed one opens.
+          expect(map.nodes.where((n) => n.opens).map((n) => n.id), [
+            11,
+          ], reason: '$continueId');
           expect(map.nodes.where((n) => n.locked).map((n) => n.id), [21, 22]);
         }
       });
@@ -724,7 +736,11 @@ void main() {
       final map = await repositoryFor(
         dashboard: HomeDashboard(program: sampleProgram(nextLesson: lesson)),
         learning: FakeCourseLearningRepository(
-          path: samplePath(modules: [sampleModule(id: 1, order: 1)]),
+          path: samplePath(
+            continueModuleId: 1,
+            continueLessonId: 5,
+            modules: [sampleModule(id: 1, order: 1)],
+          ),
           lessonsByModule: {
             1: [sampleLesson(id: 5, moduleId: 1, order: 1)],
           },

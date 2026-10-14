@@ -1,20 +1,24 @@
+import '../../course_learning/domain/lesson_access.dart';
 import '../../home/domain/home_dashboard.dart';
 
 /// How far along the path one lesson is (Issue #410).
 ///
 /// From the lesson's two server booleans — the client never derives
-/// `completed` or `locked`, and **the server's `locked` (its class date has
-/// not arrived) is the only availability rule**, on this screen as on every
-/// other — then the resume lesson picked out ([withResumeLesson]):
+/// `completed` or `locked` — then the server's resume lesson picked out
+/// ([withResumeLesson]). Whether a node opens is `lessonOpens`, the one
+/// rule every screen asks (Issue #410): unlocked, and completed or the
+/// lesson to continue with.
 ///
-/// * [completed] — `lesson.completed` is true: a tick. Whether it can be
-///   opened is [JuniorMapNode.locked], not this.
-/// * [current] — the lesson to continue with: the server's resume lesson
-///   (`continue.lesson_id`), open and not yet done. Opens.
-/// * [open] — any other lesson the server leaves open and not yet done.
-///   Opens.
-/// * [locked] — the server locks it (`lesson.locked`, or its module's):
-///   a grey padlock, inert.
+/// * [completed] — `lesson.completed` is true: a tick. Opens unless the
+///   server locks it ([JuniorMapNode.locked]).
+/// * [current] — the lesson to continue with: the server's
+///   `continue.lesson_id`, unlocked and not yet done. The one unfinished
+///   lesson that opens.
+/// * [open] — any other lesson the server leaves unlocked and not yet
+///   done: its class date has come, but it waits its turn. A plain white
+///   node; does not open.
+/// * [locked] — the server locks it (`lesson.locked`, or its module's —
+///   the class date has not come): a grey padlock; does not open.
 enum JuniorNodeState { completed, current, open, locked }
 
 /// Where the student stands on earning the course certificate.
@@ -59,26 +63,33 @@ class JuniorMapNode {
   /// no tap ever asks for content the server will refuse. Defaults to the
   /// [state] being [JuniorNodeState.locked].
   final bool locked;
+
+  /// Whether this lesson opens on a tap — `lessonOpens`, the one rule every
+  /// screen asks: unlocked, and completed or the lesson to continue with
+  /// ([JuniorNodeState.current]).
+  bool get opens => lessonOpens(
+    locked: locked,
+    completed: state == JuniorNodeState.completed,
+    isResume: state == JuniorNodeState.current,
+  );
 }
 
-/// Picks out the lesson to continue with (Issue #410) — and changes no
-/// lesson's availability.
+/// Picks out the lesson to continue with (Issue #410).
 ///
 /// Of the lessons the server leaves open and not yet completed (state
 /// [JuniorNodeState.open]), the server's own resume lesson,
 /// [continueLessonId] — `continue.lesson_id`, "the first unlocked,
-/// uncompleted lesson" in course order — becomes [JuniorNodeState.current];
-/// should the server name none of them, the first of them in course order
-/// (the same rule, read off the same flags). Every node keeps its server
-/// lock, so whether a lesson opens is the server's `locked` alone.
+/// uncompleted lesson" in course order — becomes [JuniorNodeState.current].
+/// Exactly the server's: no fallback is guessed, so this lesson is the same
+/// one Course Detail and the Lesson List let open (`lessonOpens`). The
+/// server names one whenever any lesson is open; should it name none of
+/// them, no unfinished lesson opens. Every node keeps its server lock.
 List<JuniorMapNode> withResumeLesson(
   List<JuniorMapNode> nodes, {
   int? continueLessonId,
 }) {
   final open = nodes.where((n) => n.state == JuniorNodeState.open);
-  final resume =
-      open.where((n) => n.id == continueLessonId).firstOrNull ??
-      open.firstOrNull;
+  final resume = open.where((n) => n.id == continueLessonId).firstOrNull;
   return [
     for (final node in nodes)
       if (identical(node, resume))

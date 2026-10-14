@@ -15,10 +15,11 @@ import 'junior_map_geometry.dart';
 /// artwork — none has a match in the bundled Phosphor set (Issue #410): a
 /// completed lesson the tick on the pale blue face; **the lesson to continue
 /// with** the same blue tick in the active frame (the white face in the
-/// accent outline and band); any other open lesson a plain white face in the
-/// grey outline, no glyph; a locked lesson — its class date not yet come —
-/// the grey padlock, and only a locked lesson. No other glyph is ever drawn
-/// on the path.
+/// accent outline and band) — the one unfinished lesson that opens; any
+/// other unfinished lesson whose class date has come a plain white face in
+/// the grey outline, no glyph — it waits its turn and does not open; a
+/// locked lesson — its class date not yet come — the grey padlock. No other
+/// glyph is ever drawn on the path.
 ///
 /// **The check-in node** (Issues #202, #410): while check-in is actionable
 /// ([checkIn] true) the lesson draws as the updated reference's check-in

@@ -294,6 +294,7 @@ void _openLessonList(
   BuildContext context,
   CourseModule module,
   CourseLearningRepository repository,
+  int? resumeLessonId,
 ) {
   Navigator.of(context).push(
     MaterialPageRoute(
@@ -302,6 +303,9 @@ void _openLessonList(
         moduleOrder: module.order,
         moduleTitle: module.title,
         repository: repository,
+        // The course's continue lesson: the one unfinished lesson that
+        // opens there too (Issue #410).
+        resumeLessonId: resumeLessonId,
       ),
     ),
   );
@@ -333,7 +337,11 @@ class _CourseLearningBody extends StatelessWidget {
             buttonWidth: _heroCtaWidth,
           ),
           const SizedBox(height: 48),
-          _ModuleList(modules: path.modules, repository: repository),
+          _ModuleList(
+            modules: path.modules,
+            repository: repository,
+            resumeLessonId: path.continueLessonId,
+          ),
           const SizedBox(height: 32),
           _CertificationSection(path: path, repository: repository),
         ],
@@ -451,13 +459,16 @@ class _ProgressCtaRow extends StatelessWidget {
     return CourseProgressCtaRow(
       percent: path.percentComplete,
       buttonWidth: buttonWidth,
-      // Through the one lesson opener, which refuses a locked lesson too.
+      // Through the one lesson opener: the continue lesson is the one
+      // unfinished lesson the rule lets open, unless its module is locked.
       onContinue: lessonId == null
           ? null
           : () => openLesson(
               context,
               lessonId: lessonId,
               locked: _continueLearningTarget(path)?.locked ?? true,
+              completed: false,
+              resumeLessonId: lessonId,
               repository: repository,
             ),
     );
@@ -468,10 +479,15 @@ class _ProgressCtaRow extends StatelessWidget {
 /// rule — the Figma reference draws a thin line running down the card list,
 /// centred under the icon column.
 class _ModuleList extends StatelessWidget {
-  const _ModuleList({required this.modules, required this.repository});
+  const _ModuleList({
+    required this.modules,
+    required this.repository,
+    required this.resumeLessonId,
+  });
 
   final List<CourseModule> modules;
   final CourseLearningRepository repository;
+  final int? resumeLessonId;
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +498,12 @@ class _ModuleList extends StatelessWidget {
             module: modules[i],
             onTap: modules[i].locked
                 ? null
-                : () => _openLessonList(context, modules[i], repository),
+                : () => _openLessonList(
+                    context,
+                    modules[i],
+                    repository,
+                    resumeLessonId,
+                  ),
           ),
           if (i != modules.length - 1) const _ModuleConnector(),
         ],

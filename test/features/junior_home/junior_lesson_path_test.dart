@@ -146,8 +146,8 @@ void main() {
       });
     }
 
-    testWidgets('open (not the one to continue with): a plain white face in '
-        'the grey outline — no glyph, and never a padlock, since it opens', (
+    testWidgets('open (its class date has come, not yet its turn): a plain '
+        'white face in the grey outline — no glyph, no padlock', (
       tester,
     ) async {
       await pumpTile(
@@ -178,7 +178,10 @@ void main() {
               as BoxDecoration;
       expect(decoration.color, palette.surface);
       expect((decoration.border! as Border).top.color, palette.outline);
-      expect(find.bySemanticsLabel('Lesson 1, open'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Lesson 1, not yet available'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('completed and available are told apart by the face: pale '
