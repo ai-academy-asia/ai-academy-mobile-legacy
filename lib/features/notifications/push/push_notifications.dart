@@ -58,9 +58,10 @@ class SecurePushPermissionMemory implements PushPermissionMemory {
 ///
 /// **When.** Nothing happens on Splash or Login. The first time a signed-in
 /// home route appears ([routeObserver] sees `HomeRoutes`) — a sign-in or a
-/// restored session — the permission is checked, asked at most once per
-/// install ([PushPermissionMemory]), and with it granted the token is
-/// registered (`POST /me/push-tokens`, the session's own bearer token, so
+/// restored session — the permission is checked and asked when undecided:
+/// on iOS whenever the OS says "not determined" (a reinstall resets it), on
+/// Android 13+ at most once per install ([PushPermissionMemory] — "denied"
+/// there also means "not asked"). With it granted the token is registered (`POST /me/push-tokens`, the session's own bearer token, so
 /// it is this account's). Refused, nothing is registered; the in-app
 /// notifications work as before.
 ///
@@ -68,7 +69,8 @@ class SecurePushPermissionMemory implements PushPermissionMemory {
 /// registration still in flight when its generation ends is not recorded,
 /// and a refreshed token is registered only for the generation that is
 /// signed in — a token is never registered for an account that has left.
-/// The same token is not registered twice in a generation.
+/// The same token is not registered twice in a generation, and a start
+/// joins only a start of the same generation.
 ///
 /// **Leaving.** [signOut] runs before the session is cleared: it removes the
 /// token from the account (`DELETE /me/push-tokens`) and then deletes it on
@@ -131,6 +133,7 @@ class PushNotifications {
   bool _permitted = false;
   bool _homeShown = false;
   Future<void>? _starting;
+  int? _startingGeneration;
 
   String? _registeredToken;
   int? _registeredGeneration;
@@ -205,9 +208,19 @@ class PushNotifications {
 
   /// Checks or asks the permission and registers the token for the
   /// signed-in account. Joins a start already running. Never throws.
-  Future<void> start() => _starting ??= _start().whenComplete(() {
-    _starting = null;
-  });
+  /// Joins only a start of the same session: one still running for a
+  /// session that has since ended would abort without registering this one.
+  Future<void> start() {
+    final running = _starting;
+    if (running != null && _startingGeneration == _generation) return running;
+    final generation = _generation;
+    _startingGeneration = generation;
+    late final Future<void> started;
+    started = _start().whenComplete(() {
+      if (identical(_starting, started)) _starting = null;
+    });
+    return _starting = started;
+  }
 
   Future<void> _start() async {
     final messaging = _messaging;
@@ -215,7 +228,7 @@ class PushNotifications {
     final generation = _generation;
     try {
       var permission = await messaging.permission();
-      if (permission != PushPermission.granted && !await _memory.asked()) {
+      if (await _shouldAsk(permission)) {
         await _memory.markAsked();
         permission = await messaging.requestPermission();
       }
@@ -228,6 +241,17 @@ class PushNotifications {
       debugPrint('Push: start failed (${error.runtimeType}).');
     }
   }
+
+  /// Whether to prompt. `notDetermined` (iOS) always means never asked —
+  /// the memory lives in the iOS Keychain, which outlives a reinstall while
+  /// the OS's permission does not. `denied` is ambiguous only on Android
+  /// 13+, so there the memory decides: asked once, never again.
+  Future<bool> _shouldAsk(PushPermission permission) async =>
+      switch (permission) {
+        PushPermission.granted => false,
+        PushPermission.notDetermined => true,
+        PushPermission.denied => !await _memory.asked(),
+      };
 
   Future<void> _register(String token, int generation) async {
     if (_registeredToken == token && _registeredGeneration == generation) {

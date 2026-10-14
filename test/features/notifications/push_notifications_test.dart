@@ -181,6 +181,45 @@ void main() {
       expect(tokens.registered, hasLength(1));
     });
 
+    testWidgets('iOS after a reinstall: "not determined" is asked even though '
+        'the Keychain still says "asked"', (tester) async {
+      memory.wasAsked = true;
+      messaging.status = PushPermission.notDetermined;
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      expect(
+        messaging.calls.where((c) => c == 'requestPermission'),
+        hasLength(1),
+      );
+      expect(tokens.registered, hasLength(1));
+    });
+
+    testWidgets('a start still running for a session that ended does not '
+        'swallow the next account\'s', (tester) async {
+      final gateA = messaging.permissionGate = Completer<void>();
+      await attach();
+      await pumpApp(tester);
+      navigatorKey.currentState!.pushReplacementNamed(HomeRoutes.adult);
+      await tester.pump();
+      expect(messaging.calls, ['permission']); // account A's start, held
+
+      store.clear();
+      store.save(const AuthSession(accessToken: 'tok-b'));
+      messaging
+        ..permissionGate = null
+        ..nextToken = 'fcm-b';
+      navigatorKey.currentState!.pushReplacementNamed(HomeRoutes.adult);
+      await tester.pumpAndSettle();
+      expect(push.registeredToken, 'fcm-b');
+
+      // A's start, released late, registers nothing more.
+      gateA.complete();
+      await tester.pumpAndSettle();
+      expect(tokens.registered.map((r) => r.$1), ['fcm-b']);
+      expect(push.registeredToken, 'fcm-b');
+    });
+
     testWidgets('no token yet (iOS before APNs): nothing is registered; '
         'resume tries again', (tester) async {
       messaging.nextToken = null;
@@ -432,6 +471,9 @@ class FakePushMessaging implements PushMessaging {
   PushMessage? launchMessage;
   final List<String> calls = [];
 
+  /// When set, [permission] waits on it — a start held mid-way.
+  Completer<void>? permissionGate;
+
   final _refreshes = StreamController<String>.broadcast();
   final _foreground = StreamController<PushMessage>.broadcast();
   final _opened = StreamController<PushMessage>.broadcast();
@@ -449,6 +491,7 @@ class FakePushMessaging implements PushMessaging {
   @override
   Future<PushPermission> permission() async {
     calls.add('permission');
+    if (permissionGate case final gate?) await gate.future;
     return status;
   }
 
