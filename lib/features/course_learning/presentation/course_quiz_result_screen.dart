@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../domain/course_quiz.dart';
 import 'course_learning_strings.dart';
@@ -50,99 +52,104 @@ class CourseQuizResultScreen extends StatelessWidget {
     final questions = result.questions;
     final palette = context.palette;
 
-    return Scaffold(
-      backgroundColor: palette.surfaceSubtle,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppDimens.screenPadding,
-                  _topPadding,
-                  AppDimens.screenPadding,
-                  16,
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.sectionTitle.copyWith(
-                        color: palette.textTitle,
-                      ),
-                    ),
-                    const SizedBox(height: _titleToScoreLabel),
-                    Text(
-                      CourseLearningStrings.yourScoreLabel,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.supporting.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: _scoreLabelToScore),
-                    Text(
-                      '${result.percent}%',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.display.copyWith(
-                        color: palette.warningInk,
-                      ),
-                    ),
-                    const SizedBox(height: _scoreToSummary),
-                    // Left-aligned, unlike the three centred lines above it —
-                    // the reference sets it against the content column's edge.
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        CourseLearningStrings.quizResultSummary(
-                          result.total,
-                          result.correct,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Its own style: the page below stops painting once covered,
+      // and its style would stay (Issue #400).
+      value: AppSystemUi.page(context, navigationBar: palette.surfaceSubtle),
+      child: Scaffold(
+        backgroundColor: palette.surfaceSubtle,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppDimens.screenPadding,
+                    _topPadding,
+                    AppDimens.screenPadding,
+                    16,
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.sectionTitle.copyWith(
+                          color: palette.textTitle,
                         ),
-                        style: AppTypography.body.copyWith(
+                      ),
+                      const SizedBox(height: _titleToScoreLabel),
+                      Text(
+                        CourseLearningStrings.yourScoreLabel,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.supporting.copyWith(
                           color: palette.textSecondary,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: _summaryToList),
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: palette.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: palette.border,
-                          width: AppDimens.borderWidth,
+                      const SizedBox(height: _scoreLabelToScore),
+                      Text(
+                        '${result.percent}%',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.display.copyWith(
+                          color: palette.warningInk,
                         ),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        children: [
-                          for (final (i, question) in questions.indexed) ...[
-                            if (i != 0)
-                              Divider(height: 1, color: palette.divider),
-                            QuizResultQuestionRow(
-                              number: i + 1,
-                              correct: question.correct,
-                            ),
-                          ],
-                        ],
+                      const SizedBox(height: _scoreToSummary),
+                      // Left-aligned, unlike the three centred lines above it —
+                      // the reference sets it against the content column's edge.
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          CourseLearningStrings.quizResultSummary(
+                            result.total,
+                            result.correct,
+                          ),
+                          style: AppTypography.body.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: _summaryToList),
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: palette.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: palette.border,
+                            width: AppDimens.borderWidth,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            for (final (i, question) in questions.indexed) ...[
+                              if (i != 0)
+                                Divider(height: 1, color: palette.divider),
+                              QuizResultQuestionRow(
+                                number: i + 1,
+                                correct: question.correct,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Center(
-                child: ExerciseSubmitButton(
-                  width: _ctaWidth,
-                  label: CourseLearningStrings.quizFinish,
-                  onPressed: () => Navigator.of(context).pop(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Center(
+                  child: ExerciseSubmitButton(
+                    width: _ctaWidth,
+                    label: CourseLearningStrings.quizFinish,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

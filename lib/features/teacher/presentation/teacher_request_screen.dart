@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/back_title_header.dart';
 import '../../../shared/widgets/content_column.dart';
@@ -51,40 +53,46 @@ class TeacherRequestScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.palette.surface,
-      body: SafeArea(
-        bottom: false,
-        // Capped at the content width, as every page is (Issue #368).
-        child: ContentColumn(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // The shared back header (Issue #368): its title kept clear of
-              // the button, and wrapping at larger text.
-              const BackTitleHeader(
-                title: TeacherScheduleStrings.teachersTitle,
-              ),
-              Expanded(
-                child: candidates.isEmpty
-                    ? const _Unavailable()
-                    : ListView.separated(
-                        padding: EdgeInsets.fromLTRB(
-                          AppDimens.screenPadding,
-                          _headerToFirstRow,
-                          AppDimens.screenPadding,
-                          AppDimens.pageBottom +
-                              MediaQuery.paddingOf(context).bottom,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Its own style: the page below stops painting once covered,
+      // and its style would stay (Issue #400).
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
+      child: Scaffold(
+        backgroundColor: context.palette.surface,
+        body: SafeArea(
+          bottom: false,
+          // Capped at the content width, as every page is (Issue #368).
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The shared back header (Issue #368): its title kept clear of
+                // the button, and wrapping at larger text.
+                const BackTitleHeader(
+                  title: TeacherScheduleStrings.teachersTitle,
+                ),
+                Expanded(
+                  child: candidates.isEmpty
+                      ? const _Unavailable()
+                      : ListView.separated(
+                          padding: EdgeInsets.fromLTRB(
+                            AppDimens.screenPadding,
+                            _headerToFirstRow,
+                            AppDimens.screenPadding,
+                            AppDimens.pageBottom +
+                                MediaQuery.paddingOf(context).bottom,
+                          ),
+                          itemCount: candidates.length,
+                          // A row of its own kind — avatar, name, request pill —
+                          // spaced as the reference draws it.
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 32),
+                          itemBuilder: (_, index) =>
+                              TeacherRequestRow(candidate: candidates[index]),
                         ),
-                        itemCount: candidates.length,
-                        // A row of its own kind — avatar, name, request pill —
-                        // spaced as the reference draws it.
-                        separatorBuilder: (_, _) => const SizedBox(height: 32),
-                        itemBuilder: (_, index) =>
-                            TeacherRequestRow(candidate: candidates[index]),
-                      ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

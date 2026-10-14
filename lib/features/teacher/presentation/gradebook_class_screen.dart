@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/content_column.dart';
@@ -69,25 +71,33 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.palette.surfaceSubtle,
-      body: SafeArea(
-        bottom: false,
-        child: ContentColumn(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ProgramPageHeader(
-                caption: widget.teacherClass.cohort.name,
-                title: _courseTitle,
-              ),
-              Expanded(
-                child: ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) => _body(context),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Its own style: the page below stops painting once covered,
+      // and its style would stay (Issue #400).
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.surfaceSubtle,
+      ),
+      child: Scaffold(
+        backgroundColor: context.palette.surfaceSubtle,
+        body: SafeArea(
+          bottom: false,
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ProgramPageHeader(
+                  caption: widget.teacherClass.cohort.name,
+                  title: _courseTitle,
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: _controller,
+                    builder: (context, _) => _body(context),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

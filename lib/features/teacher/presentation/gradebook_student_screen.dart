@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/content_column.dart';
 import '../../../shared/widgets/pill_button.dart';
@@ -206,86 +207,94 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
         : _class.submissionsOf(_studentId)[selected.id];
     final totalPending = _class.pendingOf(_studentId);
 
-    return Scaffold(
-      backgroundColor: palette.surfaceSubtle,
-      body: SafeArea(
-        bottom: false,
-        child: ContentColumn(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ProgramPageHeader(title: widget.student.name),
-              Expanded(
-                child: ListView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.only(
-                    top: AppDimens.cardGap,
-                    bottom:
-                        AppDimens.pageBottom +
-                        MediaQuery.paddingOf(context).bottom +
-                        MediaQuery.viewInsetsOf(context).bottom,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Its own style: the page below stops painting once covered,
+      // and its style would stay (Issue #400).
+      value: AppSystemUi.page(
+        context,
+        navigationBar: context.palette.surfaceSubtle,
+      ),
+      child: Scaffold(
+        backgroundColor: palette.surfaceSubtle,
+        body: SafeArea(
+          bottom: false,
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ProgramPageHeader(title: widget.student.name),
+                Expanded(
+                  child: ListView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.only(
+                      top: AppDimens.cardGap,
+                      bottom:
+                          AppDimens.pageBottom +
+                          MediaQuery.paddingOf(context).bottom +
+                          MediaQuery.viewInsetsOf(context).bottom,
+                    ),
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppDimens.screenPadding,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: GradebookStatCard(
+                                title: TeacherGradebookStrings.attendance,
+                                value: TeacherGradebookStrings.noFigure,
+                              ),
+                            ),
+                            SizedBox(width: AppDimens.tileGap),
+                            Expanded(
+                              child: GradebookStatCard(
+                                title: TeacherGradebookStrings.examScore,
+                                value: TeacherGradebookStrings.noFigure,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppDimens.cardGap),
+                      Container(
+                        height: AppDimens.borderWidth,
+                        color: palette.divider,
+                      ),
+                      const SizedBox(height: AppDimens.cardGap),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimens.screenPadding,
+                        ),
+                        child: selected == null
+                            ? const ProgramNotice(
+                                message: TeacherGradebookStrings.noAssignments,
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  AssignmentSelector(
+                                    number:
+                                        _class.assignments.indexWhere(
+                                          (a) => a.id == selected.id,
+                                        ) +
+                                        1,
+                                    assignment: selected,
+                                    pending: totalPending,
+                                    onTap: _pick,
+                                  ),
+                                  const SizedBox(height: AppDimens.tileGap),
+                                  _thread(context, selected, submission),
+                                ],
+                              ),
+                      ),
+                    ],
                   ),
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppDimens.screenPadding,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: GradebookStatCard(
-                              title: TeacherGradebookStrings.attendance,
-                              value: TeacherGradebookStrings.noFigure,
-                            ),
-                          ),
-                          SizedBox(width: AppDimens.tileGap),
-                          Expanded(
-                            child: GradebookStatCard(
-                              title: TeacherGradebookStrings.examScore,
-                              value: TeacherGradebookStrings.noFigure,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.cardGap),
-                    Container(
-                      height: AppDimens.borderWidth,
-                      color: palette.divider,
-                    ),
-                    const SizedBox(height: AppDimens.cardGap),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.screenPadding,
-                      ),
-                      child: selected == null
-                          ? const ProgramNotice(
-                              message: TeacherGradebookStrings.noAssignments,
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                AssignmentSelector(
-                                  number:
-                                      _class.assignments.indexWhere(
-                                        (a) => a.id == selected.id,
-                                      ) +
-                                      1,
-                                  assignment: selected,
-                                  pending: totalPending,
-                                  onTap: _pick,
-                                ),
-                                const SizedBox(height: AppDimens.tileGap),
-                                _thread(context, selected, submission),
-                              ],
-                            ),
-                    ),
-                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
