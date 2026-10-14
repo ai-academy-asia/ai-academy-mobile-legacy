@@ -11,6 +11,7 @@ import '../../auth/domain/auth_session_store.dart';
 import '../domain/app_notification.dart';
 import '../domain/notification_failure.dart';
 import '../domain/notification_repository.dart';
+import '../domain/push_token_repository.dart';
 
 /// The in-app notification endpoints (Issue #246), as verified live in
 /// Phase 0 with an adult student account:
@@ -41,7 +42,21 @@ import '../domain/notification_repository.dart';
 /// Whether mark-one's `unread_count` sits beside the notification's own
 /// fields or the notification is wrapped in a `notification` key was not
 /// pinned down in Phase 0, so both are read.
-class HttpNotificationRepository implements NotificationRepository {
+///
+/// **Device push tokens** (Issue #396), from the backend's source and tests
+/// (`app/routes/notifications.py`, `tests/test_notifications_inbox.py`) —
+/// not yet seen live:
+///
+///     POST   /me/push-tokens  {"token", "platform": "ios"|"android"}
+///       -> 201 new / 200 known: {id, platform, created_at, last_seen_at}
+///     DELETE /me/push-tokens  {"token"}
+///       -> 200 {"status": "deleted", "removed": n}
+///     400 {"error": "token_required" | "invalid_token" | "invalid_platform"}
+///
+/// Any 2xx is success and its body is not needed, so it is not parsed;
+/// errors map as for the notifications above.
+class HttpNotificationRepository
+    implements NotificationRepository, PushTokenRepository {
   HttpNotificationRepository({
     http.Client? client,
     Uri? baseUrl,
@@ -156,6 +171,31 @@ class HttpNotificationRepository implements NotificationRepository {
       unreadCount: _unreadCount(decoded),
     );
   }
+
+  @override
+  Future<void> registerPushToken({
+    required String token,
+    required PushPlatform platform,
+  }) => _send(
+    (headers) => postJsonRaw(
+      client: _client,
+      url: _baseUrl.resolve('/me/push-tokens'),
+      body: {'token': token, 'platform': platform.name},
+      headers: headers,
+      timeout: timeout,
+    ),
+  );
+
+  @override
+  Future<void> removePushToken(String token) => _send(
+    (headers) => deleteJsonRaw(
+      client: _client,
+      url: _baseUrl.resolve('/me/push-tokens'),
+      body: {'token': token},
+      headers: headers,
+      timeout: timeout,
+    ),
+  );
 
   /// Sends an authenticated request and answers its body, or throws the
   /// [NotificationFailure] its status means.

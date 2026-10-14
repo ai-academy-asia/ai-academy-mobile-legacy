@@ -124,6 +124,29 @@ Future<http.Response> postJsonRaw({
   timeout,
 );
 
+/// The transport for an authenticated DELETE with a JSON body —
+/// `DELETE /me/push-tokens` `{"token"}` is the first caller (Issue #396).
+/// The DELETE twin of [postJsonRaw], and returns every status for the same
+/// reason.
+Future<http.Response> deleteJsonRaw({
+  required http.Client client,
+  required Uri url,
+  required Map<String, Object?> body,
+  required Duration timeout,
+  Map<String, String> headers = const {},
+}) => _send(
+  () => client.delete(
+    url,
+    headers: {
+      HttpHeaders.contentTypeHeader: 'application/json',
+      HttpHeaders.acceptHeader: 'application/json',
+      ...headers,
+    },
+    body: jsonEncode(body),
+  ),
+  timeout,
+);
+
 /// The transport for an authenticated `multipart/form-data` POST carrying
 /// one file — `POST /me/files` is the first caller. The part is named
 /// [field], carries [fileName] as its filename, and holds [bytes] exactly.
