@@ -37,7 +37,7 @@ const TextStyle _titleStyle = AppTypography.cardTitle;
 /// caption and title, then the enroll action. One of the program/cohort card
 /// family (Issue #404): the shared [CardBadgeRow], [TrackBadge] and
 /// [CardCapsule], the family's [programCardPadding], and the
-/// [CohortCardPattern] on [AppPalette.surfaceTinted], edged in
+/// [CardPattern] on [AppPalette.surface], edged in
 /// [AppPalette.outline] at [AppDimens.borderWidth], with every content
 /// card's [AppDimens.homeCardRadius] (Issue #368).
 ///
@@ -92,7 +92,7 @@ class CohortCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: context.palette.surfaceTinted,
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
       child: InkWell(
         onTap: onTap,
@@ -110,9 +110,10 @@ class CohortCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
             child: Stack(
               children: [
-                // The reference's decorative shapes, behind the content —
-                // shared with Teacher Programs' card (Issue #404).
-                const CohortCardPattern(),
+                // The family's pattern, as the Course Catalog frame draws it:
+                // 1:1 from the top-left on white, pixel-identical to Home's
+                // (Issue #404).
+                const CardPattern(),
                 Padding(
                   padding: programCardPadding,
                   child: Column(

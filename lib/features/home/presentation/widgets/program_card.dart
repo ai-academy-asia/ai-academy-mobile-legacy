@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -135,13 +134,7 @@ class _Summary extends StatelessWidget {
         // the white blocks cut out of it, which is also what shades the
         // section from near-white at the leading edge to pale blue at the
         // trailing one. Drawn at full strength on the card's white.
-        Positioned.fill(
-          child: SvgPicture.asset(
-            HomeIcons.cardBackground,
-            fit: BoxFit.none,
-            alignment: Alignment.topLeft,
-          ),
-        ),
+        const CardPattern(),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             _paddingH - AppDimens.borderWidth,
@@ -152,9 +145,10 @@ class _Summary extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // The family's shared row (Issue #404): the pill centred on the
-              // badge, and wrapping under it where larger text leaves no room
-              // — no longer a fixed 32 that clipped the badge.
+              // The family's shared row (Issue #404): the pill hung from the
+              // badge's top, as the reference draws it, and wrapping under it
+              // where larger text leaves no room — no longer a fixed 32 that
+              // clipped the badge.
               CardBadgeRow(
                 track: program.uiMode,
                 trailing: _StatusPill(program.status),

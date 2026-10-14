@@ -7,6 +7,7 @@ import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_c
 import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../features/cohorts/fake_cohort_repository.dart' show sampleCohort;
@@ -110,7 +111,8 @@ void main() {
         expect(badge.topLeft - cardRect.topLeft, const Offset(16, 24));
         expect(badge.height, trackBadgeHeight);
 
-        // A top-row capsule is centred on the badge, flush with the inset.
+        // A top-row capsule hangs from the badge's top, flush with the inset
+        // — every frame that draws the pair (Issue #404).
         final capsule = find.descendant(
           of: find.byType(CardBadgeRow),
           matching: find.byType(CardCapsule),
@@ -118,7 +120,7 @@ void main() {
         if (capsule.evaluate().isNotEmpty) {
           final rect = tester.getRect(capsule);
           expect(rect.height, cardCapsuleHeight);
-          expect(rect.center.dy, moreOrLessEquals(badge.center.dy));
+          expect(rect.top, moreOrLessEquals(badge.top));
           expect(rect.right, moreOrLessEquals(cardRect.right - 16));
         }
       });
@@ -139,6 +141,43 @@ void main() {
     });
   }
 
+  group('the family pattern', () {
+    for (final screen in ['Adult Home', 'Courses']) {
+      testWidgets('$screen: the one artwork, 1:1 from the top-left at full '
+          'strength', (tester) async {
+        final (type, card) = cards[screen]!;
+        await pump(tester, card);
+        final pattern = find.descendant(
+          of: find.byType(type),
+          matching: find.byType(CardPattern),
+        );
+        expect(pattern, findsOneWidget);
+        final svg = tester.widget<SvgPicture>(
+          find.descendant(of: pattern, matching: find.byType(SvgPicture)),
+        );
+        expect(svg.fit, BoxFit.none);
+        expect(svg.alignment, Alignment.topLeft);
+        expect(
+          find.ancestor(of: pattern, matching: find.byType(Opacity)),
+          findsNothing,
+        );
+      });
+    }
+
+    testWidgets('Teacher Programs keeps its own drawing until the designer '
+        'decides (its frame scales the artwork)', (tester) async {
+      final (type, card) = cards['Teacher Programs']!;
+      await pump(tester, card);
+      expect(
+        find.descendant(
+          of: find.byType(type),
+          matching: find.byType(CardPattern),
+        ),
+        findsNothing,
+      );
+    });
+  });
+
   group('CardBadgeRow', () {
     const capsule = CardCapsule(
       label: '124 Students',
@@ -148,16 +187,17 @@ void main() {
       horizontalPadding: 15,
     );
 
-    testWidgets('no track: the capsule keeps the right end, centred in 32', (
-      tester,
-    ) async {
-      await pump(tester, const CardBadgeRow(trailing: capsule));
-      final row = tester.getRect(find.byType(CardBadgeRow));
-      final rect = tester.getRect(find.byType(CardCapsule));
-      expect(row.height, trackBadgeHeight);
-      expect(rect.right, moreOrLessEquals(row.right));
-      expect(rect.center.dy, moreOrLessEquals(row.center.dy));
-    });
+    testWidgets(
+      'no track: the capsule keeps the top-right corner of a 32 row',
+      (tester) async {
+        await pump(tester, const CardBadgeRow(trailing: capsule));
+        final row = tester.getRect(find.byType(CardBadgeRow));
+        final rect = tester.getRect(find.byType(CardCapsule));
+        expect(row.height, trackBadgeHeight);
+        expect(rect.right, moreOrLessEquals(row.right));
+        expect(rect.top, moreOrLessEquals(row.top));
+      },
+    );
 
     testWidgets('neither part: nothing is drawn', (tester) async {
       await pump(tester, const CardBadgeRow());

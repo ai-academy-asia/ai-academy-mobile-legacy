@@ -10,7 +10,7 @@ import '../../core/theme/app_typography.dart';
 /// tab's `CohortCard`, Teacher Home's class card (Issue #229) and Teacher
 /// Programs, and the E-Contract card, whose references draw the same two
 /// parts — with the family's [CardBadgeRow], [programCardPadding] and
-/// [CohortCardPattern] (Issue #404). Shared rather than copied, so the
+/// [CardPattern] (Issue #404). Shared rather than copied, so the
 /// cards cannot drift apart. Moved here from
 /// `home/presentation/widgets/home_badges.dart` (Issue #329), with
 /// `HomeCapsule` renamed [CardCapsule]: other features draw them, so they do
@@ -118,11 +118,13 @@ class CardCapsule extends StatelessWidget {
 /// `ProgramCard`, the Courses tab's `CohortCard`, Teacher Schedule's
 /// `TeacherClassCard` and Teacher Programs' `TeacherProgramCard`: the
 /// [TrackBadge] on the left and the card's status or count [CardCapsule] on
-/// the right, the capsule centred on the badge. At least the badge's 32 tall;
-/// where a larger text size leaves no room for both on one line, the capsule
-/// wraps under the badge rather than overlapping or clipping it
-/// (Issue #351). With no [track], [trailing] keeps the row's right end; with
-/// neither, nothing is drawn.
+/// the right, **hung from the badge's top edge** — every Figma frame that
+/// draws the pair does so (Home Page1, Course Catalog, e-contract1 and the
+/// schedule sheet: the capsule's top on the badge's, its centre 4 above the
+/// badge's). At least the badge's 32 tall; where a larger text size leaves no
+/// room for both on one line, the capsule wraps under the badge rather than
+/// overlapping or clipping it (Issue #351). With no [track], [trailing] keeps
+/// the row's top-right corner; with neither, nothing is drawn.
 class CardBadgeRow extends StatelessWidget {
   const CardBadgeRow({super.key, this.track, this.trailing});
 
@@ -145,9 +147,7 @@ class CardBadgeRow extends StatelessWidget {
           alignment: track == null
               ? WrapAlignment.end
               : WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          // A lone capsule is centred in the 32 the badge would take.
-          runAlignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.start,
           spacing: 8,
           runSpacing: 8,
           children: [if (track != null) TrackBadge(track), ?trailing],
@@ -170,34 +170,29 @@ const EdgeInsets programCardPadding = EdgeInsets.fromLTRB(
 /// The family's top and bottom inset, outline included.
 const double programCardVerticalInset = 24;
 
-/// The block pattern behind the Courses tab's and Teacher Programs' cards —
-/// the Course Catalog frame's own asset, at 80%, covering the card (Issue
-/// #404: shared rather than copied). [tint] recolours its shapes (Teacher
-/// Programs' Junior card, which has no export of its own). Fills its parent:
-/// put it first in the card's [Stack].
-class CohortCardPattern extends StatelessWidget {
-  const CohortCardPattern({super.key, this.tint});
+/// The card family's block pattern, as every Figma frame that draws it on a
+/// student card draws it (Issue #404): the one artwork at 1:1 from the card's
+/// top-left, at full strength, on the card's white `surface` — Home Page1,
+/// Course Catalog (a taller card included) and e-contract1 are pixel-identical
+/// there. A 12% blue tint with the white blocks cut out of it, which also
+/// shades the card from near-white at the leading edge to pale blue at the
+/// trailing one; beyond its 361 × 208 the card stays white. [asset] is the
+/// Course Catalog card's own export (`cohort_background.svg`) unchanged but
+/// for a 208-tall viewBox, so a taller card shows more of the same pattern
+/// rather than a scaled-up one. Fills its parent: put it first in the card's
+/// [Stack].
+class CardPattern extends StatelessWidget {
+  const CardPattern({super.key});
 
-  static const String asset = 'assets/icons/cohort_background.svg';
-
-  /// How strongly the pattern shows through.
-  static const double opacity = 0.8;
-
-  final Color? tint;
+  static const String asset = 'assets/icons/program_card_background.svg';
 
   @override
   Widget build(BuildContext context) {
-    final tint = this.tint;
     return Positioned.fill(
-      child: Opacity(
-        opacity: opacity,
-        child: SvgPicture.asset(
-          asset,
-          fit: BoxFit.cover,
-          colorFilter: tint == null
-              ? null
-              : ColorFilter.mode(tint, BlendMode.srcIn),
-        ),
+      child: SvgPicture.asset(
+        asset,
+        fit: BoxFit.none,
+        alignment: Alignment.topLeft,
       ),
     );
   }

@@ -136,10 +136,4 @@ abstract final class HomeIcons {
   /// (Issue #329).
   static const String adult = TrackBadge.adultGlyph;
   static const String junior = TrackBadge.juniorGlyph;
-
-  /// The decorative shapes behind the cohort card's summary: the cohort
-  /// list card's own export, unchanged but for a 208-tall viewBox. The paths
-  /// already run well below that card's 148, and Home's summary is 208 tall,
-  /// so the same pattern shows further down rather than being scaled up.
-  static const String cardBackground = '$_dir/program_card_background.svg';
 }

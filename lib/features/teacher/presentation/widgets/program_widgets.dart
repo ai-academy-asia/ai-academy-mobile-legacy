@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -57,10 +58,12 @@ class TeacherProgramCard extends StatelessWidget {
         borderRadius: radius,
         child: Stack(
           children: [
-            // The catalogue card's pattern, shared (Issue #404); for Junior,
-            // the same shapes in the Junior mark's orange — no Junior export
-            // exists (an approximation of the frame, Issue #390).
-            CohortCardPattern(tint: junior ? palette.programJuniorTint : null),
+            // Not yet the family's [CardPattern]: `Sign in - 33` draws the
+            // artwork about 1.34× larger than every other card's frame, so
+            // this keeps its own drawing until the designer says which is
+            // meant (Issue #404). For Junior, the same shapes in the Junior
+            // mark's orange — no Junior export exists (Issue #390).
+            _ProgramsPattern(tint: junior ? palette.programJuniorTint : null),
             Padding(
               // The family's inset: 16 at the sides, 24 at the top and bottom
               // (Issue #404; was 16 all round).
@@ -136,6 +139,33 @@ class TeacherProgramCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Teacher Programs' block pattern, as before Issue #404: the catalogue
+/// asset covering the card at 80% — on the Adult card's `surfaceTinted` —
+/// tinted for Junior. Kept apart from the family's [CardPattern] pending a
+/// design decision (`Sign in - 33` scales the artwork).
+class _ProgramsPattern extends StatelessWidget {
+  const _ProgramsPattern({this.tint});
+
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = this.tint;
+    return Positioned.fill(
+      child: Opacity(
+        opacity: 0.8,
+        child: SvgPicture.asset(
+          'assets/icons/cohort_background.svg',
+          fit: BoxFit.cover,
+          colorFilter: tint == null
+              ? null
+              : ColorFilter.mode(tint, BlendMode.srcIn),
         ),
       ),
     );
