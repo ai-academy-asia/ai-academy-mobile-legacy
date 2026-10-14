@@ -33,7 +33,8 @@ import 'widgets/program_widgets.dart';
 ///
 /// **What is not.** Both summary figures stay "—" (BACKEND GAP / PRODUCT
 /// DECISION, unchanged from #233), and the selector captions assignments by
-/// their place in the list — the frames' "Modules N" has no source.
+/// their place in one simple list — not the frames' "Modules N" (PRODUCT
+/// DECISION, Issue #394).
 class GradebookStudentScreen extends StatefulWidget {
   const GradebookStudentScreen({
     required this.student,

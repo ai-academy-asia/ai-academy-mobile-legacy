@@ -551,9 +551,9 @@ Future<TeacherAssignment?> showAssignmentPicker(
 );
 
 /// Every assignment of the class, one bordered list: the caption
-/// ("Даалгавар N" — the frames' "Modules N" has no source, BACKEND GAP) over
-/// the title, the student's awaiting-review badge, and a radio — the
-/// selected one filled blue. Scrolls when long.
+/// ("Даалгавар N" — one simple list, not the frames' "Modules N": PRODUCT
+/// DECISION, Issue #394) over the title, the student's awaiting-review
+/// badge, and a radio — the selected one filled blue. Scrolls when long.
 class AssignmentPickerSheet extends StatelessWidget {
   const AssignmentPickerSheet({
     required this.assignments,

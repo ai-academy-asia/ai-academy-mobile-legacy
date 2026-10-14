@@ -61,9 +61,9 @@ abstract final class TeacherGradebookStrings {
   /// A figure no confirmed endpoint supplies (BACKEND GAP).
   static const String noFigure = '—';
 
-  /// The assignment selector's caption. The frames say "Modules N", but no
-  /// field ties an assignment to its module (BACKEND GAP, Issue #390): the
-  /// assignment's place in the class's list is shown instead.
+  /// The assignment selector's caption: the assignment's place in the
+  /// class's list. The frames say "Modules N", but assignments stay one
+  /// simple list, not grouped by module (PRODUCT DECISION, Issue #394).
   static String assignmentCaption(int number) => 'Даалгавар $number';
 
   /// The class has no assignment yet. Not drawn by the reference.
