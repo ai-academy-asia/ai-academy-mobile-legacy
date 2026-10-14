@@ -14,9 +14,10 @@ import 'junior_map_geometry.dart';
 /// The tick, the scan mark and the padlock are the design's exported
 /// artwork — none has a match in the bundled Phosphor set (Issue #410): a
 /// completed lesson the tick on the pale blue face — **a tick always means
-/// completed**; **the lesson to continue with** the active frame (the white
-/// face in the accent outline and band) with no glyph, as it is not done
-/// yet — the one unfinished lesson that opens; every
+/// completed**; **the lesson to continue with** Figma's QR mark on the white
+/// face (Issue #412): in the grey `outline`, as the original frame draws it,
+/// and in the accent frame while its check-in is live, as the updated
+/// reference does — the one unfinished lesson that opens; every
 /// other unfinished lesson, which cannot be opened, the grey padlock —
 /// whether its class date has not come ([JuniorNodeState.locked]) or it has
 /// but its turn has not ([JuniorNodeState.open]): a node that does not open
@@ -110,16 +111,12 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         ? _NodeStyle.checkIn(palette)
         : _NodeStyle.of(node.state, palette);
     final glyphSize = JuniorMapGeometry.nodeGlyph * scale;
-    final glyph = switch (style.glyph) {
-      final String sprite => Image.asset(
-        JuniorMapGeometry.sprite(sprite),
-        width: glyphSize,
-        height: glyphSize,
-        filterQuality: FilterQuality.high,
-      ),
-      // The continue lesson: the frame alone carries it.
-      null => const SizedBox.shrink(),
-    };
+    final glyph = Image.asset(
+      JuniorMapGeometry.sprite(style.glyph),
+      width: glyphSize,
+      height: glyphSize,
+      filterQuality: FilterQuality.high,
+    );
 
     Widget tile = Container(
       decoration: BoxDecoration(
@@ -181,9 +178,8 @@ class _NodeStyle {
   final Color fill;
   final Color border;
 
-  /// The exported sprite's name; null for the continue lesson's empty
-  /// active frame.
-  final String? glyph;
+  /// The exported sprite's name — every node draws one.
+  final String glyph;
 
   /// The live check-in: the updated reference's QR stop — the white face in
   /// the accent frame.
@@ -194,8 +190,9 @@ class _NodeStyle {
   );
 
   /// Completed: the tick on the course card's pale blue (`juniorCard`) in
-  /// the accent. Current: the active frame — a `surface` node in the
-  /// accent — with no tick: it is not completed. Open and locked — both
+  /// the accent. Current: the QR mark on a `surface` node in the `outline` —
+  /// the original frame's look; not completed, so no tick (Issue #412). Its
+  /// live check-in is [checkIn]'s accent frame. Open and locked — both
   /// cannot be opened: the padlock on the map's not-yet-reached grey
   /// (`juniorMutedFill`) in the `outline`.
   static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
@@ -207,8 +204,8 @@ class _NodeStyle {
         ),
         JuniorNodeState.current => _NodeStyle(
           fill: palette.surface,
-          border: palette.accent,
-          glyph: null,
+          border: palette.outline,
+          glyph: 'node_current',
         ),
         JuniorNodeState.open || JuniorNodeState.locked => _NodeStyle(
           fill: palette.juniorMutedFill,

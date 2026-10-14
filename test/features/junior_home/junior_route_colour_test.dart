@@ -190,8 +190,8 @@ void main() {
   });
 
   testWidgets('the simulator report, traced: lesson 1 is the continue lesson '
-      '— not completed — so the stretch it leaves is white, and it no longer '
-      'draws a tick; every stretch joins node i to node i+1', (tester) async {
+      '— not completed — so the stretch it leaves is white, and it draws no '
+      'tick; every stretch joins node i to node i+1', (tester) async {
     // The seeded device path ·✓✓✓·✓✓·✓··: lesson 1 the continue lesson.
     const states = [
       current,
@@ -221,9 +221,9 @@ void main() {
       return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    // The tick now marks only the completed node; the continue lesson is
-    // the empty active frame (it drew the same tick before the fix) …
-    expect(glyph(0), isNull);
+    // The tick marks only the completed node; the continue lesson wears
+    // Figma's QR mark (Issue #412) …
+    expect(glyph(0), 'node_current.png');
     expect(glyph(1), 'node_check.png');
     // … as only node 2 is completed: node 1 is the continue lesson.
     expect(tiles[0].node.state, current);

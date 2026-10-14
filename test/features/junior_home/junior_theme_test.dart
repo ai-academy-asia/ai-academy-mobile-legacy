@@ -191,10 +191,11 @@ void main() {
         return {for (final d in nodes) (d.color, edge(d))};
       }
 
-      // No lesson under way: the available lesson, in the active frame.
+      // No lesson under way: the continue lesson, the QR mark in the grey
+      // outline (Issue #412).
       expect(await styles(sampleLessonTime.add(const Duration(days: 1))), {
         (juniorCard, accent),
-        (surface, accent),
+        (surface, outline),
         (juniorMutedFill, outline),
       });
       // During it: the open lesson is the check-in, in the accent frame.

@@ -251,7 +251,7 @@ void main() {
       return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    testWidgets('every node: a tick, the empty active frame, or a padlock; '
+    testWidgets('every node: a tick, the QR mark, or a padlock; '
         'and a tap opens exactly the completed lessons and the '
         'one to continue with', (tester) async {
       final learning = await pumpHome(tester);
@@ -266,10 +266,10 @@ void main() {
       final opened = <int>[];
       for (final (n, l) in lessonsInOrder.indexed) {
         final id = l.$3;
-        // A tick only on completed lessons; the continue lesson's frame
-        // carries no glyph; every other lesson the padlock.
+        // A tick only on completed lessons; the continue lesson Figma's QR
+        // mark (Issue #412); every other lesson the padlock.
         final expectedGlyph = id == continueLessonId
-            ? null
+            ? 'node_current.png'
             : completedAt(n)
             ? 'node_check.png'
             : 'node_lock.png';

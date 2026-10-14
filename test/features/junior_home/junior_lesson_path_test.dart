@@ -87,11 +87,11 @@ void main() {
           (
             JuniorNodeState.current,
             false,
-            // The continue lesson: the active frame, no tick — a tick always
-            // means completed.
-            null,
+            // The continue lesson: Figma's QR mark in the grey outline — no
+            // tick, as a tick always means completed (Issue #412).
+            'node_current',
             (p) => p.surface,
-            (p) => p.accent,
+            (p) => p.outline,
           ),
           (
             JuniorNodeState.locked,
