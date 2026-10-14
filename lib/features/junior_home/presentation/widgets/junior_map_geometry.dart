@@ -159,23 +159,19 @@ abstract final class JuniorMapGeometry {
   /// Every elbow is one of the frame's own four shapes, chosen by the
   /// column its node sits in.
   ///
-  /// **Colour — one rule (Issue #410):** the path walked is the unbroken run
-  /// of completed lessons from the start. A stretch is blue only when both of
-  /// its nodes lie in that run; every stretch from the first unfinished
-  /// lesson on — the one to continue with, whose own frame marks it — is the
-  /// way ahead, white, even past a lesson completed out of turn (it keeps
-  /// its tick). The last stretch is blue only once every node is completed.
-  /// Colour only: it opens nothing. The frame's five states give back
-  /// [connectors].
+  /// **Colour — one rule (Issue #410):** every stretch takes its colour
+  /// from the lesson it **leaves**: blue when that lesson is completed,
+  /// white when it is not — the lesson to continue with, one waiting its
+  /// turn, or a locked one. The lesson a stretch enters never changes it,
+  /// nor does any lesson before it, nor the course's percentage; the
+  /// stretch to the certificate follows the last lesson the same way.
+  /// Colour only: it opens nothing.
   static List<JuniorConnector> route(List<bool> completed) {
     if (completed.isEmpty) return const [];
-    // How many lessons, from the first, are completed without a break.
-    final firstUnfinished = completed.indexOf(false);
-    final walked = firstUnfinished == -1 ? completed.length : firstUnfinished;
     return [
       for (var i = 0; i + 1 < completed.length; i++)
-        _between(i, active: i + 1 < walked),
-      _toCertificate(completed.length - 1, active: walked == completed.length),
+        _between(i, active: completed[i]),
+      _toCertificate(completed.length - 1, active: completed.last),
     ];
   }
 

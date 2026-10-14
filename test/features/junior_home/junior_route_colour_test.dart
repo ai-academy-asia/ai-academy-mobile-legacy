@@ -17,13 +17,12 @@ import 'fake_junior_home_repository.dart';
 
 /// The route's colours, as painted (Issue #410).
 ///
-/// One rule: the path walked is the unbroken run of completed lessons from
-/// the start — a stretch is blue only when both of its nodes lie in it;
-/// from the first unfinished lesson (the one to continue with) on, every
-/// stretch is the white way ahead, even past a lesson completed out of
-/// turn; the last stretch, to the certificate, is blue only once every
-/// lesson is completed. Every expectation here is read off the route's
-/// actual draw calls, not the geometry helper.
+/// One rule: every stretch takes its colour from the lesson it **leaves** —
+/// blue when that lesson is completed, white when it is not (the lesson to
+/// continue with, one waiting its turn, a locked one). The lesson it enters
+/// never changes it; the stretch to the certificate follows the last
+/// lesson. Every expectation here is read off the route's actual draw
+/// calls, not the geometry helper.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -93,32 +92,36 @@ void main() {
   RenderObject routeRender(WidgetTester tester) => tester.renderObject(route());
 
   final cases = <String, (List<JuniorNodeState>, List<bool>)>{
-    // (states, blue? per stretch — the last one is to the certificate)
-    'completed into the lesson to continue with, then locked': (
-      [done, done, current, locked, locked],
-      [true, false, false, false, false],
+    // (states, blue? per stretch, each the lesson it leaves — the last one
+    // is to the certificate)
+    'completed → completed': ([done, done], [true, true]),
+    'completed → current: blue, from a completed lesson': (
+      [done, current],
+      [true, false],
     ),
-    'nothing completed yet — the continue lesson first': (
-      [current, locked, locked],
-      [false, false, false],
+    'current → unfinished: white, from the current lesson': (
+      [done, current, open],
+      [true, false, false],
     ),
-    'lessons waiting their turn after the continue lesson': (
-      [done, current, open, open, locked],
-      [false, false, false, false, false],
+    'locked → next: white, from a locked lesson': (
+      [done, locked, done],
+      [true, false, true],
     ),
-    'alternating: completed after a gap stays on the way ahead': (
-      [done, done, done, current, done, done, open, done, open, open],
-      [true, true, false, false, false, false, false, false, false, false],
+    'the worked example: completed, completed, current, locked, completed, '
+        'locked': (
+      [done, done, current, locked, done, locked],
+      [true, true, false, false, true, false],
     ),
-    'the seeded device path ·✓✓✓·✓✓·✓··': (
+    'alternating states': (
+      [done, open, done, open, done, current, locked],
+      [true, false, true, false, true, false, false],
+    ),
+    'the seeded device path ·✓✓✓·✓✓·✓·· — an unfinished first lesson '
+        'whitens nothing else': (
       [current, done, done, done, open, done, done, open, done, open, open],
-      List.filled(11, false),
+      [false, true, true, true, false, true, true, false, true, false, false],
     ),
-    'a completed lesson whose module locked again, mid-run': (
-      [done, done, done, locked, current],
-      [true, true, false, false, false],
-    ),
-    'every lesson completed — the whole route, the certificate stretch too': (
+    'every lesson completed — the certificate stretch too': (
       [done, done, done, done],
       [true, true, true, true],
     ),
@@ -144,6 +147,48 @@ void main() {
     );
   }
 
+  testWidgets('a completed lesson whose module locked again still leaves '
+      'blue — and stays shut', (tester) async {
+    useLogicalViewport(tester, const Size(393, 2400));
+    useReducedMotion(tester);
+    final sample = sampleJuniorLearningMap();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: JuniorLearningMapView(
+            map: JuniorLearningMap(
+              progress: sample.progress,
+              certificate: sample.certificate,
+              attendanceRecorded: false,
+              continueLessonId: 3,
+              nodes: const [
+                JuniorMapNode(id: 1, state: done),
+                JuniorMapNode(id: 2, state: done, locked: true),
+                JuniorMapNode(id: 3, state: current),
+              ],
+            ),
+            now: DateTime(2026, 10, 7),
+            onLessonTap: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final palette = tester.element(route()).palette;
+
+    expect(
+      routeRender(tester),
+      paintsColours([palette.accent, palette.accent, palette.surface]),
+    );
+    expect(
+      tester
+          .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
+          .map((t) => t.onTap != null),
+      [true, false, true],
+    );
+  });
+
   testWidgets('colour opens nothing: whatever the route paints, a lesson '
       'waiting its turn and a locked one stay inert', (tester) async {
     await pumpMap(tester, [done, done, current, open, done, locked]);
@@ -159,7 +204,7 @@ void main() {
 
   group('scenery never colours the route', () {
     const states = [done, done, done, current, done, open, locked];
-    const blue = [true, true, false, false, false, false, false];
+    const blue = [true, true, true, false, true, false, false];
 
     testWidgets('with the cloud bank or without it: the same paint', (
       tester,
@@ -238,9 +283,9 @@ void main() {
         await tester.drag(scrollable, const Offset(0, -120));
         await tester.pumpAndSettle();
       }
-      // The band was really crossed — a blue stretch (1) and white ones
+      // The band was really crossed — blue stretches (1, 4) and white ones
       // (3, 5) alike; stretch 0 starts above it and only scrolls away.
-      expect(crossed, containsAll(<int>{1, 3, 5}));
+      expect(crossed, containsAll(<int>{1, 3, 4, 5}));
     });
   });
 }

@@ -7,13 +7,6 @@ void main() {
       .having((v) => v.dx, 'dx', closeTo(o.dx, 1e-9))
       .having((v) => v.dy, 'dy', closeTo(o.dy, 1e-9));
 
-  void expectConnector(JuniorConnector actual, JuniorConnector expected) {
-    expect(actual.from, near(expected.from));
-    expect(actual.corner, near(expected.corner));
-    expect(actual.to, near(expected.to));
-    expect(actual.active, expected.active);
-  }
-
   test('the first five nodes are the frame\'s own', () {
     for (var i = 0; i < 5; i++) {
       expect(JuniorMapGeometry.nodeAt(i), near(JuniorMapGeometry.nodes[i]));
@@ -23,9 +16,17 @@ void main() {
   test('the frame\'s states give back the frame\'s route, card and height', () {
     final route = JuniorMapGeometry.route([true, true, false, false, false]);
     expect(route, hasLength(5));
+    // The frame's own geometry; colours by the leaving-lesson rule (the
+    // frame drew its completed → current stretch white; Issue #410 blues it).
     for (var i = 0; i < 4; i++) {
-      expectConnector(route[i], JuniorMapGeometry.connectors[i]);
+      expect(route[i].from, near(JuniorMapGeometry.connectors[i].from));
+      expect(route[i].corner, near(JuniorMapGeometry.connectors[i].corner));
+      expect(route[i].to, near(JuniorMapGeometry.connectors[i].to));
     }
+    expect(
+      [for (final c in route) c.active],
+      [true, true, false, false, false],
+    );
     // The last one leaves as the frame's does and runs on down to the
     // card, which now sits lower (#410).
     final last = JuniorMapGeometry.connectors[4];
@@ -95,41 +96,28 @@ void main() {
     expect(last.corner, near(last.to));
   });
 
-  test('blue is the unbroken run of completed lessons from the start — a '
-      'lesson completed after a gap does not colour its stretches', () {
+  test('each stretch takes its colour from the lesson it leaves: blue when '
+      'that lesson is completed, white when it is not', () {
     List<bool> blue(List<bool> completed) => [
       for (final c in JuniorMapGeometry.route(completed)) c.active,
     ];
-    expect(blue([true, false, true, true]), [false, false, false, false]);
-    expect(blue([true, true, false, true, true]), [
+    // The worked example: completed, completed, current, locked,
+    // completed, locked → blue, blue, white, white, blue; the certificate
+    // stretch follows the last (locked) lesson: white.
+    expect(blue([true, true, false, false, true, false]), [
+      true,
       true,
       false,
       false,
-      false,
+      true,
       false,
     ]);
-    expect(blue([false, true, true]), [false, false, false]);
-  });
-
-  test('a stretch is blue once both of its nodes are completed', () {
-    expect(
-      [
-        for (final c in JuniorMapGeometry.route([true, true, true])) c.active,
-      ],
-      [true, true, true],
-    );
-    expect(
-      [
-        for (final c in JuniorMapGeometry.route([true, true, false])) c.active,
-      ],
-      [true, false, false],
-    );
-    expect(
-      [
-        for (final c in JuniorMapGeometry.route([true, false, true])) c.active,
-      ],
-      [false, false, false],
-    );
+    // The lesson a stretch enters never changes it.
+    expect(blue([true, false]), [true, false]);
+    expect(blue([true, true]), [true, true]);
+    // An unfinished first lesson does not whiten the rest.
+    expect(blue([false, true, true]), [false, true, true]);
+    expect(blue([true, false, true]), [true, false, true]);
   });
 
   test('no nodes, no route; the card takes the first node\'s place', () {
