@@ -213,6 +213,39 @@ void main() {
       expect(find.byType(JuniorLearningMapView), findsOneWidget);
     });
 
+    testWidgets('a completed lesson the server locks again keeps its tick '
+        'and stays inert — no request it would refuse', (tester) async {
+      final learning = course();
+      final base = map();
+      await pumpHome(
+        tester,
+        learning: learning,
+        learningMap: JuniorLearningMap(
+          courseSlug: base.courseSlug,
+          progress: base.progress,
+          certificate: base.certificate,
+          nodes: [
+            for (final node in base.nodes)
+              node.id == 201
+                  ? JuniorMapNode(
+                      id: node.id,
+                      state: JuniorNodeState.completed,
+                      title: node.title,
+                      locked: true,
+                    )
+                  : node,
+          ],
+        ),
+      );
+
+      final tile201 = tester.widget<JuniorMapNodeTile>(tile(201));
+      expect(tile201.node.state, JuniorNodeState.completed);
+      expect(tile201.onTap, isNull);
+      await tapTile(tester, 201);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
+    });
+
     testWidgets('outside a lesson the check-in node is just its lesson', (
       tester,
     ) async {
@@ -293,6 +326,23 @@ void main() {
 
       await back(tester);
       expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+
+    testWidgets('back from Course Detail reloads the map too — lessons can '
+        'be completed there', (tester) async {
+      final home = FakeJuniorHomeRepository(map: map());
+      await pumpHome(tester, learning: course(), home: home);
+
+      await tester.tap(find.byType(JuniorCourseProgressCard));
+      await tester.pumpAndSettle();
+      home.map = map(states: {203: JuniorNodeState.completed});
+      await back(tester);
+
+      expect(home.calls, 2);
+      expect(
+        tester.widget<JuniorMapNodeTile>(tile(203)).node.state,
+        JuniorNodeState.completed,
+      );
     });
 
     testWidgets('a map with no course behind it leaves every node inert', (

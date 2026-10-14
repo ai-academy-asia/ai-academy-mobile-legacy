@@ -46,10 +46,12 @@ class JuniorMapTheme {
     sky: _juniorSky,
     cloudAsset: JuniorMapGeometry.cloud,
     dividerClouds: [
-      JuniorDividerCloud(Rect.fromLTWH(-80, 150, 230, 118)),
-      JuniorDividerCloud(Rect.fromLTWH(180, 140, 230, 118), mirrored: true),
-      JuniorDividerCloud(Rect.fromLTWH(-60, 270, 280, 143), mirrored: true),
-      JuniorDividerCloud(Rect.fromLTWH(130, 285, 280, 143)),
+      JuniorDividerCloud(Rect.fromLTWH(-70, 185, 200, 102)),
+      JuniorDividerCloud(Rect.fromLTWH(195, 175, 200, 102), mirrored: true),
+      JuniorDividerCloud(Rect.fromLTWH(-110, 250, 300, 154), mirrored: true),
+      JuniorDividerCloud(Rect.fromLTWH(140, 245, 300, 154)),
+      JuniorDividerCloud(Rect.fromLTWH(-60, 350, 300, 154), mirrored: true),
+      JuniorDividerCloud(Rect.fromLTWH(180, 360, 300, 154)),
     ],
   );
 

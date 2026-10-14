@@ -23,16 +23,29 @@ void main() {
   test('the frame\'s states give back the frame\'s route, card and height', () {
     final route = JuniorMapGeometry.route([true, true, false, false, false]);
     expect(route, hasLength(5));
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 4; i++) {
       expectConnector(route[i], JuniorMapGeometry.connectors[i]);
     }
+    // The last one leaves as the frame's does and runs on down to the
+    // card, which now sits lower (#410).
+    final last = JuniorMapGeometry.connectors[4];
+    expect(route[4].from, last.from);
+    expect(route[4].corner, last.corner);
+    expect(route[4].to.dx, last.to.dx);
     expect(
-      JuniorMapGeometry.certificateFor(5).top,
-      closeTo(JuniorMapGeometry.certificateCard.top, 1e-9),
+      route[4].to.dy,
+      closeTo(JuniorMapGeometry.certificateFor(5).top - 3.7, 1e-9),
     );
+    // The card itself sits as the updated reference measures it (#410):
+    // 133.3 below the last node, where the original frame had 111.7 — the
+    // map grows by the difference and keeps the frame's margin under it.
+    final card = JuniorMapGeometry.certificateFor(5);
+    expect(card.top, closeTo(JuniorMapGeometry.nodes.last.dy + 133.3, 1e-9));
+    expect(card.size, JuniorMapGeometry.certificateCard.size);
+    expect(card.left, JuniorMapGeometry.certificateCard.left);
     expect(
       JuniorMapGeometry.mapHeightFor(5),
-      closeTo(JuniorMapGeometry.mapHeight, 1e-9),
+      closeTo(JuniorMapGeometry.mapHeight + (133.3 - 111.7), 1e-9),
     );
   });
 
@@ -65,7 +78,7 @@ void main() {
         }
         expect(route.last.to.dy, closeTo(card.top - 3.7, 1e-9));
         expect(route.last.from.dy, greaterThanOrEqualTo(lastNode.dy));
-        expect(card.top, closeTo(lastNode.dy + 111.7, 1e-9));
+        expect(card.top, closeTo(lastNode.dy + 133.3, 1e-9));
         expect(
           JuniorMapGeometry.mapHeightFor(count),
           closeTo(card.bottom + 147.3, 1e-9),

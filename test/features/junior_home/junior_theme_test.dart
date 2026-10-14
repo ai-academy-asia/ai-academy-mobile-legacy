@@ -211,7 +211,8 @@ void main() {
           .whereType<JuniorMapPathPainter>()
           .single;
       expect(route.travelled, accent);
-      expect(route.untravelled, outline);
+      // The way ahead is white, as the updated reference draws it (#410).
+      expect(route.untravelled, surface);
     });
 
     testWidgets('course card: juniorCard in juniorCardBorder; the ring an '
@@ -264,8 +265,9 @@ void main() {
     });
   });
 
-  testWidgets('certificate panel: juniorMutedFill in outline, accentText '
-      'course name, surfaceSubtle pill', (tester) async {
+  testWidgets('certificate panel: surface in a 3pt juniorMutedFill edge '
+      '(the updated reference, #410), accentText course name, surfaceSubtle '
+      'pill in outline', (tester) async {
     await pump(
       tester,
       Scaffold(
@@ -281,9 +283,11 @@ void main() {
       tester,
       find.byType(JuniorCertificateCard),
     ).where((d) => d.border != null).toList();
-    expect(panel.map((d) => d.color), contains(juniorMutedFill));
-    expect(panel.map((d) => d.color), contains(surfaceSubtle));
-    expect(panel.map(edge), everyElement(outline));
+    final card = panel.singleWhere((d) => d.color == surface);
+    expect(edge(card), juniorMutedFill);
+    expect((card.border! as Border).top.width, 3);
+    final pill = panel.singleWhere((d) => d.color == surfaceSubtle);
+    expect(edge(pill), outline);
     expect(
       textColor(tester, sampleJuniorLearningMap().certificate.courseName),
       accentText,

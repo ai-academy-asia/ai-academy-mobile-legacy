@@ -194,15 +194,16 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const AttendanceScannerScreen()),
     );
-    if (mounted) await _controller.load();
+    if (mounted) await _controller.load(fresh: true);
   }
 
   /// The existing Course Detail (Issues #174, #207): the Adult course screen
   /// on the same `GET /me/courses/{slug}/learning` data, with the same lesson
   /// tabs as Adult, Note included (Issue #219) — reached from the course
-  /// card, while each node opens its own lesson.
-  void _openCourse(String slug) {
-    Navigator.of(context).push(
+  /// card, while each node opens its own lesson. Lessons can be completed
+  /// there too, so the map reloads on return.
+  Future<void> _openCourse(String slug) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CourseModuleListScreen(
           courseSlug: slug,
@@ -210,6 +211,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         ),
       ),
     );
+    if (mounted) await _controller.load(fresh: true);
   }
 
   /// The tapped lesson's own screen (Issue #410): its content, from
@@ -225,7 +227,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         ),
       ),
     );
-    if (mounted) await _controller.load();
+    if (mounted) await _controller.load(fresh: true);
   }
 }
 

@@ -5,7 +5,8 @@ import '../../home/domain/home_dashboard.dart';
 /// Straight off the lesson's two server booleans — the contract is explicit
 /// that the client derives neither `completed` nor `locked`:
 ///
-/// * [completed] — `lesson.completed` is true: a tick.
+/// * [completed] — `lesson.completed` is true: a tick. Whether it can be
+///   opened is [JuniorMapNode.locked], not this.
 /// * [locked] — `lesson.locked` is true (and the lesson is not completed):
 ///   a grey padlock, inert.
 /// * [current] — neither: the lesson is open and not yet done. Every such
@@ -31,7 +32,8 @@ class JuniorMapNode {
     this.title = '',
     this.moduleId = 0,
     this.moduleOrder = 0,
-  });
+    bool? locked,
+  }) : locked = locked ?? state == JuniorNodeState.locked;
 
   /// The lesson's own id — what a tap opens, `CourseExerciseDetailScreen`'s
   /// `lessonId`.
@@ -46,6 +48,15 @@ class JuniorMapNode {
   /// module's `order` (§2.1). 0 for a sample node.
   final int moduleId;
   final int moduleOrder;
+
+  /// Whether the server refuses this lesson's content (`409 lesson_locked`):
+  /// the backend locks a whole module, every lesson alike, while its first
+  /// class date is still ahead — the only access rule it enforces
+  /// (`ensure_module_open`). A **completed** lesson can be locked too, when
+  /// its class is moved to a later date: it keeps its tick but is inert, so
+  /// no tap ever asks for content the server will refuse. Defaults to the
+  /// [state] being [JuniorNodeState.locked].
+  final bool locked;
 }
 
 /// The course strip at the top of the map: what the student is studying, and
@@ -142,9 +153,9 @@ class JuniorLearningMap {
   /// Whether today's class session already has an attendance record —
   /// `GET /me/attendance`'s `sessions[].status` for [nextLesson]'s date,
   /// which the backend leaves null until a record exists (Issue #410).
-  /// Null when it could not be read: then the schedule alone decides, as it
-  /// always has, and the scanner's own server check still stops a second
-  /// record.
+  /// Null when it is not known — not read (no [nextLesson]) or not
+  /// readable: check-in then stays closed rather than risk offering one
+  /// already recorded; the next reload asks again.
   final bool? attendanceRecorded;
 
   /// Every lesson completed, by the server's own `completed` flags — the
@@ -167,10 +178,11 @@ class JuniorLearningMap {
   /// Whether check-in is actionable at [now]: there is a [checkInNode], a
   /// lesson is under way by the cohort schedule — Adult Home's own rule
   /// ([NextLesson.isLiveAt]), not a backend-defined window — and today's
-  /// session is not already recorded. Completing a lesson never enters into
-  /// it: the two are separate.
+  /// session is known not to be recorded yet ([attendanceRecorded] false;
+  /// unknown keeps it closed). Completing a lesson never enters into it:
+  /// the two are separate.
   bool checkInOpenAt(DateTime now) =>
       checkInNode != null &&
       (nextLesson?.isLiveAt(now) ?? false) &&
-      attendanceRecorded != true;
+      attendanceRecorded == false;
 }

@@ -45,8 +45,9 @@ import 'junior_map_theme.dart';
 ///
 /// **Taps** (Issue #410): the check-in node, while check-in is actionable at
 /// [now] ([JuniorLearningMap.checkInOpenAt]), calls [onCheckIn]; every other
-/// completed or open lesson calls [onLessonTap] with its lesson; a locked
-/// lesson does nothing. The course card calls [onCourseTap].
+/// lesson the server leaves unlocked ([JuniorMapNode.locked]) calls
+/// [onLessonTap] with its lesson; a locked lesson does nothing. The course
+/// card calls [onCourseTap].
 class JuniorLearningMapView extends StatelessWidget {
   const JuniorLearningMapView({
     required this.map,
@@ -88,17 +89,14 @@ class JuniorLearningMapView extends StatelessWidget {
         final checkIn = map.checkInNode;
         final open = map.checkInOpenAt(now);
 
-        // The live check-in opens the scanner; any other completed or open
-        // lesson opens itself; a locked lesson does nothing (Issue #410).
+        // The live check-in opens the scanner; any other lesson the server
+        // leaves unlocked opens itself; a locked one — a completed lesson
+        // whose class moved later included — does nothing (Issue #410).
         VoidCallback? tapFor(JuniorMapNode node) {
           if (open && identical(node, checkIn)) return onCheckIn;
           final onLessonTap = this.onLessonTap;
-          if (onLessonTap == null) return null;
-          return switch (node.state) {
-            JuniorNodeState.completed ||
-            JuniorNodeState.current => () => onLessonTap(node),
-            JuniorNodeState.locked => null,
-          };
+          if (onLessonTap == null || node.locked) return null;
+          return () => onLessonTap(node);
         }
 
         Widget at(Rect rect, Widget child) => Positioned(
@@ -130,7 +128,9 @@ class JuniorLearningMapView extends StatelessWidget {
                       painter: JuniorMapPathPainter(
                         scale: scale,
                         travelled: context.palette.accent,
-                        untravelled: context.palette.outline,
+                        // White, as the updated reference draws the way
+                        // ahead (Issue #410).
+                        untravelled: context.palette.surface,
                         connectors: JuniorMapGeometry.route([
                           for (final node in nodes)
                             node.state == JuniorNodeState.completed,

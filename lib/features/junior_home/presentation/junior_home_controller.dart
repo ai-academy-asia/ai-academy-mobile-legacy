@@ -45,11 +45,31 @@ class JuniorHomeController extends ChangeNotifier {
   /// an overlapping request.
   Future<void>? _inFlight;
 
+  /// The one fetch queued behind [_inFlight] by a `fresh` [load].
+  Future<void>? _followUp;
+
   /// Fetches the map. Safe to call again — retry, or a tap on the header
   /// logo (Issue #221). A call made while a fetch is already running joins
   /// that fetch instead of sending another request.
-  Future<void> load() =>
-      _inFlight ??= _fetch().whenComplete(() => _inFlight = null);
+  ///
+  /// [fresh] is for coming back from somewhere the student may have changed
+  /// the answer — a lesson completed, attendance recorded (Issue #410). A
+  /// fetch already running may have started before that, so a fresh call
+  /// does not join it: it queues **one** fetch after it, shared by every
+  /// fresh call made meanwhile. Nothing is cached; every fetch is a full
+  /// read.
+  Future<void> load({bool fresh = false}) {
+    final running = _inFlight;
+    if (running == null) {
+      return _inFlight = _fetch().whenComplete(() => _inFlight = null);
+    }
+    if (!fresh) return running;
+    return _followUp ??= running.then((_) {
+      _followUp = null;
+      if (_disposed) return null;
+      return load();
+    });
+  }
 
   Future<void> _fetch() async {
     _loading = true;

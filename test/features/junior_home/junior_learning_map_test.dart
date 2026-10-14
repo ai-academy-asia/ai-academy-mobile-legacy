@@ -100,10 +100,18 @@ void main() {
       );
     });
 
-    test('unknown attendance falls back to the live rule alone — the '
-        'scanner, and the backend\'s idempotent check-in, stay the guard', () {
+    test('unknown attendance keeps check-in closed — never offered while it '
+        'may already be recorded', () {
       expect(
         mapOf([done, open], nextLesson: lesson).checkInOpenAt(during),
+        isFalse,
+      );
+      expect(
+        mapOf(
+          [done, open],
+          nextLesson: lesson,
+          attendanceRecorded: false,
+        ).checkInOpenAt(during),
         isTrue,
       );
     });

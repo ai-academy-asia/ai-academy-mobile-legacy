@@ -246,15 +246,24 @@ abstract final class JuniorMapGeometry {
 
   // --- Certificate ---------------------------------------------------------
 
-  /// Where the frame puts the card: 111.7 below its fifth node's top.
+  /// Where the original frame puts the card: 111.7 below its fifth node's
+  /// top. Its left, width and height are the updated reference's too
+  /// (`junior-homepage-u[date.png`, measured: x 32–361); its top is not —
+  /// see [certificateBelowLastNode].
   static const Rect certificateCard = Rect.fromLTWH(32, 705.7, 329, 361);
 
-  /// The card under a map of [nodeCount] nodes — the frame's 111.7 below the
-  /// last node's top, or the first node's place when there are none.
+  /// How far below the last node's top the card starts: 133.3, measured on
+  /// the updated reference (last node's top 1461.3, card's top 1594.7;
+  /// Issue #410). The original frame had 111.7.
+  static const double certificateBelowLastNode = 133.3;
+
+  /// The card under a map of [nodeCount] nodes — [certificateBelowLastNode]
+  /// below the last node's top, or the first node's place when there are
+  /// none.
   static Rect certificateFor(int nodeCount) {
     final top = nodeCount == 0
         ? nodes.first.dy
-        : nodeAt(nodeCount - 1).dy + (certificateCard.top - nodes.last.dy);
+        : nodeAt(nodeCount - 1).dy + certificateBelowLastNode;
     return Rect.fromLTWH(
       certificateCard.left,
       top,
@@ -263,14 +272,21 @@ abstract final class JuniorMapGeometry {
     );
   }
 
-  /// The map's scroll height for [nodeCount] nodes: the frame's own margin
-  /// under the certificate card. Five nodes give [mapHeight].
+  /// The map's scroll height for [nodeCount] nodes: the frame's own 147.3
+  /// margin under the certificate card. ([mapHeight] is the original
+  /// frame's five-node height.)
   static double mapHeightFor(int nodeCount) =>
       certificateFor(nodeCount).bottom + (mapHeight - certificateCard.bottom);
   static const double certificateRadius = 20;
 
+  /// The card's edge: 3pt, as both references draw it (x 32–35 and
+  /// 358–361 on the updated one).
+  static const double certificateBorder = 3;
+
   /// The pill, the certificate image and both lines of copy all sit on the
-  /// same 17 inset, and the card's top and bottom padding are both 14.
+  /// same 17 inset, and the card's top and bottom padding are both 14 —
+  /// each inside a 1pt edge, so 18 and 15 from the card's outer edge. (Both
+  /// references measure 16: a 2pt difference this code has always had.)
   static const double certificatePadding = 17;
   static const double certificateVerticalPadding = 14;
   static const double certificatePillHeight = 30;

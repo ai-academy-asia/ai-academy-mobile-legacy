@@ -231,6 +231,41 @@ void main() {
       ]);
     });
 
+    test('a completed lesson whose module is locked again keeps its tick but '
+        'does not open — the server would answer 409 lesson_locked', () {
+      final map = mapOf(
+        samplePath(modules: [sampleModule(id: 1, order: 1, locked: true)]),
+        lessons: {
+          1: [
+            sampleLesson(
+              id: 1,
+              moduleId: 1,
+              order: 1,
+              completed: true,
+              locked: true,
+            ),
+          ],
+        },
+      );
+
+      expect(map.nodes.single.state, JuniorNodeState.completed);
+      expect(map.nodes.single.locked, isTrue);
+    });
+
+    test('an unlocked lesson is never marked locked, completed or not', () {
+      final map = mapOf(
+        samplePath(modules: [sampleModule(id: 1, order: 1)]),
+        lessons: {
+          1: [
+            sampleLesson(id: 1, moduleId: 1, order: 1, completed: true),
+            sampleLesson(id: 2, moduleId: 1, order: 2),
+          ],
+        },
+      );
+
+      expect(map.nodes.map((n) => n.locked), [false, false]);
+    });
+
     test('orders the whole path by module order, then lesson order — never '
         'by array position', () {
       final map = mapOf(
@@ -566,9 +601,16 @@ void main() {
       expect(attendanceRepository.checkInCalls, 0);
     });
 
-    test('an unreadable attendance never fails the map', () async {
+    test('an unreadable attendance never fails the map, and never opens '
+        'check-in — not even during the lesson', () async {
       final map = await repositoryFor(
         dashboard: HomeDashboard(program: sampleProgram(nextLesson: lesson)),
+        learning: FakeCourseLearningRepository(
+          path: samplePath(modules: [sampleModule(id: 1, order: 1)]),
+          lessonsByModule: {
+            1: [sampleLesson(id: 5, moduleId: 1, order: 1)],
+          },
+        ),
         attendance: FakeAttendanceRepository(
           failure: const AttendanceFailure(AttendanceFailureKind.network),
         ),
@@ -576,6 +618,19 @@ void main() {
 
       expect(map, isNotNull);
       expect(map!.attendanceRecorded, isNull);
+      expect(map.checkInNode?.id, 5);
+      expect(map.checkInOpenAt(DateTime(2026, 10, 6, 10)), isFalse);
+    });
+
+    test('no next lesson: attendance is not read at all', () async {
+      final attendanceRepository = FakeAttendanceRepository();
+      final map = await repositoryFor(
+        dashboard: HomeDashboard(program: sampleProgram()),
+        attendance: attendanceRepository,
+      ).getLearningMap();
+
+      expect(attendanceRepository.calls, isEmpty);
+      expect(map?.attendanceRecorded, isNull);
     });
   });
 

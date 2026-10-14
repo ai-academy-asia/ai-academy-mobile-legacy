@@ -76,6 +76,12 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       );
     }
 
+    // Attendance only matters for a next lesson's check-in; read it — when
+    // there is one — alongside the path and lessons rather than after them.
+    // It never throws (see [_attendanceOrNull]).
+    final attendance = nextLesson == null
+        ? Future<CourseAttendance?>.value()
+        : _attendanceOrNull(slug);
     final path = await _learning.getCourseLearning(slug);
     // Every module's lessons (Issue #410), all at once: the lesson path is
     // one node per lesson. The same `GET /me/modules/{id}/lessons` the
@@ -90,15 +96,13 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
         for (final (i, module) in path.modules.indexed) module.id: lessons[i],
       },
       nextLesson: nextLesson,
-      attendanceRecorded: attendanceRecordedOn(
-        await _attendanceOrNull(slug),
-        nextLesson,
-      ),
+      attendanceRecorded: attendanceRecordedOn(await attendance, nextLesson),
     );
   }
 
   /// `GET /me/attendance` for the course, or null when it cannot be read:
-  /// the map never fails over check-in's extra guard (Issue #410).
+  /// the map never fails over check-in's guard, and an unknown answer keeps
+  /// check-in closed (`JuniorLearningMap.checkInOpenAt`; Issue #410).
   Future<CourseAttendance?> _attendanceOrNull(String slug) async {
     try {
       return await _attendance.getCourseAttendance(slug);
@@ -180,6 +184,7 @@ JuniorLearningMap juniorMapFrom(
         JuniorMapNode(
           id: lesson.id,
           state: _stateFor(lesson, inLockedModule: module.locked),
+          locked: lesson.locked || module.locked,
           title: lesson.title,
           moduleId: module.id,
           moduleOrder: module.order,
@@ -201,10 +206,12 @@ JuniorLearningMap juniorMapFrom(
 /// Both booleans are server-sent and neither is recomputed here: a
 /// completed lesson is completed even under a lock; "open and unfinished"
 /// is what is left once both are false — see [JuniorNodeState.current].
-/// A lesson's state, straight off the server's two flags: completed wins,
-/// so a node is never both. A lesson in a locked module is locked unless
-/// completed — the backend lists such lessons `locked` already, and this
-/// only keeps a tap from ever reaching its `409 lesson_locked`.
+/// A lesson's look, straight off the server's two flags: completed wins the
+/// look (its tick stays even if its module locks again), while whether it
+/// opens is [JuniorMapNode.locked]. A lesson in a locked module is locked
+/// unless completed — the backend lists such lessons `locked` already (a
+/// lesson's lock *is* its module's), so this only keeps a tap from ever
+/// reaching `409 lesson_locked`.
 JuniorNodeState _stateFor(Lesson lesson, {required bool inLockedModule}) {
   if (lesson.completed) return JuniorNodeState.completed;
   if (lesson.locked || inLockedModule) return JuniorNodeState.locked;

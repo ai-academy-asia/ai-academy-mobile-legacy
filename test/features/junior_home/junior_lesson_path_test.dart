@@ -210,7 +210,7 @@ void main() {
       return tapped;
     }
 
-    testWidgets('the theme\'s four, round the certificate\'s lower half and '
+    testWidgets('the theme\'s bank, round the certificate\'s lower half and '
         'under it', (tester) async {
       await pumpMap(tester);
 
@@ -220,11 +220,12 @@ void main() {
           tester.getRect(find.byWidget(e.widget)),
       ];
       expect(clouds, hasLength(JuniorMapTheme.junior.dividerClouds.length));
-      expect(clouds, hasLength(4));
+      expect(clouds, hasLength(6));
       for (final cloud in clouds) {
-        // Each overlaps the card's lower half…
-        expect(cloud.overlaps(card), isTrue);
-        expect(cloud.bottom, greaterThan(card.center.dy));
+        // None reaches above the card's middle; each touches the card or
+        // lies under it…
+        expect(cloud.top, greaterThan(card.center.dy - 20));
+        expect(cloud.overlaps(card) || cloud.top >= card.top, isTrue);
       }
       // …two reach beyond its sides, and the bank runs on under it.
       expect(clouds.where((c) => c.left < card.left), isNotEmpty);
@@ -247,7 +248,7 @@ void main() {
           else if (dividerClouds().evaluate().contains(e))
             'cloud',
       ];
-      expect(order, ['cloud', 'cloud', 'cloud', 'cloud', 'card']);
+      expect(order, [...List.filled(6, 'cloud'), 'card']);
     });
 
     testWidgets('take no taps and say nothing: a tap on one reaches what is '

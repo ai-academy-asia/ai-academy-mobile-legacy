@@ -29,19 +29,26 @@ class JuniorCertificateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    // The map's not-yet-reached grey (`juniorMutedFill`) in the `outline`,
-    // as a locked node is drawn.
+    // The updated reference's white card (`surface`) in a 3pt band of the
+    // map's light grey (`juniorMutedFill`), measured on
+    // `junior-homepage-u[date.png` (Issue #410).
+    // The insets were measured inside a 1pt edge; the 3pt edge takes its
+    // extra 2 out of them, so nothing inside the card moves.
+    const edge = JuniorMapGeometry.certificateBorder - 1;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: JuniorMapGeometry.certificatePadding * scale,
-        vertical: JuniorMapGeometry.certificateVerticalPadding * scale,
+        horizontal: (JuniorMapGeometry.certificatePadding - edge) * scale,
+        vertical: (JuniorMapGeometry.certificateVerticalPadding - edge) * scale,
       ),
       decoration: BoxDecoration(
-        color: palette.juniorMutedFill,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(
           JuniorMapGeometry.certificateRadius * scale,
         ),
-        border: Border.all(color: palette.outline, width: 1 * scale),
+        border: Border.all(
+          color: palette.juniorMutedFill,
+          width: JuniorMapGeometry.certificateBorder * scale,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
