@@ -37,6 +37,11 @@ const double _heroLeft = AppDimens.screenPadding;
 /// gives those 3 back and the band stays the hero's own height.
 const double _nameToDetails = 3;
 
+/// The text's last line to the band's rule: the frame's 72 avatar + 31,
+/// less the text column's 79 (the name's 28 line, 3, two 24 lines) — so at
+/// the default size the rule sits where the frame draws it.
+const double _textToRule = 24;
+
 /// The teacher's account and app settings — the Teacher "Profile" frame
 /// (Issue #243), the fourth tab of `TeacherShell`. It draws no tab bar of
 /// its own: the shell's persistent bar sits under it.
@@ -266,36 +271,48 @@ class _Hero extends StatelessWidget {
         _heroLeft,
         _heroTop,
         AppDimens.screenPadding,
-        _heroBottom - _nameToDetails,
+        0,
       ),
+      // The band closes [_heroBottom] below the avatar, as the frame
+      // measures — or [_textToRule] below the text, where a larger text size
+      // makes the text the taller of the two (Issue #406). At the default
+      // size both land on the same line.
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ProfileAvatar(),
+          const Padding(
+            padding: EdgeInsets.only(bottom: _heroBottom),
+            child: ProfileAvatar(),
+          ),
           const SizedBox(width: _avatarToText),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _line(
-                  user?.displayName ?? '',
-                  profileNameStyle.copyWith(color: context.palette.textPrimary),
-                ),
-                const SizedBox(height: _nameToDetails),
-                _line(
-                  user?.email ?? '',
-                  _detailStyle.copyWith(
-                    color: context.palette.teacherDetailInk,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: _textToRule),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _line(
+                    user?.displayName ?? '',
+                    profileNameStyle.copyWith(
+                      color: context.palette.textPrimary,
+                    ),
                   ),
-                ),
-                _line(
-                  user?.profile.phone ?? '',
-                  _detailStyle.copyWith(
-                    color: context.palette.teacherDetailInk,
+                  const SizedBox(height: _nameToDetails),
+                  _line(
+                    user?.email ?? '',
+                    _detailStyle.copyWith(
+                      color: context.palette.teacherDetailInk,
+                    ),
                   ),
-                ),
-              ],
+                  _line(
+                    user?.profile.phone ?? '',
+                    _detailStyle.copyWith(
+                      color: context.palette.teacherDetailInk,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -303,8 +320,11 @@ class _Hero extends StatelessWidget {
     );
   }
 
-  static Widget _line(String text, TextStyle style) => SizedBox(
-    height: _lineHeight,
+  /// [_lineHeight] at least: the name's own 28 line, and any line at a
+  /// larger text size, grows the box rather than being cut (DESIGN_SYSTEM
+  /// §3, Issue #406).
+  static Widget _line(String text, TextStyle style) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: _lineHeight),
     child: Align(
       alignment: Alignment.centerLeft,
       child: Text(
