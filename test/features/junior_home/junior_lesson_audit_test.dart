@@ -243,15 +243,16 @@ void main() {
     Finder tile(int id) => find.byWidgetPredicate(
       (w) => w is JuniorMapNodeTile && w.node.id == id,
     );
-    String glyphOf(WidgetTester tester, int id) {
-      final image = tester.widget<Image>(
+    String? glyphOf(WidgetTester tester, int id) {
+      final images = tester.widgetList<Image>(
         find.descendant(of: tile(id), matching: find.byType(Image)),
       );
-      return (image.image as AssetImage).assetName.split('/').last;
+      if (images.isEmpty) return null;
+      return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    testWidgets('every node: a tick, the active tick, or a padlock — no '
-        'blank node; and a tap opens exactly the completed lessons and the '
+    testWidgets('every node: a tick, the empty active frame, or a padlock; '
+        'and a tap opens exactly the completed lessons and the '
         'one to continue with', (tester) async {
       final learning = await pumpHome(tester);
 
@@ -265,7 +266,11 @@ void main() {
       final opened = <int>[];
       for (final (n, l) in lessonsInOrder.indexed) {
         final id = l.$3;
-        final expectedGlyph = id == continueLessonId || completedAt(n)
+        // A tick only on completed lessons; the continue lesson's frame
+        // carries no glyph; every other lesson the padlock.
+        final expectedGlyph = id == continueLessonId
+            ? null
+            : completedAt(n)
             ? 'node_check.png'
             : 'node_lock.png';
         expect(glyphOf(tester, id), expectedGlyph, reason: 'lesson $id');

@@ -168,10 +168,10 @@ void main() {
     final learning = await pumpHome(tester);
     final palette = tester.element(tile(101)).palette;
 
-    // Drawn: 101 the lesson to continue with — the tick in the accent
-    // frame; 102 a lesson whose class date has come but whose turn has not
+    // Drawn: 101 the lesson to continue with — the empty accent frame (a
+    // tick means completed); 102 a lesson whose class date has come but whose turn has not
     // — the grey padlock, as it cannot be opened.
-    expect(glyphOf(tester, 101), 'node_check');
+    expect(glyphOf(tester, 101), isNull);
     expect(edgeOf(tester, 101), palette.accent);
     expect(glyphOf(tester, 102), 'node_lock');
     expect(edgeOf(tester, 102), palette.outline);
@@ -215,7 +215,7 @@ void main() {
       findsOneWidget,
     );
     expect(glyphOf(tester, 101), 'node_check');
-    expect(glyphOf(tester, 102), 'node_check');
+    expect(glyphOf(tester, 102), isNull);
     expect(glyphOf(tester, 201), 'node_lock');
     expect(glyphOf(tester, 301), 'node_check');
 

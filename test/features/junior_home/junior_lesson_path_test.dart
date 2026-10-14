@@ -72,7 +72,7 @@ void main() {
           (
             JuniorNodeState,
             bool,
-            String,
+            String?,
             Color Function(AppPalette),
             Color Function(AppPalette),
           )
@@ -87,7 +87,9 @@ void main() {
           (
             JuniorNodeState.current,
             false,
-            'node_check',
+            // The continue lesson: the active frame, no tick — a tick always
+            // means completed.
+            null,
             (p) => p.surface,
             (p) => p.accent,
           ),
@@ -116,7 +118,7 @@ void main() {
         );
         final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
 
-        expect(sprite(name), findsOneWidget);
+        if (name != null) expect(sprite(name), findsOneWidget);
         for (final other in ['node_check', 'node_lock', 'node_current']) {
           if (other != name) expect(sprite(other), findsNothing);
         }
@@ -226,7 +228,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
-      expect(sprite('node_check'), findsNWidgets(3));
+      // The two completed lessons; the continue lesson carries no tick.
+      expect(sprite('node_check'), findsNWidgets(2));
       expect(sprite('node_lock'), findsNWidgets(9));
     });
   });

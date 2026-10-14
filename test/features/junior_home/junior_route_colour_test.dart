@@ -189,6 +189,75 @@ void main() {
     );
   });
 
+  testWidgets('the simulator report, traced: lesson 1 is the continue lesson '
+      '— not completed — so the stretch it leaves is white, and it no longer '
+      'draws a tick; every stretch joins node i to node i+1', (tester) async {
+    // The seeded device path ·✓✓✓·✓✓·✓··: lesson 1 the continue lesson.
+    const states = [
+      current,
+      done,
+      done,
+      done,
+      open,
+      done,
+      done,
+      open,
+      done,
+      open,
+      open,
+    ];
+    final palette = await pumpMap(tester, states);
+    final tiles = tester
+        .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
+        .toList();
+    String? glyph(int i) {
+      final images = tester.widgetList<Image>(
+        find.descendant(
+          of: find.byWidget(tiles[i]),
+          matching: find.byType(Image),
+        ),
+      );
+      if (images.isEmpty) return null;
+      return (images.single.image as AssetImage).assetName.split('/').last;
+    }
+
+    // The tick now marks only the completed node; the continue lesson is
+    // the empty active frame (it drew the same tick before the fix) …
+    expect(glyph(0), isNull);
+    expect(glyph(1), 'node_check.png');
+    // … as only node 2 is completed: node 1 is the continue lesson.
+    expect(tiles[0].node.state, current);
+    expect(tiles[1].node.state, done);
+
+    // The stretches as painted, each from the node it leaves.
+    expect(
+      routeRender(tester),
+      paintsColours([
+        for (final st in states) st == done ? palette.accent : palette.surface,
+      ]),
+    );
+
+    // Stretch i starts on node i and ends on node i+1 — no shift by one.
+    final painter =
+        tester.widget<CustomPaint>(route()).painter! as JuniorMapPathPainter;
+    final origin = tester.getTopLeft(route());
+    final scale = tester.getSize(route()).width / JuniorMapGeometry.mapWidth;
+    Offset onScreen(Offset p) => origin + p * scale;
+    for (var i = 0; i + 1 < states.length; i++) {
+      final c = painter.connectors[i];
+      final from = tester.getRect(find.byWidget(tiles[i])).inflate(1);
+      final to = tester.getRect(find.byWidget(tiles[i + 1])).inflate(1);
+      expect(
+        from.contains(onScreen(c.from)),
+        isTrue,
+        reason: 'stretch $i from',
+      );
+      expect(to.contains(onScreen(c.to)), isTrue, reason: 'stretch $i to');
+      expect(c.active, states[i] == done, reason: 'stretch $i colour');
+    }
+    expect(painter.connectors, hasLength(states.length));
+  });
+
   testWidgets('colour opens nothing: whatever the route paints, a lesson '
       'waiting its turn and a locked one stay inert', (tester) async {
     await pumpMap(tester, [done, done, current, open, done, locked]);
