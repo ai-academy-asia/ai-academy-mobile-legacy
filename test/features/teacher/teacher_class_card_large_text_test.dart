@@ -135,20 +135,20 @@ void main() {
         expect(capsule.height, greaterThanOrEqualTo(24));
         expect(badge.height, greaterThanOrEqualTo(32));
         if (scale == 1.0) {
-          // The one 32-tall row it always was: the badge left, the count
-          // right, centred on it.
+          // The one 32-tall row: the badge left, the count right, hung from
+          // the badge's top as the schedule sheet's export draws it (both at
+          // y 508; Issue #404).
           expect(capsule.height, 24);
           expect(badge.height, 32);
-          expect(capsule.center.dy, moreOrLessEquals(badge.center.dy));
+          expect(capsule.top, moreOrLessEquals(badge.top));
           expect(capsule.right, moreOrLessEquals(cardRect.right - 16));
         }
       });
     }
   }
 
-  testWidgets('with no track, the count keeps the right end of a 32-tall row', (
-    tester,
-  ) async {
+  testWidgets('with no track, the count keeps the top-right corner of a '
+      '32-tall row', (tester) async {
     final errors = await pump(
       tester,
       TeacherHomeScreen(
@@ -165,9 +165,9 @@ void main() {
     final cardRect = tester.getRect(find.byType(TeacherClassCard));
     final capsule = tester.getRect(find.byType(CardCapsule));
     expect(capsule.right, moreOrLessEquals(cardRect.right - 16));
-    // Centred in the 32 the badge would have taken: 24 from the card's
-    // 24 inset, (32 - 24) / 2 further down.
-    expect(capsule.top, moreOrLessEquals(cardRect.top + 24 + 4));
+    // At the top of the 32 the badge would have taken, as the count hangs
+    // beside a badge: 24 from the card's top (Issue #404).
+    expect(capsule.top, moreOrLessEquals(cardRect.top + 24));
   });
 
   group('CardCapsule', () {

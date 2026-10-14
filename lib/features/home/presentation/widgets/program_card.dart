@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -24,9 +23,6 @@ const double _paddingH = 16;
 
 /// The badge row, the caption, the progress row: 24 between each group.
 const double _groupGap = 24;
-
-/// The track badge row — see [TrackBadge] and [CardCapsule].
-const double _badgeHeight = trackBadgeHeight;
 
 /// The progress row (the taller of its two lines), the gap under it, the bar.
 const double _progressRowHeight = 20;
@@ -138,13 +134,7 @@ class _Summary extends StatelessWidget {
         // the white blocks cut out of it, which is also what shades the
         // section from near-white at the leading edge to pale blue at the
         // trailing one. Drawn at full strength on the card's white.
-        Positioned.fill(
-          child: SvgPicture.asset(
-            HomeIcons.cardBackground,
-            fit: BoxFit.none,
-            alignment: Alignment.topLeft,
-          ),
-        ),
+        const CardPattern(),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             _paddingH - AppDimens.borderWidth,
@@ -155,18 +145,13 @@ class _Summary extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: _badgeHeight,
-                child: Row(
-                  // The pill hangs from the top of the badge row, as the
-                  // reference draws it, not centred on it.
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (program.uiMode case final uiMode?) TrackBadge(uiMode),
-                    const Spacer(),
-                    _StatusPill(program.status),
-                  ],
-                ),
+              // The family's shared row (Issue #404): the pill hung from the
+              // badge's top, as the reference draws it, and wrapping under it
+              // where larger text leaves no room — no longer a fixed 32 that
+              // clipped the badge.
+              CardBadgeRow(
+                track: program.uiMode,
+                trailing: _StatusPill(program.status),
               ),
               const SizedBox(height: _groupGap),
 

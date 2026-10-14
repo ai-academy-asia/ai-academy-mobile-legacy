@@ -19,6 +19,7 @@ import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../courses/fake_course_repository.dart';
@@ -137,12 +138,14 @@ void main() {
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
       expect(scaffold.backgroundColor, AppColors.surfaceSubtle);
 
-      // One abstract background per card, from the bundled asset.
+      // One abstract background per card: the family's [CardPattern]
+      // (Issue #404), from the bundled asset.
+      expect(find.byType(CardPattern), findsNWidgets(3));
       expect(
         find.byWidgetPredicate(
           (w) =>
               w is SvgPicture &&
-              w.bytesLoader.toString().contains('cohort_background'),
+              w.bytesLoader.toString().contains(CardPattern.asset),
         ),
         findsNWidgets(3),
       );
@@ -239,8 +242,11 @@ void main() {
     ) async {
       await pumpCatalog(tester);
 
-      // Sampled at 1:1: a surface a shade cooler than the white page, and an
-      // outline warmer than the global [AppColors.border] (#E4E6EF).
+      // An outline warmer than the global [AppColors.border] (#E4E6EF), and
+      // a white surface: the Course Catalog export's card is 37% pure white —
+      // the blocks cut out of the pattern — and #F8FAFF only where the
+      // pattern's own tint shades it (Issue #404; it was read as the
+      // surface before).
       final container = tester.widget<Container>(
         find
             .descendant(
@@ -263,7 +269,7 @@ void main() {
                   .first,
             )
             .color,
-        const Color(0xFFF8FAFF),
+        AppColors.surface,
       );
     });
 
@@ -1197,25 +1203,28 @@ void main() {
       // 16 either side: Figma's 329 Fill.
       expect(card.size, const Size(361, 150));
 
-      // Adult badge 88.92 x 32, 24 below the top and 16 in from the edge; its
-      // icon 19.92 square.
-      final badge = inCard(boxAround('Adult'));
+      // The Adult badge, 32 tall, 24 below the top and 16 in from the edge.
+      // Since Issue #404 it is the shared [TrackBadge] every card in the
+      // family draws — 86.85 wide with a 20 icon, the Home reference's
+      // measure — not this frame's own 88.92 with a 19.92 icon: the two
+      // exports disagree by 2pt, and one badge now draws everywhere.
+      final badge = inCard(find.byType(TrackBadge));
+      expect(badge, inCard(boxAround('Adult')));
       expect(badge.size.height, 32);
-      expect(badge.size.width, closeTo(88.92, 0.5));
+      expect(badge.size.width, closeTo(86.85, 0.5));
       expect(badge.topLeft, const Offset(16, 24));
       final icon = inCard(find.byType(SvgPicture).at(1));
-      expect(icon.size.width, closeTo(19.92, 0.01));
-      expect(icon.size.height, closeTo(19.92, 0.01));
+      expect(icon.size, const Size(20, 20));
 
-      // Status pill 87.2 x 24, right-aligned to the same 16 inset, centred on
-      // the badge's row.
+      // Status pill 87.2 x 24, right-aligned to the same 16 inset, hung from
+      // the badge's top — the export draws both from y 148 (Issue #404).
       final pill = inCard(boxAround('Finished'));
       expect(pill.size.height, 24);
       // 87.2, Figma's 83 with the label at [AppTypography.badge]'s 13
       // rather than 12 (Issue #366).
       expect(pill.size.width, closeTo(87.2, 0.5));
       expect(pill.right, closeTo(345, 0.01));
-      expect(pill.center.dy, badge.center.dy);
+      expect(pill.top, badge.top);
       expect(
         tester.widget<Text>(find.text('Finished')).style,
         isA<TextStyle>()
@@ -1263,23 +1272,23 @@ void main() {
       expect(find.text(_enrolledLabel), findsNothing);
     });
 
-    testWidgets('the card\'s background pattern is faint but not faded out', (
-      tester,
-    ) async {
+    testWidgets('the card\'s background pattern is the family\'s, at full '
+        'strength', (tester) async {
       await pumpMine(tester);
       await tester.pumpAndSettle();
 
-      final opacity = tester.widget<Opacity>(
-        find
-            .descendant(
-              of: find.byType(CohortCard).first,
-              matching: find.byType(Opacity),
-            )
-            .first,
+      // The Course Catalog export is pixel-identical to Home's and the
+      // E-Contract's there: the one artwork at 1:1 from the top-left, at
+      // full strength — the asset is already a 12% tint (Issue #404).
+      final card = find.byType(CohortCard).first;
+      expect(
+        find.descendant(of: card, matching: find.byType(CardPattern)),
+        findsOneWidget,
       );
-      // Stronger than Home's 0.5, still nowhere near solid.
-      expect(opacity.opacity, greaterThan(0.5));
-      expect(opacity.opacity, lessThanOrEqualTo(0.85));
+      expect(
+        find.descendant(of: card, matching: find.byType(Opacity)),
+        findsNothing,
+      );
     });
 
     testWidgets('the public list is unchanged: no progress, every cohort', (

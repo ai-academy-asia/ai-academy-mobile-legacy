@@ -142,39 +142,45 @@ class PillButton extends StatelessWidget {
             highlightColor: filled
                 ? context.palette.onPrimary.withAlpha(0x1A)
                 : null,
-            child: Ink(
-              height: height,
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                border: outline == null ? null : Border.all(color: outline),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon case final icon?) ...[
-                    // White on the muted pill too: all three frames that
-                    // draw the attendance action disabled leave its QR glyph
-                    // in the live state's white, barely there on the grey.
-                    Icon(
-                      icon,
-                      size: 20,
-                      color: secondary ? ink : context.palette.onPrimary,
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: AppTypography.buttonLabel.copyWith(
-                        fontSize: labelSize,
-                        fontWeight: labelWeight,
-                        color: ink,
+            // [height] at least, outline included: a larger system text size
+            // grows the pill with its label rather than clipping it
+            // (DESIGN_SYSTEM §3, Issue #404). At the default size it is
+            // exactly [height].
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: height),
+              child: Ink(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  border: outline == null ? null : Border.all(color: outline),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon case final icon?) ...[
+                      // White on the muted pill too: all three frames that
+                      // draw the attendance action disabled leave its QR glyph
+                      // in the live state's white, barely there on the grey.
+                      Icon(
+                        icon,
+                        size: 20,
+                        color: secondary ? ink : context.palette.onPrimary,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 6),
+                    ],
+                    Flexible(
+                      child: Text(
+                        label,
+                        style: AppTypography.buttonLabel.copyWith(
+                          fontSize: labelSize,
+                          fontWeight: labelWeight,
+                          color: ink,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

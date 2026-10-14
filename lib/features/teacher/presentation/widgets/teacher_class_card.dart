@@ -70,8 +70,9 @@ class TeacherClassCard extends StatelessWidget {
       horizontalPadding: 15,
     );
     return Container(
-      // 24 inside the card's edge on every side, the 1pt outline included.
-      padding: const EdgeInsets.fromLTRB(15, 23, 15, 23),
+      // The card family's inset: 16 at the sides, 24 at the top and bottom,
+      // the 1pt outline included (Issue #404).
+      padding: programCardPadding,
       decoration: BoxDecoration(
         color: palette.surface,
         border: Border.all(color: palette.outline),
@@ -80,27 +81,9 @@ class TeacherClassCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The badge left and the count right on one line, at least the
-          // badge's 32 tall; when a larger text size leaves no room for
-          // both, the count wraps under the badge (Issue #351). At the
-          // default size this is the one 32-tall row it always was.
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: trackBadgeHeight),
-            child: SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                alignment: track == null
-                    ? WrapAlignment.end
-                    : WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                // A lone count is centred in the 32, as the row centred it.
-                runAlignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [if (track != null) TrackBadge(track), students],
-              ),
-            ),
-          ),
+          // The badge left and the count right — the family's shared row
+          // (Issues #351, #404).
+          CardBadgeRow(track: track, trailing: students),
           const SizedBox(height: _badgeToCaption),
           Text(
             cohort.name,

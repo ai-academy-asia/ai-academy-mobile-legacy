@@ -5,7 +5,6 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../home/presentation/home_strings.dart';
 import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/student_contract.dart';
 import '../contract_strings.dart';
@@ -104,14 +103,8 @@ class ContractCard extends StatelessWidget {
         borderRadius: radius,
         child: Stack(
           children: [
-            // Home's program-card wash, 1:1 from the top-left.
-            Positioned.fill(
-              child: SvgPicture.asset(
-                HomeIcons.cardBackground,
-                fit: BoxFit.none,
-                alignment: Alignment.topLeft,
-              ),
-            ),
+            // The card family's pattern, 1:1 from the top-left (Issue #404).
+            const CardPattern(),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 _paddingH - AppDimens.borderWidth,

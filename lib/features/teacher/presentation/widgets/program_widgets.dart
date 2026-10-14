@@ -44,7 +44,9 @@ class TeacherProgramCard extends StatelessWidget {
     final title = cohort.course.title.preferred ?? cohort.course.slug;
     final radius = BorderRadius.circular(AppDimens.homeCardRadius);
 
-    return DecoratedBox(
+    // A `Container`, as the family's other cards: its border takes the 1pt
+    // [programCardPadding] gives up, so the content sits 16 / 24 in.
+    return Container(
       decoration: BoxDecoration(
         // Adult's cool wash is the catalogue card's own; Junior draws on
         // white under its orange pattern.
@@ -56,39 +58,20 @@ class TeacherProgramCard extends StatelessWidget {
         borderRadius: radius,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: _patternOpacity,
-                // The catalogue card's pattern asset; for Junior, the same
-                // shapes in the Junior mark's orange — no Junior export
-                // exists (an approximation of the frame, Issue #390).
-                child: junior
-                    ? SvgPicture.asset(
-                        _pattern,
-                        fit: BoxFit.cover,
-                        colorFilter: ColorFilter.mode(
-                          palette.programJuniorTint,
-                          BlendMode.srcIn,
-                        ),
-                      )
-                    : SvgPicture.asset(_pattern, fit: BoxFit.cover),
-              ),
-            ),
+            // Not yet the family's [CardPattern]: `Sign in - 33` draws the
+            // artwork about 1.34× larger than every other card's frame, so
+            // this keeps its own drawing until the designer says which is
+            // meant (Issue #404). For Junior, the same shapes in the Junior
+            // mark's orange — no Junior export exists (Issue #390).
+            _ProgramsPattern(tint: junior ? palette.programJuniorTint : null),
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimens.cardPadding - AppDimens.borderWidth,
-                AppDimens.cardPadding - AppDimens.borderWidth,
-                AppDimens.cardPadding - AppDimens.borderWidth,
-                AppDimens.cardPadding - AppDimens.borderWidth,
-              ),
+              // The family's inset: 16 at the sides, 24 at the top and bottom
+              // (Issue #404; was 16 all round).
+              padding: programCardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (track != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TrackBadge(track),
-                    ),
+                  CardBadgeRow(track: track),
                   const SizedBox(height: 16),
                   // Cohort over course on the left; the count on the right —
                   // the count drops under them where large text leaves no
@@ -162,10 +145,32 @@ class TeacherProgramCard extends StatelessWidget {
   }
 }
 
-const String _pattern = 'assets/icons/cohort_background.svg';
+/// Teacher Programs' block pattern, as before Issue #404: the catalogue
+/// asset covering the card at 80% — on the Adult card's `surfaceTinted` —
+/// tinted for Junior. Kept apart from the family's [CardPattern] pending a
+/// design decision (`Sign in - 33` scales the artwork).
+class _ProgramsPattern extends StatelessWidget {
+  const _ProgramsPattern({this.tint});
 
-/// How strongly the pattern shows — the catalogue card's own.
-const double _patternOpacity = 0.8;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = this.tint;
+    return Positioned.fill(
+      child: Opacity(
+        opacity: 0.8,
+        child: SvgPicture.asset(
+          'assets/icons/cohort_background.svg',
+          fit: BoxFit.cover,
+          colorFilter: tint == null
+              ? null
+              : ColorFilter.mode(tint, BlendMode.srcIn),
+        ),
+      ),
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Page header (`Sign in - 34`, `35`)
