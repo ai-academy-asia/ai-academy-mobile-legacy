@@ -249,8 +249,10 @@ class _NextLessonSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: _lessonHeadingHeight,
+          // 24 at least: larger text wraps the heading and grows the row
+          // rather than cutting it (DESIGN_SYSTEM §3, Issue #406).
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _lessonHeadingHeight),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

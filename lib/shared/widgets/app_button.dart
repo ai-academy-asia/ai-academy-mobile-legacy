@@ -77,28 +77,40 @@ class AppButton extends StatelessWidget {
           // `Colors.white24` / `white10`, as tints of [AppPalette.onPrimary].
           splashColor: isFilled ? palette.onPrimary.withAlpha(0x3D) : null,
           highlightColor: isFilled ? palette.onPrimary.withAlpha(0x1A) : null,
-          child: Ink(
-            height: AppDimens.buttonHeight,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
-              border: borderColor == null
-                  ? null
-                  : Border.all(color: borderColor, width: AppDimens.borderWidth),
+          // 44 at least, the outline included: larger text grows the button
+          // rather than cutting its label (DESIGN_SYSTEM §3, Issue #406). At
+          // the default size it is exactly 44.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: AppDimens.buttonHeight,
             ),
-            child: Center(
-              child: loading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(foreground),
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppDimens.buttonRadius),
+                border: borderColor == null
+                    ? null
+                    : Border.all(
+                        color: borderColor,
+                        width: AppDimens.borderWidth,
                       ),
-                    )
-                  : Text(
-                      label,
-                      style: AppTypography.buttonLabel.copyWith(color: foreground),
-                    ),
+              ),
+              child: Center(
+                child: loading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(foreground),
+                        ),
+                      )
+                    : Text(
+                        label,
+                        style: AppTypography.buttonLabel.copyWith(
+                          color: foreground,
+                        ),
+                      ),
+              ),
             ),
           ),
         ),

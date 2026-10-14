@@ -90,8 +90,10 @@ class ProfileCaption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _captionBand,
+    // [_captionBand] at least: larger text grows the band rather than
+    // cutting the caption (DESIGN_SYSTEM §3, Issue #406).
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _captionBand),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPadding,
@@ -178,8 +180,10 @@ class ProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final row = SizedBox(
-      height: height,
+    // [height] at least: larger text grows the row rather than cutting its
+    // label (DESIGN_SYSTEM §3, Issue #406).
+    final row = ConstrainedBox(
+      constraints: BoxConstraints(minHeight: height),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.screenPadding,
@@ -242,7 +246,8 @@ class ProfileLanguageToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final onChanged = this.onChanged;
     return Container(
-      height: _toggleHeight,
+      // [_toggleHeight] at least, its segments with it (Issue #406).
+      constraints: const BoxConstraints(minHeight: _toggleHeight),
       padding: const EdgeInsets.all(_toggleInset),
       decoration: BoxDecoration(
         color: context.palette.accent,
@@ -289,6 +294,11 @@ class _Segment extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: selected ? _capsuleWidth : _otherSegmentWidth,
+          // The toggle's inner height at least — exactly it at the default
+          // size, taller with larger text (Issue #406).
+          constraints: const BoxConstraints(
+            minHeight: _toggleHeight - 2 * _toggleInset,
+          ),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? context.palette.surface : Colors.transparent,
@@ -390,8 +400,12 @@ class ProfileLogOutButton extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           customBorder: const RoundedRectangleBorder(borderRadius: radius),
-          child: SizedBox(
-            height: AppDimens.buttonHeight,
+          // A primary button's 44 at least: larger text grows it rather
+          // than cutting "Log out" (DESIGN_SYSTEM §3, Issue #406).
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: AppDimens.buttonHeight,
+            ),
             child: Center(
               child: Text(
                 ProfileStrings.logOut,

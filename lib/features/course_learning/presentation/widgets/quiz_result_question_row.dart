@@ -26,16 +26,20 @@ class QuizResultQuestionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return ConstrainedBox(
       // 55 here plus the 1pt divider between rows is the reference's 56
-      // pitch; at 56 the divider pushed each row a pixel further down.
-      height: 55,
+      // pitch; at 56 the divider pushed each row a pixel further down. A
+      // minimum: larger text grows the row rather than cutting it
+      // (DESIGN_SYSTEM §3, Issue #406).
+      constraints: const BoxConstraints(minHeight: 55),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            SizedBox(
-              width: 20,
+            // 20 wide at least: "10" and up keep one line at larger text
+            // sizes rather than breaking into "1" over "0" (Issue #406).
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 20),
               child: Text(
                 '$number',
                 style: AppTypography.supporting.copyWith(
