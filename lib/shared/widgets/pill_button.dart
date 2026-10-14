@@ -127,6 +127,7 @@ class PillButton extends StatelessWidget {
       button: true,
       enabled: enabled,
       label: label,
+      onTap: onPressed,
       excludeSemantics: true,
       child: DecoratedBox(
         decoration: BoxDecoration(borderRadius: radius, boxShadow: [depth]),

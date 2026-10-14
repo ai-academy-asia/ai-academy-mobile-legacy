@@ -569,6 +569,7 @@ class _Segment extends StatelessWidget {
       button: true,
       selected: selected,
       label: label,
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
@@ -619,6 +620,7 @@ class _Switch extends StatelessWidget {
       toggled: value,
       enabled: onChanged == null ? false : null,
       label: semanticLabel,
+      onTap: onChanged == null ? null : () => onChanged(!value),
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onChanged == null ? null : () => onChanged(!value),
@@ -665,6 +667,7 @@ class _LogOutButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: JuniorProfileStrings.logOut,
+      onTap: onPressed,
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,

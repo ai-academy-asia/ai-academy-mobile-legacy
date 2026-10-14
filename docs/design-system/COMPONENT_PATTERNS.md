@@ -172,5 +172,6 @@ Follow these when adding controls — several tests depend on them:
 
 - **Wrap non-standard tappables in `Semantics(button: true, label: …)`.** Every custom circular control and pill does this.
 - **Selected state** on tab/option rows uses `Semantics(selected: …)`.
+- **`excludeSemantics: true` drops the child's tap with its semantics** — give that `Semantics` its own `onTap:`, the same callback the child runs (null while the control is off), or a screen reader announces a button or switch it cannot activate (Issues #359, #402). `test/shared/semantics_tap_test.dart` fails for any `button: true` / `toggled:` node that excludes its children without declaring `onTap:`.
 - **Caveat worth knowing:** when a `Semantics(label:)` wraps a widget that *also* contains a `Text` of the same string, the labels merge and `find.bySemanticsLabel('X')` will match neither exactly. Icon-only controls are safe; for text buttons, test with `find.text(...)` instead.
 - Minimum tap targets in practice: 40 × 40 for circular controls, 44 for primary buttons.

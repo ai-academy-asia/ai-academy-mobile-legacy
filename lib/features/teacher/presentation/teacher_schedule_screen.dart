@@ -277,6 +277,7 @@ class _Header extends StatelessWidget {
     label:
         '${TeacherScheduleStrings.pickDate}, '
         '${TeacherScheduleStrings.headerDate(day)}',
+    onTap: onPickDate,
     excludeSemantics: true,
     child: GestureDetector(
       onTap: onPickDate,
@@ -358,6 +359,7 @@ class _Header extends StatelessWidget {
                 Semantics(
                   button: true,
                   label: TeacherScheduleStrings.notifications,
+                  onTap: () => NotificationScreen.open(context),
                   excludeSemantics: true,
                   child: GestureDetector(
                     onTap: () => NotificationScreen.open(context),
@@ -400,6 +402,7 @@ class _DayStep extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
@@ -536,6 +539,7 @@ class _DayCell extends StatelessWidget {
       button: true,
       selected: selected,
       label: '$weekday ${day.day}',
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,

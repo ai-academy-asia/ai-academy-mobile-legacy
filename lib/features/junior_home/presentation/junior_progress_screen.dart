@@ -336,6 +336,7 @@ class _PayButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: JuniorProgressStrings.payAction,
+      onTap: onPressed,
       excludeSemantics: true,
       child: Material(
         color: palette.accent,

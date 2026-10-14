@@ -680,6 +680,7 @@ class AttendanceStatusPicker extends StatelessWidget {
                 selected: status == current,
                 button: true,
                 label: TeacherAttendanceStrings.statusLabel(status),
+                onTap: () => Navigator.of(context).pop(status),
                 excludeSemantics: true,
                 child: InkWell(
                   onTap: () => Navigator.of(context).pop(status),

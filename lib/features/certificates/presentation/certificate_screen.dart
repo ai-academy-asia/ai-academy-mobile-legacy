@@ -343,6 +343,7 @@ class _DownloadButton extends StatelessWidget {
       button: true,
       enabled: onPressed != null && !downloading,
       label: CertificateStrings.download,
+      onTap: downloading ? null : onPressed,
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,
