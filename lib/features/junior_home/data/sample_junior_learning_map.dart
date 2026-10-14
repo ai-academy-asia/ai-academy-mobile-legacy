@@ -31,15 +31,17 @@ JuniorLearningMap sampleJuniorLearningMap() => JuniorLearningMap(
     percentComplete: 40,
   ),
   attendanceRecorded: false,
+  // Lesson 3 is the one to continue with: LOCKED, and the check-in node
+  // while its class is live (Issue #417).
+  continueLessonId: 3,
   nodes: [
     for (var id = 1; id <= 12; id++)
       JuniorMapNode(
         id: id,
-        state: id <= 2
-            ? JuniorNodeState.completed
-            : id == 3
-            ? JuniorNodeState.current
-            : JuniorNodeState.locked,
+        state: id <= 2 ? JuniorNodeState.completed : JuniorNodeState.locked,
+        // Lesson 3's class has come: LOCKED by the four-state rule, not by
+        // the server.
+        locked: id > 3,
       ),
   ],
   certificate: const JuniorCertificate(

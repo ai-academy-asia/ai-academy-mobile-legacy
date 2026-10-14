@@ -172,14 +172,15 @@ void main() {
       expect(map.nodes.map((n) => n.state), [
         JuniorNodeState.completed,
         JuniorNodeState.locked,
-        // Neither flag set: open and unfinished — not the server's continue
-        // lesson (none was named), so it waits its turn.
-        JuniorNodeState.open,
+        // Neither flag set and no note, no attendance: LOCKED by the four
+        // states (Issue #417) — though the server leaves it unlocked.
+        JuniorNodeState.locked,
       ]);
+      expect(map.nodes.map((n) => n.locked), [false, true, false]);
     });
 
-    group('availability: unlocked, and done or the continue lesson '
-        '(Issue #410)', () {
+    group('availability: only LESSON_COMPLETED and ATTENDANCE_COMPLETED '
+        'open (Issue #417)', () {
       // Module 1's class date has come: its lessons are open. Module 2's
       // has not: the server locks it, every lesson alike.
       final path = samplePath(
@@ -203,15 +204,15 @@ void main() {
         ],
       };
 
-      test('states and taps: done and the continue lesson open; a lesson '
-          'whose date has come but whose turn has not waits; server-locked '
-          'ones never open', () {
+      test('states and taps: only the note-completed lesson opens — the '
+          'continue lesson is LOCKED like the others; server-locked ones '
+          'never open', () {
         final map = mapFrom(path, lessons: lessons);
 
         expect(map.nodes.map((n) => n.state), [
           JuniorNodeState.completed,
-          JuniorNodeState.current,
-          JuniorNodeState.open,
+          JuniorNodeState.locked,
+          JuniorNodeState.locked,
           JuniorNodeState.locked,
           JuniorNodeState.locked,
         ]);
@@ -224,22 +225,36 @@ void main() {
         ]);
         expect(map.nodes.map((n) => n.opens), [
           true,
-          true,
+          false,
           false,
           false,
           false,
         ]);
       });
 
-      test('the continue lesson is picked out — the one unfinished lesson '
-          'that opens, and the check-in node', () {
+      test('an attended lesson (backend-confirmed; a controlled fixture — '
+          'the API sends none yet) is ATTENDANCE_COMPLETED and opens', () {
+        final map = juniorMapFrom(
+          path,
+          lessons: lessons,
+          completedByNote: {11},
+          attendedLessonIds: {12},
+        );
+
+        expect(map.nodes.map((n) => n.state).take(3), [
+          JuniorNodeState.completed,
+          JuniorNodeState.attendanceCompleted,
+          JuniorNodeState.locked,
+        ]);
+        expect(map.nodes.map((n) => n.opens).take(3), [true, true, false]);
+      });
+
+      test('the continue lesson is the check-in node — and stays LOCKED', () {
         final map = mapFrom(path, lessons: lessons);
 
         expect(map.checkInNode?.id, 12);
-        expect(
-          map.nodes.where((n) => n.state == JuniorNodeState.current),
-          hasLength(1),
-        );
+        expect(map.checkInNode?.state, JuniorNodeState.locked);
+        expect(map.checkInNode?.opens, isFalse);
       });
 
       test('without a usable continue target, no unfinished lesson is '
@@ -255,11 +270,7 @@ void main() {
             ),
             lessons: lessons,
           );
-          expect(
-            map.nodes.where((n) => n.state == JuniorNodeState.current),
-            isEmpty,
-            reason: '$continueId',
-          );
+          expect(map.checkInNode, isNull, reason: '$continueId');
           // Only the completed one opens.
           expect(map.nodes.where((n) => n.opens).map((n) => n.id), [
             11,
@@ -673,7 +684,8 @@ void main() {
         JuniorNodeState.completed,
         JuniorNodeState.completed,
         JuniorNodeState.completed,
-        JuniorNodeState.current,
+        // The continue lesson: no note, no attendance — LOCKED (#417).
+        JuniorNodeState.locked,
         JuniorNodeState.locked,
         JuniorNodeState.locked,
       ]);

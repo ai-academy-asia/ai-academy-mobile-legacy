@@ -165,16 +165,21 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 ///
 /// [lessons] are each module's lessons by module id — one node per lesson,
 /// in course order: modules by `order`, then their lessons by `order`
-/// (Issue #410), the resume lesson picked out ([withResumeLesson]). A
-/// module with none listed adds no node. A lesson is completed when its id
-/// is in [completedByNote] — it has a saved, non-empty note (Issue #415) —
-/// never by the server's own `completed` flag. [nextLesson] is the
+/// (Issue #410). A module with none listed adds no node. Each lesson's state
+/// is one of the four (Issue #417), from [lessonPathStateFor]: completed
+/// when its id is in [completedByNote] — a saved, non-empty note (Issue
+/// #415), never the server's own `completed` flag — ATTENDANCE_COMPLETED
+/// when its id is in [attendedLessonIds] (backend-confirmed attendance; the
+/// backend sends none per lesson yet, #414, so [ApiJuniorHomeRepository]
+/// passes none), otherwise LOCKED.
+/// The server's lock is kept on every node, so a locked lesson never opens. [nextLesson] is the
 /// dashboard's, from the cohort's schedule, and [attendanceRecorded] today's
 /// record — what the check-in node reads (Issues #202, #410).
 JuniorLearningMap juniorMapFrom(
   CourseLearningPath path, {
   Map<int, List<Lesson>> lessons = const {},
   Set<int> completedByNote = const {},
+  Set<int> attendedLessonIds = const {},
   NextLesson? nextLesson,
   bool? attendanceRecorded,
 }) => JuniorLearningMap(
@@ -188,8 +193,8 @@ JuniorLearningMap juniorMapFrom(
     percentComplete: path.percentComplete,
   ),
   // Sorted on `order` rather than trusting either array, so the route's
-  // order is the course's; then the resume lesson picked out (Issue #410).
-  nodes: withResumeLesson(continueLessonId: path.continueLessonId, [
+  // order is the course's.
+  nodes: [
     for (final module
         in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
       for (final lesson
@@ -197,17 +202,25 @@ JuniorLearningMap juniorMapFrom(
             ..sort((a, b) => a.order.compareTo(b.order)))
         JuniorMapNode(
           id: lesson.id,
-          state: _stateFor(
-            lesson,
-            inLockedModule: module.locked,
-            completed: completedByNote.contains(lesson.id),
+          state: juniorNodeStateOf(
+            lessonPathStateFor(
+              hasSavedNote: completedByNote.contains(lesson.id),
+              // Backend-confirmed attendance per lesson. The backend sends
+              // none yet (#414), so the repository passes none: unknown,
+              // never success.
+              attendanceConfirmed: attendedLessonIds.contains(lesson.id)
+                  ? true
+                  : null,
+              classDateArrived: null,
+              checkInActive: null,
+            ),
           ),
           locked: lesson.locked || module.locked,
           title: lesson.title,
           moduleId: module.id,
           moduleOrder: module.order,
         ),
-  ]),
+  ],
   certificate: JuniorCertificate(
     track: JuniorHomeContent.track,
     // The one course name the contract carries. The Figma frame happens to
@@ -220,23 +233,6 @@ JuniorLearningMap juniorMapFrom(
   continueModuleId: path.continueModuleId,
   continueLessonId: path.continueLessonId,
 );
-
-/// A lesson's look: [completed] — a saved note (Issue #415) — wins the look,
-/// while whether it opens is [JuniorMapNode.locked]. Otherwise the server's
-/// lock: a lesson in a locked module is locked — the backend lists such
-/// lessons `locked` already (a lesson's lock *is* its module's), so this
-/// only keeps a tap from ever reaching `409 lesson_locked`. "Open and
-/// unfinished" is what is left — see [JuniorNodeState.open]. The server's
-/// own `completed` flag is not read: completion is the note.
-JuniorNodeState _stateFor(
-  Lesson lesson, {
-  required bool inLockedModule,
-  required bool completed,
-}) {
-  if (completed) return JuniorNodeState.completed;
-  if (lesson.locked || inLockedModule) return JuniorNodeState.locked;
-  return JuniorNodeState.open;
-}
 
 /// The contract's three `certificate.status` values. Anything else — or
 /// nothing — is null rather than a guessed fourth state.

@@ -81,6 +81,7 @@ class CourseModuleListScreen extends StatefulWidget {
     required this.courseSlug,
     super.key,
     this.repository,
+    this.juniorFourStateRule = false,
   });
 
   /// `Course.slug` — which course's learning path to load.
@@ -90,6 +91,13 @@ class CourseModuleListScreen extends StatefulWidget {
   /// `GET /me/courses/{course_slug}/learning` against the signed-in student's
   /// token. Injected in tests.
   final CourseLearningRepository? repository;
+
+  /// True when reached from Junior Home: the Junior four-state rule (Issue
+  /// #417) — only a lesson completed by its saved note (or, once the backend
+  /// sends it, attended) opens; never the lesson to continue with on its
+  /// own, so "Continue learning" is inert. False — every Adult entry —
+  /// keeps the class-date lock and the continue lesson.
+  final bool juniorFourStateRule;
 
   @override
   State<CourseModuleListScreen> createState() => _CourseModuleListScreenState();
@@ -184,7 +192,11 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
     if (path == null) {
       return const _LoadingView();
     }
-    return _CourseLearningBody(path: path, repository: _repository);
+    return _CourseLearningBody(
+      path: path,
+      repository: _repository,
+      juniorFourStateRule: widget.juniorFourStateRule,
+    );
   }
 }
 
@@ -312,10 +324,15 @@ void _openLessonList(
 }
 
 class _CourseLearningBody extends StatelessWidget {
-  const _CourseLearningBody({required this.path, required this.repository});
+  const _CourseLearningBody({
+    required this.path,
+    required this.repository,
+    required this.juniorFourStateRule,
+  });
 
   final CourseLearningPath path;
   final CourseLearningRepository repository;
+  final bool juniorFourStateRule;
 
   @override
   Widget build(BuildContext context) {
@@ -335,15 +352,22 @@ class _CourseLearningBody extends StatelessWidget {
             path: path,
             repository: repository,
             buttonWidth: _heroCtaWidth,
+            continueOpens: !juniorFourStateRule,
           ),
           const SizedBox(height: 48),
           _ModuleList(
             modules: path.modules,
             repository: repository,
-            resumeLessonId: path.continueLessonId,
+            // Under the Junior rule the continue lesson opens nothing on
+            // its own (Issue #417).
+            resumeLessonId: juniorFourStateRule ? null : path.continueLessonId,
           ),
           const SizedBox(height: 32),
-          _CertificationSection(path: path, repository: repository),
+          _CertificationSection(
+            path: path,
+            repository: repository,
+            continueOpens: !juniorFourStateRule,
+          ),
         ],
       ),
     );
@@ -440,6 +464,7 @@ class _ProgressCtaRow extends StatelessWidget {
     required this.path,
     required this.repository,
     required this.buttonWidth,
+    required this.continueOpens,
   });
 
   /// The whole path, not just its percentage: the button beside the bar needs
@@ -453,9 +478,13 @@ class _ProgressCtaRow extends StatelessWidget {
   /// size between them, not the gaps.
   final double buttonWidth;
 
+  /// False under the Junior four-state rule: the continue lesson opens
+  /// nothing on its own, so the button is drawn but inert (Issue #417).
+  final bool continueOpens;
+
   @override
   Widget build(BuildContext context) {
-    final lessonId = _continueLessonId(path);
+    final lessonId = continueOpens ? _continueLessonId(path) : null;
     return CourseProgressCtaRow(
       percent: path.percentComplete,
       buttonWidth: buttonWidth,
@@ -550,10 +579,15 @@ class _ModuleConnector extends StatelessWidget {
 /// width as everything above it, with its own padding standing in for the
 /// reference's edge-to-edge bleed.
 class _CertificationSection extends StatelessWidget {
-  const _CertificationSection({required this.path, required this.repository});
+  const _CertificationSection({
+    required this.path,
+    required this.repository,
+    required this.continueOpens,
+  });
 
   final CourseLearningPath path;
   final CourseLearningRepository repository;
+  final bool continueOpens;
 
   @override
   Widget build(BuildContext context) {
@@ -613,6 +647,7 @@ class _CertificationSection extends StatelessWidget {
             path: path,
             repository: repository,
             buttonWidth: _certificationCtaWidth,
+            continueOpens: continueOpens,
           ),
         ],
       ),

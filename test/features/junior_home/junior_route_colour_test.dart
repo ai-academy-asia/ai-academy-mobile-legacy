@@ -27,8 +27,10 @@ void main() {
   setUpAll(loadAppFonts);
 
   const done = JuniorNodeState.completed;
-  const current = JuniorNodeState.current;
-  const open = JuniorNodeState.open;
+  // The lesson to continue with and one waiting its turn are both LOCKED
+  // under the four-state rule (Issue #417); only colour is tested here.
+  const current = JuniorNodeState.locked;
+  const open = JuniorNodeState.locked;
   const locked = JuniorNodeState.locked;
 
   JuniorLearningMap mapOf(List<JuniorNodeState> states) {
@@ -185,13 +187,14 @@ void main() {
       tester
           .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
           .map((t) => t.onTap != null),
-      [true, false, true],
+      // The continue lesson (third) opens nothing on its own (#417).
+      [true, false, false],
     );
   });
 
   testWidgets('the simulator report, traced: lesson 1 is the continue lesson '
-      '— not completed — so the stretch it leaves is white, and it no longer '
-      'draws a tick; every stretch joins node i to node i+1', (tester) async {
+      '— not completed — so the stretch it leaves is white, and it is drawn '
+      'LOCKED; every stretch joins node i to node i+1', (tester) async {
     // The seeded device path ·✓✓✓·✓✓·✓··: lesson 1 the continue lesson.
     const states = [
       current,
@@ -221,9 +224,10 @@ void main() {
       return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    // The tick now marks only the completed node; the continue lesson is
-    // the empty active frame (it drew the same tick before the fix) …
-    expect(glyph(0), isNull);
+    // The tick marks only the completed node; the continue lesson outside
+    // check-in is LOCKED (Issue #417) …
+    // Outside check-in the continue lesson is LOCKED: the padlock (#417).
+    expect(glyph(0), 'node_lock.png');
     expect(glyph(1), 'node_check.png');
     // … as only node 2 is completed: node 1 is the continue lesson.
     expect(tiles[0].node.state, current);
@@ -268,7 +272,8 @@ void main() {
       ))
         t.onTap != null,
     ];
-    expect(taps, [true, true, true, false, true, false]);
+    // Only completed lessons open (#417); the continue lesson does not.
+    expect(taps, [true, true, false, false, true, false]);
   });
 
   group('scenery never colours the route', () {

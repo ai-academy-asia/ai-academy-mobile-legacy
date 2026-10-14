@@ -350,4 +350,64 @@ void main() {
       expect(learning.exerciseCalls, [204]);
     });
   });
+
+  group('the Junior four-state rule on the shared screens (Issue #417)', () {
+    // Module 2 is open; its lesson 1 has a saved note, lesson 2 is the
+    // server's continue lesson with none.
+    FakeCourseLearningRepository learning() => FakeCourseLearningRepository(
+      exercise: sampleExercise(),
+      path: samplePath(continueModuleId: 2, continueLessonId: 2),
+      lessons: sampleLessons(),
+      notesByLesson: {1: sampleNote()},
+    );
+    Widget detail(
+      FakeCourseLearningRepository repository, {
+      required bool junior,
+    }) => CourseModuleListScreen(
+      courseSlug: 'how-ai-works',
+      repository: repository,
+      juniorFourStateRule: junior,
+    );
+
+    testWidgets('Junior: "Continue learning" opens nothing on its own', (
+      tester,
+    ) async {
+      final repository = learning();
+      await pumpHome(tester, detail(repository, junior: true));
+
+      for (final button in find.text('Continue learning').evaluate()) {
+        await tester.tap(find.byWidget(button.widget), warnIfMissed: false);
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(repository.exerciseCalls, isEmpty);
+    });
+
+    testWidgets('Junior: the Lesson List opens the note-completed lesson, '
+        'never the continue lesson on its own', (tester) async {
+      final repository = learning();
+      await pumpHome(tester, detail(repository, junior: true));
+      await tester.tap(find.text('Language Model Training'));
+      await tester.pumpAndSettle();
+
+      final rows = {
+        for (final item in tester.widgetList<LessonListItem>(
+          find.byType(LessonListItem),
+        ))
+          item.lesson.id: item.onTap != null,
+      };
+      expect(rows, {1: true, 2: false, 3: false});
+    });
+
+    testWidgets('Adult: unchanged — the continue lesson opens', (tester) async {
+      final repository = learning();
+      await pumpHome(tester, detail(repository, junior: false));
+
+      await tester.tap(find.text('Continue learning').first);
+      await tester.pumpAndSettle();
+
+      expect(repository.exerciseCalls, [2]);
+    });
+  });
 }

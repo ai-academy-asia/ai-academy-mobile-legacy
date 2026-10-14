@@ -11,24 +11,23 @@ import 'junior_map_geometry.dart';
 /// radius and border never change, which is what makes the path read as one
 /// family in the reference.
 ///
-/// The tick, the scan mark and the padlock are the design's exported
-/// artwork — none has a match in the bundled Phosphor set (Issue #410): a
-/// completed lesson the tick on the pale blue face — **a tick always means
-/// completed**; **the lesson to continue with** the active frame (the white
-/// face in the accent outline and band) with no glyph, as it is not done
-/// yet — the one unfinished lesson that opens; every
-/// other unfinished lesson, which cannot be opened, the grey padlock —
-/// whether its class date has not come ([JuniorNodeState.locked]) or it has
-/// but its turn has not ([JuniorNodeState.open]): a node that does not open
-/// never looks as if it might. No other glyph is ever drawn on the path;
-/// the screen-reader label still tells the two apart.
+/// **Exactly four looks** (Issues #415, #417), one per [JuniorNodeState],
+/// each from the design's exported artwork — none has a match in the
+/// bundled Phosphor set:
+///
+/// * LESSON_COMPLETED — the blue tick on the pale-blue face, in the accent
+///   outline and band. A tick in blue always means completed.
+/// * ATTENDANCE_COMPLETED — the same geometry and tick, every colour grey:
+///   the padlock's face, outline and ink (`juniorMutedGlyph`).
+/// * CHECK_IN_REQUIRED — the QR mark on the white face, in the accent frame.
+/// * LOCKED — the grey padlock on the grey face.
 ///
 /// **The check-in node** (Issues #202, #410): while check-in is actionable
 /// ([checkIn] true) the lesson draws as the updated reference's check-in
 /// stop — the QR mark on the white face, in the accent frame — and pulses
 /// gently, unless the platform asks for reduced motion. The pulse only
 /// scales what is painted: the node's place and its tap target never move.
-/// When check-in is not actionable the node is simply its lesson.
+/// When check-in is not actionable the node is drawn by its own state.
 class JuniorMapNodeTile extends StatefulWidget {
   const JuniorMapNodeTile({
     required this.node,
@@ -110,19 +109,15 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         ? _NodeStyle.checkIn(palette)
         : _NodeStyle.of(node.state, palette);
     final glyphSize = JuniorMapGeometry.nodeGlyph * scale;
-    final glyph = switch (style.glyph) {
-      final String sprite => Image.asset(
-        JuniorMapGeometry.sprite(sprite),
-        width: glyphSize,
-        height: glyphSize,
-        filterQuality: FilterQuality.high,
-        // The attendance tick: the completed node's own sprite in grey.
-        color: style.tint,
-        colorBlendMode: style.tint == null ? null : BlendMode.srcIn,
-      ),
-      // The continue lesson: the frame alone carries it.
-      null => const SizedBox.shrink(),
-    };
+    final glyph = Image.asset(
+      JuniorMapGeometry.sprite(style.glyph),
+      width: glyphSize,
+      height: glyphSize,
+      filterQuality: FilterQuality.high,
+      // The attendance tick: the completed node's own sprite in grey.
+      color: style.tint,
+      colorBlendMode: style.tint == null ? null : BlendMode.srcIn,
+    );
 
     Widget tile = Container(
       decoration: BoxDecoration(
@@ -185,9 +180,8 @@ class _NodeStyle {
   final Color fill;
   final Color border;
 
-  /// The exported sprite's name; null for the continue lesson's empty
-  /// active frame.
-  final String? glyph;
+  /// The exported sprite's name — every node draws one.
+  final String glyph;
 
   /// A colour the sprite is drawn in instead of its own, or null to keep
   /// its exported colours.
@@ -201,10 +195,10 @@ class _NodeStyle {
     glyph: 'node_current',
   );
 
-  /// Completed: the tick on the course card's pale blue (`juniorCard`) in
-  /// the accent. Current: the active frame — a `surface` node in the
-  /// accent — with no tick: it is not completed. Open and locked — both
-  /// cannot be opened: the padlock on the map's not-yet-reached grey
+  /// LESSON_COMPLETED: the tick on the course card's pale blue
+  /// (`juniorCard`) in the accent. ATTENDANCE_COMPLETED: the same tick and
+  /// geometry, every colour grey. CHECK_IN_REQUIRED: [checkIn]'s QR in the
+  /// accent frame. LOCKED: the padlock on the map's not-yet-reached grey
   /// (`juniorMutedFill`) in the `outline`.
   static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
       switch (state) {
@@ -221,12 +215,8 @@ class _NodeStyle {
           glyph: 'node_check',
           tint: palette.juniorMutedGlyph,
         ),
-        JuniorNodeState.current => _NodeStyle(
-          fill: palette.surface,
-          border: palette.accent,
-          glyph: null,
-        ),
-        JuniorNodeState.open || JuniorNodeState.locked => _NodeStyle(
+        JuniorNodeState.checkInRequired => checkIn(palette),
+        JuniorNodeState.locked => _NodeStyle(
           fill: palette.juniorMutedFill,
           border: palette.outline,
           glyph: 'node_lock',

@@ -99,12 +99,12 @@ void main() {
       expect(find.byType(JuniorMapNodeTile), findsNWidgets(12));
     });
 
-    testWidgets('two completed, one open, nine locked', (tester) async {
+    testWidgets('two completed, ten LOCKED — the lesson to continue with '
+        'among them (Issue #417)', (tester) async {
       await pumpScreen(tester);
 
       expect(tilesIn(tester, JuniorNodeState.completed).length, 2);
-      expect(tilesIn(tester, JuniorNodeState.current).length, 1);
-      expect(tilesIn(tester, JuniorNodeState.locked).length, 9);
+      expect(tilesIn(tester, JuniorNodeState.locked).length, 10);
     });
 
     testWidgets('each node carries its lesson and state for a screen reader', (
@@ -113,8 +113,8 @@ void main() {
       await pumpScreen(tester);
 
       expect(find.bySemanticsLabel('Lesson 1, completed'), findsOneWidget);
-      // With no lesson under way the check-in node is simply its lesson.
-      expect(find.bySemanticsLabel('Lesson 3, current lesson'), findsOneWidget);
+      // With no lesson under way the lesson to continue with is LOCKED.
+      expect(find.bySemanticsLabel('Lesson 3, locked'), findsOneWidget);
       expect(
         find.bySemanticsLabel('Lesson 12, locked', skipOffstage: false),
         findsOneWidget,
@@ -356,9 +356,12 @@ void main() {
   });
 
   group('roadmap and check-in (Issues #202, #410)', () {
+    /// [continueAt] (1-based) is the lesson to continue with: LOCKED, but
+    /// its class date has come, so the server leaves it unlocked.
     JuniorLearningMap mapOf(
       List<JuniorNodeState> states, {
       bool? attendanceRecorded = false,
+      int? continueAt,
     }) {
       final sample = sampleJuniorLearningMap();
       return JuniorLearningMap(
@@ -366,9 +369,14 @@ void main() {
         certificate: sample.certificate,
         nextLesson: sample.nextLesson,
         attendanceRecorded: attendanceRecorded,
+        continueLessonId: continueAt,
         nodes: [
           for (final (i, state) in states.indexed)
-            JuniorMapNode(id: i + 1, state: state),
+            JuniorMapNode(
+              id: i + 1,
+              state: state,
+              locked: state == JuniorNodeState.locked && i + 1 != continueAt,
+            ),
         ],
       );
     }
@@ -412,9 +420,9 @@ void main() {
         tester,
         map: mapOf([
           JuniorNodeState.completed,
-          JuniorNodeState.current,
+          JuniorNodeState.locked,
           for (var i = 0; i < 28; i++) JuniorNodeState.locked,
-        ]),
+        ], continueAt: 2),
       );
 
       expect(find.byType(JuniorMapNodeTile), findsNWidgets(30));
@@ -470,11 +478,15 @@ void main() {
         'or not, and never the scanner', (tester) async {
       await pumpScreen(
         tester,
-        map: mapOf([
-          JuniorNodeState.completed,
-          JuniorNodeState.current,
-          JuniorNodeState.locked,
-        ], attendanceRecorded: true),
+        map: mapOf(
+          [
+            JuniorNodeState.completed,
+            JuniorNodeState.locked,
+            JuniorNodeState.locked,
+          ],
+          attendanceRecorded: true,
+          continueAt: 2,
+        ),
         now: sampleLessonTime,
       );
 
@@ -490,7 +502,8 @@ void main() {
       await pumpScreen(tester, now: sampleLessonTime);
 
       expect(tiles(tester)[2].checkIn, isTrue);
-      expect(tiles(tester)[2].node.state, JuniorNodeState.current);
+      // Its stored state stays LOCKED; check-in only changes how it is drawn.
+      expect(tiles(tester)[2].node.state, JuniorNodeState.locked);
       expect(tilesIn(tester, JuniorNodeState.completed).length, 2);
     });
   });

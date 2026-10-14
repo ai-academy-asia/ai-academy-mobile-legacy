@@ -43,11 +43,12 @@ import 'junior_map_theme.dart';
 /// course has; the route joins them and ends at the certificate card. See
 /// `JuniorMapGeometry.route`.
 ///
-/// **Taps** (Issue #410): the check-in node, while check-in is actionable at
-/// [now] ([JuniorLearningMap.checkInOpenAt]), calls [onCheckIn]; every other
-/// lesson that opens ([JuniorMapNode.opens]: unlocked, and completed or the
-/// lesson to continue with) calls [onLessonTap] with its lesson; any other
-/// does nothing. The course card calls [onCourseTap].
+/// **Taps** (Issue #417), by each node's four-state look
+/// ([JuniorLearningMap.displayStateOf]): CHECK_IN_REQUIRED — the check-in
+/// node while check-in is actionable at [now] — calls [onCheckIn];
+/// LESSON_COMPLETED and ATTENDANCE_COMPLETED call [onLessonTap] with their
+/// lesson, unless the server locks it ([JuniorMapNode.opens]); LOCKED does
+/// nothing. The course card calls [onCourseTap].
 class JuniorLearningMapView extends StatelessWidget {
   const JuniorLearningMapView({
     required this.map,
@@ -86,15 +87,15 @@ class JuniorLearningMapView extends StatelessWidget {
         final nodes = map.nodes;
         final height = JuniorMapGeometry.mapHeightFor(nodes.length) * scale;
         final certificate = JuniorMapGeometry.certificateFor(nodes.length);
-        final checkIn = map.checkInNode;
-        final open = map.checkInOpenAt(now);
 
-        // The live check-in opens the scanner; otherwise a node opens its
-        // lesson only by the one rule every screen asks (Issue #410):
-        // unlocked, and completed or the lesson to continue with. A white
-        // open node waits its turn; a padlock never opens.
+        // Each node's four-state look (Issue #417), from the derivation —
+        // CHECK_IN_REQUIRED opens the scanner; LESSON_COMPLETED and
+        // ATTENDANCE_COMPLETED open their lesson; LOCKED never opens.
         VoidCallback? tapFor(JuniorMapNode node) {
-          if (open && identical(node, checkIn)) return onCheckIn;
+          if (map.displayStateOf(node, now) ==
+              JuniorNodeState.checkInRequired) {
+            return onCheckIn;
+          }
           final onLessonTap = this.onLessonTap;
           if (onLessonTap == null || !node.opens) return null;
           return () => onLessonTap(node);
@@ -151,7 +152,9 @@ class JuniorLearningMapView extends StatelessWidget {
                         node: node,
                         number: i + 1,
                         scale: scale,
-                        checkIn: open && identical(node, checkIn),
+                        checkIn:
+                            map.displayStateOf(node, now) ==
+                            JuniorNodeState.checkInRequired,
                         onTap: tapFor(node),
                       ),
                     ),

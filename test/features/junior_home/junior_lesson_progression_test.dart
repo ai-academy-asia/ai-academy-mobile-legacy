@@ -18,11 +18,13 @@ import '../attendance/fake_attendance_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import '../home/fake_home_dashboard_repository.dart' hide sampleLesson;
 
-/// Lesson availability on Junior Home end to end (Issue #410): a lesson
-/// opens only when the server leaves it unlocked (its class date has come)
-/// and it is completed or the server's lesson to continue with. The real
-/// repository and mapper over in-memory fakes — no backend is called —
-/// through Junior Home, into a lesson and back.
+/// Lesson availability on Junior Home end to end (Issues #410, #417): a
+/// lesson opens only when it is LESSON_COMPLETED or ATTENDANCE_COMPLETED and
+/// the server leaves it unlocked — never the lesson to continue with on its
+/// own. The real repository and mapper over in-memory fakes — no backend is
+/// called — through Junior Home, into a lesson and back. ATTENDANCE_COMPLETED
+/// has no source here (no per-lesson attendance, #414); its fixture lives in
+/// junior_lesson_states_test.dart.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -145,11 +147,9 @@ void main() {
       t.node.state,
   ];
   const done = JuniorNodeState.completed;
-  const current = JuniorNodeState.current;
-  const open = JuniorNodeState.open;
   const locked = JuniorNodeState.locked;
 
-  /// The sprite a node draws, or null for the plain open face.
+  /// The sprite a node draws, or null for none.
   String? glyphOf(WidgetTester tester, int id) {
     final images = tester.widgetList<Image>(
       find.descendant(of: tile(id), matching: find.byType(Image)),
@@ -169,14 +169,14 @@ void main() {
   }
 
   testWidgets('the device report: a node that cannot be opened looks it — '
-      'the padlock, never a blank white node', (tester) async {
-    final learning = await pumpHome(tester);
+      'the padlock, never an empty blue frame (Issue #417)', (tester) async {
+    final learning = await pumpHome(tester, done: 1);
     final palette = tester.element(tile(101)).palette;
 
-    // Drawn: 101 the lesson to continue with — the empty accent frame (a
-    // tick means completed); 102 a lesson whose class date has come but whose turn has not
-    // — the grey padlock, as it cannot be opened.
-    expect(glyphOf(tester, 101), isNull);
+    // Drawn: 101 completed by its note — the blue tick; 102 the lesson to
+    // continue with, neither attended nor noted — the grey padlock, as it
+    // cannot be opened.
+    expect(glyphOf(tester, 101), 'node_check');
     expect(edgeOf(tester, 101), palette.accent);
     expect(glyphOf(tester, 102), 'node_lock');
     expect(edgeOf(tester, 102), palette.outline);
@@ -202,15 +202,15 @@ void main() {
     expect(learning.exerciseCalls, [101]);
   });
 
-  testWidgets('every state, drawn and tapped: done opens, the lesson to '
-      'continue with opens; waiting, locked and done-but-locked do not', (
+  testWidgets('every state, drawn and tapped: done opens; the lesson to '
+      'continue with, future and done-but-locked do not (Issue #417)', (
     tester,
   ) async {
     // 101 done, 102 the continue lesson, 201–202 future, 301 done but its
     // class moved later.
     final learning = await pumpHome(tester, done: 1);
 
-    expect(states(tester), [done, current, locked, locked, locked]);
+    expect(states(tester), [done, locked, locked, locked, locked]);
     // 54%: the server's figure, whatever opens — never derived from nodes.
     expect(
       find.descendant(
@@ -220,32 +220,30 @@ void main() {
       findsOneWidget,
     );
     expect(glyphOf(tester, 101), 'node_check');
-    expect(glyphOf(tester, 102), isNull);
+    expect(glyphOf(tester, 102), 'node_lock');
     expect(glyphOf(tester, 201), 'node_lock');
     expect(glyphOf(tester, 301), 'node_lock'); // its note can't be read
 
-    for (final id in [201, 202, 301]) {
+    for (final id in [102, 201, 202, 301]) {
       expect(tester.widget<JuniorMapNodeTile>(tile(id)).onTap, isNull);
       await tester.tap(tile(id));
       await tester.pumpAndSettle();
     }
     expect(learning.exerciseCalls, isEmpty);
 
-    for (final id in [101, 102]) {
-      await tester.tap(tile(id));
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<CourseExerciseDetailScreen>(
-              find.byType(CourseExerciseDetailScreen),
-            )
-            .lessonId,
-        id,
-      );
-      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
-      await tester.pumpAndSettle();
-    }
-    expect(learning.exerciseCalls, [101, 102]);
+    await tester.tap(tile(101));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<CourseExerciseDetailScreen>(
+            find.byType(CourseExerciseDetailScreen),
+          )
+          .lessonId,
+      101,
+    );
+    await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+    await tester.pumpAndSettle();
+    expect(learning.exerciseCalls, [101]);
   });
 
   testWidgets('a lesson whose class date has not come cannot be opened — no '
@@ -276,32 +274,36 @@ void main() {
     expect(learning.exerciseCalls, isEmpty);
   });
 
-  testWidgets('completing a lesson and coming back reloads the server\'s '
-      'answer: ticked, and the resume lesson moves on', (tester) async {
-    final learning = await pumpHome(tester);
+  testWidgets('coming back from a lesson reloads the saved notes: a note '
+      'saved meanwhile ticks its lesson', (tester) async {
+    final learning = await pumpHome(tester, done: 1);
 
     await tester.tap(tile(101));
     await tester.pumpAndSettle();
-    serve(learning, done: 1);
+    serve(learning, done: 2);
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
-    expect(states(tester), [done, current, locked, locked, locked]);
+    expect(states(tester), [done, done, locked, locked, locked]);
   });
 
-  testWidgets('when the class date comes, the next load opens the module — '
-      'the server decides, the map follows', (tester) async {
+  testWidgets('when the class date comes, the next load unlocks the module '
+      '— yet its lessons stay LOCKED until attended or noted (Issue #417)', (
+    tester,
+  ) async {
     final learning = await pumpHome(tester, done: 1);
     expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNull);
 
-    await tester.tap(tile(102));
+    await tester.tap(tile(101));
     await tester.pumpAndSettle();
     serve(learning, done: 2, future: false);
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
-    expect(states(tester), [done, done, current, open, locked]);
-    expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNotNull);
+    expect(states(tester), [done, done, locked, locked, locked]);
+    final next = tester.widget<JuniorMapNodeTile>(tile(201));
+    expect(next.node.locked, isFalse); // the server's lock is lifted …
+    expect(next.onTap, isNull); // … but nothing on it is attended or noted
     expect(tester.widget<JuniorMapNodeTile>(tile(301)).onTap, isNull);
   });
 
@@ -311,7 +313,8 @@ void main() {
 
     final node = tester.widget<JuniorMapNodeTile>(tile(101));
     expect(node.checkIn, isTrue);
-    expect(node.node.state, current);
+    // Stored LOCKED; drawn CHECK_IN_REQUIRED while the class is live.
+    expect(node.node.state, locked);
     expect(
       tester
           .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
@@ -324,8 +327,9 @@ void main() {
     expect(learning.exerciseCalls, isEmpty);
   });
 
-  testWidgets('attendance already recorded: no check-in, the available '
-      'lesson opens itself', (tester) async {
+  testWidgets('today\'s attendance recorded: no check-in, and the lesson '
+      'stays LOCKED — a day\'s record names no lesson, so it is never '
+      'ATTENDANCE_COMPLETED on a guess (#414, #417)', (tester) async {
     final learning = await pumpHome(
       tester,
       now: DateTime(2026, 10, 6, 10),
@@ -339,10 +343,12 @@ void main() {
       ),
     );
 
-    expect(tester.widget<JuniorMapNodeTile>(tile(101)).checkIn, isFalse);
+    final node = tester.widget<JuniorMapNodeTile>(tile(101));
+    expect(node.checkIn, isFalse);
+    expect(node.node.state, locked);
     await tester.tap(tile(101));
     await tester.pumpAndSettle();
     expect(find.byType(AttendanceScannerScreen), findsNothing);
-    expect(learning.exerciseCalls, [101]);
+    expect(learning.exerciseCalls, isEmpty);
   });
 }

@@ -29,12 +29,14 @@ Future<bool> openLesson(
   required bool locked,
   required bool completed,
   required int? resumeLessonId,
+  bool attended = false,
   CourseLearningRepository? repository,
 }) async {
   if (!lessonOpens(
     locked: locked,
     completed: completed,
     isResume: lessonId == resumeLessonId,
+    attended: attended,
   )) {
     return false;
   }

@@ -13,6 +13,7 @@ import 'package:aia_mobile/features/course_learning/presentation/widgets/lesson_
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/junior_home/data/api_junior_home_repository.dart';
 import 'package:aia_mobile/features/junior_home/data/sample_junior_learning_map.dart';
+import 'package:aia_mobile/features/junior_home/domain/junior_home_repository.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
@@ -120,7 +121,7 @@ void main() {
       );
       expect(
         juniorNodeStateOf(LessonPathState.checkInRequired),
-        JuniorNodeState.current,
+        JuniorNodeState.checkInRequired,
       );
       expect(juniorNodeStateOf(LessonPathState.locked), JuniorNodeState.locked);
     });
@@ -347,11 +348,18 @@ void main() {
       },
     );
 
+    final liveLesson = NextLesson(
+      startsAt: DateTime(2026, 10, 6, 9),
+      endsAt: DateTime(2026, 10, 6, 11),
+    );
+
+    /// Junior Home over [repository] — the real API repository, or the
+    /// controlled attendance fixture.
     Future<void> pumpHome(
       WidgetTester tester,
       FakeCourseLearningRepository learning, {
+      JuniorHomeRepository? repository,
       DateTime? now,
-      CourseAttendance? attendance,
     }) async {
       useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
       useReducedMotion(tester);
@@ -360,23 +368,20 @@ void main() {
           theme: AppTheme.light,
           home: JuniorHomeScreen(
             key: UniqueKey(),
-            repository: ApiJuniorHomeRepository(
-              dashboardRepository: FakeHomeDashboardRepository(
-                dashboard: HomeDashboard(
-                  program: sampleProgram(
-                    courseSlug: slug,
-                    nextLesson: NextLesson(
-                      startsAt: DateTime(2026, 10, 6, 9),
-                      endsAt: DateTime(2026, 10, 6, 11),
+            repository:
+                repository ??
+                ApiJuniorHomeRepository(
+                  dashboardRepository: FakeHomeDashboardRepository(
+                    dashboard: HomeDashboard(
+                      program: sampleProgram(
+                        courseSlug: slug,
+                        nextLesson: liveLesson,
+                      ),
                     ),
                   ),
-                ),
-              ),
-              courseLearningRepository: learning,
-              attendanceRepository: FakeAttendanceRepository(
-                attendance:
-                    attendance ??
-                    CourseAttendance(
+                  courseLearningRepository: learning,
+                  attendanceRepository: FakeAttendanceRepository(
+                    attendance: CourseAttendance(
                       attended: 0,
                       totalPast: 0,
                       percent: 0,
@@ -387,8 +392,8 @@ void main() {
                         ),
                       ],
                     ),
-              ),
-            ),
+                  ),
+                ),
             courseLearningRepository: learning,
             clock: () => now ?? DateTime(2026, 10, 6, 12),
           ),
@@ -420,7 +425,7 @@ void main() {
     testWidgets('the server\'s completed flag alone completes nothing; a '
         'saved note does — and the server\'s percentage stays', (tester) async {
       await pumpHome(tester, learningFor(serverCompleted101: true));
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      expect(stateOf(tester, 101), JuniorNodeState.locked);
       expect(find.text('40%'), findsOneWidget);
 
       await pumpHome(tester, learningFor(notes: {102: sampleNote()}));
@@ -428,78 +433,99 @@ void main() {
       expect(find.text('40%'), findsOneWidget);
     });
 
-    testWidgets('saving a note in the lesson and coming back: ticked, its '
-        'stretch blue — by the persisted note, no completion call', (
-      tester,
-    ) async {
-      final learning = learningFor();
-      await pumpHome(tester, learning);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
-
-      await tester.tap(tile(101));
-      await tester.pumpAndSettle();
-      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
-      await saveNote(tester, 'Base case first');
-      expect(learning.saveCalls, [(101, 'Base case first')]);
-      await back(tester);
-
-      expect(stateOf(tester, 101), JuniorNodeState.completed);
-      final painter =
-          tester
-                  .widget<CustomPaint>(
-                    find.byWidgetPredicate(
-                      (w) =>
-                          w is CustomPaint && w.painter is JuniorMapPathPainter,
-                    ),
-                  )
-                  .painter!
-              as JuniorMapPathPainter;
-      expect(painter.connectors.first.active, isTrue);
-      expect(learning.completeCalls, isEmpty);
-    });
-
-    testWidgets('opening a lesson alone completes nothing', (tester) async {
-      final learning = learningFor();
-      await pumpHome(tester, learning);
-
-      await tester.tap(tile(101));
-      await tester.pumpAndSettle();
-      await back(tester);
-
-      expect(stateOf(tester, 101), JuniorNodeState.current);
-      expect(learning.completeCalls, isEmpty);
-      expect(learning.saveCalls, isEmpty);
-    });
-
-    testWidgets('a failed note save completes nothing', (tester) async {
-      final learning = learningFor()
-        ..saveFailure = const CourseLearningFailure(
-          CourseLearningFailureKind.network,
-        );
-      await pumpHome(tester, learning);
-
-      await tester.tap(tile(101));
-      await tester.pumpAndSettle();
-      await saveNote(tester, 'Lost on the way');
-      await back(tester);
-
-      expect(stateOf(tester, 101), JuniorNodeState.current);
-      expect(learning.notesByLesson, isEmpty);
-    });
-
-    testWidgets('an empty note is never saved, so completes nothing', (
+    testWidgets('without attendance the lesson to continue with is LOCKED and '
+        'opens nothing — no lesson screen, no request (Issue #417)', (
       tester,
     ) async {
       final learning = learningFor();
       await pumpHome(tester, learning);
 
+      expect(stateOf(tester, 101), JuniorNodeState.locked);
+      expect(tester.widget<JuniorMapNodeTile>(tile(101)).onTap, isNull);
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
-      await saveNote(tester, '   ');
-      await back(tester);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
+    });
 
-      expect(learning.notesByLesson, isEmpty);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+    group('an attended lesson (controlled fixture: the backend sends no '
+        'per-lesson attendance yet, #414)', () {
+      _AttendedFixture fixture(FakeCourseLearningRepository learning) =>
+          _AttendedFixture(learning, slug: slug, attended: {101});
+
+      testWidgets('shows ATTENDANCE_COMPLETED and opens; a note saved there '
+          'makes it LESSON_COMPLETED on return, its stretch blue — no '
+          'completion call', (tester) async {
+        final learning = learningFor();
+        await pumpHome(tester, learning, repository: fixture(learning));
+        expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
+        await saveNote(tester, 'Base case first');
+        expect(learning.saveCalls, [(101, 'Base case first')]);
+        await back(tester);
+
+        expect(stateOf(tester, 101), JuniorNodeState.completed);
+        final painter =
+            tester
+                    .widget<CustomPaint>(
+                      find.byWidgetPredicate(
+                        (w) =>
+                            w is CustomPaint &&
+                            w.painter is JuniorMapPathPainter,
+                      ),
+                    )
+                    .painter!
+                as JuniorMapPathPainter;
+        expect(painter.connectors.first.active, isTrue);
+        expect(learning.completeCalls, isEmpty);
+      });
+
+      testWidgets('opening it alone completes nothing', (tester) async {
+        final learning = learningFor();
+        await pumpHome(tester, learning, repository: fixture(learning));
+
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        await back(tester);
+
+        expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+        expect(learning.completeCalls, isEmpty);
+        expect(learning.saveCalls, isEmpty);
+      });
+
+      testWidgets('a failed note save completes nothing', (tester) async {
+        final learning = learningFor()
+          ..saveFailure = const CourseLearningFailure(
+            CourseLearningFailureKind.network,
+          );
+        await pumpHome(tester, learning, repository: fixture(learning));
+
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        await saveNote(tester, 'Lost on the way');
+        await back(tester);
+
+        expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+        expect(learning.notesByLesson, isEmpty);
+      });
+
+      testWidgets('an empty note is never saved, so completes nothing', (
+        tester,
+      ) async {
+        final learning = learningFor();
+        await pumpHome(tester, learning, repository: fixture(learning));
+
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        await saveNote(tester, '   ');
+        await back(tester);
+
+        expect(learning.notesByLesson, isEmpty);
+        expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+      });
     });
 
     testWidgets('a failed note read fails the map with retry — never a '
@@ -525,8 +551,10 @@ void main() {
       expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNull);
     });
 
-    testWidgets('a check-in that fails records nothing: back from the '
-        'scanner, the node is still the live check-in', (tester) async {
+    testWidgets('CHECK_IN_REQUIRED during the class; a check-in that fails '
+        'records nothing: back from the scanner it is still required', (
+      tester,
+    ) async {
       final learning = learningFor();
       await pumpHome(tester, learning, now: DateTime(2026, 10, 6, 10));
       expect(tester.widget<JuniorMapNodeTile>(tile(101)).checkIn, isTrue);
@@ -540,7 +568,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.widget<JuniorMapNodeTile>(tile(101)).checkIn, isTrue);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      expect(stateOf(tester, 101), JuniorNodeState.locked);
       expect(learning.completeCalls, isEmpty);
     });
   });
@@ -589,4 +617,36 @@ void main() {
     expect(row('Second').lesson.completed, isFalse);
     expect(learning.completeCalls, isEmpty);
   });
+}
+
+/// A controlled fixture standing in for the backend's per-lesson attendance,
+/// which does not exist yet (#414): the same lessons, notes and mapper as
+/// [ApiJuniorHomeRepository], with [attended] given as backend-confirmed.
+/// Tests only — the app never fabricates attendance.
+class _AttendedFixture implements JuniorHomeRepository {
+  _AttendedFixture(this.learning, {required this.slug, required this.attended});
+
+  final FakeCourseLearningRepository learning;
+  final String slug;
+  final Set<int> attended;
+
+  @override
+  Future<JuniorLearningMap?> getLearningMap() async {
+    final path = await learning.getCourseLearning(slug);
+    final lessons = {
+      for (final module in path.modules)
+        module.id: await learning.getLessons(module.id),
+    };
+    final completedByNote = await lessonsCompletedByNote(learning, [
+      for (final module in path.modules)
+        for (final lesson in lessons[module.id]!)
+          (id: lesson.id, locked: lesson.locked || module.locked),
+    ]);
+    return juniorMapFrom(
+      path,
+      lessons: lessons,
+      completedByNote: completedByNote,
+      attendedLessonIds: attended,
+    );
+  }
 }

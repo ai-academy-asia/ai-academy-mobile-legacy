@@ -52,7 +52,9 @@ void main() {
       for (final (id, state, title) in const [
         (201, JuniorNodeState.completed, 'Introduction to loops'),
         (202, JuniorNodeState.completed, 'Nesting loops'),
-        (203, JuniorNodeState.current, 'Practice: matrix traversal'),
+        // The lesson to continue with: its class date has come, but with no
+        // note and no attendance it is LOCKED (Issue #417).
+        (203, JuniorNodeState.locked, 'Practice: matrix traversal'),
         (204, JuniorNodeState.locked, 'Transformers'),
       ])
         JuniorMapNode(
@@ -61,6 +63,8 @@ void main() {
           title: title,
           moduleId: 2,
           moduleOrder: 2,
+          // Only 204's module is locked by the server.
+          locked: id == 204,
         ),
     ],
     continueModuleId: 2,
@@ -144,11 +148,7 @@ void main() {
   }
 
   group('the Junior Home entry point', () {
-    for (final (id, label) in [
-      (201, 'completed'),
-      (202, 'completed'),
-      (203, 'open'),
-    ]) {
+    for (final (id, label) in [(201, 'completed'), (202, 'completed')]) {
       testWidgets('$label lesson $id opens that lesson itself — no module '
           'screen between (Issue #410)', (tester) async {
         final learning = course();
@@ -183,13 +183,25 @@ void main() {
       expect(learning.exerciseCalls, [201, 202]);
     });
 
+    testWidgets('the lesson to continue with, LOCKED, opens nothing — no '
+        'lesson screen, no request (Issue #417)', (tester) async {
+      final learning = course();
+      await pumpHome(tester, learning: learning);
+
+      expect(tester.widget<JuniorMapNodeTile>(tile(203)).onTap, isNull);
+      await tapTile(tester, 203);
+
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
+    });
+
     testWidgets('back from a lesson reloads the map, so a lesson finished '
         'there shows as completed', (tester) async {
       final home = FakeJuniorHomeRepository(map: map());
       await pumpHome(tester, learning: course(), home: home);
       expect(home.calls, 1);
 
-      await tapTile(tester, 203);
+      await tapTile(tester, 201);
       home.map = map(states: {203: JuniorNodeState.completed});
       await back(tester);
 
@@ -246,9 +258,8 @@ void main() {
       expect(learning.exerciseCalls, isEmpty);
     });
 
-    testWidgets('outside a lesson the check-in node is just its lesson', (
-      tester,
-    ) async {
+    testWidgets('outside a lesson the check-in node is LOCKED: no scanner, '
+        'no lesson', (tester) async {
       final learning = course();
       await pumpHome(tester, learning: learning);
 
@@ -256,7 +267,7 @@ void main() {
       await tapTile(tester, 203);
 
       expect(find.byType(AttendanceScannerScreen), findsNothing);
-      expect(learning.exerciseCalls, [203]);
+      expect(learning.exerciseCalls, isEmpty);
     });
 
     testWidgets('with check-in open, the node opens the scanner, not the '
@@ -272,7 +283,8 @@ void main() {
     });
 
     testWidgets('with attendance already recorded, the node is no longer '
-        'check-in: it opens its lesson', (tester) async {
+        'check-in — and, with no per-lesson attendance from the backend yet, '
+        'LOCKED: it opens nothing', (tester) async {
       final learning = course();
       await pumpHome(
         tester,
@@ -284,7 +296,7 @@ void main() {
       await tapTile(tester, 203);
 
       expect(find.byType(AttendanceScannerScreen), findsNothing);
-      expect(learning.exerciseCalls, [203]);
+      expect(learning.exerciseCalls, isEmpty);
     });
 
     testWidgets('back from the scanner reloads the map, so a recorded '
@@ -305,7 +317,7 @@ void main() {
       expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isFalse);
       await tapTile(tester, 203);
       expect(find.byType(AttendanceScannerScreen), findsNothing);
-      expect(learning.exerciseCalls, [203]);
+      expect(learning.exerciseCalls, isEmpty);
     });
 
     testWidgets('the course card opens the existing Course Detail '
@@ -320,6 +332,8 @@ void main() {
         find.byType(CourseModuleListScreen),
       );
       expect(detail.courseSlug, slug);
+      // Reached from Junior Home: the Junior four-state rule (#417).
+      expect(detail.juniorFourStateRule, isTrue);
       // The same `GET /me/courses/{slug}/learning` contract.
       expect(learning.calls, [slug]);
       expect(learning.lessonCalls, isEmpty);
@@ -379,12 +393,12 @@ void main() {
       expect(find.byType(NoteTab), findsOneWidget);
     });
 
-    testWidgets('completed and open lessons are announced as buttons, locked '
-        'ones are not', (tester) async {
+    testWidgets('completed lessons are announced as buttons; LOCKED ones — '
+        'the lesson to continue with included — are not', (tester) async {
       await pumpHome(tester, learning: course());
 
       expect(tester.getSemantics(tile(201)).flagsCollection.isButton, isTrue);
-      expect(tester.getSemantics(tile(203)).flagsCollection.isButton, isTrue);
+      expect(tester.getSemantics(tile(203)).flagsCollection.isButton, isFalse);
       expect(tester.getSemantics(tile(204)).flagsCollection.isButton, isFalse);
     });
   });

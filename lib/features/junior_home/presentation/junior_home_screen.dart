@@ -209,6 +209,8 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         builder: (_) => CourseModuleListScreen(
           courseSlug: slug,
           repository: widget.courseLearningRepository,
+          // Reached from Junior Home: the Junior four-state rule (#417).
+          juniorFourStateRule: true,
         ),
       ),
     );
@@ -220,14 +222,16 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   /// course screens, reached here without the module in between. The map
   /// reloads on return, so a lesson completed there shows as completed.
   Future<void> _openLesson(JuniorMapNode node) async {
-    // The one lesson opener, as every screen uses: only a lesson the rule
-    // lets open ever opens, whatever drew the tap.
+    // The one lesson opener, under the Junior four-state rule (Issue #417):
+    // only LESSON_COMPLETED and ATTENDANCE_COMPLETED open — never the lesson
+    // to continue with on its own — whatever drew the tap.
     final opened = await openLesson(
       context,
       lessonId: node.id,
       locked: node.locked,
       completed: node.state == JuniorNodeState.completed,
-      resumeLessonId: _controller.map?.continueLessonId,
+      attended: node.state == JuniorNodeState.attendanceCompleted,
+      resumeLessonId: null,
       repository: widget.courseLearningRepository,
     );
     if (opened && mounted) await _controller.load(fresh: true);

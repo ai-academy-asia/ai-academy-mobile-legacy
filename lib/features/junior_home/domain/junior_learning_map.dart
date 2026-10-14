@@ -1,29 +1,22 @@
 import '../../course_learning/domain/lesson_access.dart';
 import '../../home/domain/home_dashboard.dart';
 
-/// How far along the path one lesson is (Issue #410).
+/// How a lesson is drawn on the Junior map — **exactly the four product
+/// states** (Issues #415, #417), each from [lessonPathStateFor] through
+/// [juniorNodeStateOf], so derivation stays apart from styling:
 ///
-/// From the lesson's saved note and the server's lock — the client never
-/// derives `locked` — then the server's resume lesson picked out
-/// ([withResumeLesson]). Whether a node opens is `lessonOpens`, the one
-/// rule every screen asks (Issue #410): unlocked, and completed, attended
-/// or the lesson to continue with.
-///
-/// * [completed] — LESSON_COMPLETED: the student has a saved, non-empty note
-///   on it (Issue #415): the blue tick. Opens unless the server locks it
-///   ([JuniorMapNode.locked]).
+/// * [completed] — LESSON_COMPLETED: a saved, non-empty note on the lesson:
+///   the blue tick. Opens unless the server locks it ([JuniorMapNode.locked]).
 /// * [attendanceCompleted] — ATTENDANCE_COMPLETED: the backend confirmed
 ///   attendance at its class, no note yet: the grey tick. Opens. Not derived
 ///   from data yet — the backend has no per-lesson attendance (#414).
-/// * [current] — the lesson to continue with: the server's
-///   `continue.lesson_id`, unlocked and not yet done. The one unfinished
-///   lesson that opens.
-/// * [open] — any other lesson the server leaves unlocked and not yet
-///   done: its class date has come, but it waits its turn. Drawn with the
-///   padlock, as it cannot be opened; read as "not yet available".
-/// * [locked] — the server locks it (`lesson.locked`, or its module's —
-///   the class date has not come): a grey padlock; does not open.
-enum JuniorNodeState { completed, attendanceCompleted, current, open, locked }
+/// * [checkInRequired] — CHECK_IN_REQUIRED: the QR mark in the accent frame;
+///   a tap opens the scanner. A display state of the map's check-in node
+///   while its class is live ([JuniorLearningMap.checkInOpenAt]); never
+///   stored on a node.
+/// * [locked] — LOCKED: every other lesson — before its class date, or not
+///   attended or completed: the grey padlock; does not open.
+enum JuniorNodeState { completed, attendanceCompleted, checkInRequired, locked }
 
 /// Where the student stands on earning the course certificate.
 ///
@@ -68,13 +61,14 @@ class JuniorMapNode {
   /// [state] being [JuniorNodeState.locked].
   final bool locked;
 
-  /// Whether this lesson opens on a tap — `lessonOpens`, the one rule every
-  /// screen asks: unlocked, and completed or the lesson to continue with
-  /// ([JuniorNodeState.current]).
+  /// Whether this lesson opens on a tap — `lessonOpens`. Only
+  /// LESSON_COMPLETED and ATTENDANCE_COMPLETED open a lesson (Issue
+  /// #417) — never the lesson to continue with on its own — and never one
+  /// the server locks.
   bool get opens => lessonOpens(
     locked: locked,
     completed: state == JuniorNodeState.completed,
-    isResume: state == JuniorNodeState.current,
+    isResume: false,
     attended: state == JuniorNodeState.attendanceCompleted,
   );
 }
@@ -147,47 +141,14 @@ LessonPathTap lessonPathTap(
 };
 
 /// How the Junior map draws [state]: LESSON_COMPLETED as a completed node,
-/// ATTENDANCE_COMPLETED with the grey tick, CHECK_IN_REQUIRED as the
-/// continue lesson (the map frames it as the live check-in), LOCKED with
-/// the padlock.
+/// ATTENDANCE_COMPLETED with the grey tick, CHECK_IN_REQUIRED with the QR
+/// mark in the accent frame, LOCKED with the padlock.
 JuniorNodeState juniorNodeStateOf(LessonPathState state) => switch (state) {
   LessonPathState.lessonCompleted => JuniorNodeState.completed,
   LessonPathState.attendanceCompleted => JuniorNodeState.attendanceCompleted,
-  LessonPathState.checkInRequired => JuniorNodeState.current,
+  LessonPathState.checkInRequired => JuniorNodeState.checkInRequired,
   LessonPathState.locked => JuniorNodeState.locked,
 };
-
-/// Picks out the lesson to continue with (Issue #410).
-///
-/// Of the lessons the server leaves open and not yet completed (state
-/// [JuniorNodeState.open]), the server's own resume lesson,
-/// [continueLessonId] — `continue.lesson_id`, "the first unlocked,
-/// uncompleted lesson" in course order — becomes [JuniorNodeState.current].
-/// Exactly the server's: no fallback is guessed, so this lesson is the same
-/// one Course Detail and the Lesson List let open (`lessonOpens`). The
-/// server names one whenever any lesson is open; should it name none of
-/// them, no unfinished lesson opens. Every node keeps its server lock.
-List<JuniorMapNode> withResumeLesson(
-  List<JuniorMapNode> nodes, {
-  int? continueLessonId,
-}) {
-  final open = nodes.where((n) => n.state == JuniorNodeState.open);
-  final resume = open.where((n) => n.id == continueLessonId).firstOrNull;
-  return [
-    for (final node in nodes)
-      if (identical(node, resume))
-        JuniorMapNode(
-          id: node.id,
-          state: JuniorNodeState.current,
-          title: node.title,
-          moduleId: node.moduleId,
-          moduleOrder: node.moduleOrder,
-          locked: node.locked,
-        )
-      else
-        node,
-  ];
-}
 
 /// The course strip at the top of the map: what the student is studying, and
 /// how far in they are.
@@ -294,17 +255,35 @@ class JuniorLearningMap {
       nodes.isNotEmpty &&
       nodes.every((node) => node.state == JuniorNodeState.completed);
 
-  /// The lesson the attendance check-in belongs to (Issues #202, #410) — the
-  /// one the frame draws with the QR mark: the lesson to continue with, the
-  /// [JuniorNodeState.current] node ([withResumeLesson] leaves at most
-  /// one; should a map carry several, the server's resume lesson among them,
-  /// else the first). Null when there is none — a completed program, or
-  /// nothing unlocked.
-  JuniorMapNode? get checkInNode {
-    final current = nodes.where((n) => n.state == JuniorNodeState.current);
-    return current.where((n) => n.id == continueLessonId).firstOrNull ??
-        current.firstOrNull;
-  }
+  /// The lesson today's attendance check-in belongs to (Issues #202, #417):
+  /// the server's `continue.lesson_id`, while it is LOCKED — neither
+  /// completed nor attended — and the server does not lock it. Exactly the
+  /// server's; no fallback. An interim association (#202's product
+  /// decision): the backend links no class session to a lesson yet (#414).
+  /// Null when there is none.
+  JuniorMapNode? get checkInNode => nodes
+      .where(
+        (n) =>
+            n.id == continueLessonId &&
+            n.state == JuniorNodeState.locked &&
+            !n.locked,
+      )
+      .firstOrNull;
+
+  /// How [node] is drawn at [now] — its four-state look through
+  /// [lessonPathStateFor]: CHECK_IN_REQUIRED for the [checkInNode] while
+  /// check-in is open ([checkInOpenAt]), otherwise its own state.
+  JuniorNodeState displayStateOf(JuniorMapNode node, DateTime now) =>
+      juniorNodeStateOf(
+        lessonPathStateFor(
+          hasSavedNote: node.state == JuniorNodeState.completed,
+          attendanceConfirmed: node.state == JuniorNodeState.attendanceCompleted
+              ? true
+              : null,
+          classDateArrived: identical(node, checkInNode) ? true : null,
+          checkInActive: identical(node, checkInNode) && checkInOpenAt(now),
+        ),
+      );
 
   /// Whether check-in is actionable at [now]: there is a [checkInNode], a
   /// lesson is under way by the cohort schedule — Adult Home's own rule

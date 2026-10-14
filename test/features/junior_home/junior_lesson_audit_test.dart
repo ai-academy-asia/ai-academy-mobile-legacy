@@ -191,30 +191,26 @@ void main() {
         'whether it opens', () async {
       final map = await load();
 
-      // ✓ completed (opens) · ◉ the continue lesson (opens) · 🔒 not yet
-      // its turn (does not open). No lesson is server-locked here.
+      // ✓ LESSON_COMPLETED (opens) · 🔒 LOCKED (does not open) — the
+      // continue lesson too: no attendance or note on it (Issue #417). No
+      // lesson is server-locked here.
       expect(
         [
           for (final n in map.nodes)
             switch (n.state) {
               JuniorNodeState.completed => '✓',
               JuniorNodeState.attendanceCompleted => 'A',
-              JuniorNodeState.current => '◉',
-              JuniorNodeState.open => '🔒',
-              JuniorNodeState.locked => 'L',
+              JuniorNodeState.checkInRequired => 'Q',
+              JuniorNodeState.locked => '🔒',
             },
         ].join(),
-        '◉✓✓✓🔒✓✓🔒✓🔒🔒',
+        '🔒✓✓✓🔒✓✓🔒✓🔒🔒',
       );
       expect(map.nodes.map((n) => n.locked), everyElement(isFalse));
-      expect(
-        map.nodes.where((n) => n.opens).map((n) => n.id),
-        [
-          continueLessonId,
-          for (final (n, l) in lessonsInOrder.indexed)
-            if (completedAt(n)) l.$3,
-        ]..sort(),
-      );
+      expect(map.nodes.where((n) => n.opens).map((n) => n.id), [
+        for (final (n, l) in lessonsInOrder.indexed)
+          if (completedAt(n)) l.$3,
+      ]);
       expect(map.progress.percentComplete, 54);
     });
   });
@@ -293,9 +289,8 @@ void main() {
       return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    testWidgets('every node: a tick, the empty active frame, or a padlock; '
-        'and a tap opens exactly the completed lessons and the '
-        'one to continue with', (tester) async {
+    testWidgets('every node: a tick or a padlock — no empty frame; and a '
+        'tap opens exactly the completed lessons (Issue #417)', (tester) async {
       final learning = await pumpHome(tester);
 
       expect(
@@ -308,11 +303,9 @@ void main() {
       final opened = <int>[];
       for (final (n, l) in lessonsInOrder.indexed) {
         final id = l.$3;
-        // A tick only on completed lessons; the continue lesson's frame
-        // carries no glyph; every other lesson the padlock.
-        final expectedGlyph = id == continueLessonId
-            ? null
-            : completedAt(n)
+        // A tick only on completed lessons; every other lesson — the
+        // continue lesson included — the padlock.
+        final expectedGlyph = completedAt(n)
             ? 'node_check.png'
             : 'node_lock.png';
         expect(glyphOf(tester, id), expectedGlyph, reason: 'lesson $id');
@@ -334,7 +327,7 @@ void main() {
 
       expect(opened, [
         for (final (n, l) in lessonsInOrder.indexed)
-          if (l.$3 == continueLessonId || completedAt(n)) l.$3,
+          if (completedAt(n)) l.$3,
       ]);
       expect(learning.exerciseCalls, opened);
     });
@@ -350,7 +343,7 @@ void main() {
       ];
       final before = states();
 
-      for (final id in [continueLessonId, 4102, 4106]) {
+      for (final id in [4102, 4106]) {
         await tester.tap(tile(id));
         await tester.pumpAndSettle();
         expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
@@ -361,7 +354,7 @@ void main() {
       // `POST /me/lessons/{id}/complete` was never asked for; only the
       // lessons' content was read.
       expect(learning.completeCalls, isEmpty);
-      expect(learning.exerciseCalls, [continueLessonId, 4102, 4106]);
+      expect(learning.exerciseCalls, [4102, 4106]);
       expect(states(), before);
       expect(
         find.descendant(
@@ -412,17 +405,18 @@ void main() {
     expect(map.nodes.map((n) => n.id), [11, 12, 21, 22, 31, 32]);
     expect(map.nodes.map((n) => n.state), [
       JuniorNodeState.completed,
-      JuniorNodeState.current,
+      // The continue lesson: neither attended nor noted — LOCKED (#417).
+      JuniorNodeState.locked,
       JuniorNodeState.locked,
       // Its module locked again: its note can't be read (409), so it is
       // LOCKED, never completed on a guess (Issue #415).
       JuniorNodeState.locked,
       JuniorNodeState.completed,
-      JuniorNodeState.open,
+      JuniorNodeState.locked,
     ]);
     expect(map.nodes.map((n) => n.opens), [
       true,
-      true,
+      false,
       false,
       false,
       true,
@@ -460,7 +454,8 @@ void main() {
                 if (lesson.completed) lesson.id: sampleNote(),
             },
           ),
-          resumeLessonId: continueLessonId,
+          // As Junior reaches it: no resume lesson (Issue #417).
+          resumeLessonId: null,
         ),
       ),
     );
@@ -472,7 +467,7 @@ void main() {
       ))
         if (item.onTap != null) item.lesson.id,
     ];
-    expect(tappable, [4101, 4102, 4103, 4104, 4106]);
+    expect(tappable, [4102, 4103, 4104, 4106]);
   });
 }
 

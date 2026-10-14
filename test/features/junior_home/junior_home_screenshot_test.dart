@@ -101,6 +101,41 @@ void main() {
     );
   });
 
+  testWidgets('exactly four looks on one path — LESSON_COMPLETED, '
+      'ATTENDANCE_COMPLETED, CHECK_IN_REQUIRED, LOCKED (Issue #417)', (
+    tester,
+  ) async {
+    // A controlled fixture: the backend sends no per-lesson attendance yet
+    // (#414), so lesson 2's ATTENDANCE_COMPLETED is set here directly.
+    final sample = sampleJuniorLearningMap();
+    await capture(
+      tester,
+      JuniorLearningMap(
+        progress: sample.progress,
+        certificate: sample.certificate,
+        nextLesson: sample.nextLesson,
+        attendanceRecorded: false,
+        continueLessonId: 3,
+        nodes: [
+          const JuniorMapNode(id: 1, state: JuniorNodeState.completed),
+          const JuniorMapNode(
+            id: 2,
+            state: JuniorNodeState.attendanceCompleted,
+          ),
+          const JuniorMapNode(
+            id: 3,
+            state: JuniorNodeState.locked,
+            locked: false,
+          ),
+          for (var id = 4; id <= 6; id++)
+            JuniorMapNode(id: id, state: JuniorNodeState.locked),
+        ],
+      ),
+      sampleLessonTime,
+      'junior_home_four_states',
+    );
+  });
+
   testWidgets('outside a lesson the check-in node is grey (Issue #202)', (
     tester,
   ) async {
@@ -126,20 +161,23 @@ void main() {
     );
   });
 
-  testWidgets('three lessons the server leaves open: the continue lesson '
-      'picked out, the other two waiting their turn (Issue #410)', (
+  testWidgets('three lessons the server leaves open, none attended or '
+      'completed: all LOCKED, the continue lesson too (Issue #417)', (
     tester,
   ) async {
-    final open = withLessons(List.filled(3, JuniorNodeState.open));
+    final sample = sampleJuniorLearningMap();
     await capture(
       tester,
       JuniorLearningMap(
-        progress: open.progress,
-        certificate: open.certificate,
-        nextLesson: open.nextLesson,
+        progress: sample.progress,
+        certificate: sample.certificate,
+        nextLesson: sample.nextLesson,
         attendanceRecorded: false,
-        // As the repository picks the resume lesson out.
-        nodes: withResumeLesson(open.nodes, continueLessonId: 1),
+        continueLessonId: 1,
+        nodes: [
+          for (var id = 1; id <= 3; id++)
+            JuniorMapNode(id: id, state: JuniorNodeState.locked, locked: false),
+        ],
       ),
       DateTime(2026, 10, 6, 12),
       'junior_home_open_lessons',
@@ -178,8 +216,8 @@ void main() {
   });
 
   testWidgets('the device report\'s course: seeded progress with gaps — '
-      'ticks, the lesson to continue with, and padlocks where lessons wait '
-      '(Issue #410)', (tester) async {
+      'ticks where a note completes the lesson, padlocks everywhere else — '
+      'the continue lesson included (Issues #410, #417)', (tester) async {
     // `jr10.s10` in the backend's summer-kids seed: `·✓✓✓·✓✓·✓··`, every
     // module unlocked, the continue lesson the first gap. See
     // junior_lesson_audit_test.dart.
@@ -196,15 +234,16 @@ void main() {
         nextLesson: sample.nextLesson,
         attendanceRecorded: false,
         continueLessonId: 1,
-        nodes: withResumeLesson(continueLessonId: 1, [
+        nodes: [
           for (var i = 0; i < pattern.length; i++)
             JuniorMapNode(
               id: i + 1,
               state: pattern[i] == '✓'
                   ? JuniorNodeState.completed
-                  : JuniorNodeState.open,
+                  : JuniorNodeState.locked,
+              locked: false,
             ),
-        ]),
+        ],
       ),
       DateTime(2026, 10, 14, 12),
       'junior_home_seeded_gaps',

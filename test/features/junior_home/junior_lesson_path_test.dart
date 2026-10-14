@@ -17,14 +17,19 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../support/screenshot.dart';
 import 'fake_junior_home_repository.dart';
 
-/// The lesson path's own parts (Issue #410): a lesson node's four looks,
+/// The lesson path's own parts (Issues #410, #417): a lesson node's four looks,
 /// the check-in node's pulse, the certificate's divider clouds and the
 /// background theme and its cloud bank — and the path on a small phone
 /// with large text.
 void main() {
   setUpAll(loadAppFonts);
 
-  const lesson = JuniorMapNode(id: 7, state: JuniorNodeState.current);
+  // The lesson to continue with: LOCKED, its class date come (Issue #417).
+  const lesson = JuniorMapNode(
+    id: 7,
+    state: JuniorNodeState.locked,
+    locked: false,
+  );
 
   Future<void> pumpTile(
     WidgetTester tester,
@@ -64,64 +69,88 @@ void main() {
     matching: find.byType(ScaleTransition),
   );
 
-  group('a lesson node', () {
-    // (state, check-in, sprite, face, edge) — every node one exported
-    // glyph, never the book icon (Issue #410).
+  group('a lesson node — exactly four looks (Issue #417)', () {
+    BoxDecoration decorationOf(WidgetTester tester) =>
+        tester
+                .widget<Container>(
+                  find.descendant(
+                    of: find.byType(JuniorMapNodeTile),
+                    matching: find.byType(Container),
+                  ),
+                )
+                .decoration!
+            as BoxDecoration;
+    Image glyphOf(WidgetTester tester) => tester.widget<Image>(
+      find.descendant(
+        of: find.byType(JuniorMapNodeTile),
+        matching: find.byType(Image),
+      ),
+    );
+
+    // (state, sprite, tinted?, face, edge and band, label)
     final looks =
         <
           (
             JuniorNodeState,
+            String,
             bool,
-            String?,
             Color Function(AppPalette),
             Color Function(AppPalette),
+            String,
           )
         >[
           (
-            JuniorNodeState.completed,
-            false,
-            'node_check',
-            (p) => p.juniorCard,
-            (p) => p.accent,
-          ),
-          (
-            JuniorNodeState.current,
-            false,
-            // The continue lesson: the active frame, no tick — a tick always
-            // means completed.
-            null,
-            (p) => p.surface,
-            (p) => p.accent,
-          ),
-          (
             JuniorNodeState.locked,
-            false,
             'node_lock',
+            false,
             (p) => p.juniorMutedFill,
             (p) => p.outline,
+            'locked',
           ),
           (
-            JuniorNodeState.current,
-            true,
+            JuniorNodeState.checkInRequired,
             'node_current',
+            false,
             (p) => p.surface,
             (p) => p.accent,
+            'attendance check-in open',
+          ),
+          (
+            JuniorNodeState.attendanceCompleted,
+            'node_check',
+            true,
+            (p) => p.juniorMutedFill,
+            (p) => p.outline,
+            'attendance recorded',
+          ),
+          (
+            JuniorNodeState.completed,
+            'node_check',
+            false,
+            (p) => p.juniorCard,
+            (p) => p.accent,
+            'completed',
           ),
         ];
-    for (final (state, checkIn, name, face, edge) in looks) {
-      testWidgets('${state.name}${checkIn ? ' (live check-in)' : ''}: $name '
-          'on its own face — and never the book icon', (tester) async {
-        await pumpTile(
-          tester,
-          JuniorMapNode(id: 1, state: state),
-          checkIn: checkIn,
-        );
-        final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
 
-        if (name != null) expect(sprite(name), findsOneWidget);
-        for (final other in ['node_check', 'node_lock', 'node_current']) {
-          if (other != name) expect(sprite(other), findsNothing);
-        }
+    for (final (state, sprite_, tinted, face, edge, label) in looks) {
+      testWidgets('${state.name}: $sprite_${tinted ? ' in grey' : ''} on its '
+          'face, its edge and band — nothing else drawn', (tester) async {
+        await pumpTile(tester, JuniorMapNode(id: 1, state: state));
+        final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
+        final d = decorationOf(tester);
+        final glyph = glyphOf(tester);
+
+        expect(
+          (glyph.image as AssetImage).assetName,
+          JuniorMapGeometry.sprite(sprite_),
+        );
+        expect(glyph.color, tinted ? palette.juniorMutedGlyph : null);
+        expect(glyph.colorBlendMode, tinted ? BlendMode.srcIn : null);
+        expect(d.color, face(palette));
+        expect((d.border! as Border).top.color, edge(palette));
+        // The band below is the edge's own colour.
+        expect(d.boxShadow!.single.color, edge(palette));
         expect(
           find.descendant(
             of: find.byType(JuniorMapNodeTile),
@@ -129,107 +158,101 @@ void main() {
           ),
           findsNothing,
         );
-        final decoration =
-            tester
-                    .widget<Container>(
-                      find.descendant(
-                        of: find.byType(JuniorMapNodeTile),
-                        matching: find.byType(Container),
-                      ),
-                    )
-                    .decoration!
-                as BoxDecoration;
-        expect(decoration.color, face(palette));
-        expect((decoration.border! as Border).top.color, edge(palette));
         expect(
           tester.getSize(find.byType(JuniorMapNodeTile)),
           const Size.square(JuniorMapGeometry.nodeSize),
         );
+        expect(find.bySemanticsLabel('Lesson 1, $label'), findsOneWidget);
       });
     }
 
-    testWidgets('open (its class date has come, not yet its turn): it '
-        'cannot be opened, so it wears the grey padlock — read as "not yet '
-        'available", unlike a locked lesson', (tester) async {
+    testWidgets('ATTENDANCE_COMPLETED: no blue anywhere — face, edge, band and '
+        'tick all grey; the completed node\'s geometry exactly', (
+      tester,
+    ) async {
       await pumpTile(
         tester,
-        const JuniorMapNode(id: 1, state: JuniorNodeState.open),
+        const JuniorMapNode(id: 1, state: JuniorNodeState.attendanceCompleted),
       );
       final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
-
-      expect(sprite('node_lock'), findsOneWidget);
-      for (final name in ['node_check', 'node_current']) {
-        expect(sprite(name), findsNothing);
+      final attended = decorationOf(tester);
+      final attendedGlyph = glyphOf(tester);
+      for (final colour in [
+        attended.color,
+        (attended.border! as Border).top.color,
+        attended.boxShadow!.single.color,
+        attendedGlyph.color,
+      ]) {
+        expect(colour, isNot(palette.accent));
+        expect(colour, isNot(palette.juniorCard));
       }
-      expect(
-        find.descendant(
-          of: find.byType(JuniorMapNodeTile),
-          matching: find.byType(Icon),
-        ),
-        findsNothing,
-      );
-      final decoration =
-          tester
-                  .widget<Container>(
-                    find.descendant(
-                      of: find.byType(JuniorMapNodeTile),
-                      matching: find.byType(Container),
-                    ),
-                  )
-                  .decoration!
-              as BoxDecoration;
-      expect(decoration.color, palette.juniorMutedFill);
-      expect((decoration.border! as Border).top.color, palette.outline);
-      expect(
-        find.bySemanticsLabel('Lesson 1, not yet available'),
-        findsOneWidget,
-      );
-    });
 
-    testWidgets('completed and available are told apart by the face: pale '
-        'blue done, white in the accent available', (tester) async {
       await pumpTile(
         tester,
         const JuniorMapNode(id: 1, state: JuniorNodeState.completed),
       );
-      final done = tester.widget<Container>(
-        find.descendant(
-          of: find.byType(JuniorMapNodeTile),
-          matching: find.byType(Container),
-        ),
-      );
-      await pumpTile(tester, lesson);
-      final available = tester.widget<Container>(
-        find.descendant(
-          of: find.byType(JuniorMapNodeTile),
-          matching: find.byType(Container),
-        ),
+      final completed = decorationOf(tester);
+      final completedGlyph = glyphOf(tester);
+      expect(completed.borderRadius, attended.borderRadius);
+      expect(
+        (completed.border! as Border).top.width,
+        (attended.border! as Border).top.width,
       );
       expect(
-        (done.decoration! as BoxDecoration).color,
-        isNot((available.decoration! as BoxDecoration).color),
+        completed.boxShadow!.single.offset,
+        attended.boxShadow!.single.offset,
       );
+      expect(completedGlyph.image, attendedGlyph.image);
+      expect(completedGlyph.width, attendedGlyph.width);
     });
 
-    testWidgets('the whole path draws no book icon', (tester) async {
+    testWidgets('LESSON_COMPLETED keeps the existing active blue design', (
+      tester,
+    ) async {
+      await pumpTile(
+        tester,
+        const JuniorMapNode(id: 1, state: JuniorNodeState.completed),
+      );
+      final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
+      final d = decorationOf(tester);
+      expect(d.color, palette.juniorCard);
+      expect((d.border! as Border).top.color, palette.accent);
+      expect(d.boxShadow!.single.color, palette.accent);
+      // The exported blue tick, untinted.
+      expect(glyphOf(tester).color, isNull);
+    });
+
+    testWidgets('the sample path: two completed, the rest LOCKED — no empty '
+        'frame; while check-in is live, the check-in node is the QR', (
+      tester,
+    ) async {
       useLogicalViewport(tester, const Size(393, 2400));
       useReducedMotion(tester);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: Scaffold(
-            body: JuniorLearningMapView(
-              map: sampleJuniorLearningMap(),
-              now: DateTime(2026, 10, 7),
+      Future<void> pumpAt(DateTime now) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: JuniorLearningMapView(
+                key: UniqueKey(),
+                map: sampleJuniorLearningMap(),
+                now: now,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
+      }
 
+      await pumpAt(DateTime(2026, 10, 7));
       expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
-      // The two completed lessons; the continue lesson carries no tick.
       expect(sprite('node_check'), findsNWidgets(2));
+      expect(sprite('node_lock'), findsNWidgets(10));
+      expect(sprite('node_current'), findsNothing);
+
+      await pumpAt(sampleLessonTime);
+      expect(sprite('node_check'), findsNWidgets(2));
+      expect(sprite('node_current'), findsOneWidget);
       expect(sprite('node_lock'), findsNWidgets(9));
     });
   });
