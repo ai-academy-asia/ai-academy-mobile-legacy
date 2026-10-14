@@ -9,6 +9,8 @@ import 'features/auth/data/session_refresher.dart';
 import 'features/auth/domain/auth_session_store.dart';
 import 'features/auth/presentation/account_theme.dart';
 import 'features/auth/presentation/sign_out.dart';
+import 'features/notifications/push/firebase_push_messaging.dart';
+import 'features/notifications/push/push_notifications.dart';
 
 Future<void> main() async {
   // Which API this build talks to, decided first (Issue #388): an invalid
@@ -31,5 +33,13 @@ Future<void> main() async {
   );
   // A session that cannot be renewed ends on Login (Issue #176).
   returnToLoginWhenSessionEnds(SessionRefresher.instance, appNavigatorKey);
+  // Push notifications (Issue #398) — on only when Firebase starts, which
+  // needs the project's configuration; without it the app runs as before.
+  // Never throws.
+  await PushNotifications.instance.attach(
+    await startFirebasePush(),
+    navigatorKey: appNavigatorKey,
+    messengerKey: appMessengerKey,
+  );
   runApp(const AiAcademyApp());
 }

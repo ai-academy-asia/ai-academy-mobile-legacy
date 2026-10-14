@@ -79,6 +79,13 @@ dependencies:
   # CAMERA permission itself.
   mobile_scanner: ^7.4.2
 
+  # Push notifications through FCM (Issue #398), approved for this task.
+  # Both need iOS 15.0 (Swift Package Manager) and declare their Android
+  # permissions themselves, POST_NOTIFICATIONS included. No local-
+  # notifications package: a foreground push shows as an in-app SnackBar.
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

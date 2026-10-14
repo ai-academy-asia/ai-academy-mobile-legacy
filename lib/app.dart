@@ -12,6 +12,7 @@ import 'features/cohorts/presentation/cohort_list_screen.dart';
 import 'features/courses/presentation/course_catalog_screen.dart';
 import 'features/home/presentation/adult_student_shell.dart';
 import 'features/junior_home/presentation/junior_student_shell.dart';
+import 'features/notifications/push/push_notifications.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/teacher/presentation/teacher_shell.dart';
 import 'features/teacher/presentation/widgets/teacher_tabs.dart';
@@ -29,6 +30,11 @@ import 'features/teacher/presentation/widgets/teacher_tabs.dart';
 /// The app's navigator — how a session that could not be renewed returns to
 /// Login from outside the widget tree (see `returnToLoginWhenSessionEnds`).
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+/// The app's [ScaffoldMessenger] — how a push received in the foreground
+/// shows its SnackBar from outside a screen (Issue #398).
+final GlobalKey<ScaffoldMessengerState> appMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class AiAcademyApp extends StatelessWidget {
   const AiAcademyApp({super.key, this.themeController});
@@ -53,6 +59,9 @@ class AiAcademyApp extends StatelessWidget {
   Widget _app(ThemeMode themeMode) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
+      scaffoldMessengerKey: appMessengerKey,
+      // Push notifications start on the signed-in home routes (Issue #398).
+      navigatorObservers: [PushNotifications.instance.routeObserver],
       title: 'AI academy Asia',
       debugShowCheckedModeBanner: false,
       // A debug build pointed at another API says so on every screen

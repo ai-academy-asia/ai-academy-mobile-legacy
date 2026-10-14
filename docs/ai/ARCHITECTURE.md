@@ -166,6 +166,7 @@ Everything below was read from the repository. Where a value is inherited rather
 | `versionCode` / `versionName` | `flutter.versionCode` / `flutter.versionName` — **inherited**, ultimately from `pubspec.yaml`'s `version: 1.0.0+1` |
 | Java / Kotlin | `sourceCompatibility` and `targetCompatibility` `VERSION_17`; Kotlin `jvmTarget` `JVM_17` |
 | App label | `android:label="AI Academy Asia"` in `AndroidManifest.xml` |
+| Firebase (Issue #398) | `com.google.gms.google-services` 4.5.0, declared in `settings.gradle.kts` and applied by `:app` **only when `android/app/google-services.json` exists** — none is committed, so push is off and the build is unchanged without it. `POST_NOTIFICATIONS` and the FCM services come from `firebase_messaging`'s own manifest. See [DATA_AND_API.md](DATA_AND_API.md) §1.2 |
 
 **No SDK level is pinned in this repository** — all four come from the Flutter tooling, so the effective numbers move with the Flutter version. To know the concrete values for a given checkout, resolve them from the installed Flutter SDK; do not assume.
 
@@ -192,7 +193,7 @@ That is the scaffold default, left in place. **Release builds are signed with de
 | `CFBundleShortVersionString` / `CFBundleVersion` | `$(FLUTTER_BUILD_NAME)` / `$(FLUTTER_BUILD_NUMBER)` — driven by `pubspec.yaml`'s `version` |
 | Orientations (iPhone) | Portrait, LandscapeLeft, LandscapeRight — **no** upside-down |
 | Scene support | `UIApplicationSceneManifest` present; `UIApplicationSupportsMultipleScenes` declared |
-| Entitlements | **None** — no `.entitlements` file exists |
+| Entitlements | **None** — no `.entitlements` file exists. Push needs `aps-environment` (a `Runner.entitlements` wired in the protected `project.pbxproj`) — an approval-gated blocker, [DATA_AND_API.md](DATA_AND_API.md) §1.2 |
 | Plugin integration | **Swift Package Manager.** The committed `Runner.xcodeproj` has linked `FlutterGeneratedPluginSwiftPackage` since the initial project setup. That is the package Flutter generates, under the git-ignored `ios/Flutter/ephemeral/Packages/`, for the plugins in `pubspec.yaml` (`url_launcher`, `file_selector`, `flutter_secure_storage` — its `flutter_secure_storage_darwin` ships a `Package.swift` — `pdfx` (Issue #310), which ships `darwin/pdfx/Package.swift`, iOS 13+, so it fits both the committed 13.0 and the local 15.0 deployment target, and `mobile_scanner` (Issue #384), which ships `darwin/mobile_scanner/Package.swift`, iOS 12+, Apple Vision — its Android side is CameraX with ML Kit barcode scanning bundled, minSdk 23). **No `Podfile` exists or is used.** A plugin without Swift Package Manager support would be brought in through CocoaPods instead, which generates a `Podfile` and edits `project.pbxproj`, a protected file ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3). Check a new plugin's support first |
 | Custom permission keys | `NSCameraUsageDescription` only (Issue #384) — the attendance scanner's camera. No photo or location keys. Android's `CAMERA` permission comes from `mobile_scanner`'s own manifest |
 
@@ -208,6 +209,8 @@ This one is easy to misread, so it is spelled out:
 | Local working tree | **15.0** |
 
 The 15.0 value is part of the persistent local modification to `ios/Runner.xcodeproj/project.pbxproj`. **It is a protected local change — never revert it** ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3). When reasoning about the deployment target, state which of the two you mean.
+
+**Since Issue #398 the difference matters:** `firebase_core` and `firebase_messaging` require iOS **15.0** (their `Package.swift`), so the committed 13.0 cannot build iOS from a clean checkout. Committing 15.0 is a change to a protected file and needs explicit approval. Resolving the Firebase Swift packages also leaves `Package.resolved` files under `ios/Runner.xcworkspace/xcshareddata/swiftpm/` and `ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/`; none is committed yet (a decision to take with the iOS change).
 
 ### Launcher icons
 

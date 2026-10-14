@@ -44,4 +44,13 @@ abstract final class NotificationStrings {
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '· ${two(local.hour)}:${two(local.minute)}';
   }
+
+  // --- Push notifications (Issue #398) -----------------------------------
+
+  /// A foreground push's SnackBar text when the push carries no title or
+  /// body.
+  static const String pushReceived = 'Шинэ мэдэгдэл ирлээ';
+
+  /// The SnackBar action that opens the push's notification.
+  static const String pushOpen = 'Харах';
 }

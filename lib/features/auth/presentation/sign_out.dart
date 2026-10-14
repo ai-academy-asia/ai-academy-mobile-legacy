@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../data/http_auth_repository.dart';
@@ -5,6 +7,7 @@ import '../data/session_refresher.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_session_store.dart';
 import '../../notifications/presentation/notification_center.dart';
+import '../../notifications/push/push_notifications.dart';
 
 /// `AiAcademyApp`'s sign-in route, which [signOutToLogin] lands on.
 const String loginRoute = '/login';
@@ -14,6 +17,10 @@ const String loginRoute = '/login';
 ///
 /// In order:
 ///
+///   0. Removes this device's push token from the account while the session
+///      can still authenticate it, then deletes it on the device (Issue #398)
+///      — so the next account here never receives this one's pushes. Bounded
+///      and best-effort: it never stops the sign-out.
 ///   1. When the session carries a refresh token, asks the server to revoke
 ///      it (`POST /auth/logout`, this device only).
 ///   2. Clears the local session **whatever that request did**. A failed
@@ -24,15 +31,18 @@ const String loginRoute = '/login';
 ///      screen is left to go back to.
 ///
 /// [navigator] is taken rather than a `BuildContext` so nothing reads a
-/// context across the request's async gap. [repository] and [sessionStore]
-/// default to the app's own; tests inject both.
+/// context across the request's async gap. [repository], [sessionStore] and
+/// [push] default to the app's own; tests inject them.
 Future<void> signOutToLogin(
   NavigatorState navigator, {
   AuthRepository? repository,
   AuthSessionStore? sessionStore,
+  PushNotifications? push,
 }) async {
   final store = sessionStore ?? AuthSessionStore.instance;
   final refreshToken = store.session?.refreshToken;
+
+  await (push ?? PushNotifications.instance).signOut();
 
   if (refreshToken != null) {
     try {
@@ -66,6 +76,9 @@ void returnToLoginWhenSessionEnds(
 ) {
   refresher.onSessionEnded = () {
     NotificationCenter.instance.reset();
+    // No session left to remove the push token with: delete it on the
+    // device, so nothing more arrives (Issue #398).
+    unawaited(PushNotifications.instance.sessionEnded());
     final navigator = navigatorKey.currentState;
     if (navigator != null) returnToLogin(navigator);
   };
