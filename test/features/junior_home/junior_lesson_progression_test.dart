@@ -163,20 +163,20 @@ void main() {
         .color;
   }
 
-  testWidgets('the device report: the blue-tick node and the white node look '
-      'different — and now act differently', (tester) async {
+  testWidgets('the device report: a node that cannot be opened looks it — '
+      'the padlock, never a blank white node', (tester) async {
     final learning = await pumpHome(tester);
     final palette = tester.element(tile(101)).palette;
 
     // Drawn: 101 the lesson to continue with — the tick in the accent
     // frame; 102 a lesson whose class date has come but whose turn has not
-    // — the plain white face in the grey outline.
+    // — the grey padlock, as it cannot be opened.
     expect(glyphOf(tester, 101), 'node_check');
     expect(edgeOf(tester, 101), palette.accent);
-    expect(glyphOf(tester, 102), isNull);
+    expect(glyphOf(tester, 102), 'node_lock');
     expect(edgeOf(tester, 102), palette.outline);
 
-    // Tapped: the white node does nothing, sends nothing …
+    // Tapped: the padlocked node does nothing, sends nothing …
     expect(tester.widget<JuniorMapNodeTile>(tile(102)).onTap, isNull);
     await tester.tap(tile(102));
     await tester.pumpAndSettle();

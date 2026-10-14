@@ -15,11 +15,12 @@ import 'junior_map_geometry.dart';
 /// artwork — none has a match in the bundled Phosphor set (Issue #410): a
 /// completed lesson the tick on the pale blue face; **the lesson to continue
 /// with** the same blue tick in the active frame (the white face in the
-/// accent outline and band) — the one unfinished lesson that opens; any
-/// other unfinished lesson whose class date has come a plain white face in
-/// the grey outline, no glyph — it waits its turn and does not open; a
-/// locked lesson — its class date not yet come — the grey padlock. No other
-/// glyph is ever drawn on the path.
+/// accent outline and band) — the one unfinished lesson that opens; every
+/// other unfinished lesson, which cannot be opened, the grey padlock —
+/// whether its class date has not come ([JuniorNodeState.locked]) or it has
+/// but its turn has not ([JuniorNodeState.open]): a node that does not open
+/// never looks as if it might. No other glyph is ever drawn on the path;
+/// the screen-reader label still tells the two apart.
 ///
 /// **The check-in node** (Issues #202, #410): while check-in is actionable
 /// ([checkIn] true) the lesson draws as the updated reference's check-in
@@ -108,15 +109,12 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         ? _NodeStyle.checkIn(palette)
         : _NodeStyle.of(node.state, palette);
     final glyphSize = JuniorMapGeometry.nodeGlyph * scale;
-    final glyph = switch (style.glyph) {
-      final String sprite => Image.asset(
-        JuniorMapGeometry.sprite(sprite),
-        width: glyphSize,
-        height: glyphSize,
-        filterQuality: FilterQuality.high,
-      ),
-      null => const SizedBox.shrink(),
-    };
+    final glyph = Image.asset(
+      JuniorMapGeometry.sprite(style.glyph),
+      width: glyphSize,
+      height: glyphSize,
+      filterQuality: FilterQuality.high,
+    );
 
     Widget tile = Container(
       decoration: BoxDecoration(
@@ -178,8 +176,8 @@ class _NodeStyle {
   final Color fill;
   final Color border;
 
-  /// The exported sprite's name; null for a plain open face.
-  final String? glyph;
+  /// The exported sprite's name.
+  final String glyph;
 
   /// The live check-in: the updated reference's QR stop — the white face in
   /// the accent frame.
@@ -191,9 +189,8 @@ class _NodeStyle {
 
   /// Completed: the tick on the course card's pale blue (`juniorCard`) in
   /// the accent. Current: the tick in the active frame — a `surface` node in
-  /// the accent. Open: a plain `surface` node in the `outline`. Locked: the
-  /// padlock on the map's not-yet-reached grey (`juniorMutedFill`) in the
-  /// `outline`.
+  /// the accent. Open and locked — both cannot be opened: the padlock on the
+  /// map's not-yet-reached grey (`juniorMutedFill`) in the `outline`.
   static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
       switch (state) {
         JuniorNodeState.completed => _NodeStyle(
@@ -206,12 +203,7 @@ class _NodeStyle {
           border: palette.accent,
           glyph: 'node_check',
         ),
-        JuniorNodeState.open => _NodeStyle(
-          fill: palette.surface,
-          border: palette.outline,
-          glyph: null,
-        ),
-        JuniorNodeState.locked => _NodeStyle(
+        JuniorNodeState.open || JuniorNodeState.locked => _NodeStyle(
           fill: palette.juniorMutedFill,
           border: palette.outline,
           glyph: 'node_lock',

@@ -176,4 +176,39 @@ void main() {
       matchesGoldenFile('../../goldens/junior_home_path_end.png'),
     );
   });
+
+  testWidgets('the device report\'s course: seeded progress with gaps — '
+      'ticks, the lesson to continue with, and padlocks where lessons wait '
+      '(Issue #410)', (tester) async {
+    // `jr10.s10` in the backend's summer-kids seed: `·✓✓✓·✓✓·✓··`, every
+    // module unlocked, the continue lesson the first gap. See
+    // junior_lesson_audit_test.dart.
+    const pattern = '·✓✓✓·✓✓·✓··';
+    final sample = sampleJuniorLearningMap();
+    await capture(
+      tester,
+      JuniorLearningMap(
+        progress: const JuniorCourseProgress(
+          title: 'Junior AI Summer Camp 10–14',
+          percentComplete: 54,
+        ),
+        certificate: sample.certificate,
+        nextLesson: sample.nextLesson,
+        attendanceRecorded: false,
+        continueLessonId: 1,
+        nodes: withResumeLesson(continueLessonId: 1, [
+          for (var i = 0; i < pattern.length; i++)
+            JuniorMapNode(
+              id: i + 1,
+              state: pattern[i] == '✓'
+                  ? JuniorNodeState.completed
+                  : JuniorNodeState.open,
+            ),
+        ]),
+      ),
+      DateTime(2026, 10, 14, 12),
+      'junior_home_seeded_gaps',
+      size: const Size(393, 2095),
+    );
+  });
 }

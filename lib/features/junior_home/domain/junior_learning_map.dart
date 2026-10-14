@@ -15,8 +15,8 @@ import '../../home/domain/home_dashboard.dart';
 ///   `continue.lesson_id`, unlocked and not yet done. The one unfinished
 ///   lesson that opens.
 /// * [open] — any other lesson the server leaves unlocked and not yet
-///   done: its class date has come, but it waits its turn. A plain white
-///   node; does not open.
+///   done: its class date has come, but it waits its turn. Drawn with the
+///   padlock, as it cannot be opened; read as "not yet available".
 /// * [locked] — the server locks it (`lesson.locked`, or its module's —
 ///   the class date has not come): a grey padlock; does not open.
 enum JuniorNodeState { completed, current, open, locked }

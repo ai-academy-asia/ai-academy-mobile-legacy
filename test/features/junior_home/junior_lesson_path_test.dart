@@ -146,17 +146,17 @@ void main() {
       });
     }
 
-    testWidgets('open (its class date has come, not yet its turn): a plain '
-        'white face in the grey outline — no glyph, no padlock', (
-      tester,
-    ) async {
+    testWidgets('open (its class date has come, not yet its turn): it '
+        'cannot be opened, so it wears the grey padlock — read as "not yet '
+        'available", unlike a locked lesson', (tester) async {
       await pumpTile(
         tester,
         const JuniorMapNode(id: 1, state: JuniorNodeState.open),
       );
       final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
 
-      for (final name in ['node_check', 'node_lock', 'node_current']) {
+      expect(sprite('node_lock'), findsOneWidget);
+      for (final name in ['node_check', 'node_current']) {
         expect(sprite(name), findsNothing);
       }
       expect(
@@ -176,7 +176,7 @@ void main() {
                   )
                   .decoration!
               as BoxDecoration;
-      expect(decoration.color, palette.surface);
+      expect(decoration.color, palette.juniorMutedFill);
       expect((decoration.border! as Border).top.color, palette.outline);
       expect(
         find.bySemanticsLabel('Lesson 1, not yet available'),
