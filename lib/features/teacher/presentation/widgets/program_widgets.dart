@@ -1,5 +1,6 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -40,7 +41,6 @@ class TeacherProgramCard extends StatelessWidget {
     final palette = context.palette;
     final cohort = teacherClass.cohort;
     final track = teacherClass.track;
-    final junior = track == 'junior';
     final title = cohort.course.title.preferred ?? cohort.course.slug;
     final radius = BorderRadius.circular(AppDimens.homeCardRadius);
 
@@ -48,9 +48,8 @@ class TeacherProgramCard extends StatelessWidget {
     // [programCardPadding] gives up, so the content sits 16 / 24 in.
     return Container(
       decoration: BoxDecoration(
-        // Adult's cool wash is the catalogue card's own; Junior draws on
-        // white under its orange pattern.
-        color: junior ? palette.surface : palette.surfaceTinted,
+        // White under the family's pattern, as every card in it (Issue #408).
+        color: palette.surface,
         borderRadius: radius,
         border: Border.all(color: palette.outline),
       ),
@@ -58,12 +57,8 @@ class TeacherProgramCard extends StatelessWidget {
         borderRadius: radius,
         child: Stack(
           children: [
-            // Not yet the family's [CardPattern]: `Sign in - 33` draws the
-            // artwork about 1.34× larger than every other card's frame, so
-            // this keeps its own drawing until the designer says which is
-            // meant (Issue #404). For Junior, the same shapes in the Junior
-            // mark's orange — no Junior export exists (Issue #390).
-            _ProgramsPattern(tint: junior ? palette.programJuniorTint : null),
+            // The family's pattern, orange for Junior (Issue #408).
+            CardPattern(track: track),
             Padding(
               // The family's inset: 16 at the sides, 24 at the top and bottom
               // (Issue #404; was 16 all round).
@@ -73,60 +68,10 @@ class TeacherProgramCard extends StatelessWidget {
                 children: [
                   CardBadgeRow(track: track),
                   const SizedBox(height: 16),
-                  // Cohort over course on the left; the count on the right —
-                  // the count drops under them where large text leaves no
-                  // room beside.
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.end,
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            cohort.name,
-                            style: AppTypography.body.copyWith(
-                              color: palette.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            title,
-                            style: AppTypography.cardTitle.copyWith(
-                              color: palette.teacherTitle,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Semantics(
-                        label:
-                            '${TeacherGradebookStrings.totalStudents}: '
-                            '${cohort.enrolledCount}',
-                        excludeSemantics: true,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              TeacherGradebookStrings.totalStudents,
-                              style: AppTypography.body.copyWith(
-                                color: palette.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${cohort.enrolledCount}',
-                              style: AppTypography.cardTitle.copyWith(
-                                color: palette.teacherTitle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  _TitleAndCount(
+                    cohortName: cohort.name,
+                    title: title,
+                    count: cohort.enrolledCount,
                   ),
                   const SizedBox(height: 24),
                   PillButton(
@@ -145,29 +90,100 @@ class TeacherProgramCard extends StatelessWidget {
   }
 }
 
-/// Teacher Programs' block pattern, as before Issue #404: the catalogue
-/// asset covering the card at 80% — on the Adult card's `surfaceTinted` —
-/// tinted for Junior. Kept apart from the family's [CardPattern] pending a
-/// design decision (`Sign in - 33` scales the artwork).
-class _ProgramsPattern extends StatelessWidget {
-  const _ProgramsPattern({this.tint});
+/// The cohort over the course on the left and "Нийт сурагч" over the count
+/// on the right, as `Sign in - 33` draws them — side by side whatever the
+/// title's length: the title takes the room left and wraps, the count keeps
+/// its own width at the right edge, the label level with the cohort's name
+/// and the count with the title's first line (Issue #408). Only where the
+/// count would need more than half the row — a large system text size —
+/// does it go under the title, still at the right, never over it.
+///
+/// It was a `Wrap`, which measures the title unwrapped: a title too long to
+/// share one line with the count sent the whole count under it, to the
+/// left — at the default size on a 393-wide iPhone.
+class _TitleAndCount extends StatelessWidget {
+  const _TitleAndCount({
+    required this.cohortName,
+    required this.title,
+    required this.count,
+  });
 
-  final Color? tint;
+  final String cohortName;
+  final String title;
+  final int count;
+
+  static const TextStyle _captionStyle = AppTypography.body;
+  static const TextStyle _valueStyle = AppTypography.cardTitle;
 
   @override
   Widget build(BuildContext context) {
-    final tint = this.tint;
-    return Positioned.fill(
-      child: Opacity(
-        opacity: 0.8,
-        child: SvgPicture.asset(
-          'assets/icons/cohort_background.svg',
-          fit: BoxFit.cover,
-          colorFilter: tint == null
-              ? null
-              : ColorFilter.mode(tint, BlendMode.srcIn),
-        ),
+    final palette = context.palette;
+    final caption = _captionStyle.copyWith(color: palette.textSecondary);
+    final value = _valueStyle.copyWith(color: palette.teacherTitle);
+
+    final names = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(cohortName, style: caption),
+        const SizedBox(height: 2),
+        Text(title, style: value),
+      ],
+    );
+    final total = Semantics(
+      label: '${TeacherGradebookStrings.totalStudents}: $count',
+      excludeSemantics: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(TeacherGradebookStrings.totalStudents, style: caption),
+          const SizedBox(height: 2),
+          Text('$count', style: value),
+        ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (_totalWidth(context) <= constraints.maxWidth / 2) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: names),
+              const SizedBox(width: 12),
+              total,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            names,
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: total),
+          ],
+        );
+      },
+    );
+  }
+
+  /// The count block's own width at the current text size — the wider of
+  /// its label and its number.
+  double _totalWidth(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    double widthOf(String text, TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      final width = painter.width;
+      painter.dispose();
+      return width;
+    }
+
+    return math.max(
+      widthOf(TeacherGradebookStrings.totalStudents, _captionStyle),
+      widthOf('$count', _valueStyle),
     );
   }
 }

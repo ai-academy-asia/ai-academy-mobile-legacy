@@ -134,7 +134,7 @@ class _Summary extends StatelessWidget {
         // the white blocks cut out of it, which is also what shades the
         // section from near-white at the leading edge to pale blue at the
         // trailing one. Drawn at full strength on the card's white.
-        const CardPattern(),
+        CardPattern(track: program.uiMode),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             _paddingH - AppDimens.borderWidth,

@@ -16,6 +16,15 @@ import '../../core/theme/app_typography.dart';
 /// `HomeCapsule` renamed [CardCapsule]: other features draw them, so they do
 /// not belong to Home.
 const double trackBadgeHeight = 32;
+
+/// Whether [track] — a student's `ui_mode` or a course's `level` — is one of
+/// the younger tracks: what draws the junior mark and tints the card's
+/// pattern orange.
+bool isJuniorTrack(String? track) {
+  final mode = track?.toLowerCase();
+  return mode == 'junior' || mode == 'kids';
+}
+
 const double cardCapsuleHeight = 24;
 
 /// A track, as the outlined badge in a card's top-left: the junior mark for
@@ -35,8 +44,7 @@ class TrackBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = track.toLowerCase();
-    final isJunior = mode == 'junior' || mode == 'kids';
+    final isJunior = isJuniorTrack(track);
 
     return Container(
       // 5 | 20 icon | 8 | label | 9.5, inside the 1pt outline. 32 tall at
@@ -170,9 +178,11 @@ const EdgeInsets programCardPadding = EdgeInsets.fromLTRB(
 /// The family's top and bottom inset, outline included.
 const double programCardVerticalInset = 24;
 
-/// The card family's block pattern, as every Figma frame that draws it on a
-/// student card draws it (Issue #404): the one artwork at 1:1 from the card's
-/// top-left, at full strength, on the card's white `surface` — Home Page1,
+/// The card family's block pattern — on every program/cohort card, Teacher
+/// Programs and the schedule session card included (Issue #408) — as every
+/// Figma frame that draws it on a student card draws it (Issue #404): the
+/// one artwork at 1:1 from the card's top-left, at full strength, on the
+/// card's white `surface` — Home Page1,
 /// Course Catalog (a taller card included) and e-contract1 are pixel-identical
 /// there. A 12% blue tint with the white blocks cut out of it, which also
 /// shades the card from near-white at the leading edge to pale blue at the
@@ -182,9 +192,15 @@ const double programCardVerticalInset = 24;
 /// rather than a scaled-up one. Fills its parent: put it first in the card's
 /// [Stack].
 class CardPattern extends StatelessWidget {
-  const CardPattern({super.key});
+  const CardPattern({super.key, this.track});
 
   static const String asset = 'assets/icons/program_card_background.svg';
+
+  /// The card's track, as [TrackBadge] takes it. A junior track draws the
+  /// same shapes in [AppPalette.programJuniorTint], the Junior mark's orange
+  /// (no Junior export exists — Issue #390); any other, or none, the
+  /// artwork's own blue. Decided here, so no card tints it on its own.
+  final String? track;
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +209,12 @@ class CardPattern extends StatelessWidget {
         asset,
         fit: BoxFit.none,
         alignment: Alignment.topLeft,
+        colorFilter: isJuniorTrack(track)
+            ? ColorFilter.mode(
+                context.palette.programJuniorTint,
+                BlendMode.srcIn,
+              )
+            : null,
       ),
     );
   }

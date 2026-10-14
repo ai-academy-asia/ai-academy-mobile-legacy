@@ -104,7 +104,7 @@ class ContractCard extends StatelessWidget {
         child: Stack(
           children: [
             // The card family's pattern, 1:1 from the top-left (Issue #404).
-            const CardPattern(),
+            CardPattern(track: level),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 _paddingH - AppDimens.borderWidth,
