@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/back_title_header.dart';
 import '../../../shared/widgets/content_column.dart';
@@ -137,26 +139,34 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
       listenable: _controller,
       builder: (context, child) =>
           PopScope(canPop: !_controller.submitting, child: child!),
-      child: Scaffold(
-        backgroundColor: palette.surface,
-        body: SafeArea(
-          bottom: false,
-          child: ContentColumn(
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) {
-                final rows = _controller.rows;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const BackTitleHeader(
-                      title: TeacherAttendanceStrings.manualTitle,
-                    ),
-                    Expanded(child: _body(context, rows)),
-                    if (rows != null && rows.isNotEmpty) _footer(context),
-                  ],
-                );
-              },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        // Its own style: the page below stops painting once covered,
+        // and its style would stay (Issue #400).
+        value: AppSystemUi.page(
+          context,
+          navigationBar: context.palette.surface,
+        ),
+        child: Scaffold(
+          backgroundColor: palette.surface,
+          body: SafeArea(
+            bottom: false,
+            child: ContentColumn(
+              child: ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) {
+                  final rows = _controller.rows;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const BackTitleHeader(
+                        title: TeacherAttendanceStrings.manualTitle,
+                      ),
+                      Expanded(child: _body(context, rows)),
+                      if (rows != null && rows.isNotEmpty) _footer(context),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

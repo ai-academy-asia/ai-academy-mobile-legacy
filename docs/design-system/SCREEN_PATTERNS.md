@@ -31,7 +31,7 @@ AnnotatedRegion<SystemUiOverlayStyle>(          // status-bar style per screen
 
 Five conventions in that skeleton, all worth keeping:
 
-1. **`AnnotatedRegion`** sets the status-bar style per screen, always through **`AppSystemUi`** (`lib/core/theme/app_system_ui.dart`, Dark Mode Phase 4, Issue #260), never a raw `SystemUiOverlayStyle.dark/.light`. A test enforces this.
+1. **`AnnotatedRegion`** sets the status-bar style per screen, always through **`AppSystemUi`** (`lib/core/theme/app_system_ui.dart`, Dark Mode Phase 4, Issue #260), never a raw `SystemUiOverlayStyle.dark/.light`. A test enforces this. **Every** screen declares one, pushed pages included: once a page covers the one below, that page stops painting and its style would otherwise stay — Teacher Schedule's light icons stayed white on the white pages pushed from it until Issue #400. `test/core/theme/app_system_ui_test.dart` fails for any `lib/` file with a `Scaffold(` and no region, apart from the tab shells (their tabs declare it) and the non-release payment previews.
    - **`AppSystemUi.page(context, navigationBar: context.palette.<the page's bottom ground>)`:** dark icons on the light theme, light icons on a dark one. This covers every light page, Exercise Detail included: its video header starts below the status bar, see §3.
    - **`AppSystemUi.overDarkContent(...)`:** light icons in every theme, only where the status bar sits over content that is dark in any theme. Today that's the attendance scanner (camera + scrim) and Teacher Schedule (blue header band).
 2. **`Scaffold.backgroundColor = AppColors.background`** — the page is grey; white is for surfaces.

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/app_back_button.dart';
 import '../../../shared/widgets/content_column.dart';
@@ -84,72 +86,78 @@ class _AttendanceQrScreenState extends State<AttendanceQrScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Scaffold(
-      backgroundColor: palette.surface,
-      body: SafeArea(
-        bottom: false,
-        child: ContentColumn(
-          child: ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const AppBackButton(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.screenPadding,
-                      _headerToTitle,
-                      AppDimens.screenPadding,
-                      AppDimens.pageBottom,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Semantics(
-                          header: true,
-                          child: Text(
-                            TeacherAttendanceStrings.qrTitle,
-                            style: AppTypography.screenTitle.copyWith(
-                              color: palette.textPrimary,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Its own style: the page below stops painting once covered,
+      // and its style would stay (Issue #400).
+      value: AppSystemUi.page(context, navigationBar: context.palette.surface),
+      child: Scaffold(
+        backgroundColor: palette.surface,
+        body: SafeArea(
+          bottom: false,
+          child: ContentColumn(
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const AppBackButton(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.screenPadding,
+                        _headerToTitle,
+                        AppDimens.screenPadding,
+                        AppDimens.pageBottom,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Semantics(
+                            header: true,
+                            child: Text(
+                              TeacherAttendanceStrings.qrTitle,
+                              style: AppTypography.screenTitle.copyWith(
+                                color: palette.textPrimary,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        const SizedBox(height: _titleToCode),
-                        Center(child: _CodeArea(controller: _controller)),
-                        if (_controller.phase == AttendanceQrPhase.showing) ...[
-                          const SizedBox(height: _codeToHint),
-                          Text(
-                            TeacherAttendanceStrings.qrHint,
-                            style: AppTypography.body.copyWith(
-                              color: palette.textSecondary,
+                          const SizedBox(height: _titleToCode),
+                          Center(child: _CodeArea(controller: _controller)),
+                          if (_controller.phase ==
+                              AttendanceQrPhase.showing) ...[
+                            const SizedBox(height: _codeToHint),
+                            Text(
+                              TeacherAttendanceStrings.qrHint,
+                              style: AppTypography.body.copyWith(
+                                color: palette.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
+                          ],
+                          const SizedBox(height: _hintToTally),
+                          _Tally(controller: _controller),
                         ],
-                        const SizedBox(height: _hintToTally),
-                        _Tally(controller: _controller),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    AppDimens.screenPadding,
-                    0,
-                    AppDimens.screenPadding,
-                    AppDimens.screenPadding +
-                        MediaQuery.paddingOf(context).bottom,
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppDimens.screenPadding,
+                      0,
+                      AppDimens.screenPadding,
+                      AppDimens.screenPadding +
+                          MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: TeacherPillButton(
+                      label: TeacherAttendanceStrings.manualEntry,
+                      variant: TeacherPillVariant.filled,
+                      wrapLabel: true,
+                      onPressed: _openManual,
+                    ),
                   ),
-                  child: TeacherPillButton(
-                    label: TeacherAttendanceStrings.manualEntry,
-                    variant: TeacherPillVariant.filled,
-                    wrapLabel: true,
-                    onPressed: _openManual,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
