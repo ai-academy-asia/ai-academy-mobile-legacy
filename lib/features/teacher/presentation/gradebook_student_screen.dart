@@ -497,6 +497,7 @@ class AssignmentSelector extends StatelessWidget {
           '${TeacherGradebookStrings.assignmentCaption(number)}, '
           '${assignment.displayTitle}'
           '${pending > 0 ? ', ${TeacherGradebookStrings.pendingLabel(pending)}' : ''}',
+      onTap: onTap,
       excludeSemantics: true,
       child: Material(
         color: palette.surface,

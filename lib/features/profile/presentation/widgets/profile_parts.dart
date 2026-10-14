@@ -344,6 +344,7 @@ class ProfileSwitch extends StatelessWidget {
       // Only an inert switch says so; an active one is drawn as it always was.
       enabled: onChanged == null ? false : null,
       label: semanticLabel,
+      onTap: onChanged == null ? null : () => onChanged(!value),
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onChanged == null ? null : () => onChanged(!value),
@@ -390,6 +391,7 @@ class ProfileLogOutButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: ProfileStrings.logOut,
+      onTap: onPressed,
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,

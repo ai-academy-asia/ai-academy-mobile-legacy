@@ -98,6 +98,7 @@ class TeacherPillButton extends StatelessWidget {
       button: true,
       enabled: onPressed != null && !disabled,
       label: label,
+      onTap: disabled ? null : onPressed,
       excludeSemantics: true,
       child: DecoratedBox(
         decoration: BoxDecoration(

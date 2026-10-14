@@ -351,6 +351,7 @@ class _MethodRow extends StatelessWidget {
       checked: selected,
       button: true,
       label: label(method),
+      onTap: onTap,
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,
@@ -435,6 +436,7 @@ class PaymentCopyButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: PaymentFlowStrings.copy(label),
+      onTap: () => Clipboard.setData(ClipboardData(text: value)),
       excludeSemantics: true,
       child: Material(
         color: context.palette.surface,

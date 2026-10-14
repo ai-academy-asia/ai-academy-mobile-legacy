@@ -318,6 +318,7 @@ class _ClearButton extends StatelessWidget {
       button: true,
       enabled: onPressed != null,
       label: ContractStrings.clear,
+      onTap: onPressed,
       excludeSemantics: true,
       child: InkWell(
         onTap: onPressed,

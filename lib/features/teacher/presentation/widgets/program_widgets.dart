@@ -364,6 +364,7 @@ class SheetActionRow extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
+      onTap: onTap,
       excludeSemantics: true,
       child: Material(
         color: palette.surface,
@@ -677,6 +678,7 @@ class AssignmentOption extends StatelessWidget {
           '${TeacherGradebookStrings.assignmentCaption(number)}, '
           '${assignment.displayTitle}'
           '${pending > 0 ? ', ${TeacherGradebookStrings.pendingLabel(pending)}' : ''}',
+      onTap: onTap,
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,

@@ -292,6 +292,7 @@ class SessionBlock extends StatelessWidget {
     return Semantics(
       button: true,
       label: '$title, ${session.startLabel}-${session.endLabel}',
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,

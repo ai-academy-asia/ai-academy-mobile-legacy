@@ -201,6 +201,7 @@ class ProgramStudentRow extends StatelessWidget {
         label:
             '${student.name}'
             '${pending > 0 ? ', ${TeacherGradebookStrings.pendingLabel(pending)}' : ''}',
+        onTap: onTap,
         excludeSemantics: true,
         child: InkWell(
           onTap: onTap,

@@ -71,6 +71,7 @@ class _BankTile extends StatelessWidget {
     return Semantics(
       button: true,
       label: bank.name,
+      onTap: () => Navigator.of(context).pop(bank),
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
