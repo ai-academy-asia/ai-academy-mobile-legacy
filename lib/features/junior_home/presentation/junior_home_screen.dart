@@ -11,6 +11,7 @@ import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
 import '../../course_learning/presentation/course_exercise_detail_screen.dart';
+import '../../course_learning/presentation/lesson_navigation.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../../notifications/presentation/notification_center.dart';
 import '../data/api_junior_home_repository.dart';
@@ -219,15 +220,15 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   /// course screens, reached here without the module in between. The map
   /// reloads on return, so a lesson completed there shows as completed.
   Future<void> _openLesson(JuniorMapNode node) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => CourseExerciseDetailScreen(
-          lessonId: node.id,
-          repository: widget.courseLearningRepository,
-        ),
-      ),
+    // The one lesson opener, as every screen uses: a lesson the server
+    // locks never opens, whatever drew the tap.
+    final opened = await openLesson(
+      context,
+      lessonId: node.id,
+      locked: node.locked,
+      repository: widget.courseLearningRepository,
     );
-    if (mounted) await _controller.load(fresh: true);
+    if (opened && mounted) await _controller.load(fresh: true);
   }
 }
 

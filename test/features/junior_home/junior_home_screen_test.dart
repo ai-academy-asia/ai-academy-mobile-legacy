@@ -114,7 +114,7 @@ void main() {
 
       expect(find.bySemanticsLabel('Lesson 1, completed'), findsOneWidget);
       // With no lesson under way the check-in node is simply its lesson.
-      expect(find.bySemanticsLabel('Lesson 3, available'), findsOneWidget);
+      expect(find.bySemanticsLabel('Lesson 3, current lesson'), findsOneWidget);
       expect(
         find.bySemanticsLabel('Lesson 12, locked', skipOffstage: false),
         findsOneWidget,

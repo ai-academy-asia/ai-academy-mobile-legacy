@@ -89,7 +89,8 @@ abstract final class JuniorHomeStrings {
   // without these a screen reader would find five unlabelled boxes.
 
   static const String nodeCompleted = 'completed';
-  static const String nodeCurrent = 'available';
+  static const String nodeCurrent = 'current lesson';
+  static const String nodeOpen = 'open';
   static const String nodeLocked = 'locked';
 
   static const String checkInOpen = 'attendance check-in open';
@@ -104,6 +105,7 @@ abstract final class JuniorHomeStrings {
       '${_lesson(number, title)}, ${switch (state) {
         JuniorNodeState.completed => nodeCompleted,
         JuniorNodeState.current => nodeCurrent,
+        JuniorNodeState.open => nodeOpen,
         JuniorNodeState.locked => nodeLocked,
       }}';
 

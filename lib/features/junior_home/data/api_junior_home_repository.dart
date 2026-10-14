@@ -155,8 +155,8 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 ///
 /// [lessons] are each module's lessons by module id — one node per lesson,
 /// in course order: modules by `order`, then their lessons by `order`
-/// (Issue #410), and one lesson available at a time
-/// ([withLessonProgression]). A module with none listed adds no node.
+/// (Issue #410), the resume lesson picked out ([withResumeLesson]). A
+/// module with none listed adds no node.
 /// [nextLesson] is
 /// the dashboard's, from the cohort's schedule, and [attendanceRecorded]
 /// today's record — what the check-in node reads (Issues #202, #410).
@@ -176,8 +176,8 @@ JuniorLearningMap juniorMapFrom(
     percentComplete: path.percentComplete,
   ),
   // Sorted on `order` rather than trusting either array, so the route's
-  // order is the course's; then one lesson at a time (Issue #410).
-  nodes: withLessonProgression(continueLessonId: path.continueLessonId, [
+  // order is the course's; then the resume lesson picked out (Issue #410).
+  nodes: withResumeLesson(continueLessonId: path.continueLessonId, [
     for (final module
         in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
       for (final lesson
@@ -207,7 +207,7 @@ JuniorLearningMap juniorMapFrom(
 
 /// Both booleans are server-sent and neither is recomputed here: a
 /// completed lesson is completed even under a lock; "open and unfinished"
-/// is what is left once both are false — see [JuniorNodeState.current].
+/// is what is left once both are false — see [JuniorNodeState.open].
 /// A lesson's look, straight off the server's two flags: completed wins the
 /// look (its tick stays even if its module locks again), while whether it
 /// opens is [JuniorMapNode.locked]. A lesson in a locked module is locked
@@ -217,7 +217,7 @@ JuniorLearningMap juniorMapFrom(
 JuniorNodeState _stateFor(Lesson lesson, {required bool inLockedModule}) {
   if (lesson.completed) return JuniorNodeState.completed;
   if (lesson.locked || inLockedModule) return JuniorNodeState.locked;
-  return JuniorNodeState.current;
+  return JuniorNodeState.open;
 }
 
 /// The contract's three `certificate.status` values. Anything else — or

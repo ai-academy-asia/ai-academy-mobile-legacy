@@ -177,58 +177,71 @@ void main() {
       ]);
     });
 
-    group('one lesson at a time (Issue #410)', () {
-      // Three open, unfinished lessons in one module — every one of them
-      // unlocked by the server, which gates by class date alone.
+    group('availability is the server\'s lock alone (Issue #410)', () {
+      // Module 1's class date has come: its lessons are open. Module 2's
+      // has not: the server locks it, every lesson alike.
       final path = samplePath(
         percentComplete: 54,
         continueModuleId: 1,
         continueLessonId: 12,
-        modules: [sampleModule(id: 1, order: 1)],
+        modules: [
+          sampleModule(id: 1, order: 1),
+          sampleModule(id: 2, order: 2, locked: true),
+        ],
       );
       final lessons = {
         1: [
           sampleLesson(id: 11, moduleId: 1, order: 1, completed: true),
           sampleLesson(id: 12, moduleId: 1, order: 2),
           sampleLesson(id: 13, moduleId: 1, order: 3),
-          sampleLesson(id: 14, moduleId: 1, order: 4),
+        ],
+        2: [
+          sampleLesson(id: 21, moduleId: 2, order: 1, locked: true),
+          sampleLesson(id: 22, moduleId: 2, order: 2, locked: true),
         ],
       };
 
-      test('only the server\'s resume lesson is available; the rest not yet '
-          'reached are locked and inert', () {
+      test('every lesson whose class date has come opens; only the '
+          'server-locked ones do not', () {
         final map = juniorMapFrom(path, lessons: lessons);
 
         expect(map.nodes.map((n) => n.state), [
           JuniorNodeState.completed,
           JuniorNodeState.current,
+          JuniorNodeState.open,
           JuniorNodeState.locked,
           JuniorNodeState.locked,
         ]);
-        expect(map.nodes.map((n) => n.locked), [false, false, true, true]);
-        expect(map.nodes.map((n) => n.notYetReached), [
+        expect(map.nodes.map((n) => n.locked), [
+          false,
           false,
           false,
           true,
           true,
         ]);
-        expect(map.checkInNode?.id, 12);
       });
 
-      test('the percentage stays the server\'s — never the share of nodes '
-          'available', () {
+      test('the resume lesson is picked out for emphasis and check-in — '
+          'availability unchanged', () {
         final map = juniorMapFrom(path, lessons: lessons);
 
-        expect(map.progress.percentComplete, 54);
+        expect(map.checkInNode?.id, 12);
+        expect(
+          map.nodes.where((n) => n.state == JuniorNodeState.current),
+          hasLength(1),
+        );
       });
 
-      test('without a usable continue target, the first open lesson in '
-          'course order', () {
-        for (final continueId in [null, 11, 99]) {
+      test('without a usable continue target, the first open lesson is the '
+          'one picked out', () {
+        for (final continueId in [null, 11, 21, 99]) {
           final map = juniorMapFrom(
             samplePath(
               continueLessonId: continueId,
-              modules: [sampleModule(id: 1, order: 1)],
+              modules: [
+                sampleModule(id: 1, order: 1),
+                sampleModule(id: 2, order: 2, locked: true),
+              ],
             ),
             lessons: lessons,
           );
@@ -239,67 +252,40 @@ void main() {
             [12],
             reason: '$continueId',
           );
+          expect(map.nodes.where((n) => n.locked).map((n) => n.id), [21, 22]);
         }
       });
 
-      test('a lesson completed ahead of the path keeps its tick and still '
-          'opens; a server lock is never lifted', () {
+      test('the percentage stays the server\'s — never the share of nodes '
+          'that open', () {
+        expect(
+          juniorMapFrom(path, lessons: lessons).progress.percentComplete,
+          54,
+        );
+      });
+
+      test('a completed lesson in a module locked again keeps its tick and '
+          'stays shut', () {
         final map = juniorMapFrom(
-          samplePath(
-            continueLessonId: 21,
-            modules: [
-              sampleModule(id: 2, order: 1),
-              sampleModule(id: 3, order: 2, locked: true),
-            ],
-          ),
+          samplePath(modules: [sampleModule(id: 3, order: 1, locked: true)]),
           lessons: {
-            2: [
-              sampleLesson(id: 21, moduleId: 2, order: 1),
-              sampleLesson(id: 22, moduleId: 2, order: 2, completed: true),
-              sampleLesson(id: 23, moduleId: 2, order: 3),
-            ],
-            3: [sampleLesson(id: 31, moduleId: 3, order: 1, locked: true)],
-          },
-        );
-
-        expect(map.nodes.map((n) => n.state), [
-          JuniorNodeState.current,
-          JuniorNodeState.completed,
-          JuniorNodeState.locked,
-          JuniorNodeState.locked,
-        ]);
-        expect(map.nodes.map((n) => n.locked), [false, false, true, true]);
-        // Held back by the path, versus locked by the server.
-        expect(map.nodes[2].notYetReached, isTrue);
-        expect(map.nodes[3].notYetReached, isFalse);
-      });
-
-      test('completing the available lesson makes the next one available '
-          '(the server names it on the next load)', () {
-        final after = juniorMapFrom(
-          samplePath(
-            continueLessonId: 13,
-            modules: [sampleModule(id: 1, order: 1)],
-          ),
-          lessons: {
-            1: [
-              sampleLesson(id: 11, moduleId: 1, order: 1, completed: true),
-              sampleLesson(id: 12, moduleId: 1, order: 2, completed: true),
-              sampleLesson(id: 13, moduleId: 1, order: 3),
-              sampleLesson(id: 14, moduleId: 1, order: 4),
+            3: [
+              sampleLesson(
+                id: 31,
+                moduleId: 3,
+                order: 1,
+                completed: true,
+                locked: true,
+              ),
             ],
           },
         );
 
-        expect(after.nodes.map((n) => n.state), [
-          JuniorNodeState.completed,
-          JuniorNodeState.completed,
-          JuniorNodeState.current,
-          JuniorNodeState.locked,
-        ]);
+        expect(map.nodes.single.state, JuniorNodeState.completed);
+        expect(map.nodes.single.locked, isTrue);
       });
 
-      test('nothing open, or everything done: no available lesson, nothing '
+      test('nothing open, or everything done: nothing picked out, nothing '
           'invented', () {
         final done = juniorMapFrom(
           samplePath(continueLessonId: 12, modules: [sampleModule(id: 1)]),
@@ -323,7 +309,7 @@ void main() {
           },
         );
         expect(closed.nodes.single.state, JuniorNodeState.locked);
-        expect(closed.nodes.single.notYetReached, isFalse);
+        expect(closed.checkInNode, isNull);
       });
     });
 

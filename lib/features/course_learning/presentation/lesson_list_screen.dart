@@ -12,7 +12,7 @@ import '../data/course_module_visuals.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/lesson.dart';
-import 'course_exercise_detail_screen.dart';
+import 'lesson_navigation.dart';
 import 'course_learning_strings.dart';
 import 'lesson_list_controller.dart';
 import '../../../shared/widgets/app_back_button.dart';
@@ -383,15 +383,15 @@ class _LessonListBody extends StatelessWidget {
                 for (var i = 0; i < lessons.length; i++) ...[
                   LessonListItem(
                     lesson: lessons[i],
+                    // Through the one lesson opener (Issue #410), which
+                    // refuses a locked lesson — completed or not — too.
                     onTap: lessons[i].locked
                         ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => CourseExerciseDetailScreen(
-                                lessonId: lessons[i].id,
-                                repository: repository,
-                              ),
-                            ),
+                        : () => openLesson(
+                            context,
+                            lessonId: lessons[i].id,
+                            locked: lessons[i].locked,
+                            repository: repository,
                           ),
                   ),
                   if (i != lessons.length - 1) const _LessonConnector(),

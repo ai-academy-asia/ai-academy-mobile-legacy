@@ -126,9 +126,11 @@ void main() {
     );
   });
 
-  testWidgets('three lessons the server leaves open: one available, the two '
-      'not yet reached locked (Issue #410)', (tester) async {
-    final open = withLessons(List.filled(3, JuniorNodeState.current));
+  testWidgets('three lessons the server leaves open: the resume lesson '
+      'picked out, the other two open — none locked (Issue #410)', (
+    tester,
+  ) async {
+    final open = withLessons(List.filled(3, JuniorNodeState.open));
     await capture(
       tester,
       JuniorLearningMap(
@@ -136,8 +138,8 @@ void main() {
         certificate: open.certificate,
         nextLesson: open.nextLesson,
         attendanceRecorded: false,
-        // The path's own rule, as the repository applies it.
-        nodes: withLessonProgression(open.nodes),
+        // As the repository picks the resume lesson out.
+        nodes: withResumeLesson(open.nodes),
       ),
       DateTime(2026, 10, 6, 12),
       'junior_home_open_lessons',

@@ -17,7 +17,8 @@ import '../attendance/fake_attendance_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import '../home/fake_home_dashboard_repository.dart' hide sampleLesson;
 
-/// The Junior path's progression end to end (Issue #410): the real
+/// Lesson availability on Junior Home end to end (Issue #410): the server's
+/// lock — a lesson's class date not yet come — is the only rule. The real
 /// repository and mapper over in-memory fakes — no backend is called —
 /// through Junior Home, into a lesson and back.
 void main() {
@@ -25,28 +26,54 @@ void main() {
 
   const slug = 'junior-ai';
 
-  /// One module of four lessons, all unlocked by the server (it gates by
-  /// class date alone); [done] of them completed, the server resuming at
-  /// the first one not done.
-  void serve(FakeCourseLearningRepository learning, {required int done}) {
+  /// Module 1's class date has come: its two lessons are open, [done] of
+  /// them completed. Module 2's has not ([future]): the server locks it and
+  /// its two lessons alike. Module 3's came and was then moved later: the
+  /// server locks it again, its one lesson already completed.
+  void serve(
+    FakeCourseLearningRepository learning, {
+    int done = 0,
+    bool future = true,
+  }) {
     learning
       ..path = samplePath(
         courseSlug: slug,
-        percentComplete: done * 25,
-        continueModuleId: 1,
-        continueLessonId: done < 4 ? 101 + done : 104,
-        modules: [sampleModule(id: 1, order: 1)],
+        percentComplete: 54,
+        continueModuleId: done < 2 ? 1 : (future ? null : 2),
+        continueLessonId: done < 2 ? 101 + done : (future ? null : 201),
+        modules: [
+          sampleModule(id: 1, order: 1, completed: done == 2),
+          sampleModule(id: 2, order: 2, locked: future),
+          sampleModule(id: 3, order: 3, locked: true),
+        ],
       )
       ..lessonsByModule = {
         1: [
-          for (var i = 0; i < 4; i++)
+          for (var i = 0; i < 2; i++)
             sampleLesson(
               id: 101 + i,
               moduleId: 1,
               order: i + 1,
-              title: 'Lesson ${i + 1}',
               completed: i < done,
             ),
+        ],
+        2: [
+          for (var i = 0; i < 2; i++)
+            sampleLesson(
+              id: 201 + i,
+              moduleId: 2,
+              order: i + 1,
+              locked: future,
+            ),
+        ],
+        3: [
+          sampleLesson(
+            id: 301,
+            moduleId: 3,
+            order: 1,
+            completed: true,
+            locked: true,
+          ),
         ],
       };
   }
@@ -58,7 +85,7 @@ void main() {
 
   Future<FakeCourseLearningRepository> pumpHome(
     WidgetTester tester, {
-    int done = 1,
+    int done = 0,
     DateTime? now,
     CourseAttendance? attendance,
   }) async {
@@ -111,39 +138,58 @@ void main() {
       t.node.state,
   ];
   const done = JuniorNodeState.completed;
-  const available = JuniorNodeState.current;
+  const current = JuniorNodeState.current;
+  const open = JuniorNodeState.open;
   const locked = JuniorNodeState.locked;
 
-  testWidgets('one lesson available; the lessons not yet reached are locked, '
-      'whatever the progress says', (tester) async {
-    await pumpHome(tester, done: 2);
+  testWidgets('the class date is the only rule: lessons whose date has come '
+      'open, those whose date has not are locked', (tester) async {
+    await pumpHome(tester);
 
-    expect(states(tester), [done, done, available, locked]);
-    // 50%: the server's figure, unchanged by how many nodes are open.
-    expect(find.text('50%'), findsOneWidget);
+    expect(states(tester), [current, open, locked, locked, done]);
+    for (final id in [101, 102]) {
+      expect(tester.widget<JuniorMapNodeTile>(tile(id)).onTap, isNotNull);
+    }
+    for (final id in [201, 202, 301]) {
+      expect(tester.widget<JuniorMapNodeTile>(tile(id)).onTap, isNull);
+    }
+    // 54%: the server's figure, whatever opens.
+    expect(find.text('54%'), findsOneWidget);
     expect(find.byType(JuniorCourseProgressCard), findsOneWidget);
   });
 
-  testWidgets('a lesson not yet reached cannot be opened', (tester) async {
+  testWidgets('a lesson whose class date has not come cannot be opened — no '
+      'request is sent', (tester) async {
     final learning = await pumpHome(tester);
 
-    expect(tester.widget<JuniorMapNodeTile>(tile(103)).onTap, isNull);
-    await tester.tap(tile(103));
-    await tester.pumpAndSettle();
-    await tester.tap(tile(104));
-    await tester.pumpAndSettle();
+    for (final id in [201, 202]) {
+      await tester.tap(tile(id));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.byType(CourseExerciseDetailScreen), findsNothing);
     expect(learning.exerciseCalls, isEmpty);
   });
 
-  testWidgets('completing the available lesson and coming back: it is ticked '
-      'and the next one opens up', (tester) async {
+  testWidgets('a completed lesson whose class moved later keeps its tick and '
+      'cannot be opened', (tester) async {
     final learning = await pumpHome(tester);
-    expect(states(tester), [done, available, locked, locked]);
+
+    final node = tester.widget<JuniorMapNodeTile>(tile(301));
+    expect(node.node.state, done);
+    expect(node.onTap, isNull);
+    await tester.tap(tile(301));
+    await tester.pumpAndSettle();
+    expect(learning.exerciseCalls, isEmpty);
+  });
+
+  testWidgets('every lesson whose date has come opens — not only the one to '
+      'continue with', (tester) async {
+    final learning = await pumpHome(tester);
 
     await tester.tap(tile(102));
     await tester.pumpAndSettle();
+
     expect(
       tester
           .widget<CourseExerciseDetailScreen>(
@@ -152,32 +198,52 @@ void main() {
           .lessonId,
       102,
     );
-    // Completed in the lesson — the server's answer changes.
-    serve(learning, done: 2);
+    expect(learning.exerciseCalls, [102]);
+  });
+
+  testWidgets('completing a lesson and coming back reloads the server\'s '
+      'answer: ticked, and the resume lesson moves on', (tester) async {
+    final learning = await pumpHome(tester);
+
+    await tester.tap(tile(101));
+    await tester.pumpAndSettle();
+    serve(learning, done: 1);
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
-    expect(states(tester), [done, done, available, locked]);
-    expect(tester.widget<JuniorMapNodeTile>(tile(103)).onTap, isNotNull);
-    expect(tester.widget<JuniorMapNodeTile>(tile(104)).onTap, isNull);
-    // A completed lesson still opens.
-    expect(tester.widget<JuniorMapNodeTile>(tile(101)).onTap, isNotNull);
+    expect(states(tester), [done, current, locked, locked, done]);
+  });
+
+  testWidgets('when the class date comes, the next load opens the module — '
+      'the server decides, the map follows', (tester) async {
+    final learning = await pumpHome(tester, done: 1);
+    expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNull);
+
+    await tester.tap(tile(102));
+    await tester.pumpAndSettle();
+    serve(learning, done: 2, future: false);
+    await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
+    await tester.pumpAndSettle();
+
+    expect(states(tester), [done, done, current, open, done]);
+    expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNotNull);
+    expect(tester.widget<JuniorMapNodeTile>(tile(301)).onTap, isNull);
   });
 
   testWidgets('check-in stays its own thing: during the lesson the available '
       'lesson is the check-in node, completion untouched', (tester) async {
     final learning = await pumpHome(tester, now: DateTime(2026, 10, 6, 10));
 
-    final node = tester.widget<JuniorMapNodeTile>(tile(102));
+    final node = tester.widget<JuniorMapNodeTile>(tile(101));
     expect(node.checkIn, isTrue);
-    expect(node.node.state, available);
+    expect(node.node.state, current);
     expect(
       tester
           .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
           .where((t) => t.checkIn),
       hasLength(1),
     );
-    await tester.tap(tile(102));
+    await tester.tap(tile(101));
     await tester.pumpAndSettle();
     expect(find.byType(AttendanceScannerScreen), findsOneWidget);
     expect(learning.exerciseCalls, isEmpty);
@@ -198,10 +264,10 @@ void main() {
       ),
     );
 
-    expect(tester.widget<JuniorMapNodeTile>(tile(102)).checkIn, isFalse);
-    await tester.tap(tile(102));
+    expect(tester.widget<JuniorMapNodeTile>(tile(101)).checkIn, isFalse);
+    await tester.tap(tile(101));
     await tester.pumpAndSettle();
     expect(find.byType(AttendanceScannerScreen), findsNothing);
-    expect(learning.exerciseCalls, [102]);
+    expect(learning.exerciseCalls, [101]);
   });
 }
