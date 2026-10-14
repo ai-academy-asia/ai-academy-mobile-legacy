@@ -4,6 +4,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Push notifications (Issue #398). The Firebase project's own
+// google-services.json, placed in this directory, initialises the default
+// Firebase app natively — what FCM needs when a push starts the process.
+// Without the file the plugin is not applied, the build is unchanged, and
+// push stays off at runtime.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.aiacademyasia.aia_mobile"
     compileSdk = flutter.compileSdkVersion

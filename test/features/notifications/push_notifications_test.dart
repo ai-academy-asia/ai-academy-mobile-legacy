@@ -1,0 +1,518 @@
+import 'dart:async';
+
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/auth/presentation/home_route.dart';
+import 'package:aia_mobile/features/auth/presentation/sign_out.dart';
+import 'package:aia_mobile/features/notifications/domain/notification_failure.dart';
+import 'package:aia_mobile/features/notifications/domain/push_token_repository.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_detail_screen.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_screen.dart';
+import 'package:aia_mobile/features/notifications/presentation/notification_strings.dart';
+import 'package:aia_mobile/features/notifications/push/push_messaging.dart';
+import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../auth/fake_auth_repository.dart';
+import 'fake_notification_repository.dart';
+
+/// Push notifications (Issue #398) on a fake messaging layer: no Firebase,
+/// no network, no device. The token rules, the permission prompt, sign-out
+/// and what a received or tapped push opens.
+void main() {
+  late FakePushMessaging messaging;
+  late FakePushTokens tokens;
+  late FakePermissionMemory memory;
+  late AuthSessionStore store;
+  late FakeNotificationRepository notifications;
+  late NotificationCenter center;
+  late GlobalKey<NavigatorState> navigatorKey;
+  late GlobalKey<ScaffoldMessengerState> messengerKey;
+  late PushNotifications push;
+
+  const session = AuthSession(accessToken: 'tok-a', refreshToken: 'ref-a');
+
+  setUp(() {
+    messaging = FakePushMessaging();
+    tokens = FakePushTokens();
+    memory = FakePermissionMemory();
+    store = AuthSessionStore()..save(session);
+    notifications = FakeNotificationRepository(
+      notifications: [sampleNotification(id: 24, title: 'Шинэ даалгавар')],
+    );
+    center = NotificationCenter(repository: notifications);
+    navigatorKey = GlobalKey<NavigatorState>();
+    messengerKey = GlobalKey<ScaffoldMessengerState>();
+    push = PushNotifications(
+      tokens: tokens,
+      sessionStore: store,
+      permissionMemory: memory,
+      center: center,
+      platform: PushPlatform.android,
+      removalTimeout: const Duration(milliseconds: 200),
+    );
+  });
+
+  tearDown(() async {
+    await push.detach();
+    await messaging.close();
+  });
+
+  Future<void> attach() => push.attach(
+    messaging,
+    navigatorKey: navigatorKey,
+    messengerKey: messengerKey,
+  );
+
+  /// The app's shape: Splash at `/`, then the adult home by name.
+  Future<void> pumpApp(WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        scaffoldMessengerKey: messengerKey,
+        navigatorObservers: [push.routeObserver],
+        routes: {
+          '/': (_) => const Scaffold(body: Text('splash')),
+          HomeRoutes.adult: (_) => const Scaffold(body: Text('home')),
+          '/login': (_) => const Scaffold(body: Text('login')),
+        },
+      ),
+    );
+  }
+
+  Future<void> goHome(WidgetTester tester) async {
+    navigatorKey.currentState!.pushReplacementNamed(HomeRoutes.adult);
+    await tester.pumpAndSettle();
+  }
+
+  /// The app to the background and back, through the states the OS
+  /// reports.
+  void leaveAndReturn(WidgetTester tester) {
+    for (final state in const [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+  }
+
+  group('push off', () {
+    testWidgets('without messaging nothing is asked, registered or removed', (
+      tester,
+    ) async {
+      await push.attach(null);
+      await pumpApp(tester);
+      await goHome(tester);
+      await push.signOut();
+      await push.sessionEnded();
+      expect(push.enabled, isFalse);
+      expect(messaging.calls, isEmpty);
+      expect(tokens.registered, isEmpty);
+      expect(tokens.removed, isEmpty);
+    });
+  });
+
+  group('permission and registration', () {
+    testWidgets('nothing happens on Splash; the home route asks once and '
+        'registers the token for the session', (tester) async {
+      messaging.status = PushPermission.notDetermined;
+      await attach();
+      await pumpApp(tester);
+      await tester.pump();
+      expect(messaging.calls, isNot(contains('requestPermission')));
+      expect(tokens.registered, isEmpty);
+
+      await goHome(tester);
+      expect(
+        messaging.calls.where((c) => c == 'requestPermission'),
+        hasLength(1),
+      );
+      expect(memory.wasAsked, isTrue);
+      expect(tokens.registered, [('fcm-1', PushPlatform.android)]);
+      expect(push.registeredToken, 'fcm-1');
+    });
+
+    testWidgets('the same token is not registered twice in a session', (
+      tester,
+    ) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      await goHome(tester);
+      await push.start();
+      expect(tokens.registered, hasLength(1));
+      expect(messaging.calls.where((c) => c == 'requestPermission'), isEmpty);
+    });
+
+    testWidgets('refused: nothing is registered, and a later launch does '
+        'not ask again', (tester) async {
+      messaging
+        ..status = PushPermission.denied
+        ..answer = PushPermission.denied;
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      expect(
+        messaging.calls.where((c) => c == 'requestPermission'),
+        hasLength(1),
+      );
+      expect(tokens.registered, isEmpty);
+
+      // The next launch: Android 13+ still says "denied" — not asked again.
+      messaging.calls.clear();
+      await push.start();
+      expect(messaging.calls, isNot(contains('requestPermission')));
+      expect(tokens.registered, isEmpty);
+    });
+
+    testWidgets('allowed later in the OS settings: registered without a '
+        'prompt', (tester) async {
+      memory.wasAsked = true;
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      expect(messaging.calls, isNot(contains('requestPermission')));
+      expect(tokens.registered, hasLength(1));
+    });
+
+    testWidgets('no token yet (iOS before APNs): nothing is registered; '
+        'resume tries again', (tester) async {
+      messaging.nextToken = null;
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      expect(tokens.registered, isEmpty);
+
+      messaging.nextToken = 'fcm-late';
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+      expect(tokens.registered, [('fcm-late', PushPlatform.android)]);
+    });
+
+    testWidgets('a failed registration is retried on resume, not in a '
+        'loop', (tester) async {
+      tokens.failure = const NotificationFailure(
+        NotificationFailureKind.network,
+      );
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      expect(tokens.attempts, 1);
+      expect(push.registeredToken, isNull);
+      await tester.pump(const Duration(seconds: 5));
+      expect(tokens.attempts, 1);
+
+      tokens.failure = null;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+      expect(tokens.attempts, 2);
+      expect(push.registeredToken, 'fcm-1');
+    });
+
+    testWidgets('a refreshed token is registered for the signed-in account', (
+      tester,
+    ) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      messaging.refresh('fcm-2');
+      await tester.pumpAndSettle();
+      expect(tokens.registered.map((r) => r.$1), ['fcm-1', 'fcm-2']);
+      expect(push.registeredToken, 'fcm-2');
+    });
+
+    testWidgets('a refresh after sign-out registers nothing', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      store.clear();
+      messaging.refresh('fcm-2');
+      await tester.pumpAndSettle();
+      expect(tokens.registered.map((r) => r.$1), ['fcm-1']);
+    });
+
+    testWidgets('signed out while the registration was out: it is not '
+        'recorded for the next account', (tester) async {
+      tokens.gate = Completer<void>();
+      await attach();
+      await pumpApp(tester);
+      navigatorKey.currentState!.pushReplacementNamed(HomeRoutes.adult);
+      await tester.pump();
+      await tester.pump();
+      expect(tokens.attempts, 1);
+
+      store.clear();
+      tokens.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(push.registeredToken, isNull);
+
+      // The next account registers its own, fresh.
+      tokens.gate = null;
+      store.save(const AuthSession(accessToken: 'tok-b'));
+      messaging.nextToken = 'fcm-b';
+      await goHome(tester);
+      expect(push.registeredToken, 'fcm-b');
+    });
+  });
+
+  group('leaving', () {
+    testWidgets('sign-out removes the token while still signed in, then '
+        'deletes it on the device', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      tokens.onRemove = () => expect(store.isSignedIn, isTrue);
+
+      await push.signOut();
+      expect(tokens.removed, ['fcm-1']);
+      expect(messaging.calls.last, 'deleteToken');
+      expect(push.registeredToken, isNull);
+    });
+
+    testWidgets('a failed or slow removal still deletes the device token '
+        'and never throws', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      tokens.gate = Completer<void>(); // never completes: the timeout ends it
+
+      await tester.runAsync(push.signOut);
+      expect(tokens.removed, ['fcm-1']);
+      expect(messaging.calls.last, 'deleteToken');
+    });
+
+    testWidgets('a session that ended deletes the device token only', (
+      tester,
+    ) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      await push.sessionEnded();
+      expect(tokens.removed, isEmpty);
+      expect(messaging.calls.last, 'deleteToken');
+    });
+
+    testWidgets('signOutToLogin removes the push token before it clears the '
+        'session', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      final order = <String>[];
+      tokens.onRemove = () => order.add(
+        store.isSignedIn ? 'removed while signed in' : 'removed too late',
+      );
+      store.addListener(() {
+        if (!store.isSignedIn) order.add('cleared');
+      });
+
+      await signOutToLogin(
+        navigatorKey.currentState!,
+        repository: FakeAuthRepository(),
+        sessionStore: store,
+        push: push,
+      );
+      await tester.pumpAndSettle();
+      expect(order, ['removed while signed in', 'cleared']);
+      expect(find.text('login'), findsOneWidget);
+    });
+  });
+
+  group('messages', () {
+    testWidgets('in the foreground: the bell refreshes and a SnackBar '
+        'offers the notification', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      final loads = notifications.feedCalls;
+
+      messaging.receive(
+        const PushMessage(
+          title: 'Шинэ даалгавар',
+          data: {'kind': 'assignment', 'notification_id': '24'},
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(notifications.feedCalls, greaterThan(loads));
+      expect(find.text('Шинэ даалгавар'), findsOneWidget);
+
+      await tester.tap(find.text(NotificationStrings.pushOpen));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationDetailScreen), findsOneWidget);
+    });
+
+    testWidgets('a foreground push with no text still says something', (
+      tester,
+    ) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      messaging.receive(const PushMessage());
+      await tester.pumpAndSettle();
+      expect(find.text(NotificationStrings.pushReceived), findsOneWidget);
+    });
+
+    testWidgets('a tap from the background opens the notification over the '
+        'Notification screen, marked read', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+
+      messaging.tap(const PushMessage(data: {'notification_id': '24'}));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationDetailScreen), findsOneWidget);
+      expect(notifications.markCalls, [24]);
+      navigatorKey.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationScreen), findsOneWidget);
+    });
+
+    testWidgets('an id not in the list, or none: the Notification screen '
+        'alone', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      messaging.tap(const PushMessage(data: {'notification_id': '999'}));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationScreen), findsOneWidget);
+      expect(find.byType(NotificationDetailScreen), findsNothing);
+    });
+
+    testWidgets('a tap that launched the app waits for the home route — '
+        'Splash cannot replace it', (tester) async {
+      messaging.launchMessage = const PushMessage(
+        data: {'notification_id': '24'},
+      );
+      await attach();
+      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationScreen), findsNothing);
+
+      await goHome(tester);
+      expect(find.byType(NotificationDetailScreen), findsOneWidget);
+    });
+
+    testWidgets('signed out, a tap opens nothing', (tester) async {
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      store.clear();
+      messaging.tap(const PushMessage(data: {'notification_id': '24'}));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationScreen), findsNothing);
+    });
+  });
+
+  test('notification_id is read from a string or an int; anything else is '
+      'none', () {
+    expect(
+      const PushMessage(data: {'notification_id': '24'}).notificationId,
+      24,
+    );
+    expect(const PushMessage(data: {'notification_id': 24}).notificationId, 24);
+    expect(
+      const PushMessage(data: {'notification_id': 'x'}).notificationId,
+      isNull,
+    );
+    expect(const PushMessage().notificationId, isNull);
+  });
+}
+
+class FakePushMessaging implements PushMessaging {
+  PushPermission status = PushPermission.granted;
+
+  /// What the prompt answers.
+  PushPermission answer = PushPermission.granted;
+  String? nextToken = 'fcm-1';
+  PushMessage? launchMessage;
+  final List<String> calls = [];
+
+  final _refreshes = StreamController<String>.broadcast();
+  final _foreground = StreamController<PushMessage>.broadcast();
+  final _opened = StreamController<PushMessage>.broadcast();
+
+  void refresh(String token) => _refreshes.add(token);
+  void receive(PushMessage message) => _foreground.add(message);
+  void tap(PushMessage message) => _opened.add(message);
+
+  Future<void> close() async {
+    await _refreshes.close();
+    await _foreground.close();
+    await _opened.close();
+  }
+
+  @override
+  Future<PushPermission> permission() async {
+    calls.add('permission');
+    return status;
+  }
+
+  @override
+  Future<PushPermission> requestPermission() async {
+    calls.add('requestPermission');
+    return status = answer;
+  }
+
+  @override
+  Future<String?> token() async {
+    calls.add('token');
+    return nextToken;
+  }
+
+  @override
+  Future<void> deleteToken() async => calls.add('deleteToken');
+
+  @override
+  Stream<String> get tokenRefreshes => _refreshes.stream;
+
+  @override
+  Stream<PushMessage> get foregroundMessages => _foreground.stream;
+
+  @override
+  Stream<PushMessage> get openedMessages => _opened.stream;
+
+  @override
+  Future<PushMessage?> initialMessage() async => launchMessage;
+}
+
+class FakePushTokens implements PushTokenRepository {
+  final List<(String, PushPlatform)> registered = [];
+  final List<String> removed = [];
+  int attempts = 0;
+  NotificationFailure? failure;
+  Completer<void>? gate;
+  void Function()? onRemove;
+
+  @override
+  Future<void> registerPushToken({
+    required String token,
+    required PushPlatform platform,
+  }) async {
+    attempts++;
+    if (gate case final gate?) await gate.future;
+    if (failure case final failure?) throw failure;
+    registered.add((token, platform));
+  }
+
+  @override
+  Future<void> removePushToken(String token) async {
+    removed.add(token);
+    onRemove?.call();
+    if (gate case final gate?) await gate.future;
+  }
+}
+
+class FakePermissionMemory implements PushPermissionMemory {
+  bool wasAsked = false;
+
+  @override
+  Future<bool> asked() async => wasAsked;
+
+  @override
+  Future<void> markAsked() async => wasAsked = true;
+}
