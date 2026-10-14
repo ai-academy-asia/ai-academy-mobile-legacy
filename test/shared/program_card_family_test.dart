@@ -1,7 +1,11 @@
+import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/program_card.dart';
+import 'package:aia_mobile/features/teacher/domain/teacher_class.dart';
+import 'package:aia_mobile/features/teacher/presentation/teacher_gradebook_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/program_widgets.dart';
 import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_class_card.dart';
 import 'package:aia_mobile/shared/widgets/track_badge.dart';
@@ -141,10 +145,10 @@ void main() {
     });
   }
 
-  group('the family pattern', () {
-    for (final screen in ['Adult Home', 'Courses']) {
+  group('the family pattern (Issue #408: every program/cohort card)', () {
+    for (final screen in cards.keys) {
       testWidgets('$screen: the one artwork, 1:1 from the top-left at full '
-          'strength', (tester) async {
+          'strength, clipped to the rounded card', (tester) async {
         final (type, card) = cards[screen]!;
         await pump(tester, card);
         final pattern = find.descendant(
@@ -155,27 +159,125 @@ void main() {
         final svg = tester.widget<SvgPicture>(
           find.descendant(of: pattern, matching: find.byType(SvgPicture)),
         );
+        expect(svg.bytesLoader.toString(), contains(CardPattern.asset));
         expect(svg.fit, BoxFit.none);
         expect(svg.alignment, Alignment.topLeft);
+        expect(svg.colorFilter, isNull, reason: 'an adult card is not tinted');
         expect(
           find.ancestor(of: pattern, matching: find.byType(Opacity)),
           findsNothing,
         );
+        final clip = tester.widget<ClipRRect>(
+          find.ancestor(of: pattern, matching: find.byType(ClipRRect)).first,
+        );
+        expect(clip.borderRadius, BorderRadius.circular(16));
       });
     }
 
-    testWidgets('Teacher Programs keeps its own drawing until the designer '
-        'decides (its frame scales the artwork)', (tester) async {
-      final (type, card) = cards['Teacher Programs']!;
-      await pump(tester, card);
-      expect(
-        find.descendant(
+    for (final (name, type, card) in [
+      (
+        'Teacher Programs',
+        TeacherProgramCard,
+        TeacherProgramCard(
+          teacherClass: sampleClass(track: 'junior'),
+          onDetails: () {},
+        ),
+      ),
+      (
+        'Teacher Schedule',
+        TeacherClassCard,
+        TeacherClassCard(teacherClass: sampleClass(track: 'junior')),
+      ),
+    ]) {
+      testWidgets('$name, Junior: the same pattern in the Junior orange, '
+          'from CardPattern', (tester) async {
+        await pump(tester, card);
+        final pattern = find.descendant(
           of: find.byType(type),
           matching: find.byType(CardPattern),
+        );
+        expect(tester.widget<CardPattern>(pattern).track, 'junior');
+        final svg = tester.widget<SvgPicture>(
+          find.descendant(of: pattern, matching: find.byType(SvgPicture)),
+        );
+        expect(svg.colorFilter, isNotNull);
+      });
+    }
+  });
+
+  group('Teacher Programs: the student count stays on the right (Issue '
+      '#408)', () {
+    // The physical iPhone's data: a title too long to share one line with
+    // the count used to send the count under it, to the left.
+    TeacherProgramCard realCard() => TeacherProgramCard(
+      onDetails: () {},
+      teacherClass: TeacherClass(
+        track: 'adult',
+        cohort: sampleCohort(
+          name: 'AI Engineering — Cohort 3',
+          enrolledCount: 12,
+          course: const CohortCourse(
+            id: 1,
+            slug: 'ai-engineering',
+            title: LocalizedText(
+              mn: 'AI Инженерийн хөтөлбөр',
+              en: 'AI Engineering',
+            ),
+          ),
         ),
-        findsNothing,
-      );
-    });
+      ),
+    );
+
+    for (final width in const [320.0, 375.0, 393.0, 430.0]) {
+      testWidgets('${width.toInt()} wide, text ×1.0: "Нийт сурагч" level '
+          'with the cohort, the count with the title, at the right edge', (
+        tester,
+      ) async {
+        expect(await pump(tester, realCard(), width: width), isEmpty);
+        final card = tester.getRect(find.byType(TeacherProgramCard));
+        final caption = tester.getRect(find.text('AI Engineering — Cohort 3'));
+        final title = tester.getRect(find.text('AI Инженерийн хөтөлбөр'));
+        final label = tester.getRect(
+          find.text(TeacherGradebookStrings.totalStudents),
+        );
+        final count = tester.getRect(find.text('12'));
+        expect(label.right, moreOrLessEquals(card.right - 16));
+        expect(count.right, moreOrLessEquals(card.right - 16));
+        expect(label.top, moreOrLessEquals(caption.top));
+        expect(count.top, moreOrLessEquals(label.bottom + 2));
+        // Beside the names, never under or over them.
+        expect(label.left, greaterThan(caption.right));
+        expect(count.left, greaterThan(title.right));
+        expect(label.top, lessThan(title.top));
+        expectWhole(tester, find.byType(TeacherProgramCard));
+      });
+    }
+
+    for (final (width, scale) in const [
+      (393.0, 2.0),
+      (320.0, 2.0),
+      (393.0, 3.0),
+    ]) {
+      testWidgets('${width.toInt()} wide, text ×$scale: under the title only '
+          'when it needs more than half the row, still at the right, nothing '
+          'clipped or overlapped', (tester) async {
+        expect(
+          await pump(tester, realCard(), width: width, scale: scale),
+          isEmpty,
+        );
+        expectWhole(tester, find.byType(TeacherProgramCard));
+        final card = tester.getRect(find.byType(TeacherProgramCard));
+        final title = tester.getRect(find.text('AI Инженерийн хөтөлбөр'));
+        final label = tester.getRect(
+          find.text(TeacherGradebookStrings.totalStudents),
+        );
+        final count = tester.getRect(find.text('12'));
+        expect(count.right, moreOrLessEquals(card.right - 16));
+        expect(label.right, moreOrLessEquals(card.right - 16));
+        expect(label.overlaps(title), isFalse);
+        expect(count.overlaps(title), isFalse);
+      });
+    }
   });
 
   group('CardBadgeRow', () {

@@ -69,53 +69,69 @@ class TeacherClassCard extends StatelessWidget {
       ink: palette.successInk,
       horizontalPadding: 15,
     );
+    final radius = BorderRadius.circular(16);
     return Container(
-      // The card family's inset: 16 at the sides, 24 at the top and bottom,
-      // the 1pt outline included (Issue #404).
-      padding: programCardPadding,
       decoration: BoxDecoration(
         color: palette.surface,
         border: Border.all(color: palette.outline),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: radius,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // The badge left and the count right — the family's shared row
-          // (Issues #351, #404).
-          CardBadgeRow(track: track, trailing: students),
-          const SizedBox(height: _badgeToCaption),
-          Text(
-            cohort.name,
-            style: _captionStyle.copyWith(color: palette.textSecondary),
-          ),
-          Text(title, style: _titleStyle.copyWith(color: palette.teacherTitle)),
-          if (showDetails) ...[
-            const SizedBox(height: _titleToDetails),
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                if (room != null && room.isNotEmpty)
-                  _Detail(
-                    icon: AppIcons.mapPin,
-                    label: room,
-                    semanticsLabel: TeacherHomeStrings.room,
-                    style: detailStyle,
+      // The family's pattern behind the content, clipped to the card's
+      // corners (Issue #408), as on every program/cohort card.
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            CardPattern(track: track),
+            Padding(
+              // The card family's inset: 16 at the sides, 24 at the top and
+              // bottom, the 1pt outline included (Issue #404).
+              padding: programCardPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // The badge left and the count right — the family's shared row
+                  // (Issues #351, #404).
+                  CardBadgeRow(track: track, trailing: students),
+                  const SizedBox(height: _badgeToCaption),
+                  Text(
+                    cohort.name,
+                    style: _captionStyle.copyWith(color: palette.textSecondary),
                   ),
-                _Detail(
-                  icon: AppIcons.clock,
-                  label:
-                      timeLabel ??
-                      '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
-                  semanticsLabel: TeacherHomeStrings.time,
-                  style: detailStyle,
-                ),
-              ],
+                  Text(
+                    title,
+                    style: _titleStyle.copyWith(color: palette.teacherTitle),
+                  ),
+                  if (showDetails) ...[
+                    const SizedBox(height: _titleToDetails),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
+                      children: [
+                        if (room != null && room.isNotEmpty)
+                          _Detail(
+                            icon: AppIcons.mapPin,
+                            label: room,
+                            semanticsLabel: TeacherHomeStrings.room,
+                            style: detailStyle,
+                          ),
+                        _Detail(
+                          icon: AppIcons.clock,
+                          label:
+                              timeLabel ??
+                              '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
+                          semanticsLabel: TeacherHomeStrings.time,
+                          style: detailStyle,
+                        ),
+                      ],
+                    ),
+                  ],
+                  ?footer,
+                ],
+              ),
             ),
           ],
-          ?footer,
-        ],
+        ),
       ),
     );
   }
