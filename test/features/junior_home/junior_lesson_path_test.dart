@@ -1,4 +1,5 @@
 import 'package:aia_mobile/core/theme/app_icons.dart';
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/data/sample_junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
@@ -18,7 +19,8 @@ import 'fake_junior_home_repository.dart';
 
 /// The lesson path's own parts (Issue #410): a lesson node's four looks,
 /// the check-in node's pulse, the certificate's divider clouds and the
-/// background theme — and the path on a small phone with large text.
+/// background theme and its cloud bank — and the path on a small phone
+/// with large text.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -63,37 +65,131 @@ void main() {
   );
 
   group('a lesson node', () {
-    for (final (state, checkIn, look) in [
-      (JuniorNodeState.completed, false, 'the tick'),
-      (JuniorNodeState.locked, false, 'the padlock'),
-      (JuniorNodeState.current, true, 'the scan mark'),
-    ]) {
-      testWidgets('${state.name}${checkIn ? ' check-in' : ''}: $look', (
-        tester,
-      ) async {
+    // (state, check-in, sprite, face, edge) — every node one exported
+    // glyph, never the book icon (Issue #410).
+    final looks =
+        <
+          (
+            JuniorNodeState,
+            bool,
+            String,
+            Color Function(AppPalette),
+            Color Function(AppPalette),
+          )
+        >[
+          (
+            JuniorNodeState.completed,
+            false,
+            'node_check',
+            (p) => p.juniorCard,
+            (p) => p.accent,
+          ),
+          (
+            JuniorNodeState.current,
+            false,
+            'node_check',
+            (p) => p.surface,
+            (p) => p.accent,
+          ),
+          (
+            JuniorNodeState.locked,
+            false,
+            'node_lock',
+            (p) => p.juniorMutedFill,
+            (p) => p.outline,
+          ),
+          (
+            JuniorNodeState.current,
+            true,
+            'node_current',
+            (p) => p.surface,
+            (p) => p.accent,
+          ),
+        ];
+    for (final (state, checkIn, name, face, edge) in looks) {
+      testWidgets('${state.name}${checkIn ? ' (live check-in)' : ''}: $name '
+          'on its own face — and never the book icon', (tester) async {
         await pumpTile(
           tester,
           JuniorMapNode(id: 1, state: state),
           checkIn: checkIn,
         );
+        final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
 
-        final name = switch (look) {
-          'the tick' => 'node_check',
-          'the padlock' => 'node_lock',
-          _ => 'node_current',
-        };
         expect(sprite(name), findsOneWidget);
-        expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
+        for (final other in ['node_check', 'node_lock', 'node_current']) {
+          if (other != name) expect(sprite(other), findsNothing);
+        }
+        expect(
+          find.descendant(
+            of: find.byType(JuniorMapNodeTile),
+            matching: find.byType(Icon),
+          ),
+          findsNothing,
+        );
+        final decoration =
+            tester
+                    .widget<Container>(
+                      find.descendant(
+                        of: find.byType(JuniorMapNodeTile),
+                        matching: find.byType(Container),
+                      ),
+                    )
+                    .decoration!
+                as BoxDecoration;
+        expect(decoration.color, face(palette));
+        expect((decoration.border! as Border).top.color, edge(palette));
+        expect(
+          tester.getSize(find.byType(JuniorMapNodeTile)),
+          const Size.square(JuniorMapGeometry.nodeSize),
+        );
       });
     }
 
-    testWidgets('open: the lesson glyph, no sprite', (tester) async {
+    testWidgets('completed and available are told apart by the face: pale '
+        'blue done, white in the accent available', (tester) async {
+      await pumpTile(
+        tester,
+        const JuniorMapNode(id: 1, state: JuniorNodeState.completed),
+      );
+      final done = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(JuniorMapNodeTile),
+          matching: find.byType(Container),
+        ),
+      );
       await pumpTile(tester, lesson);
+      final available = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(JuniorMapNodeTile),
+          matching: find.byType(Container),
+        ),
+      );
+      expect(
+        (done.decoration! as BoxDecoration).color,
+        isNot((available.decoration! as BoxDecoration).color),
+      );
+    });
 
-      expect(find.byIcon(AppIcons.bookOpenText), findsOneWidget);
-      for (final name in ['node_check', 'node_lock', 'node_current']) {
-        expect(sprite(name), findsNothing);
-      }
+    testWidgets('the whole path draws no book icon', (tester) async {
+      useLogicalViewport(tester, const Size(393, 2400));
+      useReducedMotion(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: JuniorLearningMapView(
+              map: sampleJuniorLearningMap(),
+              now: DateTime(2026, 10, 7),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
+      expect(sprite('node_check'), findsNWidgets(3));
+      expect(sprite('node_lock'), findsNWidgets(9));
     });
   });
 
@@ -163,143 +259,167 @@ void main() {
     });
   });
 
-  group('the divider clouds', () {
-    final certificate = find.byType(JuniorCertificateCard);
-    final divider = find.byWidgetPredicate(
-      (w) =>
-          w is SvgPicture &&
-          w.bytesLoader is SvgAssetLoader &&
-          (w.bytesLoader as SvgAssetLoader).assetName ==
-              JuniorMapGeometry.cloud,
+  group('the cloud bank — background, not content', () {
+    final bank = find.descendant(
+      of: find.byKey(JuniorMapScenery.bankKey),
+      matching: find.byType(SvgPicture),
     );
-    // The divider's, not the sky's: those are inside the scenery's sky.
-    Finder dividerClouds() => find.byWidgetPredicate(
-      (w) =>
-          w is SvgPicture &&
-          divider.evaluate().any((e) => e.widget == w) &&
-          find
-              .ancestor(
-                of: find.byWidget(w),
-                matching: find.byKey(JuniorMapScenery.skyKey),
-              )
-              .evaluate()
-              .isEmpty,
+    final certificate = find.byType(JuniorCertificateCard);
+    Finder scrollable() => find.descendant(
+      of: find.byType(JuniorLearningMapView),
+      matching: find.byType(Scrollable),
     );
 
-    Future<List<JuniorMapNode>> pumpMap(
+    Future<void> pumpHome(
       WidgetTester tester, {
-      JuniorMapTheme theme = JuniorMapTheme.junior,
+      Size size = const Size(393, 852),
+      bool reducedMotion = true,
     }) async {
-      useLogicalViewport(tester, const Size(393, 2400));
-      useReducedMotion(tester);
-      final tapped = <JuniorMapNode>[];
+      useLogicalViewport(tester, size, padding: iPhonePadding);
+      if (reducedMotion) useReducedMotion(tester);
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
-          home: Scaffold(
-            body: JuniorLearningMapView(
-              map: sampleJuniorLearningMap(),
-              now: DateTime(2026, 10, 7),
-              onLessonTap: tapped.add,
-              theme: theme,
-            ),
+          home: JuniorHomeScreen(
+            repository: FakeJuniorHomeRepository(),
+            clock: () => DateTime(2026, 10, 7),
           ),
         ),
       );
-      await tester.pumpAndSettle();
-      return tapped;
+      if (reducedMotion) {
+        await tester.pumpAndSettle();
+      } else {
+        await tester.pump();
+      }
     }
 
-    testWidgets('the theme\'s bank, round the certificate\'s lower half and '
-        'under it', (tester) async {
-      await pumpMap(tester);
+    List<Rect> bankRects(WidgetTester tester) => [
+      for (var i = 0; i < bank.evaluate().length; i++)
+        tester.getRect(bank.at(i)),
+    ];
 
-      final card = tester.getRect(certificate);
-      final clouds = [
-        for (final e in dividerClouds().evaluate())
-          tester.getRect(find.byWidget(e.widget)),
-      ];
-      expect(clouds, hasLength(JuniorMapTheme.junior.dividerClouds.length));
-      expect(clouds, hasLength(6));
-      for (final cloud in clouds) {
-        // None reaches above the card's middle; each touches the card or
-        // lies under it…
-        expect(cloud.top, greaterThan(card.center.dy - 20));
-        expect(cloud.overlaps(card) || cloud.top >= card.top, isTrue);
-      }
-      // …two reach beyond its sides, and the bank runs on under it.
-      expect(clouds.where((c) => c.left < card.left), isNotEmpty);
-      expect(clouds.where((c) => c.right > card.right), isNotEmpty);
+    testWidgets('lives in the scenery\'s bank layer, not in the scrolling '
+        'content', (tester) async {
+      await pumpHome(tester);
+
+      expect(bank, findsNWidgets(JuniorMapTheme.junior.bankClouds.length));
       expect(
-        clouds.map((c) => c.bottom).reduce((a, b) => a > b ? a : b),
-        greaterThan(card.bottom),
+        find.descendant(
+          of: find.byType(SingleChildScrollView),
+          matching: find.byKey(JuniorMapScenery.bankKey),
+        ),
+        findsNothing,
       );
-    });
-
-    testWidgets('behind the certificate: painted before it, in the same '
-        'layer', (tester) async {
-      await pumpMap(tester);
-
-      // Depth-first order is paint order among a Stack's children.
+      // Painted before the content: depth-first order is paint order.
       final order = [
         for (final e in tester.allElements)
-          if (e.widget is JuniorCertificateCard)
-            'card'
-          else if (dividerClouds().evaluate().contains(e))
-            'cloud',
+          if (e.widget.key == JuniorMapScenery.bankKey)
+            'bank'
+          else if (e.widget is SingleChildScrollView)
+            'content',
       ];
-      expect(order, [...List.filled(6, 'cloud'), 'card']);
+      expect(order, ['bank', 'content']);
     });
 
-    testWidgets('take no taps and say nothing: a tap on one reaches what is '
-        'underneath', (tester) async {
-      await pumpMap(tester);
+    testWidgets('scrolling the path and the certificate never drags it: the '
+        'card moves, the bank stays', (tester) async {
+      await pumpHome(tester);
+      final before = bankRects(tester);
+      final card = tester.getRect(certificate);
 
-      for (final e in dividerClouds().evaluate()) {
-        final cloud = e.renderObject!;
-        final rect = tester.getRect(find.byWidget(e.widget));
-        // A point of the cloud outside the card.
-        final point = Offset(rect.center.dx, rect.bottom - 4);
-        final path = tester.hitTestOnBinding(point).path;
+      await tester.drag(scrollable(), const Offset(0, -600));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(certificate).top, lessThan(card.top - 500));
+      expect(bankRects(tester), before);
+
+      await tester.drag(scrollable(), const Offset(0, -5000));
+      await tester.pumpAndSettle();
+      expect(bankRects(tester), before);
+    });
+
+    for (final size in const [Size(320, 568), Size(393, 852), Size(430, 932)]) {
+      testWidgets('${size.width.toInt()}x${size.height.toInt()}: on the '
+          'background\'s bottom edge, scaled with the width — and at the end '
+          'of the path the card stands in front of it', (tester) async {
+        await pumpHome(tester, size: size);
+        final view = tester.getRect(find.byType(JuniorLearningMapView));
+        final scale = view.width / JuniorMapGeometry.mapWidth;
+
+        final rects = bankRects(tester);
+        final clouds = JuniorMapTheme.junior.bankClouds;
+        for (var i = 0; i < clouds.length; i++) {
+          final r = clouds[i].rect;
+          expect(
+            rects[i],
+            rectMoreOrLessEquals(
+              Rect.fromLTWH(
+                view.left + r.left * scale,
+                view.bottom + r.top * scale,
+                r.width * scale,
+                r.height * scale,
+              ),
+              epsilon: 0.01,
+            ),
+          );
+        }
+
+        await tester.drag(scrollable(), const Offset(0, -10000));
+        await tester.pumpAndSettle();
+        final card = tester.getRect(certificate);
         expect(
-          path.any((entry) => entry.target == cloud),
-          isFalse,
-          reason: '$rect',
+          view.bottom - card.bottom,
+          moreOrLessEquals(
+            JuniorMapGeometry.certificateBottomMargin * scale,
+            epsilon: 0.5,
+          ),
         );
+        // The bank rises behind the card's lower part and either side.
+        final top = rects.map((r) => r.top).reduce((a, b) => a < b ? a : b);
+        expect(top, greaterThan(card.top));
+        expect(top, lessThan(card.bottom));
+        expect(rects.any((r) => r.left < card.left), isTrue);
+        expect(rects.any((r) => r.right > card.right), isTrue);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('takes no taps and says nothing', (tester) async {
+      await pumpHome(tester);
+
+      for (var i = 0; i < bank.evaluate().length; i++) {
+        final cloud = tester.renderObject(bank.at(i));
+        final rect = tester.getRect(bank.at(i));
+        final point = Offset(
+          rect.center.dx.clamp(1, 392).toDouble(),
+          (rect.top + 20).clamp(0, 760).toDouble(),
+        );
+        final path = tester.hitTestOnBinding(point).path;
+        expect(path.any((entry) => entry.target == cloud), isFalse);
       }
       expect(
-        find.ancestor(
-          of: dividerClouds().first,
-          matching: find.byType(IgnorePointer),
-        ),
+        find.ancestor(of: bank.first, matching: find.byType(ExcludeSemantics)),
         findsWidgets,
       );
-      expect(
-        tester
-            .widgetList<IgnorePointer>(
-              find.ancestor(
-                of: dividerClouds().first,
-                matching: find.byType(IgnorePointer),
-              ),
-            )
-            .any((w) => w.ignoring),
-        isTrue,
-      );
     });
 
-    testWidgets('never cover a node', (tester) async {
-      await pumpMap(tester);
+    testWidgets('reduced motion: drawn, still, and no ticker', (tester) async {
+      await pumpHome(tester);
 
-      final clouds = [
-        for (final e in dividerClouds().evaluate())
-          tester.getRect(find.byWidget(e.widget)),
-      ];
-      for (var i = 0; i < 12; i++) {
-        final node = tester.getRect(find.byType(JuniorMapNodeTile).at(i));
-        for (final cloud in clouds) {
-          expect(cloud.overlaps(node), isFalse, reason: 'node ${i + 1}');
-        }
-      }
+      expect(bank, findsNWidgets(6));
+      expect(tester.binding.transientCallbackCount, 0);
+    });
+
+    testWidgets('in motion: the small clouds travel, the bank never moves', (
+      tester,
+    ) async {
+      await pumpHome(tester, reducedMotion: false);
+      final before = bankRects(tester);
+
+      await tester.pump(const Duration(seconds: 20));
+
+      expect(bankRects(tester), before);
+      expect(tester.binding.transientCallbackCount, greaterThan(0));
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 
@@ -310,7 +430,7 @@ void main() {
       }
     });
 
-    testWidgets('another theme brings its own sky and divider without moving '
+    testWidgets('another theme brings its own sky and bank without moving '
         'a node', (tester) async {
       Future<List<Rect>> nodesWith(JuniorMapTheme theme) async {
         useLogicalViewport(tester, const Size(393, 2400));
@@ -341,14 +461,12 @@ void main() {
         JuniorMapTheme(
           sky: (_) => magenta,
           cloudAsset: JuniorMapGeometry.cloud,
-          dividerClouds: const [
-            JuniorDividerCloud(Rect.fromLTWH(0, 200, 100, 50)),
-          ],
+          bankClouds: const [JuniorBankCloud(Rect.fromLTWH(0, -100, 100, 50))],
         ),
       );
 
       expect(other, junior);
-      // Its one divider cloud in place of Junior's four. (With reduced
+      // Its one bank cloud in place of Junior's six. (With reduced
       // motion the sky is the still export, so no sky cloud is drawn; the
       // field's colour is checked in motion, below.)
       expect(
@@ -380,7 +498,7 @@ void main() {
               theme: JuniorMapTheme(
                 sky: (_) => magenta,
                 cloudAsset: JuniorMapGeometry.cloud,
-                dividerClouds: const [],
+                bankClouds: const [],
               ),
               content: const SizedBox.expand(),
             ),

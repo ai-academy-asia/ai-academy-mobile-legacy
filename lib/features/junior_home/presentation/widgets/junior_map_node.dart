@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../domain/junior_learning_map.dart';
 import '../junior_home_strings.dart';
@@ -13,10 +12,11 @@ import 'junior_map_geometry.dart';
 /// family in the reference.
 ///
 /// The tick, the scan mark and the padlock are the design's exported
-/// artwork — none has a match in the bundled Phosphor set. An open lesson
-/// that is not the live check-in has no frame of its own, so it carries the
-/// app's own lesson glyph ([AppIcons.bookOpenText], the Хичээл tab's) on the
-/// open node's white face — a product decision recorded in Issue #410.
+/// artwork — none has a match in the bundled Phosphor set — and every node
+/// draws one of them (Issue #410): a completed lesson the tick on the pale
+/// blue face; **the available lesson** the same blue tick in the active
+/// frame (the white face in the accent outline and band); a lesson not yet
+/// available the grey padlock. No other glyph is ever drawn on the path.
 ///
 /// **The check-in node** (Issues #202, #410): while check-in is actionable
 /// ([checkIn] true) the lesson draws as the updated reference's check-in
@@ -105,19 +105,12 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         ? _NodeStyle.checkIn(palette)
         : _NodeStyle.of(node.state, palette);
     final glyphSize = JuniorMapGeometry.nodeGlyph * scale;
-    final glyph = switch (style.glyph) {
-      final String sprite => Image.asset(
-        JuniorMapGeometry.sprite(sprite),
-        width: glyphSize,
-        height: glyphSize,
-        filterQuality: FilterQuality.high,
-      ),
-      null => Icon(
-        AppIcons.bookOpenText,
-        size: glyphSize * 0.8,
-        color: palette.accent,
-      ),
-    };
+    final glyph = Image.asset(
+      JuniorMapGeometry.sprite(style.glyph),
+      width: glyphSize,
+      height: glyphSize,
+      filterQuality: FilterQuality.high,
+    );
 
     Widget tile = Container(
       decoration: BoxDecoration(
@@ -179,8 +172,8 @@ class _NodeStyle {
   final Color fill;
   final Color border;
 
-  /// The exported sprite's name, or null for the lesson glyph.
-  final String? glyph;
+  /// The exported sprite's name.
+  final String glyph;
 
   /// The live check-in: the updated reference's QR stop — the white face in
   /// the accent frame.
@@ -190,9 +183,10 @@ class _NodeStyle {
     glyph: 'node_current',
   );
 
-  /// Completed: the course card's pale blue (`juniorCard`) in the accent.
-  /// Open: a `surface` node in the `outline` grey, the lesson glyph on it.
-  /// Locked: the map's not-yet-reached grey (`juniorMutedFill`).
+  /// Completed: the tick on the course card's pale blue (`juniorCard`) in
+  /// the accent. Available: the tick in the active frame — a `surface` node
+  /// in the accent. Locked: the padlock on the map's not-yet-reached grey
+  /// (`juniorMutedFill`) in the `outline`.
   static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
       switch (state) {
         JuniorNodeState.completed => _NodeStyle(
@@ -202,8 +196,8 @@ class _NodeStyle {
         ),
         JuniorNodeState.current => _NodeStyle(
           fill: palette.surface,
-          border: palette.outline,
-          glyph: null,
+          border: palette.accent,
+          glyph: 'node_check',
         ),
         JuniorNodeState.locked => _NodeStyle(
           fill: palette.juniorMutedFill,

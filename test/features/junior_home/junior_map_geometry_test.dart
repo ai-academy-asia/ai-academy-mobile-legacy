@@ -37,15 +37,15 @@ void main() {
       closeTo(JuniorMapGeometry.certificateFor(5).top - 3.7, 1e-9),
     );
     // The card itself sits as the updated reference measures it (#410):
-    // 133.3 below the last node, where the original frame had 111.7 — the
-    // map grows by the difference and keeps the frame's margin under it.
+    // 133.3 below the last node, where the original frame had 111.7.
     final card = JuniorMapGeometry.certificateFor(5);
     expect(card.top, closeTo(JuniorMapGeometry.nodes.last.dy + 133.3, 1e-9));
     expect(card.size, JuniorMapGeometry.certificateCard.size);
     expect(card.left, JuniorMapGeometry.certificateCard.left);
+    // …and the map ends the reference's 26.3 under it.
     expect(
       JuniorMapGeometry.mapHeightFor(5),
-      closeTo(JuniorMapGeometry.mapHeight + (133.3 - 111.7), 1e-9),
+      closeTo(card.bottom + 26.3, 1e-9),
     );
   });
 
@@ -81,7 +81,7 @@ void main() {
         expect(card.top, closeTo(lastNode.dy + 133.3, 1e-9));
         expect(
           JuniorMapGeometry.mapHeightFor(count),
-          closeTo(card.bottom + 147.3, 1e-9),
+          closeTo(card.bottom + 26.3, 1e-9),
         );
       });
     }

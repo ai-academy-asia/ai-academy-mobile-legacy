@@ -177,22 +177,154 @@ void main() {
       ]);
     });
 
-    test('every open lesson is drawn open — none is greyed for not being '
-        'the next one (Issue #410 supersedes #204\'s one-current rule)', () {
-      final map = mapOf(
-        samplePath(modules: [sampleModule(id: 1, order: 1)]),
-        lessons: {
-          1: [
-            for (var i = 1; i <= 3; i++)
-              sampleLesson(id: i, moduleId: 1, order: i),
-          ],
-        },
+    group('one lesson at a time (Issue #410)', () {
+      // Three open, unfinished lessons in one module — every one of them
+      // unlocked by the server, which gates by class date alone.
+      final path = samplePath(
+        percentComplete: 54,
+        continueModuleId: 1,
+        continueLessonId: 12,
+        modules: [sampleModule(id: 1, order: 1)],
       );
+      final lessons = {
+        1: [
+          sampleLesson(id: 11, moduleId: 1, order: 1, completed: true),
+          sampleLesson(id: 12, moduleId: 1, order: 2),
+          sampleLesson(id: 13, moduleId: 1, order: 3),
+          sampleLesson(id: 14, moduleId: 1, order: 4),
+        ],
+      };
 
-      expect(
-        map.nodes.map((n) => n.state),
-        everyElement(JuniorNodeState.current),
-      );
+      test('only the server\'s resume lesson is available; the rest not yet '
+          'reached are locked and inert', () {
+        final map = juniorMapFrom(path, lessons: lessons);
+
+        expect(map.nodes.map((n) => n.state), [
+          JuniorNodeState.completed,
+          JuniorNodeState.current,
+          JuniorNodeState.locked,
+          JuniorNodeState.locked,
+        ]);
+        expect(map.nodes.map((n) => n.locked), [false, false, true, true]);
+        expect(map.nodes.map((n) => n.notYetReached), [
+          false,
+          false,
+          true,
+          true,
+        ]);
+        expect(map.checkInNode?.id, 12);
+      });
+
+      test('the percentage stays the server\'s — never the share of nodes '
+          'available', () {
+        final map = juniorMapFrom(path, lessons: lessons);
+
+        expect(map.progress.percentComplete, 54);
+      });
+
+      test('without a usable continue target, the first open lesson in '
+          'course order', () {
+        for (final continueId in [null, 11, 99]) {
+          final map = juniorMapFrom(
+            samplePath(
+              continueLessonId: continueId,
+              modules: [sampleModule(id: 1, order: 1)],
+            ),
+            lessons: lessons,
+          );
+          expect(
+            map.nodes
+                .where((n) => n.state == JuniorNodeState.current)
+                .map((n) => n.id),
+            [12],
+            reason: '$continueId',
+          );
+        }
+      });
+
+      test('a lesson completed ahead of the path keeps its tick and still '
+          'opens; a server lock is never lifted', () {
+        final map = juniorMapFrom(
+          samplePath(
+            continueLessonId: 21,
+            modules: [
+              sampleModule(id: 2, order: 1),
+              sampleModule(id: 3, order: 2, locked: true),
+            ],
+          ),
+          lessons: {
+            2: [
+              sampleLesson(id: 21, moduleId: 2, order: 1),
+              sampleLesson(id: 22, moduleId: 2, order: 2, completed: true),
+              sampleLesson(id: 23, moduleId: 2, order: 3),
+            ],
+            3: [sampleLesson(id: 31, moduleId: 3, order: 1, locked: true)],
+          },
+        );
+
+        expect(map.nodes.map((n) => n.state), [
+          JuniorNodeState.current,
+          JuniorNodeState.completed,
+          JuniorNodeState.locked,
+          JuniorNodeState.locked,
+        ]);
+        expect(map.nodes.map((n) => n.locked), [false, false, true, true]);
+        // Held back by the path, versus locked by the server.
+        expect(map.nodes[2].notYetReached, isTrue);
+        expect(map.nodes[3].notYetReached, isFalse);
+      });
+
+      test('completing the available lesson makes the next one available '
+          '(the server names it on the next load)', () {
+        final after = juniorMapFrom(
+          samplePath(
+            continueLessonId: 13,
+            modules: [sampleModule(id: 1, order: 1)],
+          ),
+          lessons: {
+            1: [
+              sampleLesson(id: 11, moduleId: 1, order: 1, completed: true),
+              sampleLesson(id: 12, moduleId: 1, order: 2, completed: true),
+              sampleLesson(id: 13, moduleId: 1, order: 3),
+              sampleLesson(id: 14, moduleId: 1, order: 4),
+            ],
+          },
+        );
+
+        expect(after.nodes.map((n) => n.state), [
+          JuniorNodeState.completed,
+          JuniorNodeState.completed,
+          JuniorNodeState.current,
+          JuniorNodeState.locked,
+        ]);
+      });
+
+      test('nothing open, or everything done: no available lesson, nothing '
+          'invented', () {
+        final done = juniorMapFrom(
+          samplePath(continueLessonId: 12, modules: [sampleModule(id: 1)]),
+          lessons: {
+            1: [
+              sampleLesson(id: 11, moduleId: 1, order: 1, completed: true),
+              sampleLesson(id: 12, moduleId: 1, order: 2, completed: true),
+            ],
+          },
+        );
+        expect(
+          done.nodes.map((n) => n.state),
+          everyElement(JuniorNodeState.completed),
+        );
+        expect(done.checkInNode, isNull);
+
+        final closed = juniorMapFrom(
+          samplePath(modules: [sampleModule(id: 1, locked: true)]),
+          lessons: {
+            1: [sampleLesson(id: 11, moduleId: 1, order: 1, locked: true)],
+          },
+        );
+        expect(closed.nodes.single.state, JuniorNodeState.locked);
+        expect(closed.nodes.single.notYetReached, isFalse);
+      });
     });
 
     test('completed wins over locked, so a node is never both', () {

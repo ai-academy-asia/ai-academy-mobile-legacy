@@ -155,7 +155,9 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 ///
 /// [lessons] are each module's lessons by module id — one node per lesson,
 /// in course order: modules by `order`, then their lessons by `order`
-/// (Issue #410). A module with none listed adds no node. [nextLesson] is
+/// (Issue #410), and one lesson available at a time
+/// ([withLessonProgression]). A module with none listed adds no node.
+/// [nextLesson] is
 /// the dashboard's, from the cohort's schedule, and [attendanceRecorded]
 /// today's record — what the check-in node reads (Issues #202, #410).
 JuniorLearningMap juniorMapFrom(
@@ -174,8 +176,8 @@ JuniorLearningMap juniorMapFrom(
     percentComplete: path.percentComplete,
   ),
   // Sorted on `order` rather than trusting either array, so the route's
-  // order is the course's.
-  nodes: [
+  // order is the course's; then one lesson at a time (Issue #410).
+  nodes: withLessonProgression(continueLessonId: path.continueLessonId, [
     for (final module
         in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
       for (final lesson
@@ -189,7 +191,7 @@ JuniorLearningMap juniorMapFrom(
           moduleId: module.id,
           moduleOrder: module.order,
         ),
-  ],
+  ]),
   certificate: JuniorCertificate(
     track: JuniorHomeContent.track,
     // The one course name the contract carries. The Figma frame happens to

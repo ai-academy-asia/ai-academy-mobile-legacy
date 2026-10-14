@@ -3,55 +3,61 @@ import 'package:flutter/painting.dart';
 import '../../../../core/theme/app_palette.dart';
 import 'junior_map_geometry.dart';
 
-/// One large cloud of a theme's divider, in design units relative to the
-/// certificate card's top-left.
-class JuniorDividerCloud {
-  const JuniorDividerCloud(this.rect, {this.mirrored = false});
+/// One large cloud of a theme's bank, in design units measured from the
+/// **bottom-left corner of the program's background** — x to the right, y
+/// upward as negative values — so the bank sits on the background's bottom
+/// edge on every phone, scaled with the map's width like everything else.
+class JuniorBankCloud {
+  const JuniorBankCloud(this.rect, {this.mirrored = false});
 
   final Rect rect;
   final bool mirrored;
 }
 
 /// What gives a program's learning path its background (Issue #410): the
-/// sky's colour, its cloud artwork, and the bank of large clouds round the
-/// lower half of the certificate card — the divider between this program's
-/// path and the region a next program's would take.
+/// sky's colour, its cloud artwork, and the bank of large clouds along the
+/// background's bottom edge — the boundary of this program's world.
 ///
-/// The path's layout — nodes, route, cards — never reads a colour or an
-/// asset from here, so another program can bring its own background by
-/// adding a theme and selecting it in [forTrack], without touching the
-/// layout. Today there is one: [junior], the Junior sky.
+/// All of it is background: fixed to the map's viewport behind the
+/// scrolling path, never scrolling with the certificate or the nodes. The
+/// path's layout — nodes, route, cards — never reads a colour or an asset
+/// from here, so another program can bring its own background by adding a
+/// theme and selecting it in [forTrack], without touching the layout.
+/// Today there is one: [junior], the Junior sky.
 class JuniorMapTheme {
   const JuniorMapTheme({
     required this.sky,
     required this.cloudAsset,
-    required this.dividerClouds,
+    required this.bankClouds,
   });
 
   /// The field behind everything — a palette role, so it follows the theme.
   final Color Function(AppPalette palette) sky;
 
-  /// The cloud artwork the sky and the divider share.
+  /// The cloud artwork the sky and the bank share.
   final String cloudAsset;
 
-  /// The large clouds behind the certificate card's lower half and under it.
-  /// Decorative: drawn behind the card, never hit-tested, never announced.
-  final List<JuniorDividerCloud> dividerClouds;
+  /// The large clouds along the background's bottom edge. Decorative: drawn
+  /// behind the content, never hit-tested, never announced, never moving.
+  final List<JuniorBankCloud> bankClouds;
 
   /// The Junior sky: its field, its pixel clouds, and the updated
-  /// reference's cloud bank round the certificate (`junior-homepage-u[date.png`)
-  /// — two flanking the card's lower half, two wider ones under it, each at
-  /// the cloud export's own 207:106 aspect, the card covering their middles.
+  /// reference's cloud bank (`junior-homepage-u[date.png`), measured from
+  /// the map's bottom edge there (the tab bar's top, y 1989): two clouds
+  /// rising about 210 at either side, two wider ones from about 150 across
+  /// the middle, and two more filling the bottom — each at the cloud
+  /// export's own 207:106 aspect. At the end of the path the certificate
+  /// card stands in front of the bank, as the reference draws it.
   static const JuniorMapTheme junior = JuniorMapTheme(
     sky: _juniorSky,
     cloudAsset: JuniorMapGeometry.cloud,
-    dividerClouds: [
-      JuniorDividerCloud(Rect.fromLTWH(-70, 185, 200, 102)),
-      JuniorDividerCloud(Rect.fromLTWH(195, 175, 200, 102), mirrored: true),
-      JuniorDividerCloud(Rect.fromLTWH(-110, 250, 300, 154), mirrored: true),
-      JuniorDividerCloud(Rect.fromLTWH(140, 245, 300, 154)),
-      JuniorDividerCloud(Rect.fromLTWH(-60, 350, 300, 154), mirrored: true),
-      JuniorDividerCloud(Rect.fromLTWH(180, 360, 300, 154)),
+    bankClouds: [
+      JuniorBankCloud(Rect.fromLTWH(-38, -209.3, 200, 102)),
+      JuniorBankCloud(Rect.fromLTWH(227, -219.3, 200, 102), mirrored: true),
+      JuniorBankCloud(Rect.fromLTWH(-78, -144.3, 300, 154), mirrored: true),
+      JuniorBankCloud(Rect.fromLTWH(172, -149.3, 300, 154)),
+      JuniorBankCloud(Rect.fromLTWH(-28, -44.3, 300, 154), mirrored: true),
+      JuniorBankCloud(Rect.fromLTWH(212, -34.3, 300, 154)),
     ],
   );
 

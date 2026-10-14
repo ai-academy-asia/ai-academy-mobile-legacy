@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_palette.dart';
 
@@ -33,11 +32,12 @@ import 'junior_map_theme.dart';
 /// zooms (Issue #410). The route, nodes and cards scroll over it. Both
 /// scenery layers are [JuniorMapScenery]'s.
 ///
-/// **Paint order**, bottom to top: the sky, the islands and coins, then the
-/// route, the nodes, the course card, the [theme]'s divider clouds and the
-/// certificate card — so the route runs behind each node's rounded square,
-/// and the large clouds sit behind the certificate, which covers their
-/// middles, and take no taps.
+/// **Paint order**, bottom to top: the sky, the [theme]'s cloud bank along
+/// the background's bottom edge, the islands and coins — all background,
+/// fixed to the viewport — then the route, the nodes, the course card and
+/// the certificate card, which scroll over it. So the route runs behind
+/// each node's rounded square, and at the end of the path the certificate
+/// stands in front of the bank, which never moves with it (Issue #410).
 ///
 /// **One node per lesson** (Issue #410), in course order, however many the
 /// course has; the route joins them and ends at the certificate card. See
@@ -75,7 +75,7 @@ class JuniorLearningMapView extends StatelessWidget {
   /// Called when the course card is tapped. Null leaves it inert.
   final VoidCallback? onCourseTap;
 
-  /// The program's background — the sky and the divider clouds.
+  /// The program's background — the sky and its cloud bank.
   final JuniorMapTheme theme;
 
   @override
@@ -171,25 +171,6 @@ class JuniorLearningMapView extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  // The theme's divider: large clouds round the certificate's
-                  // lower half and under it, behind the card (painted
-                  // first), never hit-tested, never announced (Issue #410).
-                  for (final cloud in theme.dividerClouds)
-                    at(
-                      cloud.rect.shift(certificate.topLeft),
-                      IgnorePointer(
-                        child: ExcludeSemantics(
-                          child: Transform.flip(
-                            flipX: cloud.mirrored,
-                            child: SvgPicture.asset(
-                              theme.cloudAsset,
-                              fit: BoxFit.fill,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
 
                   // The one child not pinned to the frame, so the map sizes
                   // to it: at its frame place and size, but free to grow

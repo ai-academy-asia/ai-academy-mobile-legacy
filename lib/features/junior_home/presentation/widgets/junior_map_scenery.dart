@@ -10,10 +10,11 @@ import 'junior_map_theme.dart';
 
 /// The Junior map's scenery, behind the learning content ([content]).
 ///
-/// **Two fixed layers.** Both are fixed to the map's viewport, at the
-/// design's own positions, and neither scrolls: first **the sky** — the
-/// field and the clouds — then **the ground** — the islands and their
-/// coins. [content], the scrolling route, nodes and cards, sits over both.
+/// **Fixed layers.** All are fixed to the map's viewport and none scrolls:
+/// first **the sky** — the field and the travelling clouds — then **the
+/// bank** — the theme's large clouds on the background's bottom edge, still
+/// (Issue #410) — then **the ground** — the islands and their coins.
+/// [content], the scrolling route, nodes and cards, sits over all three.
 /// Nothing here moves, scales or rebuilds [content].
 ///
 /// **Ambient motion.** A sky of clouds at many sizes and heights travels
@@ -53,9 +54,11 @@ class JuniorMapScenery extends StatefulWidget {
   /// The program's sky — its field colour and cloud artwork (Issue #410).
   final JuniorMapTheme theme;
 
-  /// The sky and the ground layers, for tests to find them.
+  /// The sky, bank and ground layers, for tests to find them.
   @visibleForTesting
   static const Key skyKey = Key('junior-map-sky');
+  @visibleForTesting
+  static const Key bankKey = Key('junior-map-bank');
   @visibleForTesting
   static const Key groundKey = Key('junior-map-ground');
 
@@ -125,6 +128,9 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
                   ? _sky()
                   : Stack(clipBehavior: Clip.hardEdge, children: [_backdrop()]),
             ),
+            // The theme's cloud bank on the background's bottom edge —
+            // still, and drawn with or without motion (Issue #410).
+            _bank(constraints.maxHeight),
             if (_animate) _layer(JuniorMapScenery.groundKey, _ground()),
             widget.content,
           ],
@@ -144,6 +150,45 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
       child: RepaintBoundary(key: key, child: child),
     ),
   );
+
+  /// The theme's bank of large clouds, anchored to the bottom edge of the
+  /// whole background ([height] tall) and scaled with the map's width: the
+  /// program's boundary, which the path and its certificate scroll over and
+  /// never drag along. It does not move, so no ticker reaches it.
+  Widget _bank(double height) {
+    final scale = widget.scale;
+    final theme = widget.theme;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ExcludeSemantics(
+          child: RepaintBoundary(
+            key: JuniorMapScenery.bankKey,
+            child: ClipRect(
+              child: Stack(
+                children: [
+                  for (final cloud in theme.bankClouds)
+                    Positioned(
+                      left: cloud.rect.left * scale,
+                      top: height + cloud.rect.top * scale,
+                      width: cloud.rect.width * scale,
+                      height: cloud.rect.height * scale,
+                      child: Transform.flip(
+                        flipX: cloud.mirrored,
+                        child: SvgPicture.asset(
+                          theme.cloudAsset,
+                          fit: BoxFit.fill,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// The theme's field, then its clouds, travelling. The clouds, islands
   /// and coins are authored artwork, drawn as exported; the clip keeps them

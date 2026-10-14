@@ -2,6 +2,7 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
 import 'package:aia_mobile/features/junior_home/data/sample_junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
+import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_learning_map_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -125,13 +126,52 @@ void main() {
     );
   });
 
-  testWidgets('three open lessons are all drawn open — none greyed for not '
-      'being next (Issue #410)', (tester) async {
+  testWidgets('three lessons the server leaves open: one available, the two '
+      'not yet reached locked (Issue #410)', (tester) async {
+    final open = withLessons(List.filled(3, JuniorNodeState.current));
     await capture(
       tester,
-      withLessons(List.filled(3, JuniorNodeState.current)),
+      JuniorLearningMap(
+        progress: open.progress,
+        certificate: open.certificate,
+        nextLesson: open.nextLesson,
+        attendanceRecorded: false,
+        // The path's own rule, as the repository applies it.
+        nodes: withLessonProgression(open.nodes),
+      ),
       DateTime(2026, 10, 6, 12),
       'junior_home_open_lessons',
+    );
+  });
+
+  testWidgets('a phone at the end of the path: the certificate in front of '
+      'the background\'s cloud bank (Issue #410)', (tester) async {
+    useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+    useReducedMotion(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        debugShowCheckedModeBanner: false,
+        home: JuniorHomeScreen(
+          repository: FakeJuniorHomeRepository(),
+          clock: () => DateTime(2026, 10, 7),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(
+        of: find.byType(JuniorLearningMapView),
+        matching: find.byType(Scrollable),
+      ),
+      const Offset(0, -10000),
+    );
+    await tester.pumpAndSettle();
+    await precacheImages(tester);
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../../goldens/junior_home_path_end.png'),
     );
   });
 }

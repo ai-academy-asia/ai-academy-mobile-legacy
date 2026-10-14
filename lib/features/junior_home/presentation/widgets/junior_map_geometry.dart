@@ -272,11 +272,17 @@ abstract final class JuniorMapGeometry {
     );
   }
 
-  /// The map's scroll height for [nodeCount] nodes: the frame's own 147.3
-  /// margin under the certificate card. ([mapHeight] is the original
-  /// frame's five-node height.)
+  /// The margin under the certificate card at the end of the path: 26.3,
+  /// measured on the updated reference (card bottom 1962.7, the tab bar's
+  /// top 1989; Issue #410), so the card ends standing in front of the
+  /// background's cloud bank. The original frame had 147.3.
+  static const double certificateBottomMargin = 26.3;
+
+  /// The map's scroll height for [nodeCount] nodes: the card, then
+  /// [certificateBottomMargin]. ([mapHeight] is the original frame's
+  /// five-node height.)
   static double mapHeightFor(int nodeCount) =>
-      certificateFor(nodeCount).bottom + (mapHeight - certificateCard.bottom);
+      certificateFor(nodeCount).bottom + certificateBottomMargin;
   static const double certificateRadius = 20;
 
   /// The card's edge: 3pt, as both references draw it (x 32–35 and

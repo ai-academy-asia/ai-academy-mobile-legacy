@@ -2,17 +2,17 @@ import '../../home/domain/home_dashboard.dart';
 
 /// How far along the path one lesson is (Issue #410).
 ///
-/// Straight off the lesson's two server booleans — the contract is explicit
-/// that the client derives neither `completed` nor `locked`:
+/// From the lesson's two server booleans — the client never derives
+/// `completed` or `locked` — and then the Junior path's progression
+/// ([withLessonProgression]):
 ///
 /// * [completed] — `lesson.completed` is true: a tick. Whether it can be
 ///   opened is [JuniorMapNode.locked], not this.
-/// * [locked] — `lesson.locked` is true (and the lesson is not completed):
-///   a grey padlock, inert.
-/// * [current] — neither: the lesson is open and not yet done. Every such
-///   lesson is drawn active and opens on a tap; which one the student should
-///   resume is a separate server answer — `continue.lesson_id`, on
-///   [JuniorLearningMap.continueLessonId].
+/// * [current] — **the one lesson available to the student**: the server's
+///   resume lesson (`continue.lesson_id`), open and not yet done.
+/// * [locked] — every other lesson not yet done: a grey padlock, inert —
+///   either the server locks it (`lesson.locked`) or the path has not
+///   reached it yet ([JuniorMapNode.notYetReached]).
 enum JuniorNodeState { completed, current, locked }
 
 /// Where the student stands on earning the course certificate.
@@ -33,6 +33,7 @@ class JuniorMapNode {
     this.moduleId = 0,
     this.moduleOrder = 0,
     bool? locked,
+    this.notYetReached = false,
   }) : locked = locked ?? state == JuniorNodeState.locked;
 
   /// The lesson's own id — what a tap opens, `CourseExerciseDetailScreen`'s
@@ -57,6 +58,53 @@ class JuniorMapNode {
   /// no tap ever asks for content the server will refuse. Defaults to the
   /// [state] being [JuniorNodeState.locked].
   final bool locked;
+
+  /// True for a lesson the server leaves open but the path has not reached
+  /// yet — drawn and handled as [JuniorNodeState.locked] by the Junior
+  /// path's progression ([withLessonProgression]), not by any server lock.
+  final bool notYetReached;
+}
+
+/// The Junior path's progression (Issue #410): **one lesson at a time.**
+///
+/// Of the lessons the server leaves open and not yet completed (state
+/// [JuniorNodeState.current]), only one stays available: the server's own
+/// resume lesson, [continueLessonId] — `continue.lesson_id`, "the first
+/// unlocked, uncompleted lesson" in course order — or, should the server
+/// name none of them, the first of them in course order (the same rule,
+/// read off the same flags). Every other one is held back: drawn locked and
+/// inert, marked [JuniorMapNode.notYetReached]. Completing the available
+/// lesson makes the server name the next one, which the next load shows.
+///
+/// A presentation rule of the Junior map only, and only ever *stricter*
+/// than the server: completed lessons keep their ticks (and open, when the
+/// server leaves them unlocked), a server-locked lesson stays locked, and
+/// nothing is marked completed. The backend itself unlocks by class date
+/// alone and does not enforce this order (`BACKEND GAP`: a lesson the path
+/// holds back can still be opened from Course Detail).
+List<JuniorMapNode> withLessonProgression(
+  List<JuniorMapNode> nodes, {
+  int? continueLessonId,
+}) {
+  final open = nodes.where((n) => n.state == JuniorNodeState.current);
+  final available =
+      open.where((n) => n.id == continueLessonId).firstOrNull ??
+      open.firstOrNull;
+  return [
+    for (final node in nodes)
+      if (node.state == JuniorNodeState.current && !identical(node, available))
+        JuniorMapNode(
+          id: node.id,
+          state: JuniorNodeState.locked,
+          title: node.title,
+          moduleId: node.moduleId,
+          moduleOrder: node.moduleOrder,
+          locked: true,
+          notYetReached: true,
+        )
+      else
+        node,
+  ];
 }
 
 /// The course strip at the top of the map: what the student is studying, and
@@ -165,10 +213,11 @@ class JuniorLearningMap {
       nodes.every((node) => node.state == JuniorNodeState.completed);
 
   /// The lesson the attendance check-in belongs to (Issues #202, #410) — the
-  /// one the frame draws with the QR mark: the server's resume lesson,
-  /// `continue.lesson_id`, while it is open and unfinished; otherwise the
-  /// first open, unfinished lesson in course order. Null when there is none
-  /// — a completed program, or nothing unlocked.
+  /// one the frame draws with the QR mark: the available lesson. After
+  /// [withLessonProgression] there is at most one [JuniorNodeState.current]
+  /// node; on a map built without it, the server's resume lesson while open
+  /// and unfinished, else the first such. Null when there is none — a
+  /// completed program, or nothing unlocked.
   JuniorMapNode? get checkInNode {
     final open = nodes.where((n) => n.state == JuniorNodeState.current);
     return open.where((n) => n.id == continueLessonId).firstOrNull ??

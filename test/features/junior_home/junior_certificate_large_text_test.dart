@@ -204,12 +204,10 @@ void main() {
         expect(
           viewport.bottom - scrolledCard.bottom,
           moreOrLessEquals(
-            (JuniorMapGeometry.mapHeight -
-                    JuniorMapGeometry.certificateCard.bottom) *
-                mapScale,
+            JuniorMapGeometry.certificateBottomMargin * mapScale,
             epsilon: 0.01,
           ),
-          reason: 'the frame\'s margin under the card',
+          reason: 'the reference\'s margin under the card',
         );
       });
     }
