@@ -95,6 +95,22 @@ void main() {
     expect(last.corner, near(last.to));
   });
 
+  test('blue is the unbroken run of completed lessons from the start — a '
+      'lesson completed after a gap does not colour its stretches', () {
+    List<bool> blue(List<bool> completed) => [
+      for (final c in JuniorMapGeometry.route(completed)) c.active,
+    ];
+    expect(blue([true, false, true, true]), [false, false, false, false]);
+    expect(blue([true, true, false, true, true]), [
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(blue([false, true, true]), [false, false, false]);
+  });
+
   test('a stretch is blue once both of its nodes are completed', () {
     expect(
       [
