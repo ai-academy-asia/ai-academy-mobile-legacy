@@ -1,4 +1,6 @@
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/junior_home/data/sample_junior_learning_map.dart';
+import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_controller.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -144,6 +146,72 @@ void main() {
       await controller.load();
 
       expect(repository.calls, 2);
+    });
+  });
+
+  group('a fresh load (Issue #410)', () {
+    JuniorLearningMap withProgress(int percent) {
+      final sample = sampleJuniorLearningMap();
+      return JuniorLearningMap(
+        progress: JuniorCourseProgress(
+          title: sample.progress.title,
+          percentComplete: percent,
+        ),
+        nodes: sample.nodes,
+        certificate: sample.certificate,
+      );
+    }
+
+    test('never joins a fetch already running: it queues one after it, so '
+        'what changed meanwhile is read', () async {
+      final repository = FakeJuniorHomeRepository(hold: true);
+      final controller = JuniorHomeController(repository: repository);
+
+      final running = controller.load();
+      await Future<void>.delayed(Duration.zero);
+      // Back from a lesson, completed meanwhile — while that fetch runs.
+      final fresh = controller.load(fresh: true);
+      final again = controller.load(fresh: true);
+      expect(identical(fresh, again), isTrue);
+      expect(repository.calls, 1);
+
+      repository
+        ..hold = false
+        ..map = withProgress(55);
+      repository.release();
+      await running;
+      await fresh;
+
+      // The running one, then exactly one more — not one per call.
+      expect(repository.calls, 2);
+      expect(controller.map?.progress.percentComplete, 55);
+    });
+
+    test(
+      'with nothing running, it is an ordinary load — one request',
+      () async {
+        final repository = FakeJuniorHomeRepository();
+        final controller = JuniorHomeController(repository: repository);
+
+        await controller.load(fresh: true);
+
+        expect(repository.calls, 1);
+      },
+    );
+
+    test('a queued fetch is dropped once the controller is disposed', () async {
+      final repository = FakeJuniorHomeRepository(hold: true);
+      final controller = JuniorHomeController(repository: repository);
+
+      final running = controller.load();
+      await Future<void>.delayed(Duration.zero);
+      final fresh = controller.load(fresh: true);
+      controller.dispose();
+      repository.release();
+      await running;
+      await fresh;
+
+      expect(repository.calls, 1);
     });
   });
 }

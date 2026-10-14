@@ -26,43 +26,52 @@ import 'fake_junior_home_repository.dart';
 /// lesson tabs — Note, Course materials, Assignment (Issue #219, superseding
 /// #174's Junior-only "no notes").
 ///
-/// From Junior Home, a node opens **its own module's** lessons (Issue #204)
-/// — not the course as a whole. The course screen and a Junior lesson's
+/// From Junior Home, a node opens **its own lesson** directly (Issue #410,
+/// superseding #204's module screen) — never the course as a whole. The course screen and a Junior lesson's
 /// whole learning flow are tested here directly.
 void main() {
   setUpAll(loadAppFonts);
 
   const slug = 'junior-ai-summer-10-14';
 
-  JuniorLearningMap map({String? courseSlug = slug}) => JuniorLearningMap(
+  /// Four lessons of the course, one node each: two completed, the open
+  /// one the server resumes at, one locked. [live] puts a lesson under way
+  /// at the pumped clock; [states] overrides a lesson's state.
+  JuniorLearningMap map({
+    String? courseSlug = slug,
+    bool live = false,
+    bool? attendanceRecorded = false,
+    Map<int, JuniorNodeState> states = const {},
+  }) => JuniorLearningMap(
     courseSlug: courseSlug,
     progress: const JuniorCourseProgress(
       title: 'AI BootCamp',
       percentComplete: 30,
     ),
-    nodes: const [
-      JuniorMapNode(
-        id: 1,
-        state: JuniorNodeState.completed,
-        title: 'Prediction and Probabilities',
-      ),
-      JuniorMapNode(
-        id: 2,
-        state: JuniorNodeState.completed,
-        title: 'Language Model Training',
-      ),
-      JuniorMapNode(
-        id: 3,
-        state: JuniorNodeState.current,
-        title: 'Deep network models',
-      ),
-      JuniorMapNode(
-        id: 4,
-        state: JuniorNodeState.locked,
-        title: 'Transformers',
-      ),
+    nodes: [
+      for (final (id, state, title) in const [
+        (201, JuniorNodeState.completed, 'Introduction to loops'),
+        (202, JuniorNodeState.completed, 'Nesting loops'),
+        (203, JuniorNodeState.current, 'Practice: matrix traversal'),
+        (204, JuniorNodeState.locked, 'Transformers'),
+      ])
+        JuniorMapNode(
+          id: id,
+          state: states[id] ?? state,
+          title: title,
+          moduleId: 2,
+          moduleOrder: 2,
+        ),
     ],
-    continueModuleId: 3,
+    continueModuleId: 2,
+    continueLessonId: 203,
+    nextLesson: live
+        ? NextLesson(
+            startsAt: DateTime(2026, 10, 6, 11),
+            endsAt: DateTime(2026, 10, 6, 13),
+          )
+        : null,
+    attendanceRecorded: attendanceRecorded,
     certificate: const JuniorCertificate(
       track: 'Junior',
       courseName: 'AI BootCamp',
@@ -87,6 +96,7 @@ void main() {
     WidgetTester tester, {
     required FakeCourseLearningRepository learning,
     JuniorLearningMap? learningMap,
+    FakeJuniorHomeRepository? home,
   }) async {
     useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
     useReducedMotion(tester);
@@ -94,9 +104,10 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: JuniorHomeScreen(
-          repository: FakeJuniorHomeRepository(map: learningMap ?? map()),
+          repository:
+              home ?? FakeJuniorHomeRepository(map: learningMap ?? map()),
           courseLearningRepository: learning,
-          // No lesson under way: the current node opens its lessons.
+          // Inside `map(live: true)`'s lesson; outside any other.
           clock: () => DateTime(2026, 10, 6, 12),
         ),
       ),
@@ -104,12 +115,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The node standing for module [id].
+  /// The node standing for lesson [id].
   Finder tile(int id) =>
       find.byWidgetPredicate((w) => w is JuniorMapNodeTile && w.node.id == id);
 
   Future<void> tapTile(WidgetTester tester, int id) async {
     await tester.tap(tile(id));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> back(WidgetTester tester) async {
+    await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
   }
 
@@ -128,83 +144,168 @@ void main() {
   }
 
   group('the Junior Home entry point', () {
-    for (final (id, title) in [
-      (1, 'Prediction and Probabilities'),
-      (2, 'Language Model Training'),
+    for (final (id, label) in [
+      (201, 'completed'),
+      (202, 'completed'),
+      (203, 'open'),
     ]) {
-      testWidgets('completed node $id opens module $id\'s lessons '
-          '(Issues #204, #207)', (tester) async {
+      testWidgets('$label lesson $id opens that lesson itself — no module '
+          'screen between (Issue #410)', (tester) async {
         final learning = course();
         await pumpHome(tester, learning: learning);
 
         await tapTile(tester, id);
 
-        final lessons = tester.widget<LessonListScreen>(
-          find.byType(LessonListScreen),
+        final lesson = tester.widget<CourseExerciseDetailScreen>(
+          find.byType(CourseExerciseDetailScreen),
         );
-        expect(lessons.moduleId, id);
-        expect(lessons.moduleTitle, title);
-        // `GET /me/modules/{module_id}/lessons` for that module — not the
-        // course overview.
-        expect(learning.lessonCalls, [id]);
+        expect(lesson.lessonId, id);
+        // `GET /me/lessons/{lesson_id}` for that lesson, and nothing else.
+        expect(learning.exerciseCalls, [id]);
+        expect(learning.lessonCalls, isEmpty);
         expect(learning.calls, isEmpty);
+        expect(find.byType(LessonListScreen), findsNothing);
         expect(find.byType(CourseModuleListScreen), findsNothing);
       });
     }
 
-    testWidgets('different completed nodes open different modules', (
+    testWidgets('different lessons open different lessons, and back returns '
+        'to Junior Home', (tester) async {
+      final learning = course();
+      await pumpHome(tester, learning: learning);
+
+      await tapTile(tester, 201);
+      await back(tester);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+      await tapTile(tester, 202);
+
+      expect(learning.exerciseCalls, [201, 202]);
+    });
+
+    testWidgets('back from a lesson reloads the map, so a lesson finished '
+        'there shows as completed', (tester) async {
+      final home = FakeJuniorHomeRepository(map: map());
+      await pumpHome(tester, learning: course(), home: home);
+      expect(home.calls, 1);
+
+      await tapTile(tester, 203);
+      home.map = map(states: {203: JuniorNodeState.completed});
+      await back(tester);
+
+      expect(home.calls, 2);
+      expect(
+        tester.widget<JuniorMapNodeTile>(tile(203)).node.state,
+        JuniorNodeState.completed,
+      );
+    });
+
+    testWidgets('a locked lesson stays inert', (tester) async {
+      final learning = course();
+      await pumpHome(tester, learning: learning);
+
+      expect(tester.widget<JuniorMapNodeTile>(tile(204)).onTap, isNull);
+      await tapTile(tester, 204);
+
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(find.byType(LessonListScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
+      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+
+    testWidgets('a completed lesson the server locks again keeps its tick '
+        'and stays inert — no request it would refuse', (tester) async {
+      final learning = course();
+      final base = map();
+      await pumpHome(
+        tester,
+        learning: learning,
+        learningMap: JuniorLearningMap(
+          courseSlug: base.courseSlug,
+          progress: base.progress,
+          certificate: base.certificate,
+          nodes: [
+            for (final node in base.nodes)
+              node.id == 201
+                  ? JuniorMapNode(
+                      id: node.id,
+                      state: JuniorNodeState.completed,
+                      title: node.title,
+                      locked: true,
+                    )
+                  : node,
+          ],
+        ),
+      );
+
+      final tile201 = tester.widget<JuniorMapNodeTile>(tile(201));
+      expect(tile201.node.state, JuniorNodeState.completed);
+      expect(tile201.onTap, isNull);
+      await tapTile(tester, 201);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
+    });
+
+    testWidgets('outside a lesson the check-in node is just its lesson', (
       tester,
     ) async {
       final learning = course();
       await pumpHome(tester, learning: learning);
 
-      await tapTile(tester, 1);
-      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
-      await tester.pumpAndSettle();
-      await tapTile(tester, 2);
+      expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isFalse);
+      await tapTile(tester, 203);
 
-      expect(learning.lessonCalls, [1, 2]);
-    });
-
-    testWidgets('the QR node with check-in closed does nothing — no lessons, '
-        'no scanner (Issue #207)', (tester) async {
-      final learning = course();
-      await pumpHome(tester, learning: learning);
-
-      expect(tester.widget<JuniorMapNodeTile>(tile(3)).checkInOpen, isFalse);
-      expect(tester.widget<JuniorMapNodeTile>(tile(3)).onTap, isNull);
-      await tapTile(tester, 3);
-
-      expect(find.byType(LessonListScreen), findsNothing);
       expect(find.byType(AttendanceScannerScreen), findsNothing);
-      expect(learning.lessonCalls, isEmpty);
-      expect(find.byType(JuniorLearningMapView), findsOneWidget);
+      expect(learning.exerciseCalls, [203]);
     });
 
-    testWidgets('the QR node with check-in open opens the scanner, not the '
-        'lessons (Issue #207)', (tester) async {
+    testWidgets('with check-in open, the node opens the scanner, not the '
+        'lesson (Issues #207, #410)', (tester) async {
       final learning = course();
-      final open = map();
+      await pumpHome(tester, learning: learning, learningMap: map(live: true));
+
+      expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isTrue);
+      await tapTile(tester, 203);
+
+      expect(find.byType(AttendanceScannerScreen), findsOneWidget);
+      expect(learning.exerciseCalls, isEmpty);
+    });
+
+    testWidgets('with attendance already recorded, the node is no longer '
+        'check-in: it opens its lesson', (tester) async {
+      final learning = course();
       await pumpHome(
         tester,
         learning: learning,
-        learningMap: JuniorLearningMap(
-          courseSlug: open.courseSlug,
-          progress: open.progress,
-          certificate: open.certificate,
-          nodes: open.nodes,
-          continueModuleId: open.continueModuleId,
-          nextLesson: NextLesson(
-            startsAt: DateTime(2026, 10, 6, 11),
-            endsAt: DateTime(2026, 10, 6, 13),
-          ),
-        ),
+        learningMap: map(live: true, attendanceRecorded: true),
       );
 
-      await tapTile(tester, 3);
+      expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isFalse);
+      await tapTile(tester, 203);
 
+      expect(find.byType(AttendanceScannerScreen), findsNothing);
+      expect(learning.exerciseCalls, [203]);
+    });
+
+    testWidgets('back from the scanner reloads the map, so a recorded '
+        'check-in stops the node — and it cannot be scanned twice', (
+      tester,
+    ) async {
+      final home = FakeJuniorHomeRepository(map: map(live: true));
+      final learning = course();
+      await pumpHome(tester, learning: learning, home: home);
+
+      await tapTile(tester, 203);
       expect(find.byType(AttendanceScannerScreen), findsOneWidget);
-      expect(learning.lessonCalls, isEmpty);
+      home.map = map(live: true, attendanceRecorded: true);
+      tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await tester.pumpAndSettle();
+
+      expect(home.calls, 2);
+      expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isFalse);
+      await tapTile(tester, 203);
+      expect(find.byType(AttendanceScannerScreen), findsNothing);
+      expect(learning.exerciseCalls, [203]);
     });
 
     testWidgets('the course card opens the existing Course Detail '
@@ -223,20 +324,25 @@ void main() {
       expect(learning.calls, [slug]);
       expect(learning.lessonCalls, isEmpty);
 
-      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
-      await tester.pumpAndSettle();
+      await back(tester);
       expect(find.byType(JuniorLearningMapView), findsOneWidget);
     });
 
-    testWidgets('a locked node stays inert', (tester) async {
-      final learning = course();
-      await pumpHome(tester, learning: learning);
+    testWidgets('back from Course Detail reloads the map too — lessons can '
+        'be completed there', (tester) async {
+      final home = FakeJuniorHomeRepository(map: map());
+      await pumpHome(tester, learning: course(), home: home);
 
-      expect(tester.widget<JuniorMapNodeTile>(tile(4)).onTap, isNull);
-      await tapTile(tester, 4);
+      await tester.tap(find.byType(JuniorCourseProgressCard));
+      await tester.pumpAndSettle();
+      home.map = map(states: {203: JuniorNodeState.completed});
+      await back(tester);
 
-      expect(find.byType(LessonListScreen), findsNothing);
-      expect(learning.lessonCalls, isEmpty);
+      expect(home.calls, 2);
+      expect(
+        tester.widget<JuniorMapNodeTile>(tile(203)).node.state,
+        JuniorNodeState.completed,
+      );
     });
 
     testWidgets('a map with no course behind it leaves every node inert', (
@@ -255,8 +361,8 @@ void main() {
             .map((t) => t.onTap),
         everyElement(isNull),
       );
-      await tapTile(tester, 1);
-      expect(find.byType(LessonListScreen), findsNothing);
+      await tapTile(tester, 201);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
       // …and the course card too.
       await tester.tap(find.byType(JuniorCourseProgressCard));
       await tester.pumpAndSettle();
@@ -267,34 +373,19 @@ void main() {
         'and Assignment, Note first (Issue #219)', (tester) async {
       final learning = course();
       await pumpHome(tester, learning: learning);
-      await tapTile(tester, 2);
-      await tester.tap(find.text('Nesting loops'));
-      await tester.pumpAndSettle();
+      await tapTile(tester, 202);
 
       expectTabOrder(tester);
       expect(find.byType(NoteTab), findsOneWidget);
     });
 
-    testWidgets('back from a module returns to Junior Home', (tester) async {
-      await pumpHome(tester, learning: course());
-      await tapTile(tester, 1);
-
-      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(LessonListScreen), findsNothing);
-      expect(find.byType(JuniorLearningMapView), findsOneWidget);
-    });
-
-    testWidgets('unlocked nodes are announced as buttons', (tester) async {
+    testWidgets('completed and open lessons are announced as buttons, locked '
+        'ones are not', (tester) async {
       await pumpHome(tester, learning: course());
 
-      final completed = tester.getSemantics(tile(1));
-      expect(completed.flagsCollection.isButton, isTrue);
-      // The closed check-in node is inert, so not a button (Issue #207).
-      expect(tester.getSemantics(tile(3)).flagsCollection.isButton, isFalse);
-      final locked = tester.getSemantics(tile(4));
-      expect(locked.flagsCollection.isButton, isFalse);
+      expect(tester.getSemantics(tile(201)).flagsCollection.isButton, isTrue);
+      expect(tester.getSemantics(tile(203)).flagsCollection.isButton, isTrue);
+      expect(tester.getSemantics(tile(204)).flagsCollection.isButton, isFalse);
     });
   });
 

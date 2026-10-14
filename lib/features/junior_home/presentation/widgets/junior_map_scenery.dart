@@ -1,19 +1,20 @@
 import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_palette.dart';
 import 'junior_map_geometry.dart';
+import 'junior_map_theme.dart';
 
 /// The Junior map's scenery, behind the learning content ([content]).
 ///
-/// **Two fixed layers.** Both are fixed to the map's viewport, at the
-/// design's own positions, and neither scrolls: first **the sky** — the
-/// field and the clouds — then **the ground** — the islands and their
-/// coins. [content], the scrolling route, nodes and cards, sits over both.
+/// **Fixed layers.** All are fixed to the map's viewport and none scrolls:
+/// first **the sky** — the field and the travelling clouds — then **the
+/// bank** — the theme's large clouds on the background's bottom edge, still
+/// (Issue #410) — then **the ground** — the islands and their coins.
+/// [content], the scrolling route, nodes and cards, sits over all three.
 /// Nothing here moves, scales or rebuilds [content].
 ///
 /// **Ambient motion.** A sky of clouds at many sizes and heights travels
@@ -23,27 +24,24 @@ import 'junior_map_geometry.dart';
 /// whatever the content does. One ticker drives both layers. Every motion
 /// fades in softly from still.
 ///
-/// **Pinch.** Two fingers zoom the sky — and only the sky: not the islands
-/// and coins, not the content — between [minZoom] and [maxZoom],
-/// continuously and about the fingers. The gesture
-/// is recognised on an ancestor of both layers, so a pinch that starts over
-/// a node or a card still reaches it; it is claimed the moment the second
-/// finger lands, so the content does not scroll and no node is tapped. One
-/// finger is never claimed: scrolling and taps are the content's own.
+/// **No zoom** (Issue #410). The scenery does not scale: a pinch does
+/// nothing, so one and two fingers alike are the content's own — its
+/// scrolling and its taps.
 ///
 /// **Reduced motion.** When the platform asks for reduced motion
-/// ([MediaQuery.disableAnimationsOf]) there is no ticker, no travel and no
-/// pinch: the scenery is the export itself, fixed to the viewport like the
+/// ([MediaQuery.disableAnimationsOf]) there is no ticker and no travel:
+/// the scenery is the export itself, fixed to the viewport like the
 /// rest of the scenery, and there is no separate ground.
 ///
 /// **Cost.** Each frame the ticker rebuilds only the small [Transform]s that
-/// carry the moving pieces, each behind its own [RepaintBoundary], and a
-/// pinch only changes one [Transform] over the sky.
+/// carry the moving pieces, each behind its own [RepaintBoundary]. Hidden
+/// behind another tab, its ticker is muted ([TickerMode]).
 class JuniorMapScenery extends StatefulWidget {
   const JuniorMapScenery({
     required this.scale,
     required this.content,
     super.key,
+    this.theme = JuniorMapTheme.junior,
   });
 
   /// The map's design-space-to-pixels factor.
@@ -53,58 +51,33 @@ class JuniorMapScenery extends StatefulWidget {
   /// touched by it.
   final Widget content;
 
-  /// The scenery's zoom range. Chosen, not a design value.
-  static const double minZoom = 0.6;
-  static const double maxZoom = 1.4;
+  /// The program's sky — its field colour and cloud artwork (Issue #410).
+  final JuniorMapTheme theme;
 
-  /// The sky and the ground layers, for tests to find them.
+  /// The sky, bank and ground layers, for tests to find them.
   @visibleForTesting
   static const Key skyKey = Key('junior-map-sky');
   @visibleForTesting
+  static const Key bankKey = Key('junior-map-bank');
+  @visibleForTesting
   static const Key groundKey = Key('junior-map-ground');
-
-  /// Keeps the zoomed sky covering its box: at or above 1.0x the
-  /// visible part stays inside the frame, and below it may show at most the
-  /// extra width and height the zoom-out reveals — so at 1.0x the scenery is
-  /// always exactly where the design puts it.
-  ///
-  /// [offset] is the screen position of the scenery's origin at [zoom].
-  static Offset clampOffset(double zoom, Offset offset, Size box) => Offset(
-    _clampAxis(zoom, offset.dx, box.width),
-    _clampAxis(zoom, offset.dy, box.height),
-  );
-
-  static double _clampAxis(double zoom, double offset, double extent) {
-    final extra = math.max(0.0, extent / zoom - extent);
-    return offset.clamp(extent - zoom * (extent + extra), zoom * extra);
-  }
 
   @override
   State<JuniorMapScenery> createState() => _JuniorMapSceneryState();
 }
 
-typedef _Zoom = ({double scale, Offset offset});
-
 class _JuniorMapSceneryState extends State<JuniorMapScenery>
     with SingleTickerProviderStateMixin {
-  static const _Zoom _rest = (scale: 1, offset: Offset.zero);
-
   late final Ticker _ticker = createTicker(_onTick);
 
   /// Seconds since the scenery started moving. Never wraps.
   final _seconds = ValueNotifier<double>(0);
-
-  final _zoom = ValueNotifier<_Zoom>(_rest);
 
   bool _animate = false;
 
   /// The sky's box, in logical pixels: the viewport, down to the map's own
   /// height.
   Size _box = Size.zero;
-
-  _Zoom _pinchStart = _rest;
-  Offset _pinchFocal = Offset.zero;
-  double _pinchSpan = 0;
 
   @override
   void didChangeDependencies() {
@@ -117,7 +90,6 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
     } else {
       _ticker.stop();
       _seconds.value = 0;
-      _zoom.value = _rest;
     }
   }
 
@@ -129,41 +101,8 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
   void dispose() {
     _ticker.dispose();
     _seconds.dispose();
-    _zoom.dispose();
     super.dispose();
   }
-
-  // --- Pinch --------------------------------------------------------------
-
-  /// Re-anchors whenever a finger lands or lifts, so nothing jumps.
-  void _onPinchStart(Offset focal, double span) {
-    _pinchStart = _zoom.value;
-    _pinchFocal = _toLocal(focal);
-    _pinchSpan = span;
-  }
-
-  /// Scales with the fingers' spread, about the point between them: the
-  /// scenery that was under the fingers when the pinch began stays under
-  /// them.
-  void _onPinchUpdate(Offset focal, double span) {
-    final ratio = _pinchSpan == 0 ? 1.0 : span / _pinchSpan;
-    final scale = (_pinchStart.scale * ratio).clamp(
-      JuniorMapScenery.minZoom,
-      JuniorMapScenery.maxZoom,
-    );
-    final anchor = (_pinchFocal - _pinchStart.offset) / _pinchStart.scale;
-    _zoom.value = (
-      scale: scale,
-      offset: JuniorMapScenery.clampOffset(
-        scale,
-        _toLocal(focal) - anchor * scale,
-        _box,
-      ),
-    );
-  }
-
-  Offset _toLocal(Offset global) =>
-      (context.findRenderObject()! as RenderBox).globalToLocal(global);
 
   // --- Build --------------------------------------------------------------
 
@@ -178,36 +117,23 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
             JuniorMapGeometry.mapHeight * widget.scale,
           ),
         );
-        return RawGestureDetector(
-          gestures: {
-            if (_animate)
-              _PinchGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<_PinchGestureRecognizer>(
-                    () => _PinchGestureRecognizer(debugOwner: this),
-                    (recognizer) => recognizer
-                      ..onStart = _onPinchStart
-                      ..onUpdate = _onPinchUpdate,
-                  ),
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Below the map's own height there has only ever been the
-              // field, so the scenery stops there.
-              _layer(
-                JuniorMapScenery.skyKey,
-                _animate
-                    ? _sky()
-                    : Stack(
-                        clipBehavior: Clip.hardEdge,
-                        children: [_backdrop()],
-                      ),
-              ),
-              // Separate from the sky, so the sky's zoom never reaches it.
-              if (_animate) _layer(JuniorMapScenery.groundKey, _ground()),
-              widget.content,
-            ],
-          ),
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Below the map's own height there has only ever been the
+            // field, so the scenery stops there.
+            _layer(
+              JuniorMapScenery.skyKey,
+              _animate
+                  ? _sky()
+                  : Stack(clipBehavior: Clip.hardEdge, children: [_backdrop()]),
+            ),
+            // The theme's cloud bank on the background's bottom edge —
+            // still, and drawn with or without motion (Issue #410).
+            _bank(constraints.maxHeight),
+            if (_animate) _layer(JuniorMapScenery.groundKey, _ground()),
+            widget.content,
+          ],
         );
       },
     );
@@ -225,43 +151,66 @@ class _JuniorMapSceneryState extends State<JuniorMapScenery>
     ),
   );
 
-  /// The field (`AppPalette.juniorMapSky`), then the clouds under the zoom.
-  /// The clouds, islands and coins are authored artwork, drawn as exported. The field is outside the
-  /// zoom, so zooming out never shows an edge; the clip is outside it too,
-  /// so zooming never draws past the box.
+  /// The theme's bank of large clouds, anchored to the bottom edge of the
+  /// whole background ([height] tall) and scaled with the map's width: the
+  /// program's boundary, which the path and its certificate scroll over and
+  /// never drag along. It does not move, so no ticker reaches it.
+  Widget _bank(double height) {
+    final scale = widget.scale;
+    final theme = widget.theme;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ExcludeSemantics(
+          child: RepaintBoundary(
+            key: JuniorMapScenery.bankKey,
+            child: ClipRect(
+              child: Stack(
+                children: [
+                  for (final cloud in theme.bankClouds)
+                    Positioned(
+                      left: cloud.rect.left * scale,
+                      top: height + cloud.rect.top * scale,
+                      width: cloud.rect.width * scale,
+                      height: cloud.rect.height * scale,
+                      child: Transform.flip(
+                        flipX: cloud.mirrored,
+                        child: SvgPicture.asset(
+                          theme.cloudAsset,
+                          fit: BoxFit.fill,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The theme's field, then its clouds, travelling. The clouds, islands
+  /// and coins are authored artwork, drawn as exported; the clip keeps them
+  /// inside the box.
   Widget _sky() {
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final theme = widget.theme;
     return ClipRect(
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ColoredBox(color: context.palette.juniorMapSky),
-          ValueListenableBuilder<_Zoom>(
-            valueListenable: _zoom,
-            builder: (context, zoom, clouds) => Transform(
-              transform: Matrix4.diagonal3Values(zoom.scale, zoom.scale, 1)
-                ..setTranslationRaw(zoom.offset.dx, zoom.offset.dy, 0),
-              child: clouds,
+          ColoredBox(color: theme.sky(context.palette)),
+          for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++)
+            _moving(
+              JuniorScenery(
+                theme.cloudAsset,
+                JuniorSceneryMotion.cloudBox(i, _box.height / widget.scale),
+                mirrored: JuniorSceneryMotion.clouds[i].mirrored,
+              ),
+              pixelRatio,
+              (t) => Offset(JuniorSceneryMotion.cloudLeft(i, t), 0),
             ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++)
-                  _moving(
-                    JuniorScenery(
-                      JuniorMapGeometry.cloud,
-                      JuniorSceneryMotion.cloudBox(
-                        i,
-                        _box.height / widget.scale,
-                      ),
-                      mirrored: JuniorSceneryMotion.allClouds[i].mirrored,
-                    ),
-                    pixelRatio,
-                    (t) => Offset(JuniorSceneryMotion.cloudLeft(i, t), 0),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -409,7 +358,7 @@ abstract final class JuniorSceneryMotion {
   ///   every corner is visited at least every 50 seconds, and no wide
   ///   stretch of sky stays empty for long. The first frame fills all four
   ///   corners.
-  /// - **No two clouds ever overlap**, anywhere any zoom can show them: they
+  /// - **No two clouds ever overlap**, anywhere the sky can show them: they
   ///   always keep a clear gap of 8 design units plus a tenth of their two
   ///   widths, so large clouds keep further apart than small ones. Every
   ///   cloud comes round in the same [cloudPeriod], so the whole sky repeats
@@ -461,39 +410,6 @@ abstract final class JuniorSceneryMotion {
     ),
   ];
 
-  /// Twelve more clouds out of sight at 1.0x: six above the sky and six
-  /// below it, wholly outside it at every sky height from 480 to 700.
-  ///
-  /// Zooming in, or staying at 1.0x, never shows them — the zoom keeps the
-  /// view inside the sky there. Zooming out reveals up to two-thirds of a
-  /// sky's height more, above or below or both, and these fill it, so the
-  /// widened sky is about as cloudy as the sky at rest rather than bare.
-  /// They are not made when the zoom changes: like every cloud they are
-  /// always there, and where they are depends only on time.
-  ///
-  /// The same kind of cloud as [clouds] — the same sizes, the same pace for
-  /// their size, the same [cloudPeriod] — chosen by the same seeded search,
-  /// held to the same rules: no cloud of either kind ever overlaps another
-  /// anywhere any zoom can show them, none cluster, and no two share a line.
-  static const List<JuniorCloud> reserveClouds = [
-    JuniorCloud(scale: 0.48, height: -0.467, speed: 5.3, start: 0.951),
-    JuniorCloud(scale: 0.58, height: -0.222, speed: 5.7, start: 0.773),
-    JuniorCloud(scale: 0.66, height: -0.556, speed: 6.2, start: 0.173),
-    JuniorCloud(scale: 0.82, height: -0.696, speed: 7.1, start: 0.805),
-    JuniorCloud(scale: 0.95, height: -0.169, speed: 7.8, start: 0.349),
-    JuniorCloud(scale: 1.2, height: -0.282, speed: 9.2, start: 0.61),
-    JuniorCloud(scale: 0.52, height: 1.308, speed: 5.4, start: 0.814),
-    JuniorCloud(scale: 0.6, height: 1.411, speed: 5.8, start: 0.129),
-    JuniorCloud(scale: 0.74, height: 1.665, speed: 6.7, start: 0.225),
-    JuniorCloud(scale: 0.9, height: 1.168, speed: 7.5, start: 0.643),
-    JuniorCloud(scale: 1.05, height: 1.257, speed: 8.5, start: 0.481),
-    JuniorCloud(scale: 1.25, height: 1.61, speed: 9.5, start: 0.939),
-  ];
-
-  /// Every cloud in the sky: [clouds], then [reserveClouds]. The index every
-  /// motion function below takes is an index into this list.
-  static const List<JuniorCloud> allClouds = [...clouds, ...reserveClouds];
-
   /// How long every cloud takes to come round its lap, in seconds.
   ///
   /// The same for all, which is what makes the sky repeat exactly; each
@@ -507,17 +423,17 @@ abstract final class JuniorSceneryMotion {
   static const List<double> coinPeriods = [2.07, 2.29, 2.43];
   static const double coinBob = 2;
 
-  /// How far past either side of the frame the scenery can ever be seen —
-  /// the extra width at the smallest zoom. A cloud only wraps beyond this, so
-  /// no zoom ever shows it jump.
-  static const double reach =
-      JuniorMapGeometry.mapWidth * (1 / JuniorMapScenery.minZoom - 1);
+  /// How far past either side of the frame a cloud travels before it comes
+  /// round — out of sight, so it never jumps. The value the former 0.6x
+  /// zoom-out needed, kept as it was (Issue #410): every cloud's lap, and so
+  /// the sky's arrangement at every moment, is exactly what it was.
+  static const double reach = JuniorMapGeometry.mapWidth * (1 / 0.6 - 1);
 
   /// Cloud [index]'s box at the start of its lap, in a sky [skyHeight] tall:
   /// its size, and its height centred on its share of the sky. Travel moves
   /// it right from here by [cloudLeft].
   static Rect cloudBox(int index, double skyHeight) {
-    final cloud = allClouds[index];
+    final cloud = clouds[index];
     final size = JuniorMapGeometry.cloudSize * cloud.scale;
     return Rect.fromLTWH(
       0,
@@ -529,7 +445,7 @@ abstract final class JuniorSceneryMotion {
 
   /// The length of cloud [index]'s lap: what its speed covers in a
   /// [cloudPeriod].
-  static double cloudLap(int index) => allClouds[index].speed * cloudPeriod;
+  static double cloudLap(int index) => clouds[index].speed * cloudPeriod;
 
   /// Where cloud [index]'s left edge enters: one lap before [cloudExit],
   /// which puts the whole cloud left of everything that can be seen, plus
@@ -544,9 +460,9 @@ abstract final class JuniorSceneryMotion {
   ///
   /// It starts its own share of the way round its lap and travels right;
   /// once wholly past [cloudExit] it comes round to [cloudEntry] — both out
-  /// of sight at every zoom — and travels on.
+  /// of sight — and travels on.
   static double cloudLeft(int index, double seconds) {
-    final cloud = allClouds[index];
+    final cloud = clouds[index];
     final lap = cloudLap(index);
     final travelled = cloud.speed * _easedTime(seconds);
     return cloudEntry(index) + (cloud.start * lap + travelled) % lap;
@@ -583,81 +499,7 @@ abstract final class JuniorSceneryMotion {
   }
 }
 
-/// Two or more fingers, claimed as soon as the second one lands.
-///
-/// [ScaleGestureRecognizer] waits for the fingers to travel before it
-/// competes, which would let the scroll view's drag win a slightly vertical
-/// pinch and a still two-finger touch tap the node under it. This one takes
-/// every finger it is tracking the moment there are two. With one finger it
-/// never claims anything, leaving scrolls and taps to their owners.
-class _PinchGestureRecognizer extends OneSequenceGestureRecognizer {
-  _PinchGestureRecognizer({super.debugOwner});
-
-  /// A pinch began, or its fingers changed: [focal] is their centre, in
-  /// global coordinates, and [span] their mean distance from it.
-  void Function(Offset focal, double span)? onStart;
-  void Function(Offset focal, double span)? onUpdate;
-
-  final Map<int, Offset> _points = {};
-  bool _pinching = false;
-
-  Offset get _focal =>
-      _points.values.reduce((a, b) => a + b) / _points.length.toDouble();
-
-  double get _span {
-    final focal = _focal;
-    return _points.values
-            .map((p) => (p - focal).distance)
-            .reduce((a, b) => a + b) /
-        _points.length;
-  }
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    super.addAllowedPointer(event);
-    _points[event.pointer] = event.position;
-    if (_points.length >= 2) {
-      resolve(GestureDisposition.accepted);
-      _pinching = true;
-      onStart?.call(_focal, _span);
-    }
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (event is PointerMoveEvent) {
-      _points[event.pointer] = event.position;
-      if (_pinching) onUpdate?.call(_focal, _span);
-    } else if (event is PointerUpEvent || event is PointerCancelEvent) {
-      _drop(event.pointer);
-    }
-  }
-
-  @override
-  void rejectGesture(int pointer) => _drop(pointer);
-
-  void _drop(int pointer) {
-    if (_points.remove(pointer) == null) return;
-    stopTrackingPointer(pointer);
-    if (!_pinching) return;
-    if (_points.length >= 2) {
-      onStart?.call(_focal, _span);
-    } else {
-      _pinching = false;
-    }
-  }
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {
-    _points.clear();
-    _pinching = false;
-  }
-
-  @override
-  String get debugDescription => 'pinch';
-}
-
-/// One cloud of the Junior sky. See [JuniorSceneryMotion.allClouds].
+/// One cloud of the Junior sky. See [JuniorSceneryMotion.clouds].
 class JuniorCloud {
   const JuniorCloud({
     required this.scale,

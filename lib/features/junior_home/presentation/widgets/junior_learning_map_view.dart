@@ -9,13 +9,15 @@ import 'junior_map_geometry.dart';
 import 'junior_map_node.dart';
 import 'junior_map_path_painter.dart';
 import 'junior_map_scenery.dart';
+import 'junior_map_theme.dart';
 
 /// The game world between the header and the tab bar.
 ///
 /// **Why a [Stack] and not a column of cards.** The frame is a hand-drawn
-/// route: the five nodes swing right, back left, further left and right
-/// again, with islands and coins tucked into the gaps between them. A
-/// [ListView] would straighten all of that out. So every element is placed at
+/// route: the nodes swing right, back left, further left and right again
+/// — the reference's wave, repeated for every lesson — with islands and
+/// coins tucked into the gaps between them. A [ListView] would straighten
+/// all of that out. So every element is placed at
 /// the coordinate the reference puts it at — see `JuniorMapGeometry`, which
 /// holds the measurements and nothing else.
 ///
@@ -26,36 +28,35 @@ import 'junior_map_scenery.dart';
 /// scrolls, because squashing it is what would break the composition.
 ///
 /// **Layers.** The scenery — the sky and its clouds, then the islands,
-/// flowers and coins — is fixed to the map's viewport and never scrolls; a
-/// pinch zooms the sky, and only the sky. The route, nodes and cards scroll
-/// over it. Both scenery layers are [JuniorMapScenery]'s.
+/// flowers and coins — is fixed to the map's viewport and never scrolls or
+/// zooms (Issue #410). The route, nodes and cards scroll over it. Both
+/// scenery layers are [JuniorMapScenery]'s.
 ///
-/// **Paint order**, bottom to top: the sky, the islands and coins, then the
-/// route, the nodes and the two cards. The route is under the nodes so each line runs
-/// behind a node's rounded square, and the cards sit over the scenery the way
-/// the frame draws them, covering the island and the coin behind each one.
+/// **Paint order**, bottom to top: the sky, the [theme]'s cloud bank along
+/// the background's bottom edge, the islands and coins — all background,
+/// fixed to the viewport — then the route, the nodes, the course card and
+/// the certificate card, which scroll over it. So the route runs behind
+/// each node's rounded square, and at the end of the path the certificate
+/// stands in front of the bank, which never moves with it (Issue #410).
 ///
-/// **The student's own route** (Issue #202). One node per module, in path
-/// order, however many the course has; the route joins them and ends at the
-/// certificate card, which sits under the last node — nothing is drawn for
-/// a stop the student does not have. See `JuniorMapGeometry.route`.
+/// **One node per lesson** (Issue #410), in course order, however many the
+/// course has; the route joins them and ends at the certificate card. See
+/// `JuniorMapGeometry.route`.
 ///
-/// **Check-in.** The current module's node is the attendance check-in node
-/// ([JuniorLearningMap.checkInNode]). While a lesson is under way at [now]
-/// it is drawn as the frame draws it and a tap calls [onCheckIn]; otherwise
-/// it is grey and inert (Issue #207).
-///
-/// **Taps** (Issue #207): a completed node calls [onNodeTap] with its module;
-/// the open check-in node calls [onCheckIn]; the closed check-in node and
-/// every locked node do nothing. The course card calls [onCourseTap].
+/// **Taps** (Issue #410): the check-in node, while check-in is actionable at
+/// [now] ([JuniorLearningMap.checkInOpenAt]), calls [onCheckIn]; every other
+/// lesson that opens ([JuniorMapNode.opens]: unlocked, and completed or the
+/// lesson to continue with) calls [onLessonTap] with its lesson; any other
+/// does nothing. The course card calls [onCourseTap].
 class JuniorLearningMapView extends StatelessWidget {
   const JuniorLearningMapView({
     required this.map,
     required this.now,
     super.key,
-    this.onNodeTap,
+    this.onLessonTap,
     this.onCheckIn,
     this.onCourseTap,
+    this.theme = JuniorMapTheme.junior,
   });
 
   final JuniorLearningMap map;
@@ -63,9 +64,9 @@ class JuniorLearningMapView extends StatelessWidget {
   /// What the check-in node's state is read against.
   final DateTime now;
 
-  /// Called with a completed node when it is tapped. Null leaves every
-  /// completed node inert.
-  final ValueChanged<JuniorMapNode>? onNodeTap;
+  /// Called with a completed or open lesson when it is tapped. Null leaves
+  /// every lesson inert.
+  final ValueChanged<JuniorMapNode>? onLessonTap;
 
   /// Called when the check-in node is tapped while check-in is open. Null
   /// leaves it inert.
@@ -73,6 +74,9 @@ class JuniorLearningMapView extends StatelessWidget {
 
   /// Called when the course card is tapped. Null leaves it inert.
   final VoidCallback? onCourseTap;
+
+  /// The program's background — the sky and its cloud bank.
+  final JuniorMapTheme theme;
 
   @override
   Widget build(BuildContext context) {
@@ -85,18 +89,16 @@ class JuniorLearningMapView extends StatelessWidget {
         final checkIn = map.checkInNode;
         final open = map.checkInOpenAt(now);
 
-        // A completed node opens its module; the check-in node opens the
-        // scanner while check-in is open and does nothing otherwise; a
-        // locked node does nothing (Issue #207).
-        VoidCallback? tapFor(JuniorMapNode node) => switch (map.stateOf(node)) {
-          JuniorNodeState.completed => switch (onNodeTap) {
-            final onNodeTap? => () => onNodeTap(node),
-            null => null,
-          },
-          JuniorNodeState.current =>
-            identical(node, checkIn) && open ? onCheckIn : null,
-          JuniorNodeState.locked => null,
-        };
+        // The live check-in opens the scanner; otherwise a node opens its
+        // lesson only by the one rule every screen asks (Issue #410):
+        // unlocked, and completed or the lesson to continue with. A white
+        // open node waits its turn; a padlock never opens.
+        VoidCallback? tapFor(JuniorMapNode node) {
+          if (open && identical(node, checkIn)) return onCheckIn;
+          final onLessonTap = this.onLessonTap;
+          if (onLessonTap == null || !node.opens) return null;
+          return () => onLessonTap(node);
+        }
 
         Widget at(Rect rect, Widget child) => Positioned(
           left: rect.left * scale,
@@ -107,9 +109,10 @@ class JuniorLearningMapView extends StatelessWidget {
         );
 
         // The scenery is fixed to the viewport behind the content, with its
-        // own gentle motion and its own pinch. The content scrolls over it.
+        // own gentle motion and no zoom. The content scrolls over it.
         return JuniorMapScenery(
           scale: scale,
+          theme: theme,
           content: SingleChildScrollView(
             // At least the frame's height; taller only when the certificate
             // card grows (below).
@@ -126,10 +129,12 @@ class JuniorLearningMapView extends StatelessWidget {
                       painter: JuniorMapPathPainter(
                         scale: scale,
                         travelled: context.palette.accent,
-                        untravelled: context.palette.outline,
+                        // White, as the updated reference draws the way
+                        // ahead (Issue #410).
+                        untravelled: context.palette.surface,
                         connectors: JuniorMapGeometry.route([
                           for (final node in nodes)
-                            map.stateOf(node) == JuniorNodeState.completed,
+                            node.state == JuniorNodeState.completed,
                         ]),
                       ),
                     ),
@@ -144,9 +149,9 @@ class JuniorLearningMapView extends StatelessWidget {
                           ),
                       JuniorMapNodeTile(
                         node: node,
+                        number: i + 1,
                         scale: scale,
-                        state: map.stateOf(node),
-                        checkInOpen: identical(node, checkIn) ? open : null,
+                        checkIn: open && identical(node, checkIn),
                         onTap: tapFor(node),
                       ),
                     ),

@@ -11,7 +11,7 @@ import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/course_module.dart';
-import 'course_exercise_detail_screen.dart';
+import 'lesson_navigation.dart';
 import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
 import 'lesson_list_screen.dart';
@@ -273,32 +273,20 @@ CourseModule? _continueLearningTarget(CourseLearningPath path) {
 /// The lesson "Continue learning" opens: `continue.lesson_id`, exactly as the
 /// server sent it — but only while its `continue.module_id` names a listed
 /// module ([_continueLearningTarget]), so the two halves of the server's
-/// answer agree. Null otherwise, which leaves both buttons drawn but inert;
-/// no lesson is ever chosen on the client.
+/// answer agree, and that module is not locked (Issue #410): a lesson's lock
+/// is its module's, and a locked lesson never opens from any screen. Null
+/// otherwise, which leaves both buttons drawn but inert; no lesson is ever
+/// chosen on the client.
 int? _continueLessonId(CourseLearningPath path) {
-  if (_continueLearningTarget(path) == null) return null;
+  final target = _continueLearningTarget(path);
+  if (target == null || target.locked) return null;
   return path.continueLessonId;
-}
-
-void _openExerciseDetail(
-  BuildContext context,
-  int lessonId,
-  CourseLearningRepository repository,
-) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => CourseExerciseDetailScreen(
-        lessonId: lessonId,
-        repository: repository,
-      ),
-    ),
-  );
 }
 
 /// Where an unlocked module card leads: that module's lessons, loaded from
 /// `GET /me/modules/{module_id}/lessons` with the module's own id.
 ///
-/// Through this screen's repository, as [_openExerciseDetail] is — HTTP in
+/// Through this screen's repository, as [openLesson] is — HTTP in
 /// production, the injected one in tests. The title is passed along rather
 /// than re-fetched: `LessonListScreen` draws it as its heading, and this
 /// screen already holds it.
@@ -306,6 +294,7 @@ void _openLessonList(
   BuildContext context,
   CourseModule module,
   CourseLearningRepository repository,
+  int? resumeLessonId,
 ) {
   Navigator.of(context).push(
     MaterialPageRoute(
@@ -314,6 +303,9 @@ void _openLessonList(
         moduleOrder: module.order,
         moduleTitle: module.title,
         repository: repository,
+        // The course's continue lesson: the one unfinished lesson that
+        // opens there too (Issue #410).
+        resumeLessonId: resumeLessonId,
       ),
     ),
   );
@@ -345,7 +337,11 @@ class _CourseLearningBody extends StatelessWidget {
             buttonWidth: _heroCtaWidth,
           ),
           const SizedBox(height: 48),
-          _ModuleList(modules: path.modules, repository: repository),
+          _ModuleList(
+            modules: path.modules,
+            repository: repository,
+            resumeLessonId: path.continueLessonId,
+          ),
           const SizedBox(height: 32),
           _CertificationSection(path: path, repository: repository),
         ],
@@ -463,9 +459,18 @@ class _ProgressCtaRow extends StatelessWidget {
     return CourseProgressCtaRow(
       percent: path.percentComplete,
       buttonWidth: buttonWidth,
+      // Through the one lesson opener: the continue lesson is the one
+      // unfinished lesson the rule lets open, unless its module is locked.
       onContinue: lessonId == null
           ? null
-          : () => _openExerciseDetail(context, lessonId, repository),
+          : () => openLesson(
+              context,
+              lessonId: lessonId,
+              locked: _continueLearningTarget(path)?.locked ?? true,
+              completed: false,
+              resumeLessonId: lessonId,
+              repository: repository,
+            ),
     );
   }
 }
@@ -474,10 +479,15 @@ class _ProgressCtaRow extends StatelessWidget {
 /// rule — the Figma reference draws a thin line running down the card list,
 /// centred under the icon column.
 class _ModuleList extends StatelessWidget {
-  const _ModuleList({required this.modules, required this.repository});
+  const _ModuleList({
+    required this.modules,
+    required this.repository,
+    required this.resumeLessonId,
+  });
 
   final List<CourseModule> modules;
   final CourseLearningRepository repository;
+  final int? resumeLessonId;
 
   @override
   Widget build(BuildContext context) {
@@ -488,7 +498,12 @@ class _ModuleList extends StatelessWidget {
             module: modules[i],
             onTap: modules[i].locked
                 ? null
-                : () => _openLessonList(context, modules[i], repository),
+                : () => _openLessonList(
+                    context,
+                    modules[i],
+                    repository,
+                    resumeLessonId,
+                  ),
           ),
           if (i != modules.length - 1) const _ModuleConnector(),
         ],

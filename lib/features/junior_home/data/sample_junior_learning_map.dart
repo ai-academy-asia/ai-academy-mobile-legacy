@@ -10,14 +10,17 @@ import '../domain/junior_learning_map.dart';
 /// taken from, and so the widget tests have content with all three node
 /// states in it.
 ///
-/// Every value is the reference frame's: the course title and its 40%, five
-/// nodes in the order the route draws them, and the certificate panel's
-/// lines. It carries no `continueModuleId` and no certificate `status` —
-/// those come from the server, and a sample has none to report.
+/// Every value is the updated reference's (`junior-homepage-u[date.png`,
+/// Issue #410): the course title and its 40%, twelve lessons in the order
+/// the route draws them — two done, the third open with check-in live, nine
+/// locked — and the certificate panel's lines. It carries no `continue` and
+/// no certificate `status` — those come from the server, and a sample has
+/// none to report.
 ///
-/// The frame draws its check-in node (node 3) active, so the sample has a
+/// The frame draws its check-in node (lesson 3) active, so the sample has a
 /// lesson under way — 6 October 2026, 09:00–11:00 ([sampleLessonTime] is
-/// inside it). At any other time the node draws closed (Issue #202).
+/// inside it) — with no attendance recorded yet. At any other time the node
+/// is lesson 3 itself (Issues #202, #410).
 JuniorLearningMap sampleJuniorLearningMap() => JuniorLearningMap(
   nextLesson: NextLesson(
     startsAt: DateTime(2026, 10, 6, 9),
@@ -27,12 +30,17 @@ JuniorLearningMap sampleJuniorLearningMap() => JuniorLearningMap(
     title: 'Prediction and Probabilities',
     percentComplete: 40,
   ),
-  nodes: const [
-    JuniorMapNode(id: 1, state: JuniorNodeState.completed),
-    JuniorMapNode(id: 2, state: JuniorNodeState.completed),
-    JuniorMapNode(id: 3, state: JuniorNodeState.current),
-    JuniorMapNode(id: 4, state: JuniorNodeState.locked),
-    JuniorMapNode(id: 5, state: JuniorNodeState.locked),
+  attendanceRecorded: false,
+  nodes: [
+    for (var id = 1; id <= 12; id++)
+      JuniorMapNode(
+        id: id,
+        state: id <= 2
+            ? JuniorNodeState.completed
+            : id == 3
+            ? JuniorNodeState.current
+            : JuniorNodeState.locked,
+      ),
   ],
   certificate: const JuniorCertificate(
     track: 'Junior',

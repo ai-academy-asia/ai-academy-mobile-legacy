@@ -1,128 +1,175 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/junior_learning_map.dart';
 import '../junior_home_strings.dart';
 import 'junior_map_geometry.dart';
-import '../../../../core/theme/app_palette.dart';
 
-/// One 84 x 84 stop on the route.
+/// One 84 x 84 stop on the route — one lesson (Issue #410).
 ///
-/// Fill, outline and glyph all follow [JuniorNodeState]; the size, radius and
-/// border never change, which is what makes the five read as one family in
-/// the reference.
+/// Fill, outline and glyph follow the lesson's [JuniorNodeState]; the size,
+/// radius and border never change, which is what makes the path read as one
+/// family in the reference.
 ///
-/// Named `...Tile` rather than `JuniorMapNode` so the widget does not shadow
-/// the domain model it draws.
+/// The tick, the scan mark and the padlock are the design's exported
+/// artwork — none has a match in the bundled Phosphor set (Issue #410): a
+/// completed lesson the tick on the pale blue face — **a tick always means
+/// completed**; **the lesson to continue with** the active frame (the white
+/// face in the accent outline and band) with no glyph, as it is not done
+/// yet — the one unfinished lesson that opens; every
+/// other unfinished lesson, which cannot be opened, the grey padlock —
+/// whether its class date has not come ([JuniorNodeState.locked]) or it has
+/// but its turn has not ([JuniorNodeState.open]): a node that does not open
+/// never looks as if it might. No other glyph is ever drawn on the path;
+/// the screen-reader label still tells the two apart.
 ///
-/// The three glyphs are exported artwork rather than font icons. A completed
-/// node's tick, the current node's scan mark and a locked node's padlock are
-/// each drawn by the design, and none has a match in the bundled Phosphor set
-/// or in `assets/images/course_learning/` — the nearest candidates there are a
-/// *green disc* tick and an *outline* padlock, neither of which is what this
-/// frame draws. Guessing a codepoint is what `DEVELOPMENT_RULES.md` §6
-/// forbids, so the design's own glyphs are used.
-///
-/// **The check-in node** (Issue #202) is the current module's — the one the
-/// frame draws with the QR mark. [checkInOpen] true draws it as the frame
-/// does; false, outside a lesson, draws it grey — the locked node's fill and
-/// outline, its QR mark in greys — so it reads as not available yet. Null
-/// for every other node.
-class JuniorMapNodeTile extends StatelessWidget {
+/// **The check-in node** (Issues #202, #410): while check-in is actionable
+/// ([checkIn] true) the lesson draws as the updated reference's check-in
+/// stop — the QR mark on the white face, in the accent frame — and pulses
+/// gently, unless the platform asks for reduced motion. The pulse only
+/// scales what is painted: the node's place and its tap target never move.
+/// When check-in is not actionable the node is simply its lesson.
+class JuniorMapNodeTile extends StatefulWidget {
   const JuniorMapNodeTile({
     required this.node,
+    required this.number,
     required this.scale,
     super.key,
     this.onTap,
-    this.checkInOpen,
-    this.state,
+    this.checkIn = false,
   });
 
   final JuniorMapNode node;
 
-  /// What the node is drawn as — the map's `JuniorLearningMap.stateOf`, so
-  /// only one node is ever current (Issue #204). Null draws [node]'s own.
-  final JuniorNodeState? state;
+  /// The lesson's place on the path, 1-based — its screen-reader name.
+  final int number;
 
-  /// Whether this is the check-in node, and if so whether check-in is open.
-  final bool? checkInOpen;
+  /// Whether this is the check-in node while check-in is actionable.
+  final bool checkIn;
 
-  /// Opens the course, or null for an inert node. The map passes one for
-  /// completed and current nodes only — a locked module stays inert, as a
-  /// locked module card does on the Adult course screen (Issue #174). No
-  /// pressed state is drawn: the frame has none, so the node looks exactly
-  /// as it did.
+  /// Opens the lesson (or, for an actionable check-in node, the scanner).
+  /// Null for an inert node — a locked lesson, or the sample map. No pressed
+  /// state is drawn: the frame has none.
   final VoidCallback? onTap;
 
   /// The map's design-space-to-pixels factor.
   final double scale;
 
+  /// How far the check-in node swells at the top of a pulse, and how long a
+  /// beat lasts. Chosen, not design values: a restrained, slow beat.
+  static const double pulseScale = 1.06;
+  static const Duration pulsePeriod = Duration(milliseconds: 1400);
+
+  @override
+  State<JuniorMapNodeTile> createState() => _JuniorMapNodeTileState();
+}
+
+class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _pulse;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncPulse();
+  }
+
+  @override
+  void didUpdateWidget(JuniorMapNodeTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncPulse();
+  }
+
+  /// Pulses only while this is an actionable check-in and motion is allowed;
+  /// stops — and rests at full size — the moment either changes.
+  void _syncPulse() {
+    final pulse = widget.checkIn && !MediaQuery.disableAnimationsOf(context);
+    if (pulse && _pulse == null) {
+      _pulse = AnimationController(
+        vsync: this,
+        duration: JuniorMapNodeTile.pulsePeriod,
+      )..repeat(reverse: true);
+    } else if (!pulse && _pulse != null) {
+      _pulse!.dispose();
+      _pulse = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final closed = checkInOpen == false;
-    final drawn = state ?? node.state;
+    final node = widget.node;
+    final scale = widget.scale;
     final palette = context.palette;
-    final style = closed
-        ? _NodeStyle.closedCheckIn(palette)
-        : _NodeStyle.of(drawn, palette);
-    final glyph = Image.asset(
-      JuniorMapGeometry.sprite(style.glyph),
-      width: JuniorMapGeometry.nodeGlyph * scale,
-      height: JuniorMapGeometry.nodeGlyph * scale,
-      filterQuality: FilterQuality.high,
-    );
+    final style = widget.checkIn
+        ? _NodeStyle.checkIn(palette)
+        : _NodeStyle.of(node.state, palette);
+    final glyphSize = JuniorMapGeometry.nodeGlyph * scale;
+    final glyph = switch (style.glyph) {
+      final String sprite => Image.asset(
+        JuniorMapGeometry.sprite(sprite),
+        width: glyphSize,
+        height: glyphSize,
+        filterQuality: FilterQuality.high,
+      ),
+      // The continue lesson: the frame alone carries it.
+      null => const SizedBox.shrink(),
+    };
 
-    final onTap = this.onTap;
+    Widget tile = Container(
+      decoration: BoxDecoration(
+        color: style.fill,
+        borderRadius: BorderRadius.circular(
+          JuniorMapGeometry.nodeRadius * scale,
+        ),
+        border: Border.all(
+          color: style.border,
+          width: JuniorMapGeometry.nodeBorder * scale,
+        ),
+        // The node's lift: not a blurred shadow but a flat band of the
+        // node's *own outline colour* — 9 of colour below every node, 3 of
+        // border and 6 of band, with no gradient.
+        boxShadow: [
+          BoxShadow(
+            color: style.border,
+            offset: Offset(0, JuniorMapGeometry.nodeDepth * scale),
+          ),
+        ],
+      ),
+      child: Center(child: glyph),
+    );
+    final pulse = _pulse;
+    if (pulse != null) {
+      tile = ScaleTransition(
+        scale: Tween<double>(
+          begin: 1,
+          end: JuniorMapNodeTile.pulseScale,
+        ).animate(CurvedAnimation(parent: pulse, curve: Curves.easeInOut)),
+        child: tile,
+      );
+    }
+
+    final onTap = widget.onTap;
     return Semantics(
-      label: switch (checkInOpen) {
-        null => JuniorHomeStrings.nodeLabel(node.id, drawn),
-        final open => JuniorHomeStrings.checkInNodeLabel(node.id, open: open),
-      },
+      label: widget.checkIn
+          ? JuniorHomeStrings.checkInNodeLabel(widget.number, node.title)
+          : JuniorHomeStrings.nodeLabel(widget.number, node.title, node.state),
       button: onTap != null,
+      onTap: onTap,
+      excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: style.fill,
-            borderRadius: BorderRadius.circular(
-              JuniorMapGeometry.nodeRadius * scale,
-            ),
-            border: Border.all(
-              color: style.border,
-              width: JuniorMapGeometry.nodeBorder * scale,
-            ),
-            // The node's lift: not a blurred shadow but a flat band of the
-            // node's *own outline colour* — measured down the centre of all
-            // three states, the frame draws 9 of it below the node, 3 of
-            // border and 6 of band, with no gradient. A zero-blur shadow of
-            // the node's rounded square, offset down: the same depth idiom
-            // `CourseModuleCard` uses. The opaque fill on this same
-            // decoration keeps the band from covering the node.
-            boxShadow: [
-              BoxShadow(
-                color: style.border,
-                offset: Offset(0, JuniorMapGeometry.nodeDepth * scale),
-              ),
-            ],
-          ),
-          child: Center(
-            child: closed
-                ? ColorFiltered(colorFilter: _greys, child: glyph)
-                : glyph,
-          ),
-        ),
+        child: tile,
       ),
     );
   }
 }
-
-/// Luminance only — the QR mark's own light and dark, in greys.
-const ColorFilter _greys = ColorFilter.matrix(<double>[
-  0.2126, 0.7152, 0.0722, 0, 0, //
-  0.2126, 0.7152, 0.0722, 0, 0, //
-  0.2126, 0.7152, 0.0722, 0, 0, //
-  0, 0, 0, 1, 0, //
-]);
 
 class _NodeStyle {
   const _NodeStyle({
@@ -133,19 +180,24 @@ class _NodeStyle {
 
   final Color fill;
   final Color border;
-  final String glyph;
 
-  /// The check-in node outside a lesson: the locked node's fill and outline
-  /// round the QR mark.
-  static _NodeStyle closedCheckIn(AppPalette palette) => _NodeStyle(
-    fill: palette.juniorMutedFill,
-    border: palette.outline,
+  /// The exported sprite's name; null for the continue lesson's empty
+  /// active frame.
+  final String? glyph;
+
+  /// The live check-in: the updated reference's QR stop — the white face in
+  /// the accent frame.
+  static _NodeStyle checkIn(AppPalette palette) => _NodeStyle(
+    fill: palette.surface,
+    border: palette.accent,
     glyph: 'node_current',
   );
 
-  /// Completed: the course card's pale blue (`juniorCard`) in the accent.
-  /// Current: a `surface` node in the `outline` grey. Locked: the map's
-  /// not-yet-reached grey (`juniorMutedFill`). The glyphs are authored.
+  /// Completed: the tick on the course card's pale blue (`juniorCard`) in
+  /// the accent. Current: the active frame — a `surface` node in the
+  /// accent — with no tick: it is not completed. Open and locked — both
+  /// cannot be opened: the padlock on the map's not-yet-reached grey
+  /// (`juniorMutedFill`) in the `outline`.
   static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
       switch (state) {
         JuniorNodeState.completed => _NodeStyle(
@@ -155,10 +207,10 @@ class _NodeStyle {
         ),
         JuniorNodeState.current => _NodeStyle(
           fill: palette.surface,
-          border: palette.outline,
-          glyph: 'node_current',
+          border: palette.accent,
+          glyph: null,
         ),
-        JuniorNodeState.locked => _NodeStyle(
+        JuniorNodeState.open || JuniorNodeState.locked => _NodeStyle(
           fill: palette.juniorMutedFill,
           border: palette.outline,
           glyph: 'node_lock',

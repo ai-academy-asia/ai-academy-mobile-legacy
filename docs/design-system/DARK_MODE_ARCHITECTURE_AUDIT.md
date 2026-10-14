@@ -640,7 +640,7 @@ Phases 2–8 are purely mechanical "same colour, new address" changes. They can 
 >   - Blue text and glyphs are `accentText`, blue fills `accent`.
 >   - A panel's edge is `outlineFaint` and the rule inside it `divider`.
 >   - Map nodes are completed `juniorCard` in `accent`, current `surface` in `outline`, locked `juniorMutedFill` in `outline`, each on a band of its own outline.
->   - The route and ring run `accent` on `outline`.
+>   - The route and ring run `accent` on `outline`. (Since Issue #410 the route's way ahead is `surface` — white, as the updated reference draws it — and the certificate card is `surface` in a 3pt `juniorMutedFill` edge.)
 >   - The pay pill is `accent` with `onPrimary` and `AppButton`'s ripple.
 >   - Shadows use the role's hue at each element's own strength.
 > - **New roles:** `accentSubtleOutline` (`#BDE3FF`), `juniorMutedFill` (`#EAEDF0`), `juniorHeaderRule` (`#E4E6EF`) and `onJuniorMapSky` (white). Each is pinned to its shipped light value, with no dark value. That makes 85 roles. `JuniorPalette` is retired.

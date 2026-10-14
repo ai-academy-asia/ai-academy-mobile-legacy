@@ -157,16 +157,21 @@ abstract final class JuniorMapGeometry {
   /// line ever runs on to a stop the student does not have.
   ///
   /// Every elbow is one of the frame's own four shapes, chosen by the
-  /// column its node sits in. A stretch is drawn blue when the student has
-  /// walked it — both of its nodes completed — and the last one when every
-  /// node is. The frame's five states give back [connectors].
+  /// column its node sits in.
+  ///
+  /// **Colour — one rule (Issue #410):** every stretch takes its colour
+  /// from the lesson it **leaves**: blue when that lesson is completed,
+  /// white when it is not — the lesson to continue with, one waiting its
+  /// turn, or a locked one. The lesson a stretch enters never changes it,
+  /// nor does any lesson before it, nor the course's percentage; the
+  /// stretch to the certificate follows the last lesson the same way.
+  /// Colour only: it opens nothing.
   static List<JuniorConnector> route(List<bool> completed) {
     if (completed.isEmpty) return const [];
-    final all = completed.every((done) => done);
     return [
       for (var i = 0; i + 1 < completed.length; i++)
-        _between(i, active: completed[i] && completed[i + 1]),
-      _toCertificate(completed.length - 1, active: all),
+        _between(i, active: completed[i]),
+      _toCertificate(completed.length - 1, active: completed.last),
     ];
   }
 
@@ -246,15 +251,24 @@ abstract final class JuniorMapGeometry {
 
   // --- Certificate ---------------------------------------------------------
 
-  /// Where the frame puts the card: 111.7 below its fifth node's top.
+  /// Where the original frame puts the card: 111.7 below its fifth node's
+  /// top. Its left, width and height are the updated reference's too
+  /// (`junior-homepage-u[date.png`, measured: x 32–361); its top is not —
+  /// see [certificateBelowLastNode].
   static const Rect certificateCard = Rect.fromLTWH(32, 705.7, 329, 361);
 
-  /// The card under a map of [nodeCount] nodes — the frame's 111.7 below the
-  /// last node's top, or the first node's place when there are none.
+  /// How far below the last node's top the card starts: 133.3, measured on
+  /// the updated reference (last node's top 1461.3, card's top 1594.7;
+  /// Issue #410). The original frame had 111.7.
+  static const double certificateBelowLastNode = 133.3;
+
+  /// The card under a map of [nodeCount] nodes — [certificateBelowLastNode]
+  /// below the last node's top, or the first node's place when there are
+  /// none.
   static Rect certificateFor(int nodeCount) {
     final top = nodeCount == 0
         ? nodes.first.dy
-        : nodeAt(nodeCount - 1).dy + (certificateCard.top - nodes.last.dy);
+        : nodeAt(nodeCount - 1).dy + certificateBelowLastNode;
     return Rect.fromLTWH(
       certificateCard.left,
       top,
@@ -263,14 +277,27 @@ abstract final class JuniorMapGeometry {
     );
   }
 
-  /// The map's scroll height for [nodeCount] nodes: the frame's own margin
-  /// under the certificate card. Five nodes give [mapHeight].
+  /// The margin under the certificate card at the end of the path: 26.3,
+  /// measured on the updated reference (card bottom 1962.7, the tab bar's
+  /// top 1989; Issue #410), so the card ends standing in front of the
+  /// background's cloud bank. The original frame had 147.3.
+  static const double certificateBottomMargin = 26.3;
+
+  /// The map's scroll height for [nodeCount] nodes: the card, then
+  /// [certificateBottomMargin]. ([mapHeight] is the original frame's
+  /// five-node height.)
   static double mapHeightFor(int nodeCount) =>
-      certificateFor(nodeCount).bottom + (mapHeight - certificateCard.bottom);
+      certificateFor(nodeCount).bottom + certificateBottomMargin;
   static const double certificateRadius = 20;
 
+  /// The card's edge: 3pt, as both references draw it (x 32–35 and
+  /// 358–361 on the updated one).
+  static const double certificateBorder = 3;
+
   /// The pill, the certificate image and both lines of copy all sit on the
-  /// same 17 inset, and the card's top and bottom padding are both 14.
+  /// same 17 inset, and the card's top and bottom padding are both 14 —
+  /// each inside a 1pt edge, so 18 and 15 from the card's outer edge. (Both
+  /// references measure 16: a 2pt difference this code has always had.)
   static const double certificatePadding = 17;
   static const double certificateVerticalPadding = 14;
   static const double certificatePillHeight = 30;

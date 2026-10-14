@@ -329,27 +329,24 @@ void main() {
       expect(detail.lessonId, 204);
     });
 
-    testWidgets('opens the server\'s continue target, even a locked one', (
-      tester,
-    ) async {
-      // `continue.module_id` from the API. Module 5 is locked and not
-      // completed — no client rule would pick it, which is what makes it
-      // proof the server's answer is the one being used.
-      await pumpScreen(
-        tester,
-        FakeCourseLearningRepository(
-          path: samplePath(continueModuleId: 5, continueLessonId: 501),
-        ),
+    testWidgets('a continue target in a locked module stays shut — its '
+        'class date has not come (Issue #410)', (tester) async {
+      // Module 5 is locked. The server never names a locked lesson as its
+      // continue target, but should one arrive, the lock wins: a lesson
+      // whose class date has not come never opens from any screen.
+      final learning = FakeCourseLearningRepository(
+        path: samplePath(continueModuleId: 5, continueLessonId: 501),
       );
+      await pumpScreen(tester, learning);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Continue learning').first);
-      await tester.pumpAndSettle();
+      for (final button in find.text('Continue learning').evaluate()) {
+        await tester.tap(find.byWidget(button.widget), warnIfMissed: false);
+        await tester.pumpAndSettle();
+      }
 
-      final detail = tester.widget<CourseExerciseDetailScreen>(
-        find.byType(CourseExerciseDetailScreen),
-      );
-      expect(detail.lessonId, 501);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
     });
 
     // The contract makes the continue target server-selected, so the screen

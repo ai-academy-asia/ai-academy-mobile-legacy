@@ -162,35 +162,47 @@ void main() {
       expect(colours, contains(juniorMapSky));
     });
 
-    testWidgets('map nodes: completed juniorCard in accent, current surface '
-        'in outline, locked juniorMutedFill (not divider) in outline — each '
-        'on a band of its own outline', (tester) async {
-      await pump(
-        tester,
-        JuniorHomeScreen(
-          repository: FakeJuniorHomeRepository(),
-          clock: () => sampleLessonTime,
-        ),
-      );
-      final nodes = [
-        for (final tile in tester.widgetList<JuniorMapNodeTile>(
-          find.byType(JuniorMapNodeTile),
-        ))
-          decorations(
-            tester,
-            find.byWidget(tile),
-          ).singleWhere((d) => d.boxShadow != null),
-      ];
-      final styles = {for (final d in nodes) (d.color, edge(d))};
-      expect(styles, {
+    testWidgets('map nodes: completed juniorCard in accent, the available '
+        'lesson and the live check-in surface in accent, locked '
+        'juniorMutedFill (not divider) in outline — each on a band of its own '
+        'outline', (tester) async {
+      Future<Set<(Color?, Color?)>> styles(DateTime now) async {
+        await pump(
+          tester,
+          JuniorHomeScreen(
+            key: UniqueKey(),
+            repository: FakeJuniorHomeRepository(),
+            clock: () => now,
+          ),
+        );
+        final nodes = [
+          for (final tile in tester.widgetList<JuniorMapNodeTile>(
+            find.byType(JuniorMapNodeTile),
+          ))
+            decorations(
+              tester,
+              find.byWidget(tile),
+            ).singleWhere((d) => d.boxShadow != null),
+        ];
+        for (final d in nodes) {
+          expect(d.boxShadow!.single.color, edge(d));
+        }
+        expect(nodes.map((d) => d.color), isNot(contains(divider)));
+        return {for (final d in nodes) (d.color, edge(d))};
+      }
+
+      // No lesson under way: the available lesson, in the active frame.
+      expect(await styles(sampleLessonTime.add(const Duration(days: 1))), {
         (juniorCard, accent),
-        (surface, outline),
+        (surface, accent),
         (juniorMutedFill, outline),
       });
-      for (final d in nodes) {
-        expect(d.boxShadow!.single.color, edge(d));
-      }
-      expect(nodes.map((d) => d.color), isNot(contains(divider)));
+      // During it: the open lesson is the check-in, in the accent frame.
+      expect(await styles(sampleLessonTime), {
+        (juniorCard, accent),
+        (surface, accent),
+        (juniorMutedFill, outline),
+      });
 
       final route = tester
           .widgetList<CustomPaint>(find.byType(CustomPaint))
@@ -198,7 +210,8 @@ void main() {
           .whereType<JuniorMapPathPainter>()
           .single;
       expect(route.travelled, accent);
-      expect(route.untravelled, outline);
+      // The way ahead is white, as the updated reference draws it (#410).
+      expect(route.untravelled, surface);
     });
 
     testWidgets('course card: juniorCard in juniorCardBorder; the ring an '
@@ -251,8 +264,9 @@ void main() {
     });
   });
 
-  testWidgets('certificate panel: juniorMutedFill in outline, accentText '
-      'course name, surfaceSubtle pill', (tester) async {
+  testWidgets('certificate panel: surface in a 3pt juniorMutedFill edge '
+      '(the updated reference, #410), accentText course name, surfaceSubtle '
+      'pill in outline', (tester) async {
     await pump(
       tester,
       Scaffold(
@@ -268,9 +282,11 @@ void main() {
       tester,
       find.byType(JuniorCertificateCard),
     ).where((d) => d.border != null).toList();
-    expect(panel.map((d) => d.color), contains(juniorMutedFill));
-    expect(panel.map((d) => d.color), contains(surfaceSubtle));
-    expect(panel.map(edge), everyElement(outline));
+    final card = panel.singleWhere((d) => d.color == surface);
+    expect(edge(card), juniorMutedFill);
+    expect((card.border! as Border).top.width, 3);
+    final pill = panel.singleWhere((d) => d.color == surfaceSubtle);
+    expect(edge(pill), outline);
     expect(
       textColor(tester, sampleJuniorLearningMap().certificate.courseName),
       accentText,

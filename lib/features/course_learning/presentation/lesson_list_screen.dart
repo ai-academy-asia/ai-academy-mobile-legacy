@@ -12,7 +12,8 @@ import '../data/course_module_visuals.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/lesson.dart';
-import 'course_exercise_detail_screen.dart';
+import '../domain/lesson_access.dart';
+import 'lesson_navigation.dart';
 import 'course_learning_strings.dart';
 import 'lesson_list_controller.dart';
 import '../../../shared/widgets/app_back_button.dart';
@@ -38,8 +39,9 @@ import 'widgets/lesson_list_item.dart';
 /// §2.2's `module` carries no description, so none is drawn under the title.
 /// The loading, empty and error states sit under the same header.
 ///
-/// An unlocked lesson opens `CourseExerciseDetailScreen` for that lesson's
-/// own `Lesson.id`.
+/// A lesson opens `CourseExerciseDetailScreen` for its own `Lesson.id` only
+/// by the one rule every screen asks (`lessonOpens`, Issue #410): unlocked,
+/// and completed or the course's continue lesson ([resumeLessonId]).
 class LessonListScreen extends StatefulWidget {
   const LessonListScreen({
     required this.moduleId,
@@ -47,6 +49,7 @@ class LessonListScreen extends StatefulWidget {
     required this.moduleTitle,
     super.key,
     this.repository,
+    this.resumeLessonId,
   });
 
   /// `CourseModule.id` — which module's lessons to load.
@@ -66,6 +69,11 @@ class LessonListScreen extends StatefulWidget {
   /// `GET /me/modules/{module_id}/lessons` against the signed-in student's
   /// token. Injected in tests.
   final CourseLearningRepository? repository;
+
+  /// The course's lesson to continue with — the server's
+  /// `continue.lesson_id`, passed by Course Detail. The one unfinished
+  /// lesson that opens (`lessonOpens`); null lets only completed ones open.
+  final int? resumeLessonId;
 
   @override
   State<LessonListScreen> createState() => _LessonListScreenState();
@@ -139,6 +147,7 @@ class _LessonListScreenState extends State<LessonListScreen> {
       header: header,
       lessons: _controller.lessons,
       repository: _repository,
+      resumeLessonId: widget.resumeLessonId,
     );
   }
 }
@@ -352,11 +361,13 @@ class _LessonListBody extends StatelessWidget {
     required this.header,
     required this.lessons,
     required this.repository,
+    required this.resumeLessonId,
   });
 
   final Widget header;
   final List<Lesson> lessons;
   final CourseLearningRepository repository;
+  final int? resumeLessonId;
 
   @override
   Widget build(BuildContext context) {
@@ -383,16 +394,24 @@ class _LessonListBody extends StatelessWidget {
                 for (var i = 0; i < lessons.length; i++) ...[
                   LessonListItem(
                     lesson: lessons[i],
-                    onTap: lessons[i].locked
-                        ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => CourseExerciseDetailScreen(
-                                lessonId: lessons[i].id,
-                                repository: repository,
-                              ),
-                            ),
-                          ),
+                    // The one rule, through the one opener (Issue #410):
+                    // unlocked, and completed or the lesson to continue
+                    // with; any other row is inert.
+                    onTap:
+                        lessonOpens(
+                          locked: lessons[i].locked,
+                          completed: lessons[i].completed,
+                          isResume: lessons[i].id == resumeLessonId,
+                        )
+                        ? () => openLesson(
+                            context,
+                            lessonId: lessons[i].id,
+                            locked: lessons[i].locked,
+                            completed: lessons[i].completed,
+                            resumeLessonId: resumeLessonId,
+                            repository: repository,
+                          )
+                        : null,
                   ),
                   if (i != lessons.length - 1) const _LessonConnector(),
                 ],

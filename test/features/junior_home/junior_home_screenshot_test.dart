@@ -2,6 +2,7 @@ import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_home_screen.dart';
 import 'package:aia_mobile/features/junior_home/data/sample_junior_learning_map.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
+import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_learning_map_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,13 +47,15 @@ void main() {
     );
   });
 
-  /// The sample's card and lesson with [states] as its modules (Issue #202).
-  JuniorLearningMap withModules(List<JuniorNodeState> states) {
+  /// The sample's card and lesson with [states] as its lessons (Issues
+  /// #202, #410).
+  JuniorLearningMap withLessons(List<JuniorNodeState> states) {
     final sample = sampleJuniorLearningMap();
     return JuniorLearningMap(
       progress: sample.progress,
       certificate: sample.certificate,
       nextLesson: sample.nextLesson,
+      attendanceRecorded: false,
       nodes: [
         for (final (i, state) in states.indexed)
           JuniorMapNode(id: i + 1, state: state),
@@ -64,9 +67,10 @@ void main() {
     WidgetTester tester,
     JuniorLearningMap map,
     DateTime now,
-    String golden,
-  ) async {
-    useLogicalViewport(tester, const Size(393, 1428), padding: iPhonePadding);
+    String golden, {
+    Size size = const Size(393, 1428),
+  }) async {
+    useLogicalViewport(tester, size, padding: iPhonePadding);
     useReducedMotion(tester);
     await tester.pumpWidget(
       MaterialApp(
@@ -91,7 +95,7 @@ void main() {
   ) async {
     await capture(
       tester,
-      withModules(List.filled(3, JuniorNodeState.completed)),
+      withLessons(List.filled(3, JuniorNodeState.completed)),
       sampleLessonTime,
       'junior_home_completed',
     );
@@ -108,24 +112,103 @@ void main() {
     );
   });
 
-  testWidgets('three unlocked, unfinished modules: one current, the rest '
-      'locked (Issue #204)', (tester) async {
+  testWidgets('the whole lesson path, down to the certificate and its '
+      'clouds — the updated reference\'s full height (Issue #410)', (
+    tester,
+  ) async {
+    // `junior-homepage-u[date.png` is 1179 x 6285 at 3x: 393 x 2095.
+    await capture(
+      tester,
+      sampleJuniorLearningMap(),
+      sampleLessonTime,
+      'junior_home_lesson_path',
+      size: const Size(393, 2095),
+    );
+  });
+
+  testWidgets('three lessons the server leaves open: the continue lesson '
+      'picked out, the other two waiting their turn (Issue #410)', (
+    tester,
+  ) async {
+    final open = withLessons(List.filled(3, JuniorNodeState.open));
+    await capture(
+      tester,
+      JuniorLearningMap(
+        progress: open.progress,
+        certificate: open.certificate,
+        nextLesson: open.nextLesson,
+        attendanceRecorded: false,
+        // As the repository picks the resume lesson out.
+        nodes: withResumeLesson(open.nodes, continueLessonId: 1),
+      ),
+      DateTime(2026, 10, 6, 12),
+      'junior_home_open_lessons',
+    );
+  });
+
+  testWidgets('a phone at the end of the path: the certificate in front of '
+      'the background\'s cloud bank (Issue #410)', (tester) async {
+    useLogicalViewport(tester, const Size(393, 852), padding: iPhonePadding);
+    useReducedMotion(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        debugShowCheckedModeBanner: false,
+        home: JuniorHomeScreen(
+          repository: FakeJuniorHomeRepository(),
+          clock: () => DateTime(2026, 10, 7),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(
+        of: find.byType(JuniorLearningMapView),
+        matching: find.byType(Scrollable),
+      ),
+      const Offset(0, -10000),
+    );
+    await tester.pumpAndSettle();
+    await precacheImages(tester);
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../../goldens/junior_home_path_end.png'),
+    );
+  });
+
+  testWidgets('the device report\'s course: seeded progress with gaps — '
+      'ticks, the lesson to continue with, and padlocks where lessons wait '
+      '(Issue #410)', (tester) async {
+    // `jr10.s10` in the backend's summer-kids seed: `·✓✓✓·✓✓·✓··`, every
+    // module unlocked, the continue lesson the first gap. See
+    // junior_lesson_audit_test.dart.
+    const pattern = '·✓✓✓·✓✓·✓··';
     final sample = sampleJuniorLearningMap();
     await capture(
       tester,
       JuniorLearningMap(
-        progress: sample.progress,
+        progress: const JuniorCourseProgress(
+          title: 'Junior AI Summer Camp 10–14',
+          percentComplete: 54,
+        ),
         certificate: sample.certificate,
         nextLesson: sample.nextLesson,
-        continueModuleId: 1,
-        nodes: const [
-          JuniorMapNode(id: 1, state: JuniorNodeState.current),
-          JuniorMapNode(id: 2, state: JuniorNodeState.current),
-          JuniorMapNode(id: 3, state: JuniorNodeState.current),
-        ],
+        attendanceRecorded: false,
+        continueLessonId: 1,
+        nodes: withResumeLesson(continueLessonId: 1, [
+          for (var i = 0; i < pattern.length; i++)
+            JuniorMapNode(
+              id: i + 1,
+              state: pattern[i] == '✓'
+                  ? JuniorNodeState.completed
+                  : JuniorNodeState.open,
+            ),
+        ]),
       ),
-      DateTime(2026, 10, 6, 12),
-      'junior_home_one_current',
+      DateTime(2026, 10, 14, 12),
+      'junior_home_seeded_gaps',
+      size: const Size(393, 2095),
     );
   });
 }
