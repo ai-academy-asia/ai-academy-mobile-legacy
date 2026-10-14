@@ -1,36 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/track_badge.dart';
 import '../../../enrollments/presentation/enrollment_strings.dart';
 import '../../domain/cohort.dart';
 import '../cohort_list_strings.dart';
-
-/// How strongly the card's background pattern shows through.
-const double _patternOpacity = 0.8;
 
 /// The card's shortest height, border included: Figma's "148 Hug" for a card
 /// with no progress. A minimum, not a fixed height — a card with progress or
 /// an enroll button is already taller than this and keeps its own size.
 const double _minHeight = 148;
-
-/// Space above the badge row and below the last line, measured from the card's
-/// outer edge. Figma strokes sit inside the frame and take no layout space, so
-/// the padding below is this minus [AppDimens.borderWidth] — the border here
-/// does — which puts the content exactly where Figma's 329-wide, 24-inset
-/// frame does.
-const double _verticalPadding = 24;
-
-/// The Adult badge's height and its icon's side, from Figma.
-const double _badgeHeight = 32;
-const double _badgeIconSize = 19.92;
-
-/// The status pill's height, from Figma.
-const double _pillHeight = 24;
 
 /// How strongly the status pill's own colour tints its fill, for a status the
 /// reference does not draw and whose fill therefore has no measured value.
@@ -52,10 +34,12 @@ const TextStyle _titleStyle = AppTypography.cardTitle;
 
 /// One cohort in the list — matches the Figma "Course Catalog" (cohorts)
 /// frame's card: an Adult badge and a status pill on top, the cohort's
-/// caption and title, then the enroll action. Same visual language as
-/// `CourseCard`: a white surface, [AppColors.border] at [AppDimens.borderWidth],
-/// and every content card's [AppDimens.homeCardRadius] (Issue #368) — no new
-/// card style invented for this list.
+/// caption and title, then the enroll action. One of the program/cohort card
+/// family (Issue #404): the shared [CardBadgeRow], [TrackBadge] and
+/// [CardCapsule], the family's [programCardPadding], and the
+/// [CohortCardPattern] on [AppPalette.surfaceTinted], edged in
+/// [AppPalette.outline] at [AppDimens.borderWidth], with every content
+/// card's [AppDimens.homeCardRadius] (Issue #368).
 ///
 /// The schedule/classroom/teacher/seats fields `Cohort` carries are no longer
 /// shown here — the reference has no place for them. They still exist on the
@@ -126,46 +110,22 @@ class CohortCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
             child: Stack(
               children: [
-                // The reference's decorative shapes, from the exact asset rather
-                // than redrawn — kept subtle and behind the content via low
-                // opacity, painted before anything else in the stack. The asset
-                // is already a 12% tint, so this only lifts it to a faint blue
-                // wash; Home's program card keeps its own 0.5.
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: _patternOpacity,
-                    child: SvgPicture.asset(
-                      'assets/icons/cohort_background.svg',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
+                // The reference's decorative shapes, behind the content —
+                // shared with Teacher Programs' card (Issue #404).
+                const CohortCardPattern(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimens.cardPadding - AppDimens.borderWidth,
-                    vertical: _verticalPadding - AppDimens.borderWidth,
-                  ),
+                  padding: programCardPadding,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // One line, badge left and status right, as the
-                      // reference draws it; only where enlarged text leaves no
-                      // room for both does the status drop under the badge
-                      // rather than overflow (Issue #366). Full width, so the
-                      // space between them reaches the far edge.
-                      SizedBox(
-                        width: double.infinity,
-                        child: Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            const _AdultBadge(),
-                            _StatusPill(cohort.status),
-                          ],
-                        ),
+                      // The family's shared row: the badge left and the status
+                      // right, the status under the badge only where enlarged
+                      // text leaves no room (Issues #366, #404). `Cohort`
+                      // carries no level, so the badge is the one the
+                      // reference shows on every card: Adult.
+                      CardBadgeRow(
+                        track: 'adult',
+                        trailing: _StatusPill(cohort.status),
                       ),
                       const SizedBox(height: _rowToCaptionGap),
 
@@ -296,50 +256,6 @@ String? _preferMongolian(String? mn, String? en) {
 String _capitalize(String value) =>
     value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
 
-/// The track badge in the card's top-left. `Cohort`/`CohortCourse` carry no
-/// level field the way `features/courses`' `Course` does, so this renders the
-/// one logo the reference shows on every card rather than branching on data
-/// that does not exist on this model.
-class _AdultBadge extends StatelessWidget {
-  const _AdultBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      // Figma: 88.92 x 32, its icon 19.92 square. The height is fixed and the
-      // content centred in it; the width falls out of the padding below and
-      // the 16pt label, the right padding set so it lands on 88.92.
-      height: _badgeHeight,
-      padding: const EdgeInsets.only(left: 4, right: 11.6),
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        border: Border.all(
-          color: context.palette.border,
-          width: AppDimens.borderWidth,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SvgPicture.asset(
-            'assets/icons/adult.svg',
-            width: _badgeIconSize,
-            height: _badgeIconSize,
-          ),
-          const SizedBox(width: 9),
-          Text(
-            'Adult',
-            style: AppTypography.trackLabel.copyWith(
-              color: context.palette.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// The cohort's status, as a tinted capsule in the top-right corner.
 ///
 /// Colours are the reference's own, which are not the obvious semantic
@@ -385,27 +301,14 @@ class _StatusPill extends StatelessWidget {
       ),
     };
 
-    return Container(
-      // Figma: 24 high, its label on a 16 line. The width is the label's
-      // plus 15 each side and the 1pt border. 24 is a minimum, so larger
-      // system text grows the pill rather than clipping its label; and the
-      // label is centred at its own width, so the pill never stretches
-      // across the badge row's [Wrap] (Issue #366).
-      constraints: const BoxConstraints(minHeight: _pillHeight),
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: outline, width: AppDimens.borderWidth),
-      ),
-      child: Center(
-        widthFactor: 1,
-        heightFactor: 1,
-        child: Text(
-          _capitalize(status),
-          style: AppTypography.badge.copyWith(color: label),
-        ),
-      ),
+    // The shared capsule, in this card's own documented colours (Issue
+    // #404): the label sits in its outline's green, `successLabel`.
+    return CardCapsule(
+      label: _capitalize(status),
+      outline: outline,
+      fill: fill,
+      ink: label,
+      horizontalPadding: 15,
     );
   }
 }

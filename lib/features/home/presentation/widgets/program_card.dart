@@ -25,9 +25,6 @@ const double _paddingH = 16;
 /// The badge row, the caption, the progress row: 24 between each group.
 const double _groupGap = 24;
 
-/// The track badge row — see [TrackBadge] and [CardCapsule].
-const double _badgeHeight = trackBadgeHeight;
-
 /// The progress row (the taller of its two lines), the gap under it, the bar.
 const double _progressRowHeight = 20;
 const double _barGap = 8;
@@ -155,18 +152,12 @@ class _Summary extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: _badgeHeight,
-                child: Row(
-                  // The pill hangs from the top of the badge row, as the
-                  // reference draws it, not centred on it.
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (program.uiMode case final uiMode?) TrackBadge(uiMode),
-                    const Spacer(),
-                    _StatusPill(program.status),
-                  ],
-                ),
+              // The family's shared row (Issue #404): the pill centred on the
+              // badge, and wrapping under it where larger text leaves no room
+              // — no longer a fixed 32 that clipped the badge.
+              CardBadgeRow(
+                track: program.uiMode,
+                trailing: _StatusPill(program.status),
               ),
               const SizedBox(height: _groupGap),
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -44,7 +43,9 @@ class TeacherProgramCard extends StatelessWidget {
     final title = cohort.course.title.preferred ?? cohort.course.slug;
     final radius = BorderRadius.circular(AppDimens.homeCardRadius);
 
-    return DecoratedBox(
+    // A `Container`, as the family's other cards: its border takes the 1pt
+    // [programCardPadding] gives up, so the content sits 16 / 24 in.
+    return Container(
       decoration: BoxDecoration(
         // Adult's cool wash is the catalogue card's own; Junior draws on
         // white under its orange pattern.
@@ -56,39 +57,18 @@ class TeacherProgramCard extends StatelessWidget {
         borderRadius: radius,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: _patternOpacity,
-                // The catalogue card's pattern asset; for Junior, the same
-                // shapes in the Junior mark's orange — no Junior export
-                // exists (an approximation of the frame, Issue #390).
-                child: junior
-                    ? SvgPicture.asset(
-                        _pattern,
-                        fit: BoxFit.cover,
-                        colorFilter: ColorFilter.mode(
-                          palette.programJuniorTint,
-                          BlendMode.srcIn,
-                        ),
-                      )
-                    : SvgPicture.asset(_pattern, fit: BoxFit.cover),
-              ),
-            ),
+            // The catalogue card's pattern, shared (Issue #404); for Junior,
+            // the same shapes in the Junior mark's orange — no Junior export
+            // exists (an approximation of the frame, Issue #390).
+            CohortCardPattern(tint: junior ? palette.programJuniorTint : null),
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimens.cardPadding - AppDimens.borderWidth,
-                AppDimens.cardPadding - AppDimens.borderWidth,
-                AppDimens.cardPadding - AppDimens.borderWidth,
-                AppDimens.cardPadding - AppDimens.borderWidth,
-              ),
+              // The family's inset: 16 at the sides, 24 at the top and bottom
+              // (Issue #404; was 16 all round).
+              padding: programCardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (track != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TrackBadge(track),
-                    ),
+                  CardBadgeRow(track: track),
                   const SizedBox(height: 16),
                   // Cohort over course on the left; the count on the right —
                   // the count drops under them where large text leaves no
@@ -161,11 +141,6 @@ class TeacherProgramCard extends StatelessWidget {
     );
   }
 }
-
-const String _pattern = 'assets/icons/cohort_background.svg';
-
-/// How strongly the pattern shows — the catalogue card's own.
-const double _patternOpacity = 0.8;
 
 // ---------------------------------------------------------------------------
 // Page header (`Sign in - 34`, `35`)

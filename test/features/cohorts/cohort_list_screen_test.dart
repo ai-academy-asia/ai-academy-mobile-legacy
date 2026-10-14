@@ -19,6 +19,7 @@ import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../courses/fake_course_repository.dart';
@@ -1197,15 +1198,18 @@ void main() {
       // 16 either side: Figma's 329 Fill.
       expect(card.size, const Size(361, 150));
 
-      // Adult badge 88.92 x 32, 24 below the top and 16 in from the edge; its
-      // icon 19.92 square.
-      final badge = inCard(boxAround('Adult'));
+      // The Adult badge, 32 tall, 24 below the top and 16 in from the edge.
+      // Since Issue #404 it is the shared [TrackBadge] every card in the
+      // family draws — 86.85 wide with a 20 icon, the Home reference's
+      // measure — not this frame's own 88.92 with a 19.92 icon: the two
+      // exports disagree by 2pt, and one badge now draws everywhere.
+      final badge = inCard(find.byType(TrackBadge));
+      expect(badge, inCard(boxAround('Adult')));
       expect(badge.size.height, 32);
-      expect(badge.size.width, closeTo(88.92, 0.5));
+      expect(badge.size.width, closeTo(86.85, 0.5));
       expect(badge.topLeft, const Offset(16, 24));
       final icon = inCard(find.byType(SvgPicture).at(1));
-      expect(icon.size.width, closeTo(19.92, 0.01));
-      expect(icon.size.height, closeTo(19.92, 0.01));
+      expect(icon.size, const Size(20, 20));
 
       // Status pill 87.2 x 24, right-aligned to the same 16 inset, centred on
       // the badge's row.

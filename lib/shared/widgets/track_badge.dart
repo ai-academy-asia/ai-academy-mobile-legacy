@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../core/theme/app_typography.dart';
+import '../../core/theme/app_dimens.dart';
 import '../../core/theme/app_palette.dart';
+import '../../core/theme/app_typography.dart';
 
 /// The outlined track badge (32 tall) and the outlined capsule (24 tall) the
-/// cards draw in their top row — Adult Home's `ProgramCard`, Teacher Home's
-/// class card (Issue #229) and the gradebook, and the E-Contract card, whose
-/// references draw the same two parts. Shared rather than copied, so the
+/// cards draw in their top row — Adult Home's `ProgramCard`, the Courses
+/// tab's `CohortCard`, Teacher Home's class card (Issue #229) and Teacher
+/// Programs, and the E-Contract card, whose references draw the same two
+/// parts — with the family's [CardBadgeRow], [programCardPadding] and
+/// [CohortCardPattern] (Issue #404). Shared rather than copied, so the
 /// cards cannot drift apart. Moved here from
 /// `home/presentation/widgets/home_badges.dart` (Issue #329), with
 /// `HomeCapsule` renamed [CardCapsule]: other features draw them, so they do
@@ -106,6 +109,95 @@ class CardCapsule extends StatelessWidget {
         widthFactor: 1,
         heightFactor: 1,
         child: Text(label, style: _capsuleStyle.copyWith(color: ink)),
+      ),
+    );
+  }
+}
+
+/// The program/cohort card family's top row (Issue #404) — Adult Home's
+/// `ProgramCard`, the Courses tab's `CohortCard`, Teacher Schedule's
+/// `TeacherClassCard` and Teacher Programs' `TeacherProgramCard`: the
+/// [TrackBadge] on the left and the card's status or count [CardCapsule] on
+/// the right, the capsule centred on the badge. At least the badge's 32 tall;
+/// where a larger text size leaves no room for both on one line, the capsule
+/// wraps under the badge rather than overlapping or clipping it
+/// (Issue #351). With no [track], [trailing] keeps the row's right end; with
+/// neither, nothing is drawn.
+class CardBadgeRow extends StatelessWidget {
+  const CardBadgeRow({super.key, this.track, this.trailing});
+
+  /// A wire track value, as [TrackBadge] takes it; null draws no badge.
+  final String? track;
+
+  /// The status or count capsule at the row's right end.
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final track = this.track;
+    final trailing = this.trailing;
+    if (track == null && trailing == null) return const SizedBox.shrink();
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: trackBadgeHeight),
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: track == null
+              ? WrapAlignment.end
+              : WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          // A lone capsule is centred in the 32 the badge would take.
+          runAlignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [if (track != null) TrackBadge(track), ?trailing],
+        ),
+      ),
+    );
+  }
+}
+
+/// The program/cohort card family's inset (Issue #404): 16 from the side
+/// edges, 24 from the top and bottom, measured from the card's outer edge —
+/// so each side gives up the 1pt outline the card draws itself.
+const EdgeInsets programCardPadding = EdgeInsets.fromLTRB(
+  AppDimens.cardPadding - AppDimens.borderWidth,
+  programCardVerticalInset - AppDimens.borderWidth,
+  AppDimens.cardPadding - AppDimens.borderWidth,
+  programCardVerticalInset - AppDimens.borderWidth,
+);
+
+/// The family's top and bottom inset, outline included.
+const double programCardVerticalInset = 24;
+
+/// The block pattern behind the Courses tab's and Teacher Programs' cards —
+/// the Course Catalog frame's own asset, at 80%, covering the card (Issue
+/// #404: shared rather than copied). [tint] recolours its shapes (Teacher
+/// Programs' Junior card, which has no export of its own). Fills its parent:
+/// put it first in the card's [Stack].
+class CohortCardPattern extends StatelessWidget {
+  const CohortCardPattern({super.key, this.tint});
+
+  static const String asset = 'assets/icons/cohort_background.svg';
+
+  /// How strongly the pattern shows through.
+  static const double opacity = 0.8;
+
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = this.tint;
+    return Positioned.fill(
+      child: Opacity(
+        opacity: opacity,
+        child: SvgPicture.asset(
+          asset,
+          fit: BoxFit.cover,
+          colorFilter: tint == null
+              ? null
+              : ColorFilter.mode(tint, BlendMode.srcIn),
+        ),
       ),
     );
   }
