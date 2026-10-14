@@ -46,13 +46,15 @@ void main() {
     );
   });
 
-  /// The sample's card and lesson with [states] as its modules (Issue #202).
-  JuniorLearningMap withModules(List<JuniorNodeState> states) {
+  /// The sample's card and lesson with [states] as its lessons (Issues
+  /// #202, #410).
+  JuniorLearningMap withLessons(List<JuniorNodeState> states) {
     final sample = sampleJuniorLearningMap();
     return JuniorLearningMap(
       progress: sample.progress,
       certificate: sample.certificate,
       nextLesson: sample.nextLesson,
+      attendanceRecorded: false,
       nodes: [
         for (final (i, state) in states.indexed)
           JuniorMapNode(id: i + 1, state: state),
@@ -64,9 +66,10 @@ void main() {
     WidgetTester tester,
     JuniorLearningMap map,
     DateTime now,
-    String golden,
-  ) async {
-    useLogicalViewport(tester, const Size(393, 1428), padding: iPhonePadding);
+    String golden, {
+    Size size = const Size(393, 1428),
+  }) async {
+    useLogicalViewport(tester, size, padding: iPhonePadding);
     useReducedMotion(tester);
     await tester.pumpWidget(
       MaterialApp(
@@ -91,7 +94,7 @@ void main() {
   ) async {
     await capture(
       tester,
-      withModules(List.filled(3, JuniorNodeState.completed)),
+      withLessons(List.filled(3, JuniorNodeState.completed)),
       sampleLessonTime,
       'junior_home_completed',
     );
@@ -108,24 +111,27 @@ void main() {
     );
   });
 
-  testWidgets('three unlocked, unfinished modules: one current, the rest '
-      'locked (Issue #204)', (tester) async {
-    final sample = sampleJuniorLearningMap();
+  testWidgets('the whole lesson path, down to the certificate and its '
+      'clouds — the updated reference\'s full height (Issue #410)', (
+    tester,
+  ) async {
+    // `junior-homepage-u[date.png` is 1179 x 6285 at 3x: 393 x 2095.
     await capture(
       tester,
-      JuniorLearningMap(
-        progress: sample.progress,
-        certificate: sample.certificate,
-        nextLesson: sample.nextLesson,
-        continueModuleId: 1,
-        nodes: const [
-          JuniorMapNode(id: 1, state: JuniorNodeState.current),
-          JuniorMapNode(id: 2, state: JuniorNodeState.current),
-          JuniorMapNode(id: 3, state: JuniorNodeState.current),
-        ],
-      ),
+      sampleJuniorLearningMap(),
+      sampleLessonTime,
+      'junior_home_lesson_path',
+      size: const Size(393, 2095),
+    );
+  });
+
+  testWidgets('three open lessons are all drawn open — none greyed for not '
+      'being next (Issue #410)', (tester) async {
+    await capture(
+      tester,
+      withLessons(List.filled(3, JuniorNodeState.current)),
       DateTime(2026, 10, 6, 12),
-      'junior_home_one_current',
+      'junior_home_open_lessons',
     );
   });
 }

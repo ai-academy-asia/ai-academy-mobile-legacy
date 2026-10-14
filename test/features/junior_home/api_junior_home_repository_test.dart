@@ -1,21 +1,34 @@
+import 'dart:convert';
+
+import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
+import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/course_learning/data/http_course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
+import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:aia_mobile/features/junior_home/data/api_junior_home_repository.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
+import '../attendance/fake_attendance_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
-import '../home/fake_home_dashboard_repository.dart';
+import '../home/fake_home_dashboard_repository.dart' hide sampleLesson;
 
-/// Junior Home over the two repositories it composes.
+/// Junior Home over the repositories it composes.
 ///
-/// No `MockClient` here: the HTTP layer is `HttpCourseLearningRepository`'s
-/// and is already covered by its own suite. What this file is about is the
-/// part Issue #100 adds — resolving the slug, and turning one
-/// [CourseLearningPath] into a [JuniorLearningMap] without deriving anything
-/// the server already decided.
+/// The HTTP layers are `HttpCourseLearningRepository`'s and
+/// `HttpAttendanceRepository`'s, covered by their own suites. What this file
+/// is about is resolving the slug, and turning one [CourseLearningPath] and
+/// its modules' lessons into a lesson-by-lesson [JuniorLearningMap] (Issues
+/// #100, #410) without deriving anything the server already decided — plus
+/// one pass through the real parser over the contract's own bodies. Every
+/// attendance read is a fake's: no test here reaches a live backend.
 void main() {
   ApiJuniorHomeRepository repositoryFor({
     HomeDashboard? dashboard,
@@ -23,6 +36,7 @@ void main() {
     CourseLearningPath? path,
     CourseLearningFailure? learningFailure,
     FakeCourseLearningRepository? learning,
+    FakeAttendanceRepository? attendance,
   }) => ApiJuniorHomeRepository(
     dashboardRepository: FakeHomeDashboardRepository(
       dashboard: dashboard ?? HomeDashboard(program: sampleProgram()),
@@ -31,6 +45,7 @@ void main() {
     courseLearningRepository:
         learning ??
         FakeCourseLearningRepository(path: path, failure: learningFailure),
+    attendanceRepository: attendance ?? FakeAttendanceRepository(),
   );
 
   Future<CourseLearningFailure> failureFrom(
@@ -102,18 +117,24 @@ void main() {
   });
 
   group('mapping the learning path', () {
-    JuniorLearningMap mapOf(CourseLearningPath path) => juniorMapFrom(path);
+    JuniorLearningMap mapOf(
+      CourseLearningPath path, {
+      Map<int, List<Lesson>> lessons = const {},
+    }) => juniorMapFrom(path, lessons: lessons);
 
     test('shows the server\'s percent, and never derives one', () async {
-      // One of two modules complete — a module-based figure would be 50.
+      // One of two lessons complete — a lesson-based figure would be 50.
       final map = mapOf(
         samplePath(
           percentComplete: 30,
-          modules: [
-            sampleModule(id: 1, order: 1, completed: true),
-            sampleModule(id: 2, order: 2),
-          ],
+          modules: [sampleModule(id: 1, order: 1)],
         ),
+        lessons: {
+          1: [
+            sampleLesson(id: 1, moduleId: 1, order: 1, completed: true),
+            sampleLesson(id: 2, moduleId: 1, order: 2),
+          ],
+        },
       );
 
       expect(map.progress.percentComplete, 30);
@@ -127,24 +148,27 @@ void main() {
       expect(map.certificate.courseName, 'AI BootCamp');
     });
 
-    test('keeps the course slug, so a node can open the course (#174)', () {
+    test('keeps the course slug, so the card can open the course (#174)', () {
       expect(
         mapOf(samplePath(courseSlug: 'junior-ai')).courseSlug,
         'junior-ai',
       );
     });
 
-    test('maps completed and locked straight off the server', () {
+    test('one node per lesson, its state straight off the server '
+        '(Issue #410)', () {
       final map = mapOf(
-        samplePath(
-          modules: [
-            sampleModule(id: 1, order: 1, completed: true),
-            sampleModule(id: 2, order: 2, locked: true),
-            sampleModule(id: 3, order: 3),
+        samplePath(modules: [sampleModule(id: 1, order: 1)]),
+        lessons: {
+          1: [
+            sampleLesson(id: 11, moduleId: 1, order: 1, completed: true),
+            sampleLesson(id: 12, moduleId: 1, order: 2, locked: true),
+            sampleLesson(id: 13, moduleId: 1, order: 3),
           ],
-        ),
+        },
       );
 
+      expect(map.nodes.map((n) => n.id), [11, 12, 13]);
       expect(map.nodes.map((n) => n.state), [
         JuniorNodeState.completed,
         JuniorNodeState.locked,
@@ -153,19 +177,62 @@ void main() {
       ]);
     });
 
+    test('every open lesson is drawn open — none is greyed for not being '
+        'the next one (Issue #410 supersedes #204\'s one-current rule)', () {
+      final map = mapOf(
+        samplePath(modules: [sampleModule(id: 1, order: 1)]),
+        lessons: {
+          1: [
+            for (var i = 1; i <= 3; i++)
+              sampleLesson(id: i, moduleId: 1, order: i),
+          ],
+        },
+      );
+
+      expect(
+        map.nodes.map((n) => n.state),
+        everyElement(JuniorNodeState.current),
+      );
+    });
+
     test('completed wins over locked, so a node is never both', () {
       final map = mapOf(
-        samplePath(
-          modules: [
-            sampleModule(id: 1, order: 1, completed: true, locked: true),
+        samplePath(modules: [sampleModule(id: 1, order: 1)]),
+        lessons: {
+          1: [
+            sampleLesson(
+              id: 1,
+              moduleId: 1,
+              order: 1,
+              completed: true,
+              locked: true,
+            ),
           ],
-        ),
+        },
       );
 
       expect(map.nodes.single.state, JuniorNodeState.completed);
     });
 
-    test('orders nodes by module.order, not by array position', () {
+    test('a lesson in a locked module is locked unless completed', () {
+      final map = mapOf(
+        samplePath(modules: [sampleModule(id: 1, order: 1, locked: true)]),
+        lessons: {
+          1: [
+            sampleLesson(id: 1, moduleId: 1, order: 1, completed: true),
+            sampleLesson(id: 2, moduleId: 1, order: 2),
+          ],
+        },
+      );
+
+      expect(map.nodes.map((n) => n.state), [
+        JuniorNodeState.completed,
+        JuniorNodeState.locked,
+      ]);
+    });
+
+    test('orders the whole path by module order, then lesson order — never '
+        'by array position', () {
       final map = mapOf(
         samplePath(
           modules: [
@@ -174,9 +241,42 @@ void main() {
             sampleModule(id: 20, order: 2),
           ],
         ),
+        lessons: {
+          30: [
+            sampleLesson(id: 302, moduleId: 30, order: 2),
+            sampleLesson(id: 301, moduleId: 30, order: 1),
+          ],
+          10: [
+            sampleLesson(id: 103, moduleId: 10, order: 3),
+            sampleLesson(id: 101, moduleId: 10, order: 1),
+            sampleLesson(id: 102, moduleId: 10, order: 2),
+          ],
+          20: [sampleLesson(id: 201, moduleId: 20, order: 1)],
+        },
       );
 
-      expect(map.nodes.map((n) => n.id), [10, 20, 30]);
+      expect(map.nodes.map((n) => n.id), [101, 102, 103, 201, 301, 302]);
+    });
+
+    test('each node carries its lesson\'s id and title — what a tap opens — '
+        'and its module\'s id and order', () {
+      final map = mapOf(
+        samplePath(
+          modules: [
+            sampleModule(id: 7, order: 1),
+            sampleModule(id: 8, order: 2),
+          ],
+        ),
+        lessons: {
+          7: [sampleLesson(id: 70, moduleId: 7, order: 1, title: 'Hello')],
+          8: [sampleLesson(id: 80, moduleId: 8, order: 1, title: 'World')],
+        },
+      );
+
+      expect([for (final n in map.nodes) n.id], [70, 80]);
+      expect([for (final n in map.nodes) n.title], ['Hello', 'World']);
+      expect([for (final n in map.nodes) n.moduleId], [7, 8]);
+      expect([for (final n in map.nodes) n.moduleOrder], [1, 2]);
     });
 
     test('carries the server-selected continue target whole', () {
@@ -222,11 +322,260 @@ void main() {
       expect(map.certificate.description, 'Earn a Certificate of completion');
     });
 
-    test('a course with no modules maps to no nodes', () {
-      final map = mapOf(samplePath(modules: []));
-
+    test('a course with no modules, or modules with no lessons, maps to no '
+        'nodes', () {
+      expect(mapOf(samplePath(modules: [])).nodes, isEmpty);
+      final map = mapOf(
+        samplePath(modules: [sampleModule(id: 1, order: 1)]),
+        lessons: {1: const []},
+      );
       expect(map.nodes, isEmpty);
       expect(map.progress.title, isNotEmpty);
+    });
+  });
+
+  group('loading the lessons', () {
+    test('asks for every module\'s lessons, once each', () async {
+      final learning = FakeCourseLearningRepository(
+        path: samplePath(
+          modules: [
+            sampleModule(id: 4, order: 2),
+            sampleModule(id: 3, order: 1),
+          ],
+        ),
+      );
+      await repositoryFor(learning: learning).getLearningMap();
+
+      expect(learning.lessonCalls..sort(), [3, 4]);
+    });
+
+    test('a lessons failure fails the map — never a partial path', () async {
+      final failure = await failureFrom(
+        repositoryFor(
+          learning: FakeCourseLearningRepository(
+            lessonsFailure: const CourseLearningFailure(
+              CourseLearningFailureKind.network,
+            ),
+          ),
+        ),
+      );
+
+      expect(failure.kind, CourseLearningFailureKind.network);
+    });
+  });
+
+  group('the contract\'s own bodies, through the real parser', () {
+    // §2.1 and §2.2 response shapes (as `http_course_learning_repository_test`
+    // uses them), served by a `MockClient` — no live backend is called.
+    Map<String, Object?> lesson(
+      int id,
+      int order, {
+      bool completed = false,
+      bool locked = false,
+    }) => {
+      'id': id,
+      'order': order,
+      'title': {'mn': 'Хичээл $id', 'en': 'Lesson $id'},
+      'type': 'recording',
+      'duration_seconds': 1455,
+      'completed': completed,
+      'locked': locked,
+    };
+    Map<String, Object?> module(
+      int id,
+      int order, {
+      bool completed = false,
+      bool locked = false,
+    }) => {
+      'id': id,
+      'order': order,
+      'title': {'mn': 'Бүлэг $order', 'en': 'Module $order'},
+      'schedule': {'date': '2026-08-06', 'start_time': '09:00'},
+      'lesson_count': 2,
+      'completed_lessons': completed ? 2 : 0,
+      'completed': completed,
+      'locked': locked,
+    };
+    final bodies = <String, Object?>{
+      '/me/courses/junior-ai/learning': {
+        'course': {
+          'id': 6,
+          'slug': 'junior-ai',
+          'title': {'mn': 'AI хэрхэн ажилладаг вэ', 'en': 'How AI works'},
+          'description': {'mn': 'Тайлбар', 'en': 'Description'},
+          'banner_image_url': 'https://example.test/banner.png',
+        },
+        'enrollment_id': 118,
+        'cohort_id': 1,
+        'progress': {'percent': 30, 'completed_lessons': 3, 'total_lessons': 6},
+        'continue': {'module_id': 31, 'lesson_id': 312},
+        'certificate': {'status': 'not_eligible'},
+        // Out of order on purpose: the path follows `order`.
+        'modules': [
+          module(32, 3, locked: true),
+          module(30, 1, completed: true),
+          module(31, 2),
+        ],
+      },
+      '/me/modules/30/lessons': {
+        'module': {
+          'id': 30,
+          'order': 1,
+          'title': {'en': 'Module 1'},
+        },
+        'lessons': [
+          lesson(302, 2, completed: true),
+          lesson(301, 1, completed: true),
+        ],
+      },
+      '/me/modules/31/lessons': {
+        'module': {
+          'id': 31,
+          'order': 2,
+          'title': {'en': 'Module 2'},
+        },
+        'lessons': [lesson(311, 1, completed: true), lesson(312, 2)],
+      },
+      '/me/modules/32/lessons': {
+        'module': {
+          'id': 32,
+          'order': 3,
+          'title': {'en': 'Module 3'},
+        },
+        'lessons': [lesson(321, 1, locked: true), lesson(322, 2, locked: true)],
+      },
+    };
+
+    test('every lesson, in course order, with its own state', () async {
+      final requested = <String>[];
+      final map = await ApiJuniorHomeRepository(
+        dashboardRepository: FakeHomeDashboardRepository(
+          dashboard: HomeDashboard(
+            program: sampleProgram(courseSlug: 'junior-ai'),
+          ),
+        ),
+        courseLearningRepository: HttpCourseLearningRepository(
+          client: MockClient((request) async {
+            requested.add(request.url.path);
+            final body = bodies[request.url.path];
+            if (body == null) return http.Response('', 404);
+            return http.Response.bytes(
+              utf8.encode(jsonEncode(body)),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }),
+          sessionStore: AuthSessionStore()
+            ..save(const AuthSession(accessToken: 'tok-123')),
+        ),
+        attendanceRepository: FakeAttendanceRepository(),
+      ).getLearningMap();
+
+      expect(map!.nodes.map((n) => n.id), [301, 302, 311, 312, 321, 322]);
+      expect(map.nodes.map((n) => n.state), [
+        JuniorNodeState.completed,
+        JuniorNodeState.completed,
+        JuniorNodeState.completed,
+        JuniorNodeState.current,
+        JuniorNodeState.locked,
+        JuniorNodeState.locked,
+      ]);
+      expect(map.nodes.map((n) => n.moduleId), [30, 30, 31, 31, 32, 32]);
+      expect(map.checkInNode?.id, 312);
+      // Reads only: the learning path, then each module's lessons.
+      expect(requested.first, '/me/courses/junior-ai/learning');
+      expect(requested.skip(1).toSet(), {
+        '/me/modules/30/lessons',
+        '/me/modules/31/lessons',
+        '/me/modules/32/lessons',
+      });
+    });
+  });
+
+  group('attendance for the check-in node (Issue #410)', () {
+    final lesson = NextLesson(
+      startsAt: DateTime(2026, 10, 6, 9),
+      endsAt: DateTime(2026, 10, 6, 11),
+    );
+    CourseAttendance attendance(List<(DateTime, String?)> sessions) =>
+        CourseAttendance(
+          attended: 0,
+          totalPast: 0,
+          percent: 0,
+          sessions: [
+            for (final (date, status) in sessions)
+              AttendanceSession(date: date, status: status),
+          ],
+        );
+
+    test(
+      'the day\'s session with a record is recorded, whatever the record',
+      () {
+        for (final status in ['present', 'late', 'excused', 'absent']) {
+          expect(
+            attendanceRecordedOn(
+              attendance([(DateTime(2026, 10, 6), status)]),
+              lesson,
+            ),
+            isTrue,
+            reason: status,
+          );
+        }
+      },
+    );
+
+    test('no record yet — or no session that day — is not recorded', () {
+      expect(
+        attendanceRecordedOn(
+          attendance([
+            (DateTime(2026, 9, 29), 'present'),
+            (DateTime(2026, 10, 6), null),
+          ]),
+          lesson,
+        ),
+        isFalse,
+      );
+      expect(
+        attendanceRecordedOn(
+          attendance([(DateTime(2026, 9, 29), 'present')]),
+          lesson,
+        ),
+        isFalse,
+      );
+    });
+
+    test('unknown without a lesson or without attendance', () {
+      expect(attendanceRecordedOn(attendance(const []), null), isNull);
+      expect(attendanceRecordedOn(null, lesson), isNull);
+    });
+
+    test('reads the course\'s attendance and carries the answer', () async {
+      final attendanceRepository = FakeAttendanceRepository(
+        attendance: attendance([(DateTime(2026, 10, 6), 'present')]),
+      );
+      final map = await repositoryFor(
+        dashboard: HomeDashboard(
+          program: sampleProgram(courseSlug: 'junior-ai', nextLesson: lesson),
+        ),
+        attendance: attendanceRepository,
+      ).getLearningMap();
+
+      expect(attendanceRepository.calls, ['junior-ai']);
+      expect(map?.attendanceRecorded, isTrue);
+      // A read, never a check-in.
+      expect(attendanceRepository.checkInCalls, 0);
+    });
+
+    test('an unreadable attendance never fails the map', () async {
+      final map = await repositoryFor(
+        dashboard: HomeDashboard(program: sampleProgram(nextLesson: lesson)),
+        attendance: FakeAttendanceRepository(
+          failure: const AttendanceFailure(AttendanceFailureKind.network),
+        ),
+      ).getLearningMap();
+
+      expect(map, isNotNull);
+      expect(map!.attendanceRecorded, isNull);
     });
   });
 
@@ -241,34 +590,5 @@ void main() {
     ).getLearningMap();
 
     expect(map?.nextLesson, same(lesson));
-  });
-
-  test('each node carries its module\'s id and title — what a tap opens '
-      '(Issue #204)', () {
-    final path = samplePath(courseSlug: 'junior');
-    final modules = path.modules.toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
-
-    final map = juniorMapFrom(path);
-
-    expect([for (final n in map.nodes) n.id], [for (final m in modules) m.id]);
-    expect(
-      [for (final n in map.nodes) n.title],
-      [for (final m in modules) m.title],
-    );
-  });
-
-  test('each node carries its module\'s order — the lessons it opens pick '
-      'their artwork with it, as Course Detail does (Issue #215)', () {
-    final path = samplePath(courseSlug: 'junior');
-    final modules = path.modules.toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
-
-    final map = juniorMapFrom(path);
-
-    expect(
-      [for (final n in map.nodes) n.order],
-      [for (final m in modules) m.order],
-    );
   });
 }

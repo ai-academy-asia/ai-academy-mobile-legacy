@@ -29,6 +29,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.hold = false,
     this.failure,
     this.lessons,
+    this.lessonsByModule,
     this.holdLessons = false,
     this.lessonsFailure,
     this.exercise,
@@ -104,6 +105,10 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   /// Returned on success. Defaults to [sampleLessons] if unset.
   List<Lesson>? lessons;
 
+  /// Each module's own lessons, by module id — ahead of [lessons] for a
+  /// module it lists, so a test can give every module different lessons.
+  Map<int, List<Lesson>>? lessonsByModule;
+
   /// When true, [getLessons] blocks until [releaseLessons] is called.
   bool holdLessons;
 
@@ -132,7 +137,9 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
     if (lessonsFailure case final failure?) throw failure;
 
-    return lessons ?? sampleLessons(moduleId: moduleId);
+    return lessonsByModule?[moduleId] ??
+        lessons ??
+        sampleLessons(moduleId: moduleId);
   }
 
   // --- getExercise -----------------------------------------------------

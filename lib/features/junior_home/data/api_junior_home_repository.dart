@@ -1,8 +1,11 @@
+import '../../attendance/data/http_attendance_repository.dart';
+import '../../attendance/domain/attendance_repository.dart';
+import '../../attendance/domain/course_attendance.dart';
 import '../../course_learning/data/http_course_learning_repository.dart';
 import '../../course_learning/domain/course_learning_failure.dart';
 import '../../course_learning/domain/course_learning_path.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
-import '../../course_learning/domain/course_module.dart';
+import '../../course_learning/domain/lesson.dart';
 import '../../home/data/enrolled_home_dashboard_repository.dart';
 import '../../home/domain/home_dashboard.dart';
 import '../../home/domain/home_dashboard_repository.dart';
@@ -23,27 +26,36 @@ import 'junior_home_content.dart';
 ///    project, and inventing one would pin every kid to one course.
 ///  * `CourseLearningRepository` answers *what the course looks like*, over
 ///    `GET /me/courses/{course_slug}/learning` — the same call, the same
-///    `HttpCourseLearningRepository`, that `CourseModuleListScreen` makes.
+///    `HttpCourseLearningRepository`, that `CourseModuleListScreen` makes —
+///    and, since the path is one node per lesson (Issue #410), each
+///    module's lessons over `GET /me/modules/{module_id}/lessons`, the Lesson
+///    List's own call: one request per module, made together.
+///  * `AttendanceRepository` answers *whether today's lesson already has an
+///    attendance record*, over `GET /me/attendance?course=` — the call the
+///    attendance screens make — so the check-in node stops once recorded.
+///    Read-only, and optional: if it cannot be read the map still loads.
 ///
-/// So this file is a mapper: [CourseLearningPath] in, [JuniorLearningMap]
-/// out. Composing feature repositories this way is the established shape —
+/// So this file is a mapper: [CourseLearningPath] and its lessons in,
+/// [JuniorLearningMap] out. Composing feature repositories this way is the established shape —
 /// `EnrolledHomeDashboardRepository` already reaches across `auth`,
 /// `cohorts`, `courses` and `enrollments` for the same reason.
 ///
 /// **What the backend does not send stays client-side**, exactly as the
-/// contract says: a node's icon and accent come from `order` via the bundled
-/// palette, and the certificate panel's artwork and its "Junior" label are
+/// contract says: the certificate panel's artwork and its "Junior" label are
 /// the design's. None of that is invented data — it is design the API was
 /// never asked to carry.
 class ApiJuniorHomeRepository implements JuniorHomeRepository {
   ApiJuniorHomeRepository({
     HomeDashboardRepository? dashboardRepository,
     CourseLearningRepository? courseLearningRepository,
+    AttendanceRepository? attendanceRepository,
   }) : _dashboard = dashboardRepository ?? EnrolledHomeDashboardRepository(),
-       _learning = courseLearningRepository ?? HttpCourseLearningRepository();
+       _learning = courseLearningRepository ?? HttpCourseLearningRepository(),
+       _attendance = attendanceRepository ?? HttpAttendanceRepository();
 
   final HomeDashboardRepository _dashboard;
   final CourseLearningRepository _learning;
+  final AttendanceRepository _attendance;
 
   @override
   Future<JuniorLearningMap?> getLearningMap() async {
@@ -64,11 +76,58 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       );
     }
 
+    final path = await _learning.getCourseLearning(slug);
+    // Every module's lessons (Issue #410), all at once: the lesson path is
+    // one node per lesson. The same `GET /me/modules/{id}/lessons` the
+    // Lesson List reads — which lists a locked module's lessons too, each
+    // `locked`. A failure fails the map, as any course-learning read does.
+    final lessons = await Future.wait([
+      for (final module in path.modules) _learning.getLessons(module.id),
+    ]);
     return juniorMapFrom(
-      await _learning.getCourseLearning(slug),
+      path,
+      lessons: {
+        for (final (i, module) in path.modules.indexed) module.id: lessons[i],
+      },
       nextLesson: nextLesson,
+      attendanceRecorded: attendanceRecordedOn(
+        await _attendanceOrNull(slug),
+        nextLesson,
+      ),
     );
   }
+
+  /// `GET /me/attendance` for the course, or null when it cannot be read:
+  /// the map never fails over check-in's extra guard (Issue #410).
+  Future<CourseAttendance?> _attendanceOrNull(String slug) async {
+    try {
+      return await _attendance.getCourseAttendance(slug);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Whether [nextLesson]'s day already has an attendance record (Issue
+/// #410): its session's `status` is non-null — the backend leaves it null
+/// until a record exists (`present`, `late`, `excused`, or the teacher's
+/// `absent`). False when the day has no session listed; null when there is
+/// no lesson to ask about or [attendance] could not be read.
+bool? attendanceRecordedOn(
+  CourseAttendance? attendance,
+  NextLesson? nextLesson,
+) {
+  if (attendance == null || nextLesson == null) return null;
+  final day = nextLesson.startsAt;
+  final session = attendance.sessions
+      .where(
+        (s) =>
+            s.date.year == day.year &&
+            s.date.month == day.month &&
+            s.date.day == day.day,
+      )
+      .firstOrNull;
+  return session?.status != null;
 }
 
 /// `HomeFailureKind` into this screen's family.
@@ -90,13 +149,19 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 /// Public so the mapping can be tested directly against a [CourseLearningPath]
 /// built from a contract response, without standing up two repositories.
 ///
-/// [nextLesson] is the dashboard's, from the cohort's schedule — what the
-/// check-in node's live state reads (Issue #202).
+/// [lessons] are each module's lessons by module id — one node per lesson,
+/// in course order: modules by `order`, then their lessons by `order`
+/// (Issue #410). A module with none listed adds no node. [nextLesson] is
+/// the dashboard's, from the cohort's schedule, and [attendanceRecorded]
+/// today's record — what the check-in node reads (Issues #202, #410).
 JuniorLearningMap juniorMapFrom(
   CourseLearningPath path, {
+  Map<int, List<Lesson>> lessons = const {},
   NextLesson? nextLesson,
+  bool? attendanceRecorded,
 }) => JuniorLearningMap(
   nextLesson: nextLesson,
+  attendanceRecorded: attendanceRecorded,
   courseSlug: path.courseSlug,
   progress: JuniorCourseProgress(
     title: path.courseTitle,
@@ -104,18 +169,21 @@ JuniorLearningMap juniorMapFrom(
     // lessons, which is why it does not match "completed modules / total".
     percentComplete: path.percentComplete,
   ),
-  // `modules` arrives in `order`, and the map draws its nodes in list order
-  // along the route, so position is preserved by sorting on `order` rather
-  // than trusting the array.
+  // Sorted on `order` rather than trusting either array, so the route's
+  // order is the course's.
   nodes: [
     for (final module
         in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
-      JuniorMapNode(
-        id: module.id,
-        state: _stateFor(module),
-        title: module.title,
-        order: module.order,
-      ),
+      for (final lesson
+          in (lessons[module.id] ?? const <Lesson>[]).toList()
+            ..sort((a, b) => a.order.compareTo(b.order)))
+        JuniorMapNode(
+          id: lesson.id,
+          state: _stateFor(lesson, inLockedModule: module.locked),
+          title: lesson.title,
+          moduleId: module.id,
+          moduleOrder: module.order,
+        ),
   ],
   certificate: JuniorCertificate(
     track: JuniorHomeContent.track,
@@ -130,12 +198,16 @@ JuniorLearningMap juniorMapFrom(
   continueLessonId: path.continueLessonId,
 );
 
-/// Both booleans are server-sent and neither is recomputed here. "Open and
-/// unfinished" is what is left once they are both false — see
-/// [JuniorNodeState.current].
-JuniorNodeState _stateFor(CourseModule module) {
-  if (module.completed) return JuniorNodeState.completed;
-  if (module.locked) return JuniorNodeState.locked;
+/// Both booleans are server-sent and neither is recomputed here: a
+/// completed lesson is completed even under a lock; "open and unfinished"
+/// is what is left once both are false — see [JuniorNodeState.current].
+/// A lesson's state, straight off the server's two flags: completed wins,
+/// so a node is never both. A lesson in a locked module is locked unless
+/// completed — the backend lists such lessons `locked` already, and this
+/// only keeps a tap from ever reaching its `409 lesson_locked`.
+JuniorNodeState _stateFor(Lesson lesson, {required bool inLockedModule}) {
+  if (lesson.completed) return JuniorNodeState.completed;
+  if (lesson.locked || inLockedModule) return JuniorNodeState.locked;
   return JuniorNodeState.current;
 }
 

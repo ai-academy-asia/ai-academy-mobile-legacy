@@ -93,35 +93,32 @@ void main() {
   });
 
   group('learning path', () {
-    testWidgets('draws all five nodes', (tester) async {
+    testWidgets('draws one node per lesson — all twelve', (tester) async {
       await pumpScreen(tester);
 
-      expect(find.byType(JuniorMapNodeTile), findsNWidgets(5));
+      expect(find.byType(JuniorMapNodeTile), findsNWidgets(12));
     });
 
-    testWidgets('two completed, one current, two locked', (tester) async {
+    testWidgets('two completed, one open, nine locked', (tester) async {
       await pumpScreen(tester);
 
       expect(tilesIn(tester, JuniorNodeState.completed).length, 2);
       expect(tilesIn(tester, JuniorNodeState.current).length, 1);
-      expect(tilesIn(tester, JuniorNodeState.locked).length, 2);
+      expect(tilesIn(tester, JuniorNodeState.locked).length, 9);
     });
 
-    testWidgets('each node carries a state label for a screen reader', (
+    testWidgets('each node carries its lesson and state for a screen reader', (
       tester,
     ) async {
       await pumpScreen(tester);
 
       expect(find.bySemanticsLabel('Lesson 1, completed'), findsOneWidget);
-      // The current module is the check-in node (Issue #202); with no lesson
-      // under way its check-in is not open.
+      // With no lesson under way the check-in node is simply its lesson.
+      expect(find.bySemanticsLabel('Lesson 3, open'), findsOneWidget);
       expect(
-        find.bySemanticsLabel(
-          'Lesson 3, current lesson, attendance check-in not open',
-        ),
+        find.bySemanticsLabel('Lesson 12, locked', skipOffstage: false),
         findsOneWidget,
       );
-      expect(find.bySemanticsLabel('Lesson 5, locked'), findsOneWidget);
     });
 
     testWidgets('the nodes follow the frame\'s route, not a column', (
@@ -130,13 +127,15 @@ void main() {
       await pumpScreen(tester);
 
       final centres = [
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 12; i++)
           tester.getCenter(find.byType(JuniorMapNodeTile).at(i)),
       ];
-      // Node 2 sits right of node 1, node 4 left of node 3: a straightened
-      // list would put all five on one x.
-      expect(centres[1].dx, greaterThan(centres[0].dx));
-      expect(centres[3].dx, lessThan(centres[2].dx));
+      // Centre, right, centre, left — the reference's wave, repeated: a
+      // straightened list would put every node on one x.
+      for (var i = 0; i + 3 < centres.length; i += 4) {
+        expect(centres[i + 1].dx, greaterThan(centres[i].dx), reason: '$i');
+        expect(centres[i + 3].dx, lessThan(centres[i + 2].dx), reason: '$i');
+      }
       // …and every node is lower than the one before it.
       for (var i = 1; i < centres.length; i++) {
         expect(centres[i].dy, greaterThan(centres[i - 1].dy));
@@ -356,13 +355,17 @@ void main() {
     });
   });
 
-  group('roadmap and check-in (Issue #202)', () {
-    JuniorLearningMap mapOf(List<JuniorNodeState> states) {
+  group('roadmap and check-in (Issues #202, #410)', () {
+    JuniorLearningMap mapOf(
+      List<JuniorNodeState> states, {
+      bool? attendanceRecorded = false,
+    }) {
       final sample = sampleJuniorLearningMap();
       return JuniorLearningMap(
         progress: sample.progress,
         certificate: sample.certificate,
         nextLesson: sample.nextLesson,
+        attendanceRecorded: attendanceRecorded,
         nodes: [
           for (final (i, state) in states.indexed)
             JuniorMapNode(id: i + 1, state: state),
@@ -378,6 +381,10 @@ void main() {
       );
       return (paint.painter! as JuniorMapPathPainter).connectors;
     }
+
+    List<JuniorMapNodeTile> tiles(WidgetTester tester) => tester
+        .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
+        .toList();
 
     testWidgets('a completed program: its own nodes, a blue route that ends '
         'at the certificate, no check-in node', (tester) async {
@@ -395,115 +402,28 @@ void main() {
         route.last.to.dy,
         lessThan(JuniorMapGeometry.certificateFor(3).top),
       );
-      expect(
-        tester
-            .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
-            .every((tile) => tile.checkInOpen == null),
-        isTrue,
-      );
+      expect(tiles(tester).every((tile) => !tile.checkIn), isTrue);
       expect(find.textContaining('check-in'), findsNothing);
     });
 
-    testWidgets('more than five modules: every one is a node', (tester) async {
+    testWidgets('a long course: every lesson is a node, the route runs '
+        'through them all', (tester) async {
       await pumpScreen(
         tester,
         map: mapOf([
           JuniorNodeState.completed,
           JuniorNodeState.current,
-          for (var i = 0; i < 5; i++) JuniorNodeState.locked,
+          for (var i = 0; i < 28; i++) JuniorNodeState.locked,
         ]),
       );
 
-      expect(find.byType(JuniorMapNodeTile), findsNWidgets(7));
-      expect(drawnRoute(tester), hasLength(7));
+      expect(find.byType(JuniorMapNodeTile), findsNWidgets(30));
+      expect(drawnRoute(tester), hasLength(30));
       expect(
-        find.bySemanticsLabel('Lesson 7, locked', skipOffstage: false),
+        find.bySemanticsLabel('Lesson 30, locked', skipOffstage: false),
         findsOneWidget,
       );
-    });
-
-    testWidgets('outside a lesson the check-in node is grey and never opens '
-        'the scanner', (tester) async {
-      await pumpScreen(tester);
-
-      final tile = tester.widget<JuniorMapNodeTile>(
-        find.byType(JuniorMapNodeTile).at(2),
-      );
-      expect(tile.checkInOpen, isFalse);
-      await tester.tap(find.byType(JuniorMapNodeTile).at(2));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AttendanceScannerScreen), findsNothing);
-    });
-
-    testWidgets('during a lesson it is open and opens the scanner', (
-      tester,
-    ) async {
-      await pumpScreen(tester, now: sampleLessonTime);
-
-      expect(
-        find.bySemanticsLabel(
-          'Lesson 3, current lesson, attendance check-in open',
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(find.byType(JuniorMapNodeTile).at(2));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AttendanceScannerScreen), findsOneWidget);
-    });
-
-    testWidgets('at the lesson\'s end check-in is closed again', (
-      tester,
-    ) async {
-      await pumpScreen(
-        tester,
-        now: sampleJuniorLearningMap().nextLesson!.endsAt,
-      );
-
-      expect(
-        tester
-            .widget<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile).at(2))
-            .checkInOpen,
-        isFalse,
-      );
-    });
-  });
-
-  group('one current module and its check-in window (Issue #204)', () {
-    testWidgets('Student B: unlocked modules are not all QR — exactly one', (
-      tester,
-    ) async {
-      final sample = sampleJuniorLearningMap();
-      await pumpScreen(
-        tester,
-        map: JuniorLearningMap(
-          progress: sample.progress,
-          certificate: sample.certificate,
-          nextLesson: sample.nextLesson,
-          continueModuleId: 1,
-          nodes: const [
-            JuniorMapNode(id: 1, state: JuniorNodeState.current),
-            JuniorMapNode(id: 2, state: JuniorNodeState.current),
-            JuniorMapNode(id: 3, state: JuniorNodeState.current),
-          ],
-        ),
-      );
-
-      final tiles = tester
-          .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
-          .toList();
-      expect(
-        [for (final t in tiles) t.state],
-        [
-          JuniorNodeState.current,
-          JuniorNodeState.locked,
-          JuniorNodeState.locked,
-        ],
-      );
-      expect(tiles.where((t) => t.checkInOpen != null), hasLength(1));
-      expect(tiles[1].onTap, isNull);
-      expect(tiles[2].onTap, isNull);
+      expect(tester.takeException(), isNull);
     });
 
     for (final (label, time, open) in [
@@ -512,18 +432,16 @@ void main() {
       ('during it', DateTime(2026, 10, 6, 10, 30), true),
       ('exactly at its end', DateTime(2026, 10, 6, 11), false),
       ('after it', DateTime(2026, 10, 6, 11, 1), false),
+      ('on another day', DateTime(2026, 10, 7, 10), false),
     ]) {
-      testWidgets('$label the check-in node is ${open ? 'open' : 'grey'}', (
+      testWidgets('$label check-in is ${open ? 'open' : 'not open'}', (
         tester,
       ) async {
         await pumpScreen(tester, now: time);
 
-        final tiles = tester
-            .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
-            .toList();
-        expect(tiles[2].checkInOpen, open);
+        expect(tiles(tester)[2].checkIn, open);
         // Only ever the one node.
-        expect(tiles.where((t) => t.checkInOpen != null), hasLength(1));
+        expect(tiles(tester).where((t) => t.checkIn).length, open ? 1 : 0);
 
         await tester.tap(find.byType(JuniorMapNodeTile).at(2));
         await tester.pumpAndSettle();
@@ -533,6 +451,48 @@ void main() {
         );
       });
     }
+
+    testWidgets('during a lesson it is announced as check-in and opens the '
+        'scanner', (tester) async {
+      await pumpScreen(tester, now: sampleLessonTime);
+
+      expect(
+        find.bySemanticsLabel('Lesson 3, attendance check-in open'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byType(JuniorMapNodeTile).at(2));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AttendanceScannerScreen), findsOneWidget);
+    });
+
+    testWidgets('attendance already recorded: not check-in, during the lesson '
+        'or not, and never the scanner', (tester) async {
+      await pumpScreen(
+        tester,
+        map: mapOf([
+          JuniorNodeState.completed,
+          JuniorNodeState.current,
+          JuniorNodeState.locked,
+        ], attendanceRecorded: true),
+        now: sampleLessonTime,
+      );
+
+      expect(tiles(tester).every((t) => !t.checkIn), isTrue);
+      expect(find.textContaining('check-in'), findsNothing);
+      await tester.tap(find.byType(JuniorMapNodeTile).at(1));
+      await tester.pumpAndSettle();
+      expect(find.byType(AttendanceScannerScreen), findsNothing);
+    });
+
+    testWidgets('lesson completion and attendance stay apart: check-in never '
+        'changes a node\'s lesson state', (tester) async {
+      await pumpScreen(tester, now: sampleLessonTime);
+
+      expect(tiles(tester)[2].checkIn, isTrue);
+      expect(tiles(tester)[2].node.state, JuniorNodeState.current);
+      expect(tilesIn(tester, JuniorNodeState.completed).length, 2);
+    });
   });
 
   group('header logo refresh (Issue #221)', () {

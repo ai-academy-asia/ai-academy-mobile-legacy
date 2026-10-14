@@ -2,12 +2,14 @@ import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Completion and the check-in node (Issue #202).
+/// Completion, the check-in node and when check-in is actionable (Issues
+/// #202, #410). One node per lesson.
 void main() {
   JuniorLearningMap mapOf(
     List<JuniorNodeState> states, {
-    int? continueModuleId,
+    int? continueLessonId,
     NextLesson? nextLesson,
+    bool? attendanceRecorded,
   }) => JuniorLearningMap(
     progress: const JuniorCourseProgress(title: 'C', percentComplete: 0),
     nodes: [
@@ -19,15 +21,16 @@ void main() {
       courseName: 'C',
       description: 'D',
     ),
-    continueModuleId: continueModuleId,
+    continueLessonId: continueLessonId,
     nextLesson: nextLesson,
+    attendanceRecorded: attendanceRecorded,
   );
 
   const done = JuniorNodeState.completed;
   const open = JuniorNodeState.current;
   const locked = JuniorNodeState.locked;
 
-  test('complete only when every module is completed', () {
+  test('complete only when every lesson is completed', () {
     expect(mapOf([done, done, done]).isComplete, isTrue);
     expect(mapOf([done, open, locked]).isComplete, isFalse);
     expect(mapOf([done, done, locked]).isComplete, isFalse);
@@ -35,15 +38,19 @@ void main() {
   });
 
   group('check-in node', () {
-    test('the server\'s continue module when it is current', () {
-      expect(mapOf([done, open, open], continueModuleId: 3).checkInNode?.id, 3);
+    test('the server\'s continue lesson when it is open', () {
+      expect(mapOf([done, open, open], continueLessonId: 3).checkInNode?.id, 3);
     });
 
-    test('otherwise the first current module', () {
+    test('otherwise the first open lesson', () {
       expect(mapOf([done, open, open]).checkInNode?.id, 2);
-      // A continue module that is not current does not count.
+      // A continue lesson that is not open does not count.
       expect(
-        mapOf([done, open, locked], continueModuleId: 1).checkInNode?.id,
+        mapOf([done, open, locked], continueLessonId: 1).checkInNode?.id,
+        2,
+      );
+      expect(
+        mapOf([done, open, locked], continueLessonId: 3).checkInNode?.id,
         2,
       );
     });
@@ -52,6 +59,13 @@ void main() {
       expect(mapOf([done, done]).checkInNode, isNull);
       expect(mapOf([locked, locked]).checkInNode, isNull);
     });
+
+    test('marks a lesson, it never changes one: every node keeps the state '
+        'the server gave it', () {
+      final map = mapOf([done, open, open, locked], continueLessonId: 3);
+      expect(map.checkInNode?.id, 3);
+      expect([for (final n in map.nodes) n.state], [done, open, open, locked]);
+    });
   });
 
   group('check-in open', () {
@@ -59,90 +73,47 @@ void main() {
       startsAt: DateTime(2026, 10, 6, 9),
       endsAt: DateTime(2026, 10, 6, 11),
     );
+    final during = DateTime(2026, 10, 6, 10);
 
     test('only while the lesson is under way — Adult Home\'s rule', () {
-      final map = mapOf([done, open, locked], nextLesson: lesson);
+      final map = mapOf(
+        [done, open, locked],
+        nextLesson: lesson,
+        attendanceRecorded: false,
+      );
       expect(map.checkInOpenAt(DateTime(2026, 10, 6, 8, 59)), isFalse);
       expect(map.checkInOpenAt(DateTime(2026, 10, 6, 9)), isTrue);
       expect(map.checkInOpenAt(DateTime(2026, 10, 6, 10, 59)), isTrue);
       expect(map.checkInOpenAt(DateTime(2026, 10, 6, 11)), isFalse);
+      // Another day entirely.
+      expect(map.checkInOpenAt(DateTime(2026, 10, 7, 10)), isFalse);
+    });
+
+    test('never once attendance is recorded for the day (Issue #410)', () {
+      expect(
+        mapOf(
+          [done, open],
+          nextLesson: lesson,
+          attendanceRecorded: true,
+        ).checkInOpenAt(during),
+        isFalse,
+      );
+    });
+
+    test('unknown attendance falls back to the live rule alone — the '
+        'scanner, and the backend\'s idempotent check-in, stay the guard', () {
+      expect(
+        mapOf([done, open], nextLesson: lesson).checkInOpenAt(during),
+        isTrue,
+      );
     });
 
     test('never without a lesson or without a check-in node', () {
+      expect(mapOf([done, open]).checkInOpenAt(during), isFalse);
       expect(
-        mapOf([done, open]).checkInOpenAt(DateTime(2026, 10, 6, 10)),
+        mapOf([done, done], nextLesson: lesson).checkInOpenAt(during),
         isFalse,
       );
-      expect(
-        mapOf([
-          done,
-          done,
-        ], nextLesson: lesson).checkInOpenAt(DateTime(2026, 10, 6, 10)),
-        isFalse,
-      );
-    });
-  });
-
-  group('one current module (Issue #204)', () {
-    List<JuniorNodeState> drawn(JuniorLearningMap map) => [
-      for (final node in map.nodes) map.stateOf(node),
-    ];
-
-    test('Student B: three unlocked, unfinished modules — only the server\'s '
-        'continue module is current, the rest drawn locked', () {
-      expect(drawn(mapOf([open, open, open], continueModuleId: 1)), [
-        open,
-        locked,
-        locked,
-      ]);
-    });
-
-    test('the Figma shape: completed, one current, the rest locked', () {
-      expect(
-        drawn(mapOf([done, done, open, open, open], continueModuleId: 3)),
-        [done, done, open, locked, locked],
-      );
-    });
-
-    test(
-      'a later continue module: earlier unfinished ones are not current',
-      () {
-        expect(drawn(mapOf([done, open, open], continueModuleId: 3)), [
-          done,
-          locked,
-          open,
-        ]);
-      },
-    );
-
-    test('no continue: the first open, unfinished module', () {
-      expect(drawn(mapOf([done, open, open])), [done, open, locked]);
-    });
-
-    test('a completed program: no current and no locked nodes', () {
-      // The contract's continue names the last module once everything is
-      // done.
-      expect(drawn(mapOf([done, done, done], continueModuleId: 3)), [
-        done,
-        done,
-        done,
-      ]);
-    });
-
-    test('never more than one current node', () {
-      for (final continueId in [null, 1, 2, 3, 4, 99]) {
-        final map = mapOf([
-          done,
-          open,
-          open,
-          locked,
-        ], continueModuleId: continueId);
-        expect(drawn(map).where((s) => s == open), hasLength(1));
-      }
-    });
-
-    test('nothing unlocked: no current node', () {
-      expect(drawn(mapOf([done, locked, locked])), [done, locked, locked]);
     });
   });
 }

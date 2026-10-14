@@ -10,7 +10,7 @@ import '../../attendance/presentation/attendance_scanner_screen.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/presentation/course_module_list_screen.dart';
-import '../../course_learning/presentation/lesson_list_screen.dart';
+import '../../course_learning/presentation/course_exercise_detail_screen.dart';
 import '../../home/presentation/widgets/home_header.dart';
 import '../../notifications/presentation/notification_center.dart';
 import '../data/api_junior_home_repository.dart';
@@ -36,8 +36,15 @@ import 'widgets/junior_learning_map_view.dart';
 ///
 /// **Data.** The map is loaded from `GET /me/courses/{course_slug}/learning`
 /// through [ApiJuniorHomeRepository], which resolves the student's own course
-/// slug from the existing enrolled-cohort architecture. Loading, empty and
-/// failure states follow `HomeScreen`'s; the map's own visuals are unchanged.
+/// slug from the existing enrolled-cohort architecture, with each module's
+/// lessons — one node per lesson (Issue #410). Loading, empty and failure
+/// states follow `HomeScreen`'s.
+///
+/// **Lessons.** An open or completed node opens that lesson's own screen,
+/// [CourseExerciseDetailScreen], directly; a locked one is inert. Coming
+/// back from a lesson or from the check-in scanner reloads the map, keeping
+/// the current one on screen meanwhile, so a lesson finished or attendance
+/// recorded shows without a manual refresh.
 ///
 /// **Tabs.** [JuniorBottomNav], shared with the two other junior tab screens:
 /// Сурлагын явц opens `JuniorProgressScreen` and Профайл `JuniorProfileScreen`
@@ -170,7 +177,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         map: map,
         now: widget.clock?.call() ?? DateTime.now(),
         // Inert for content that is not a real course (the sample map).
-        onNodeTap: map.courseSlug == null ? null : _openModule,
+        onLessonTap: map.courseSlug == null ? null : _openLesson,
         onCheckIn: _openScanner,
         onCourseTap: switch (map.courseSlug) {
           final slug? => () => _openCourse(slug),
@@ -181,17 +188,19 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
   }
 
   /// The attendance check-in scanner (Issue #202) — from the check-in node,
-  /// only while a lesson is under way.
-  void _openScanner() {
-    Navigator.of(context).push(
+  /// only while a lesson is under way and attendance is not yet recorded.
+  /// The map reloads on return, so a recorded check-in stops the node.
+  Future<void> _openScanner() async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const AttendanceScannerScreen()),
     );
+    if (mounted) await _controller.load();
   }
 
   /// The existing Course Detail (Issues #174, #207): the Adult course screen
   /// on the same `GET /me/courses/{slug}/learning` data, with the same lesson
   /// tabs as Adult, Note included (Issue #219) — reached from the course
-  /// card, while each completed node opens its own module.
+  /// card, while each node opens its own lesson.
   void _openCourse(String slug) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -203,22 +212,20 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
     );
   }
 
-  /// The tapped node's own module (Issue #204): its lessons, from
-  /// `GET /me/modules/{module_id}/lessons` — the screen an unlocked module
-  /// card opens on the course screen (Issue #148), with the same lesson tabs
-  /// as Adult (Issue #219). Each node opens the module it stands for, not the
-  /// course as a whole.
-  void _openModule(JuniorMapNode node) {
-    Navigator.of(context).push(
+  /// The tapped lesson's own screen (Issue #410): its content, from
+  /// `GET /me/lessons/{lesson_id}` — the screen a lesson row opens in the
+  /// course screens, reached here without the module in between. The map
+  /// reloads on return, so a lesson completed there shows as completed.
+  Future<void> _openLesson(JuniorMapNode node) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LessonListScreen(
-          moduleId: node.id,
-          moduleOrder: node.order,
-          moduleTitle: node.title,
+        builder: (_) => CourseExerciseDetailScreen(
+          lessonId: node.id,
           repository: widget.courseLearningRepository,
         ),
       ),
     );
+    if (mounted) await _controller.load();
   }
 }
 

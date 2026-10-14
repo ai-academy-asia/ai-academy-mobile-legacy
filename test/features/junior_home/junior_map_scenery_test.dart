@@ -14,7 +14,7 @@ import '../../support/screenshot.dart';
 
 /// The Junior map's scenery: the frame's own clouds, islands and coins,
 /// fixed to the viewport behind the scrolling learning content — clouds
-/// travelling, islands and coins floating, and a pinch that zooms only them.
+/// travelling, islands and coins floating, and no zoom (Issue #410).
 ///
 /// A 393 x 600 viewport at a pixel ratio of 1 is a phone's map area at the
 /// frame's own width, so the map's scale is exactly 1, every expected value
@@ -30,7 +30,11 @@ void main() {
         w.bytesLoader is SvgAssetLoader &&
         (w.bytesLoader as SvgAssetLoader).assetName == asset,
   );
-  final clouds = svg(JuniorMapGeometry.cloud);
+  // The sky's own: the certificate's divider clouds share the artwork.
+  final clouds = find.descendant(
+    of: find.byKey(JuniorMapScenery.skyKey),
+    matching: svg(JuniorMapGeometry.cloud),
+  );
   final islands = svg(JuniorMapGeometry.island);
   final coins = svg(JuniorMapGeometry.coin);
   final backdrop = find.byWidgetPredicate(
@@ -72,7 +76,7 @@ void main() {
           body: JuniorLearningMapView(
             map: sampleJuniorLearningMap(),
             now: DateTime(2026, 10, 6),
-            onNodeTap: tapped.add,
+            onLessonTap: tapped.add,
           ),
         ),
       ),
@@ -102,7 +106,7 @@ void main() {
   /// Every cloud's box at [seconds], in this viewport's sky (the map's scale
   /// is 1 and the sky is the whole viewport). Travel snaps to whole points.
   List<Rect> skyClouds([double seconds = 0]) => [
-    for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++)
+    for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++)
       JuniorSceneryMotion.cloudBox(
         i,
         viewport.height,
@@ -111,8 +115,7 @@ void main() {
 
   /// The width of cloud [i].
   double cloudWidth(int i) =>
-      JuniorMapGeometry.cloudSize.width *
-      JuniorSceneryMotion.allClouds[i].scale;
+      JuniorMapGeometry.cloudSize.width * JuniorSceneryMotion.clouds[i].scale;
   List<Rect> designIslands() => [
     for (final island in JuniorMapGeometry.islands)
       island & JuniorMapGeometry.islandSize,
@@ -128,11 +131,6 @@ void main() {
       expect(actual[i], rectMoreOrLessEquals(expected[i], epsilon: 1e-6));
     }
   }
-
-  /// The sky's current zoom, read off the largest cloud's drawn width
-  /// (clouds only ever move sideways, so their width is the zoom alone).
-  double zoomOf(WidgetTester tester) =>
-      tester.getRect(clouds.at(9)).width / cloudWidth(9);
 
   /// Two fingers about [centre], [gap] apart horizontally, that land and
   /// stay down. [spread] moves both apart (or together) by [by] each.
@@ -219,15 +217,12 @@ void main() {
       expect(rectsOf(tester, nodes), nodesBefore);
     });
 
-    testWidgets('switching it on mid-motion stills and unzooms the scenery', (
+    testWidgets('switching it on mid-motion stills the scenery', (
       tester,
     ) async {
       await pumpMap(tester);
       await runTo(tester, 12);
-      final fingers = await land(tester, const Offset(196, 300), 100);
-      await spread(tester, fingers, 5);
-      await lift(tester, fingers);
-      expect(zoomOf(tester), isNot(1));
+      expect(clouds, findsNWidgets(10));
 
       useReducedMotion(tester);
       await tester.pump();
@@ -239,14 +234,14 @@ void main() {
   });
 
   group('in motion', () {
-    testWidgets('animates 22 clouds — the sky\'s 10 and 12 in reserve — and '
-        'the design\'s 3 islands and 3 coins', (tester) async {
+    testWidgets('animates the sky\'s 10 clouds and the design\'s 3 islands '
+        'and 3 coins', (tester) async {
       await pumpMap(tester);
       await tester.pump();
 
-      // The 10 of the sky at rest and the 12 held in reserve for zooming
-      // out — all there all the time.
-      expect(clouds, findsNWidgets(22));
+      // No reserve beyond them: with no zoom-out (Issue #410), nothing
+      // outside the view is ever shown.
+      expect(clouds, findsNWidgets(10));
       expect(islands, findsNWidgets(3));
       expect(coins, findsNWidgets(3));
       expect(farIsland, findsOneWidget);
@@ -312,10 +307,10 @@ void main() {
         final now = rectsOf(tester, clouds);
         for (final (i, rect) in now.indexed) {
           expect(rect.top, skyClouds()[i].top);
-          // Right, or round to the left again — and only from the far side
-          // of everything any zoom shows. (Sampled every half second, so the
+          // Right, or round to the left again — and only from well out of
+          // sight. (Sampled every half second, so the
           // last sight of it can be up to half a second's travel short.)
-          final step = JuniorSceneryMotion.allClouds[i].speed * 0.5 + 1;
+          final step = JuniorSceneryMotion.clouds[i].speed * 0.5 + 1;
           if (rect.left < previous[i].left) {
             expect(
               previous[i].left,
@@ -389,13 +384,18 @@ void main() {
       final node = tester.getRect(nodes.first);
       final sky = skyScene(tester);
       final ground = groundScene(tester);
+      // As far as the certificate's top sits below the viewport's middle.
+      final distance = tester.getRect(certificate).top - viewport.height / 2;
 
-      await tester.drag(map, const Offset(0, -500));
+      await tester.drag(map, Offset(0, -distance));
       // No time passes, so only the scroll could have moved anything.
       await tester.pump();
 
       expect(tester.getRect(certificate).top, lessThan(viewport.height));
-      expect(tester.getRect(nodes.first).top - node.top, lessThan(-400));
+      expect(
+        tester.getRect(nodes.first).top - node.top,
+        lessThan(-distance + 50),
+      );
       expect(skyScene(tester), sky);
       expect(groundScene(tester), ground);
     });
@@ -456,290 +456,68 @@ void main() {
     });
   });
 
-  group('pinch', () {
+  group('no zoom', () {
     // Each test pinches at the scenery's time zero and pumps no time, so
-    // nothing moves but the zoom.
-
-    testWidgets('the zoom follows the fingers continuously: 1.01, 1.02, …', (
+    // anything that moved, a pinch moved.
+    testWidgets('a pinch, out or in, changes nothing: the sky, the ground, '
+        'the nodes and the certificate stay exactly where they were', (
       tester,
     ) async {
       await pumpMap(tester);
       await runTo(tester, 0);
-      expect(zoomOf(tester), moreOrLessEquals(1));
-
-      // Fingers 100 apart, each moving 0.5 out: the spread grows 1% a step.
-      final fingers = await land(tester, const Offset(196, 300), 100);
-      for (var step = 1; step <= 40; step++) {
-        await spread(tester, fingers, 0.5);
-        expect(zoomOf(tester), moreOrLessEquals(1 + step / 100));
-      }
-      // Past 1.4 it holds.
-      for (var step = 0; step < 10; step++) {
-        await spread(tester, fingers, 0.5);
-      }
-      expect(zoomOf(tester), moreOrLessEquals(JuniorMapScenery.maxZoom));
-      await lift(tester, fingers);
-      expect(zoomOf(tester), moreOrLessEquals(JuniorMapScenery.maxZoom));
-    });
-
-    testWidgets('pinching in goes 0.99, 0.98, … and stops at 0.6', (
-      tester,
-    ) async {
-      await pumpMap(tester);
-      await runTo(tester, 0);
-
-      final fingers = await land(tester, const Offset(196, 300), 100);
-      for (var step = 1; step <= 40; step++) {
-        await spread(tester, fingers, -0.5);
-        expect(zoomOf(tester), moreOrLessEquals(1 - step / 100));
-      }
-      for (var step = 0; step < 10; step++) {
-        await spread(tester, fingers, -0.5);
-      }
-      expect(zoomOf(tester), moreOrLessEquals(JuniorMapScenery.minZoom));
-      await lift(tester, fingers);
-    });
-
-    testWidgets('zooms about the fingers: what was under them stays there', (
-      tester,
-    ) async {
-      await pumpMap(tester);
-      await runTo(tester, 0);
-      // Upper right.
-      const focal = Offset(300, 100);
-      final big = tester.getRect(clouds.at(9));
-      final cloud = tester.getRect(clouds.at(2));
+      final sky = skyScene(tester);
       final ground = groundScene(tester);
-
-      final fingers = await land(tester, focal, 60);
-      for (var step = 0; step < 6; step++) {
-        await spread(tester, fingers, 1);
-      }
-      final zoom = zoomOf(tester);
-      expect(zoom, moreOrLessEquals(1.2));
-
-      Rect about(Rect r) => Rect.fromPoints(
-        focal + (r.topLeft - focal) * zoom,
-        focal + (r.bottomRight - focal) * zoom,
-      );
-      expect(tester.getRect(clouds.at(9)), rectMoreOrLessEquals(about(big)));
-      expect(tester.getRect(clouds.at(2)), rectMoreOrLessEquals(about(cloud)));
-      // The islands and coins are the map's, not the sky's: untouched.
-      expect(groundScene(tester), ground);
-      await lift(tester, fingers);
-    });
-
-    testWidgets('zooming out about the fingers works the same way', (
-      tester,
-    ) async {
-      await pumpMap(tester);
-      await runTo(tester, 0);
-      const focal = Offset(196, 300);
-      final cloud = tester.getRect(clouds.at(4));
-      final ground = groundScene(tester);
-
-      final fingers = await land(tester, focal, 100);
-      for (var step = 0; step < 40; step++) {
-        await spread(tester, fingers, -0.5);
-      }
-      expect(zoomOf(tester), moreOrLessEquals(0.6));
-
-      expect(
-        tester.getRect(clouds.at(4)).topLeft,
-        offsetMoreOrLessEquals(focal + (cloud.topLeft - focal) * 0.6),
-      );
-      expect(groundScene(tester), ground);
-      await lift(tester, fingers);
-    });
-
-    testWidgets('back at 1.0 the scenery is exactly the design again', (
-      tester,
-    ) async {
-      await pumpMap(tester);
-      await runTo(tester, 0);
-
-      // In at the upper right…
-      var fingers = await land(tester, const Offset(300, 100), 60);
-      for (var step = 0; step < 6; step++) {
-        await spread(tester, fingers, 1);
-      }
-      await lift(tester, fingers);
-      // …and out again somewhere else entirely.
-      fingers = await land(tester, const Offset(80, 500), 120);
-      for (var step = 0; step < 5; step++) {
-        await spread(tester, fingers, -2);
-      }
-      await lift(tester, fingers);
-
-      expect(zoomOf(tester), moreOrLessEquals(1));
-      expectRects(rectsOf(tester, islands), designIslands());
-      expectRects(rectsOf(tester, clouds), skyClouds());
-    });
-
-    testWidgets('zooming out reveals the reserve clouds above and below', (
-      tester,
-    ) async {
-      for (final (focal, revealed) in [
-        // Pinching at the bottom grows the view upwards, and the reverse.
-        (const Offset(196.5, 590), [11, 13, 15]),
-        (const Offset(196.5, 10), [16, 19, 21]),
-      ]) {
-        await pumpMap(tester);
-        await runTo(tester, 0);
-        final screen = Offset.zero & viewport;
-        for (var i = 10; i < 22; i++) {
-          expect(tester.getRect(clouds.at(i)).overlaps(screen), isFalse);
-        }
-
-        final fingers = await land(tester, focal, 100);
-        for (var step = 0; step < 40; step++) {
-          await spread(tester, fingers, -0.5);
-        }
-        await lift(tester, fingers);
-        expect(zoomOf(tester), moreOrLessEquals(JuniorMapScenery.minZoom));
-
-        for (final i in revealed) {
-          expect(
-            tester.getRect(clouds.at(i)).overlaps(screen),
-            isTrue,
-            reason: 'cloud $i',
-          );
-        }
-        await tester.pumpWidget(const SizedBox.shrink());
-      }
-    });
-
-    testWidgets('zooming never makes, removes or moves a cloud: back at 1.0 '
-        'all 22 are exactly where they were', (tester) async {
-      await pumpMap(tester);
-      await runTo(tester, 0);
-      final before = rectsOf(tester, clouds);
-      expect(before, hasLength(22));
-
-      var fingers = await land(tester, const Offset(120, 450), 100);
-      for (var step = 0; step < 40; step++) {
-        await spread(tester, fingers, -0.5);
-        expect(clouds, findsNWidgets(22));
-      }
-      await lift(tester, fingers);
-      fingers = await land(tester, const Offset(260, 150), 60);
-      for (var step = 0; step < 40; step++) {
-        await spread(tester, fingers, 1);
-        expect(clouds, findsNWidgets(22));
-      }
-      await lift(tester, fingers);
-      expect(zoomOf(tester), moreOrLessEquals(JuniorMapScenery.maxZoom));
-      // Back to rest: from 1.4 to 1.0, the spread shrinks to 1/1.4 of itself.
-      fingers = await land(tester, const Offset(196, 300), 60);
-      await spread(tester, fingers, 30 / JuniorMapScenery.maxZoom - 30);
-      await lift(tester, fingers);
-
-      expect(zoomOf(tester), moreOrLessEquals(1));
-      expectRects(rectsOf(tester, clouds), before);
-    });
-
-    testWidgets('never moves or scales the learning content, nor scrolls it', (
-      tester,
-    ) async {
-      await pumpMap(tester);
-      await runTo(tester, 0);
       final nodesBefore = rectsOf(tester, nodes);
       final card = tester.getRect(find.byType(JuniorCertificateCard));
-      final ground = groundScene(tester);
 
-      var fingers = await land(tester, const Offset(196, 250), 80);
-      for (var step = 0; step < 10; step++) {
-        await spread(tester, fingers, 2);
+      for (final by in [3.0, -3.0]) {
+        final fingers = await land(tester, const Offset(196, 300), 120);
+        for (var step = 0; step < 12; step++) {
+          await spread(tester, fingers, by);
+        }
+        expect(skyScene(tester), sky, reason: 'during, by $by');
+        await lift(tester, fingers);
       }
-      await lift(tester, fingers);
-      // And a pinch whose fingers travel vertically — a scroll's direction.
-      final a = await tester.startGesture(const Offset(196, 400), pointer: 1);
-      final b = await tester.startGesture(const Offset(196, 300), pointer: 2);
-      await tester.pump();
-      for (var step = 0; step < 10; step++) {
-        await b.moveBy(const Offset(0, -15));
-        await tester.pump();
-      }
-      fingers = (a, b);
-      await lift(tester, fingers);
 
+      expect(skyScene(tester), sky);
+      expectRects(skyScene(tester), skyClouds());
+      expect(groundScene(tester), ground);
       expect(rectsOf(tester, nodes), nodesBefore);
       expect(tester.getRect(find.byType(JuniorCertificateCard)), card);
-      expect(groundScene(tester), ground);
     });
 
-    testWidgets('a pinch starting over a node does not open it', (
-      tester,
-    ) async {
-      final tapped = await pumpMap(tester);
-      await runTo(tester, 0);
-      final current = tester.getCenter(nodes.at(2));
-
-      // Perfectly still: only the second finger landing tells it from a tap.
-      final a = await tester.startGesture(current, pointer: 1);
-      final b = await tester.startGesture(const Offset(60, 120), pointer: 2);
-      await tester.pump();
-      await a.up();
-      await b.up();
-      await tester.pump();
-
-      final fingers = await land(tester, current, 60);
-      await spread(tester, fingers, 10);
-      await lift(tester, fingers);
-
-      expect(tapped, isEmpty);
-    });
-
-    testWidgets('vertical scrolling still works once zoomed', (tester) async {
+    testWidgets('nothing in the scenery scales the sky', (tester) async {
       await pumpMap(tester);
       await runTo(tester, 0);
-      final fingers = await land(tester, const Offset(196, 300), 100);
-      await spread(tester, fingers, 5);
-      await lift(tester, fingers);
-      final zoomedSky = skyScene(tester);
-      final ground = groundScene(tester);
-      final node = tester.getRect(nodes.first);
 
-      await tester.drag(map, const Offset(0, -400));
-      await tester.pump();
-
-      expect(tester.getRect(nodes.first).top - node.top, lessThan(-300));
-      expect(skyScene(tester), zoomedSky);
-      expect(groundScene(tester), ground);
-    });
-
-    test('keeps the scenery covering its box at every zoom', () {
-      const box = Size(393, 600);
-      // At 1.0 there is only one place for it: exactly where it was drawn.
-      expect(
-        JuniorMapScenery.clampOffset(1, const Offset(50, -80), box),
-        Offset.zero,
+      // Every cloud is drawn at exactly its own size, and every transform
+      // in the sky only moves (or mirrors) a piece — none scales.
+      for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++) {
+        expect(
+          tester.getRect(clouds.at(i)).width,
+          moreOrLessEquals(cloudWidth(i)),
+        );
+      }
+      final transforms = tester.widgetList<Transform>(
+        find.descendant(
+          of: find.byKey(JuniorMapScenery.skyKey),
+          matching: find.byType(Transform),
+        ),
       );
-      // Zoomed in, no edge of the scenery may come inside the box.
-      final inZoom = JuniorMapScenery.clampOffset(
-        1.4,
-        const Offset(20, -500),
-        box,
-      );
-      expect(inZoom.dx, lessThanOrEqualTo(0));
-      expect(inZoom.dy, greaterThanOrEqualTo(box.height - 1.4 * box.height));
-      // Zoomed out, it may slide only by the room the zoom-out made.
-      final outZoom = JuniorMapScenery.clampOffset(
-        0.6,
-        const Offset(500, 500),
-        box,
-      );
-      expect(outZoom.dx, moreOrLessEquals(0.6 * (box.width / 0.6 - box.width)));
+      expect(transforms, isNotEmpty);
+      for (final transform in transforms) {
+        expect(transform.transform.getMaxScaleOnAxis(), moreOrLessEquals(1));
+      }
     });
   });
 
   group('motion', () {
     test('every cloud starts at its own point round its lap, and starts '
         'softly', () {
-      for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++) {
+      for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++) {
         final entry = JuniorSceneryMotion.cloudEntry(i);
         final lap = JuniorSceneryMotion.cloudExit(i) - entry;
-        final left = entry + JuniorSceneryMotion.allClouds[i].start * lap;
+        final left = entry + JuniorSceneryMotion.clouds[i].start * lap;
         expect(JuniorSceneryMotion.cloudLeft(i, 0), moreOrLessEquals(left));
         // A tenth of a second in, barely a hundredth of a point.
         expect(
@@ -757,7 +535,7 @@ void main() {
         'sight, at its own speed', () {
       final speeds = [for (final c in JuniorSceneryMotion.clouds) c.speed];
       expect(speeds.toSet(), hasLength(speeds.length));
-      for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++) {
+      for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++) {
         final width = cloudWidth(i);
         var previous = JuniorSceneryMotion.cloudLeft(i, 0);
         var laps = 0;
@@ -765,7 +543,7 @@ void main() {
           final left = JuniorSceneryMotion.cloudLeft(i, t);
           if (left < previous) {
             laps++;
-            // Gone past everything any zoom shows on the right…
+            // Gone well out of sight on the right…
             expect(
               previous,
               greaterThan(
@@ -784,37 +562,21 @@ void main() {
       }
     });
 
-    test('clouds switch sides beyond the widest view any zoom allows', () {
-      // At the frame's own width the map's scale is 1, so the box is in
-      // design units. At the smallest zoom, pushed as far as the clamp lets
-      // it go either way, this is everything the viewport can show.
-      const box = Size(JuniorMapGeometry.mapWidth, 600);
-      const zoom = JuniorMapScenery.minZoom;
-      final farLeft =
-          -JuniorMapScenery.clampOffset(zoom, const Offset(1e9, 0), box).dx /
-          zoom;
-      final farRight =
-          (box.width -
-              JuniorMapScenery.clampOffset(
-                zoom,
-                const Offset(-1e9, 0),
-                box,
-              ).dx) /
-          zoom;
-      expect(farLeft, lessThan(0));
-      expect(farRight, greaterThan(box.width));
-
-      for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++) {
+    test('clouds switch sides out of sight, on the laps they always had', () {
+      // The former zoom-out's reach, kept (Issue #410): every lap, and so
+      // the whole arrangement of the sky, is what it was.
+      expect(JuniorSceneryMotion.reach, moreOrLessEquals(262));
+      for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++) {
         final width = cloudWidth(i);
-        // Entering: wholly left of the farthest-left view.
         expect(
           JuniorSceneryMotion.cloudEntry(i) + width,
-          lessThanOrEqualTo(farLeft),
+          lessThanOrEqualTo(-JuniorSceneryMotion.reach),
         );
-        // Leaving: wholly right of the farthest-right view.
         expect(
           JuniorSceneryMotion.cloudExit(i),
-          greaterThanOrEqualTo(farRight),
+          greaterThanOrEqualTo(
+            JuniorMapGeometry.mapWidth + JuniorSceneryMotion.reach,
+          ),
         );
       }
     });
@@ -925,7 +687,7 @@ void main() {
 
       test('repeats exactly every period, so one period proves them all', () {
         const period = JuniorSceneryMotion.cloudPeriod;
-        for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++) {
+        for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++) {
           for (final t in <double>[6, 31.4, 100, 249.9]) {
             expect(
               JuniorSceneryMotion.cloudLeft(i, t + period),
@@ -939,14 +701,13 @@ void main() {
       });
 
       /// Every 0.1 s across one whole period (after the soft start, plus the
-      /// start itself), calls [check] with every cloud's box — the sky's and
-      /// the reserve's — at that moment.
+      /// start itself), calls [check] with every cloud's box at that moment.
       void simulate(double skyHeight, void Function(List<Rect> boxes) check) {
         const period = JuniorSceneryMotion.cloudPeriod;
         for (var step = 0; step <= (period + 6) * 10; step++) {
           final t = step / 10;
           check([
-            for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++)
+            for (var i = 0; i < JuniorSceneryMotion.clouds.length; i++)
               JuniorSceneryMotion.cloudBox(
                 i,
                 skyHeight,
@@ -955,12 +716,12 @@ void main() {
         }
       }
 
-      /// Anywhere any zoom can show.
+      /// Anywhere a cloud travels before it comes round.
       bool inSight(Rect box) =>
           box.right > -JuniorSceneryMotion.reach &&
           box.left < JuniorMapGeometry.mapWidth + JuniorSceneryMotion.reach;
 
-      test('never overlap — none of the 22, not at the start, not at any '
+      test('never overlap — none of the 10, not at the start, not at any '
           'moment after', () {
         // The shortest phone sky is the tightest; taller ones only spread
         // the clouds further apart, but check a typical and a tall one too.
@@ -998,10 +759,9 @@ void main() {
       test('never cluster: on screen, no cloud ever has more than one other '
           'close by, and two to five are in view', () {
         var mostNeighbours = 0;
-        var fewest = JuniorSceneryMotion.allClouds.length;
+        var fewest = JuniorSceneryMotion.clouds.length;
         var most = 0;
         simulate(600, (boxes) {
-          // At 1.0x: the reserve is never among these.
           final onScreen = [
             for (final box in boxes)
               if (box.right > 0 &&
@@ -1229,176 +989,6 @@ void main() {
       });
     });
 
-    group('reserve clouds', () {
-      const reserve = JuniorSceneryMotion.reserveClouds;
-      const width = JuniorMapGeometry.mapWidth;
-      final first = JuniorSceneryMotion.clouds.length;
-
-      Rect boxAt(int k, double t, double skyHeight) =>
-          JuniorSceneryMotion.cloudBox(
-            first + k,
-            skyHeight,
-          ).translate(JuniorSceneryMotion.cloudLeft(first + k, t), 0);
-
-      /// What the viewport shows, in the sky's own coordinates, at [zoom]
-      /// with the sky pushed as far towards [push] as the clamp allows.
-      Rect view(double zoom, Offset push, double skyHeight) {
-        final offset = JuniorMapScenery.clampOffset(
-          zoom,
-          push,
-          Size(width, skyHeight),
-        );
-        return Rect.fromLTWH(
-          -offset.dx / zoom,
-          -offset.dy / zoom,
-          width / zoom,
-          skyHeight / zoom,
-        );
-      }
-
-      test('twelve — six above the sky, six below — of the same kind', () {
-        expect(reserve, hasLength(12));
-        expect(reserve.where((c) => c.height < 0), hasLength(6));
-        expect(reserve.where((c) => c.height > 1), hasLength(6));
-        final speeds = [for (final c in JuniorSceneryMotion.allClouds) c.speed];
-        expect(speeds.toSet(), hasLength(speeds.length));
-        for (var k = 0; k < reserve.length; k++) {
-          final cloud = reserve[k];
-          expect(cloud.scale, inInclusiveRange(0.45, 1.3));
-          final box = JuniorSceneryMotion.cloudBox(first + k, 600);
-          expect(
-            box.width,
-            lessThanOrEqualTo(JuniorMapGeometry.largestDesignCloud.width),
-          );
-          // The sky's own pace for its size.
-          expect(
-            cloud.speed,
-            moreOrLessEquals(5 + 5.65 * (cloud.scale - 0.45), epsilon: 0.6),
-          );
-          expect(
-            JuniorSceneryMotion.cloudLap(first + k),
-            greaterThanOrEqualTo(
-              width + 2 * JuniorSceneryMotion.reach + box.width,
-            ),
-          );
-        }
-        for (final band in [
-          [
-            for (final c in reserve)
-              if (c.height < 0) c.height,
-          ],
-          [
-            for (final c in reserve)
-              if (c.height > 1) c.height,
-          ],
-        ]) {
-          band.sort();
-          for (var i = 1; i < band.length; i++) {
-            expect(band[i] - band[i - 1], greaterThanOrEqualTo(0.05));
-          }
-        }
-      });
-
-      test('are never seen at 1.0x or closer, at any sky height from 480 '
-          'to 700, wherever the view is pushed', () {
-        for (var skyHeight = 480.0; skyHeight <= 700; skyHeight += 10) {
-          for (final zoom in [1.0, 1.1, 1.25, JuniorMapScenery.maxZoom]) {
-            for (final push in const [
-              Offset.zero,
-              Offset(1e9, 1e9),
-              Offset(-1e9, -1e9),
-              Offset(1e9, -1e9),
-              Offset(-1e9, 1e9),
-            ]) {
-              final seen = view(zoom, push, skyHeight);
-              for (var k = 0; k < reserve.length; k++) {
-                // Its height alone keeps it out, wherever it is in its lap.
-                final box = JuniorSceneryMotion.cloudBox(first + k, skyHeight);
-                expect(
-                  box.top >= seen.bottom || box.bottom <= seen.top,
-                  isTrue,
-                  reason: 'cloud ${first + k}, sky $skyHeight, ${zoom}x',
-                );
-              }
-            }
-          }
-        }
-      });
-
-      test('zoomed out, they fill the sky it reveals above and below', () {
-        const skyHeight = 600.0;
-        const zoom = JuniorMapScenery.minZoom;
-        // Centred across, pushed as far up — or down — as the clamp allows.
-        final centre =
-            JuniorMapScenery.clampOffset(
-              zoom,
-              const Offset(1e9, 0),
-              const Size(width, skyHeight),
-            ).dx /
-            2;
-        for (final (name, push) in [
-          ('above', Offset(centre, 1e9)),
-          ('below', Offset(centre, -1e9)),
-        ]) {
-          final seen = view(zoom, push, skyHeight);
-          final revealed = name == 'above'
-              ? Rect.fromLTRB(seen.left, seen.top, seen.right, 0)
-              : Rect.fromLTRB(seen.left, skyHeight, seen.right, seen.bottom);
-          expect(revealed.height, greaterThan(skyHeight / 2));
-          var held = 0;
-          var count = 0;
-          var samples = 0;
-          const period = JuniorSceneryMotion.cloudPeriod;
-          for (var t = 6.0; t < 6 + period; t += 0.5) {
-            samples++;
-            var here = 0;
-            for (var k = 0; k < reserve.length; k++) {
-              final box = boxAt(k, t, skyHeight);
-              final part = box.intersect(revealed);
-              if (part.width > 0 &&
-                  part.height > 0 &&
-                  part.width * part.height >= 0.3 * box.width * box.height) {
-                here++;
-              }
-            }
-            if (here > 0) held++;
-            count += here;
-          }
-          expect(held / samples, greaterThanOrEqualTo(0.95), reason: name);
-          expect(count / samples, greaterThanOrEqualTo(1.8), reason: name);
-        }
-      });
-
-      test('zoomed out, nothing clusters anywhere the view can reach', () {
-        const skyHeight = 600.0;
-        const zoom = JuniorMapScenery.minZoom;
-        final reach = Rect.fromLTRB(
-          -JuniorSceneryMotion.reach,
-          -(skyHeight / zoom - skyHeight),
-          width + JuniorSceneryMotion.reach,
-          skyHeight / zoom,
-        );
-        const period = JuniorSceneryMotion.cloudPeriod;
-        var most = 0;
-        for (var t = 6.0; t < 6 + period; t += 0.5) {
-          final centres = [
-            for (var i = 0; i < JuniorSceneryMotion.allClouds.length; i++)
-              JuniorSceneryMotion.cloudBox(
-                i,
-                skyHeight,
-              ).translate(JuniorSceneryMotion.cloudLeft(i, t), 0).center,
-          ].where(reach.contains).toList();
-          for (final a in centres) {
-            final near = centres
-                .where((b) => b != a && (b - a).distance < 170)
-                .length;
-            if (near > most) most = near;
-          }
-        }
-        expect(most, lessThanOrEqualTo(1));
-      });
-    });
-
     test('islands and coins: no period divides another', () {
       for (final periods in [
         JuniorSceneryMotion.islandPeriods,
@@ -1426,8 +1016,6 @@ void main() {
       );
       expect(JuniorSceneryMotion.islandFloat, 1.5);
       expect(JuniorSceneryMotion.coinBob, 2);
-      expect(JuniorMapScenery.minZoom, 0.6);
-      expect(JuniorMapScenery.maxZoom, 1.4);
     });
   });
 }

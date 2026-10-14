@@ -89,21 +89,25 @@ abstract final class JuniorHomeStrings {
   // without these a screen reader would find five unlabelled boxes.
 
   static const String nodeCompleted = 'completed';
-  static const String nodeCurrent = 'current lesson';
+  static const String nodeCurrent = 'open';
   static const String nodeLocked = 'locked';
 
   static const String checkInOpen = 'attendance check-in open';
-  static const String checkInClosed = 'attendance check-in not open';
 
-  /// The check-in node (Issue #202): its lesson, and whether check-in is
-  /// open now.
-  static String checkInNodeLabel(int number, {required bool open}) =>
-      'Lesson $number, $nodeCurrent, ${open ? checkInOpen : checkInClosed}';
+  /// Lesson [number] of the path (1-based, course order) and its [title]
+  /// when it has one (Issue #410).
+  static String _lesson(int number, String title) =>
+      title.isEmpty ? 'Lesson $number' : 'Lesson $number: $title';
 
-  static String nodeLabel(int number, JuniorNodeState state) =>
-      'Lesson $number, ${switch (state) {
+  /// A lesson node: the lesson, then its state.
+  static String nodeLabel(int number, String title, JuniorNodeState state) =>
+      '${_lesson(number, title)}, ${switch (state) {
         JuniorNodeState.completed => nodeCompleted,
         JuniorNodeState.current => nodeCurrent,
         JuniorNodeState.locked => nodeLocked,
       }}';
+
+  /// The check-in node while check-in is open (Issues #202, #410).
+  static String checkInNodeLabel(int number, String title) =>
+      '${_lesson(number, title)}, $checkInOpen';
 }
