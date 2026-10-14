@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/course_learning_failure.dart';
 import '../domain/course_learning_repository.dart';
 import '../domain/lesson.dart';
+import '../domain/lesson_note_completion.dart';
 import 'course_learning_strings.dart';
 
 /// Loads one module's lessons.
@@ -50,7 +51,16 @@ class LessonListController extends ChangeNotifier {
     _notify();
 
     try {
-      _lessons = await _repository.getLessons(moduleId);
+      final lessons = await _repository.getLessons(moduleId);
+      // Completion is a saved note (Issue #415), read back for every
+      // unlocked lesson; a failed read fails the load, never a guess.
+      final completedByNote = await lessonsCompletedByNote(_repository, [
+        for (final lesson in lessons) (id: lesson.id, locked: lesson.locked),
+      ]);
+      _lessons = [
+        for (final lesson in lessons)
+          lesson.withCompleted(completedByNote.contains(lesson.id)),
+      ];
     } on CourseLearningFailure catch (failure) {
       // Dropped, not kept, for the reason `CourseLearningController` gives:
       // a failed reload shows its error rather than data that may be stale.

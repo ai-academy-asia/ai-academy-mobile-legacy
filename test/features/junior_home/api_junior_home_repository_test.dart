@@ -120,7 +120,7 @@ void main() {
     JuniorLearningMap mapOf(
       CourseLearningPath path, {
       Map<int, List<Lesson>> lessons = const {},
-    }) => juniorMapFrom(path, lessons: lessons);
+    }) => mapFrom(path, lessons: lessons);
 
     test('shows the server\'s percent, and never derives one', () async {
       // One of two lessons complete — a lesson-based figure would be 50.
@@ -206,7 +206,7 @@ void main() {
       test('states and taps: done and the continue lesson open; a lesson '
           'whose date has come but whose turn has not waits; server-locked '
           'ones never open', () {
-        final map = juniorMapFrom(path, lessons: lessons);
+        final map = mapFrom(path, lessons: lessons);
 
         expect(map.nodes.map((n) => n.state), [
           JuniorNodeState.completed,
@@ -233,7 +233,7 @@ void main() {
 
       test('the continue lesson is picked out — the one unfinished lesson '
           'that opens, and the check-in node', () {
-        final map = juniorMapFrom(path, lessons: lessons);
+        final map = mapFrom(path, lessons: lessons);
 
         expect(map.checkInNode?.id, 12);
         expect(
@@ -245,7 +245,7 @@ void main() {
       test('without a usable continue target, no unfinished lesson is '
           'guessed: none opens', () {
         for (final continueId in [null, 11, 21, 99]) {
-          final map = juniorMapFrom(
+          final map = mapFrom(
             samplePath(
               continueLessonId: continueId,
               modules: [
@@ -270,15 +270,12 @@ void main() {
 
       test('the percentage stays the server\'s — never the share of nodes '
           'that open', () {
-        expect(
-          juniorMapFrom(path, lessons: lessons).progress.percentComplete,
-          54,
-        );
+        expect(mapFrom(path, lessons: lessons).progress.percentComplete, 54);
       });
 
-      test('a completed lesson in a module locked again keeps its tick and '
-          'stays shut', () {
-        final map = juniorMapFrom(
+      test('a lesson the server still counts completed, in a module locked '
+          'again, is LOCKED — its note can\'t be read', () {
+        final map = mapFrom(
           samplePath(modules: [sampleModule(id: 3, order: 1, locked: true)]),
           lessons: {
             3: [
@@ -293,13 +290,13 @@ void main() {
           },
         );
 
-        expect(map.nodes.single.state, JuniorNodeState.completed);
+        expect(map.nodes.single.state, JuniorNodeState.locked);
         expect(map.nodes.single.locked, isTrue);
       });
 
       test('nothing open, or everything done: nothing picked out, nothing '
           'invented', () {
-        final done = juniorMapFrom(
+        final done = mapFrom(
           samplePath(continueLessonId: 12, modules: [sampleModule(id: 1)]),
           lessons: {
             1: [
@@ -314,7 +311,7 @@ void main() {
         );
         expect(done.checkInNode, isNull);
 
-        final closed = juniorMapFrom(
+        final closed = mapFrom(
           samplePath(modules: [sampleModule(id: 1, locked: true)]),
           lessons: {
             1: [sampleLesson(id: 11, moduleId: 1, order: 1, locked: true)],
@@ -325,8 +322,10 @@ void main() {
       });
     });
 
-    test('completed wins over locked, so a node is never both', () {
-      final map = mapOf(
+    test('a locked lesson is LOCKED even when the server says completed — '
+        'its note can\'t be read, and the server flag alone completes '
+        'nothing (Issue #415)', () {
+      final map = juniorMapFrom(
         samplePath(modules: [sampleModule(id: 1, order: 1)]),
         lessons: {
           1: [
@@ -341,10 +340,12 @@ void main() {
         },
       );
 
-      expect(map.nodes.single.state, JuniorNodeState.completed);
+      expect(map.nodes.single.state, JuniorNodeState.locked);
+      expect(map.nodes.single.opens, isFalse);
     });
 
-    test('a lesson in a locked module is locked unless completed', () {
+    test('every lesson of a locked module is LOCKED — none of their notes is '
+        'read (Issue #415)', () {
       final map = mapOf(
         samplePath(modules: [sampleModule(id: 1, order: 1, locked: true)]),
         lessons: {
@@ -356,30 +357,24 @@ void main() {
       );
 
       expect(map.nodes.map((n) => n.state), [
-        JuniorNodeState.completed,
+        JuniorNodeState.locked,
         JuniorNodeState.locked,
       ]);
     });
 
-    test('a completed lesson whose module is locked again keeps its tick but '
-        'does not open — the server would answer 409 lesson_locked', () {
-      final map = mapOf(
+    test('a note given for a lesson that is locked again: the tick shows, '
+        'and it still does not open — the server would answer 409', () {
+      final map = juniorMapFrom(
         samplePath(modules: [sampleModule(id: 1, order: 1, locked: true)]),
         lessons: {
-          1: [
-            sampleLesson(
-              id: 1,
-              moduleId: 1,
-              order: 1,
-              completed: true,
-              locked: true,
-            ),
-          ],
+          1: [sampleLesson(id: 1, moduleId: 1, order: 1, locked: true)],
         },
+        completedByNote: {1},
       );
 
       expect(map.nodes.single.state, JuniorNodeState.completed);
       expect(map.nodes.single.locked, isTrue);
+      expect(map.nodes.single.opens, isFalse);
     });
 
     test('an unlocked lesson is never marked locked, completed or not', () {
@@ -561,6 +556,34 @@ void main() {
       'completed': completed,
       'locked': locked,
     };
+    Map<String, Object?> lessonDetail(int id, String? note) => {
+      'id': id,
+      'module': {
+        'id': id ~/ 10,
+        'order': id ~/ 10 - 29,
+        'title': {'en': 'Module'},
+      },
+      'order': id % 10,
+      'title': {'en': 'Lesson $id'},
+      'type': 'recording',
+      'duration_seconds': 1455,
+      'video': null,
+      'summary': null,
+      'sections': <Object?>[],
+      'completed': note != null,
+      'materials': <Object?>[],
+      'note': note == null
+          ? null
+          : {
+              'id': id,
+              'content': note,
+              'created_at': '2026-08-06T01:00:00+00:00',
+              'updated_at': '2026-08-06T01:00:00+00:00',
+              'author': {'name': 'Болд Батаа', 'initials': 'ББ'},
+            },
+      'assignment': null,
+      'quiz': null,
+    };
     final bodies = <String, Object?>{
       '/me/courses/junior-ai/learning': {
         'course': {
@@ -609,9 +632,18 @@ void main() {
         },
         'lessons': [lesson(321, 1, locked: true), lesson(322, 2, locked: true)],
       },
+      // §2.3 lesson detail, each with its saved note or none (Issue #415).
+      for (final (id, note) in [
+        (301, 'Base case first'),
+        (302, 'Loops inside loops'),
+        (311, 'Vision models'),
+        (312, null),
+      ])
+        '/me/lessons/$id': lessonDetail(id, note),
     };
 
-    test('every lesson, in course order, with its own state', () async {
+    test('every lesson, in course order, with its own state — completed by '
+        'its saved note', () async {
       final requested = <String>[];
       final map = await ApiJuniorHomeRepository(
         dashboardRepository: FakeHomeDashboardRepository(
@@ -647,12 +679,17 @@ void main() {
       ]);
       expect(map.nodes.map((n) => n.moduleId), [30, 30, 31, 31, 32, 32]);
       expect(map.checkInNode?.id, 312);
-      // Reads only: the learning path, then each module's lessons.
+      // Reads only: the learning path, each module's lessons, then each
+      // unlocked lesson's detail for its note — never the locked 321/322.
       expect(requested.first, '/me/courses/junior-ai/learning');
       expect(requested.skip(1).toSet(), {
         '/me/modules/30/lessons',
         '/me/modules/31/lessons',
         '/me/modules/32/lessons',
+        '/me/lessons/301',
+        '/me/lessons/302',
+        '/me/lessons/311',
+        '/me/lessons/312',
       });
     });
   });
@@ -781,3 +818,23 @@ void main() {
     expect(map?.nextLesson, same(lesson));
   });
 }
+
+/// The fixtures' `completed: true` stands for a saved, non-empty note
+/// (Issue #415): completion is the note, not the server's flag. As in the
+/// repository, a locked lesson's note is never read.
+JuniorLearningMap mapFrom(
+  CourseLearningPath path, {
+  Map<int, List<Lesson>> lessons = const {},
+  NextLesson? nextLesson,
+  bool? attendanceRecorded,
+}) => juniorMapFrom(
+  path,
+  lessons: lessons,
+  nextLesson: nextLesson,
+  attendanceRecorded: attendanceRecorded,
+  completedByNote: {
+    for (final module in path.modules)
+      for (final lesson in lessons[module.id] ?? const <Lesson>[])
+        if (lesson.completed && !lesson.locked && !module.locked) lesson.id,
+  },
+);

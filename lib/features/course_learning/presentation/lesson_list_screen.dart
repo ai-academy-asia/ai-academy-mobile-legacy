@@ -148,6 +148,11 @@ class _LessonListScreenState extends State<LessonListScreen> {
       lessons: _controller.lessons,
       repository: _repository,
       resumeLessonId: widget.resumeLessonId,
+      // Back from a lesson, read the list again: a note saved there is what
+      // completes it (Issue #415).
+      onLessonClosed: () {
+        if (mounted) _controller.load();
+      },
     );
   }
 }
@@ -362,12 +367,16 @@ class _LessonListBody extends StatelessWidget {
     required this.lessons,
     required this.repository,
     required this.resumeLessonId,
+    required this.onLessonClosed,
   });
 
   final Widget header;
   final List<Lesson> lessons;
   final CourseLearningRepository repository;
   final int? resumeLessonId;
+
+  /// Called when an opened lesson's screen closes.
+  final VoidCallback onLessonClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -403,14 +412,17 @@ class _LessonListBody extends StatelessWidget {
                           completed: lessons[i].completed,
                           isResume: lessons[i].id == resumeLessonId,
                         )
-                        ? () => openLesson(
-                            context,
-                            lessonId: lessons[i].id,
-                            locked: lessons[i].locked,
-                            completed: lessons[i].completed,
-                            resumeLessonId: resumeLessonId,
-                            repository: repository,
-                          )
+                        ? () async {
+                            final opened = await openLesson(
+                              context,
+                              lessonId: lessons[i].id,
+                              locked: lessons[i].locked,
+                              completed: lessons[i].completed,
+                              resumeLessonId: resumeLessonId,
+                              repository: repository,
+                            );
+                            if (opened) onLessonClosed();
+                          }
                         : null,
                   ),
                   if (i != lessons.length - 1) const _LessonConnector(),

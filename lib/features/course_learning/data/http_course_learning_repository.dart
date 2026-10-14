@@ -153,6 +153,14 @@ class HttpCourseLearningRepository implements CourseLearningRepository {
     return _exerciseFromBody(body, now: _clock());
   }
 
+  /// §2.3 `GET /me/lessons/{lesson_id}`'s `note` — the only read of a saved
+  /// note (Issue #415). The same request and parse as [getExercise], so a
+  /// malformed lesson is the same fault; failures map as it does, 409
+  /// `lesson_locked` included.
+  @override
+  Future<CourseExerciseNote?> getLessonNote(int lessonId) async =>
+      (await getExercise(lessonId)).note;
+
   /// §2.5 `PUT /me/lessons/{lesson_id}/note` with `{"content": ...}` — the
   /// saved note, `201` on the first save and `200` after. See [_savedNoteFrom].
   ///

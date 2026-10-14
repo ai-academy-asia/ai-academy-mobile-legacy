@@ -35,6 +35,10 @@ class _ThrowingRepository implements CourseLearningRepository {
       _delegate.getExercise(moduleId);
 
   @override
+  Future<CourseExerciseNote?> getLessonNote(int lessonId) =>
+      _delegate.getLessonNote(lessonId);
+
+  @override
   Future<CourseExerciseNote> saveNote(int lessonId, String content) =>
       _delegate.saveNote(lessonId, content);
 

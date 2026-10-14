@@ -134,6 +134,11 @@ class SampleCourseLearningRepository implements CourseLearningRepository {
     ];
   }
 
+  /// The sample lesson's note, as [getExercise] carries it.
+  @override
+  Future<CourseExerciseNote?> getLessonNote(int lessonId) async =>
+      (await getExercise(lessonId)).note;
+
   @override
   Future<CourseExercise> getExercise(int lessonId) async {
     return CourseExercise(

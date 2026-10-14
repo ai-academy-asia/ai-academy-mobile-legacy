@@ -1,5 +1,6 @@
 import 'course_certificate.dart';
 import 'course_exercise.dart';
+import 'course_learning_failure.dart';
 import 'course_learning_path.dart';
 import 'course_quiz.dart';
 import 'lesson.dart';
@@ -37,6 +38,14 @@ abstract interface class CourseLearningRepository {
   /// One lesson's content — the Exercise Detail screen's data.
   /// [lessonId] is `Lesson.id`: §2.3 makes exercise content per lesson.
   Future<CourseExercise> getExercise(int lessonId);
+
+  /// The signed-in student's saved note on [lessonId], or null when there is
+  /// none — read from §2.3 `GET /me/lessons/{lesson_id}`'s `note`, the one
+  /// place the backend returns it (Issue #415). The backend keeps one note
+  /// per student and lesson and refuses an empty one, so a note here is a
+  /// persisted, non-empty one. A locked lesson answers
+  /// [CourseLearningFailureKind.locked].
+  Future<CourseExerciseNote?> getLessonNote(int lessonId);
 
   /// Creates or replaces the student's note on [lessonId] with [content] and
   /// returns the note as saved — §2.5 `PUT /me/lessons/{lesson_id}/note`,

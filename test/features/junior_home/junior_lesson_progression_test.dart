@@ -78,6 +78,11 @@ void main() {
           ),
         ],
       };
+    // Module 1's completed lessons are completed by their saved notes
+    // (Issue #415); module 3's lesson is locked, so its note is never read.
+    learning.notesByLesson
+      ..clear()
+      ..addAll({for (var i = 0; i < done; i++) 101 + i: sampleNote()});
   }
 
   final lesson = NextLesson(
@@ -205,7 +210,7 @@ void main() {
     // class moved later.
     final learning = await pumpHome(tester, done: 1);
 
-    expect(states(tester), [done, current, locked, locked, done]);
+    expect(states(tester), [done, current, locked, locked, locked]);
     // 54%: the server's figure, whatever opens — never derived from nodes.
     expect(
       find.descendant(
@@ -217,7 +222,7 @@ void main() {
     expect(glyphOf(tester, 101), 'node_check');
     expect(glyphOf(tester, 102), isNull);
     expect(glyphOf(tester, 201), 'node_lock');
-    expect(glyphOf(tester, 301), 'node_check');
+    expect(glyphOf(tester, 301), 'node_lock'); // its note can't be read
 
     for (final id in [201, 202, 301]) {
       expect(tester.widget<JuniorMapNodeTile>(tile(id)).onTap, isNull);
@@ -256,12 +261,15 @@ void main() {
     expect(learning.exerciseCalls, isEmpty);
   });
 
-  testWidgets('a completed lesson whose class moved later keeps its tick and '
-      'cannot be opened', (tester) async {
+  testWidgets('a lesson the server counts completed, whose class moved '
+      'later, is LOCKED — its note can\'t be read — and cannot be opened', (
+    tester,
+  ) async {
     final learning = await pumpHome(tester);
 
     final node = tester.widget<JuniorMapNodeTile>(tile(301));
-    expect(node.node.state, done);
+    expect(node.node.state, locked);
+    expect(learning.noteCalls, isNot(contains(301)));
     expect(node.onTap, isNull);
     await tester.tap(tile(301));
     await tester.pumpAndSettle();
@@ -278,7 +286,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
-    expect(states(tester), [done, current, locked, locked, done]);
+    expect(states(tester), [done, current, locked, locked, locked]);
   });
 
   testWidgets('when the class date comes, the next load opens the module — '
@@ -292,7 +300,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
-    expect(states(tester), [done, done, current, open, done]);
+    expect(states(tester), [done, done, current, open, locked]);
     expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNotNull);
     expect(tester.widget<JuniorMapNodeTile>(tile(301)).onTap, isNull);
   });

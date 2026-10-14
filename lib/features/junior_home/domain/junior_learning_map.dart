@@ -3,14 +3,18 @@ import '../../home/domain/home_dashboard.dart';
 
 /// How far along the path one lesson is (Issue #410).
 ///
-/// From the lesson's two server booleans — the client never derives
-/// `completed` or `locked` — then the server's resume lesson picked out
+/// From the lesson's saved note and the server's lock — the client never
+/// derives `locked` — then the server's resume lesson picked out
 /// ([withResumeLesson]). Whether a node opens is `lessonOpens`, the one
-/// rule every screen asks (Issue #410): unlocked, and completed or the
-/// lesson to continue with.
+/// rule every screen asks (Issue #410): unlocked, and completed, attended
+/// or the lesson to continue with.
 ///
-/// * [completed] — `lesson.completed` is true: a tick. Opens unless the
-///   server locks it ([JuniorMapNode.locked]).
+/// * [completed] — LESSON_COMPLETED: the student has a saved, non-empty note
+///   on it (Issue #415): the blue tick. Opens unless the server locks it
+///   ([JuniorMapNode.locked]).
+/// * [attendanceCompleted] — ATTENDANCE_COMPLETED: the backend confirmed
+///   attendance at its class, no note yet: the grey tick. Opens. Not derived
+///   from data yet — the backend has no per-lesson attendance (#414).
 /// * [current] — the lesson to continue with: the server's
 ///   `continue.lesson_id`, unlocked and not yet done. The one unfinished
 ///   lesson that opens.
@@ -19,7 +23,7 @@ import '../../home/domain/home_dashboard.dart';
 ///   padlock, as it cannot be opened; read as "not yet available".
 /// * [locked] — the server locks it (`lesson.locked`, or its module's —
 ///   the class date has not come): a grey padlock; does not open.
-enum JuniorNodeState { completed, current, open, locked }
+enum JuniorNodeState { completed, attendanceCompleted, current, open, locked }
 
 /// Where the student stands on earning the course certificate.
 ///
@@ -71,8 +75,87 @@ class JuniorMapNode {
     locked: locked,
     completed: state == JuniorNodeState.completed,
     isResume: state == JuniorNodeState.current,
+    attended: state == JuniorNodeState.attendanceCompleted,
   );
 }
+
+/// The four product states of a lesson on the Junior path (Issue #415,
+/// product-approved).
+enum LessonPathState {
+  /// Before the lesson's own class date: grey padlock; does not open.
+  locked,
+
+  /// On its class date while check-in is active: the QR mark in the accent
+  /// frame; a tap opens the attendance scanner.
+  checkInRequired,
+
+  /// The backend confirmed attendance; no saved note yet: the grey tick; a
+  /// tap opens the lesson.
+  attendanceCompleted,
+
+  /// The student has a saved, non-empty note on it: the blue tick; a tap
+  /// opens the lesson.
+  lessonCompleted,
+}
+
+/// What a tap on a lesson in [LessonPathState] does.
+enum LessonPathTap { nothing, scanner, lesson }
+
+/// The approved state of one lesson (Issue #415), from backend-confirmed
+/// facts only:
+///
+/// * [hasSavedNote] — a persisted, non-empty note (`noteCompletesLesson`).
+/// * [attendanceConfirmed] — the backend's attendance record for the
+///   lesson's class; null when unknown.
+/// * [classDateArrived] and [checkInActive] — the lesson's own class date
+///   has come and check-in is open; null when unknown.
+///
+/// The note decides completion, so a saved note is LESSON_COMPLETED whatever
+/// else holds; were it gone, confirmed attendance still shows
+/// ATTENDANCE_COMPLETED. Unknown is never success: without confirmed
+/// attendance or an open check-in on its date, a lesson is LOCKED.
+///
+/// The backend sends no per-lesson attendance or class date yet (#414), so
+/// the live path passes null for both and shows only what notes and the
+/// server's lock establish; this rule is what it switches to once they
+/// exist.
+LessonPathState lessonPathStateFor({
+  required bool hasSavedNote,
+  required bool? attendanceConfirmed,
+  required bool? classDateArrived,
+  required bool? checkInActive,
+}) {
+  if (hasSavedNote) return LessonPathState.lessonCompleted;
+  if (attendanceConfirmed ?? false) return LessonPathState.attendanceCompleted;
+  if ((classDateArrived ?? false) && (checkInActive ?? false)) {
+    return LessonPathState.checkInRequired;
+  }
+  return LessonPathState.locked;
+}
+
+/// A tap on a lesson in [state]: the scanner on check-in, the lesson once
+/// attended or completed — unless the server locks it — and nothing while
+/// locked.
+LessonPathTap lessonPathTap(
+  LessonPathState state, {
+  required bool serverLocked,
+}) => switch (state) {
+  LessonPathState.locked => LessonPathTap.nothing,
+  LessonPathState.checkInRequired => LessonPathTap.scanner,
+  LessonPathState.attendanceCompleted || LessonPathState.lessonCompleted =>
+    serverLocked ? LessonPathTap.nothing : LessonPathTap.lesson,
+};
+
+/// How the Junior map draws [state]: LESSON_COMPLETED as a completed node,
+/// ATTENDANCE_COMPLETED with the grey tick, CHECK_IN_REQUIRED as the
+/// continue lesson (the map frames it as the live check-in), LOCKED with
+/// the padlock.
+JuniorNodeState juniorNodeStateOf(LessonPathState state) => switch (state) {
+  LessonPathState.lessonCompleted => JuniorNodeState.completed,
+  LessonPathState.attendanceCompleted => JuniorNodeState.attendanceCompleted,
+  LessonPathState.checkInRequired => JuniorNodeState.current,
+  LessonPathState.locked => JuniorNodeState.locked,
+};
 
 /// Picks out the lesson to continue with (Issue #410).
 ///

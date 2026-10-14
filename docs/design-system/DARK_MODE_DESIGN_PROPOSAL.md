@@ -542,6 +542,7 @@ Counts: **48 PROPOSED, 35 DERIVED, 11 UNRESOLVED**, 94 roles in all. None is app
 | `calendarLesson` | `#FF1A2A47` | PROPOSED | §11 #1A2A47 |
 | `calendarMissed` | `#FF3A1F22` | PROPOSED | §11 |
 | `juniorMutedFill` | `#FF20252E` | UNRESOLVED | §11 "nodes at full strength" is open; surfaceMuted stands in (the light value left the certificate panel's text illegible) |
+| `juniorMutedGlyph` | `#FFA4A6A8` | DERIVED | The padlock sprite's own ink (`node_lock.png`), which is not themed; tints the attendance-completed node's tick to match it (Issue #415) |
 | `juniorHeaderRule` | `#FF2A303A` | DERIVED | a header rule; every other is divider |
 | `onJuniorMapSky` | `#FFFFFFFF` | DERIVED | white reads on the dusk sky |
 | `scheduleBand` | `#FF1F4FC9` | PROPOSED | §12 #1F4FC9 |

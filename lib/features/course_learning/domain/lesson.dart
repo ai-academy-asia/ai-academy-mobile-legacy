@@ -39,7 +39,9 @@ class Lesson {
   /// `LessonListItem` stays exactly as it is.
   final String durationLabel;
 
-  /// Server-sent; never derived.
+  /// As parsed, the server's `completed` (its progress record). The Lesson
+  /// List shows a lesson completed by its saved note instead (Issue #415) —
+  /// see [withCompleted] and `lessonsCompletedByNote`.
   final bool completed;
 
   /// True when the lesson is not yet reachable. Server-sent — the contract
@@ -47,6 +49,19 @@ class Lesson {
   /// rather than deriving it. Same independence from [completed] that
   /// `CourseModule.locked` documents.
   final bool locked;
+
+  /// This lesson, [completed] as given — the Lesson List's completion from
+  /// a saved note (Issue #415); every other field as the server sent it.
+  Lesson withCompleted(bool completed) => Lesson(
+    id: id,
+    moduleId: moduleId,
+    order: order,
+    title: title,
+    type: type,
+    durationLabel: durationLabel,
+    completed: completed,
+    locked: locked,
+  );
 }
 
 /// A lesson's `type`, per `course_learning_api_contract_v1.md` §2.2.

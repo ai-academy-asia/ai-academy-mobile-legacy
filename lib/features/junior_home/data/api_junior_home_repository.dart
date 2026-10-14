@@ -6,6 +6,7 @@ import '../../course_learning/domain/course_learning_failure.dart';
 import '../../course_learning/domain/course_learning_path.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../course_learning/domain/lesson.dart';
+import '../../course_learning/domain/lesson_note_completion.dart';
 import '../../home/data/enrolled_home_dashboard_repository.dart';
 import '../../home/domain/home_dashboard.dart';
 import '../../home/domain/home_dashboard_repository.dart';
@@ -90,11 +91,20 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
     final lessons = await Future.wait([
       for (final module in path.modules) _learning.getLessons(module.id),
     ]);
+    // Completion is a saved note (Issue #415): each unlocked lesson's note,
+    // read back from the backend. A failed read fails the map — a lesson is
+    // never shown completed, or not, on a guess.
+    final completedByNote = await lessonsCompletedByNote(_learning, [
+      for (final (i, module) in path.modules.indexed)
+        for (final lesson in lessons[i])
+          (id: lesson.id, locked: lesson.locked || module.locked),
+    ]);
     return juniorMapFrom(
       path,
       lessons: {
         for (final (i, module) in path.modules.indexed) module.id: lessons[i],
       },
+      completedByNote: completedByNote,
       nextLesson: nextLesson,
       attendanceRecorded: attendanceRecordedOn(await attendance, nextLesson),
     );
@@ -156,13 +166,15 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 /// [lessons] are each module's lessons by module id — one node per lesson,
 /// in course order: modules by `order`, then their lessons by `order`
 /// (Issue #410), the resume lesson picked out ([withResumeLesson]). A
-/// module with none listed adds no node.
-/// [nextLesson] is
-/// the dashboard's, from the cohort's schedule, and [attendanceRecorded]
-/// today's record — what the check-in node reads (Issues #202, #410).
+/// module with none listed adds no node. A lesson is completed when its id
+/// is in [completedByNote] — it has a saved, non-empty note (Issue #415) —
+/// never by the server's own `completed` flag. [nextLesson] is the
+/// dashboard's, from the cohort's schedule, and [attendanceRecorded] today's
+/// record — what the check-in node reads (Issues #202, #410).
 JuniorLearningMap juniorMapFrom(
   CourseLearningPath path, {
   Map<int, List<Lesson>> lessons = const {},
+  Set<int> completedByNote = const {},
   NextLesson? nextLesson,
   bool? attendanceRecorded,
 }) => JuniorLearningMap(
@@ -185,7 +197,11 @@ JuniorLearningMap juniorMapFrom(
             ..sort((a, b) => a.order.compareTo(b.order)))
         JuniorMapNode(
           id: lesson.id,
-          state: _stateFor(lesson, inLockedModule: module.locked),
+          state: _stateFor(
+            lesson,
+            inLockedModule: module.locked,
+            completed: completedByNote.contains(lesson.id),
+          ),
           locked: lesson.locked || module.locked,
           title: lesson.title,
           moduleId: module.id,
@@ -205,17 +221,19 @@ JuniorLearningMap juniorMapFrom(
   continueLessonId: path.continueLessonId,
 );
 
-/// Both booleans are server-sent and neither is recomputed here: a
-/// completed lesson is completed even under a lock; "open and unfinished"
-/// is what is left once both are false — see [JuniorNodeState.open].
-/// A lesson's look, straight off the server's two flags: completed wins the
-/// look (its tick stays even if its module locks again), while whether it
-/// opens is [JuniorMapNode.locked]. A lesson in a locked module is locked
-/// unless completed — the backend lists such lessons `locked` already (a
-/// lesson's lock *is* its module's), so this only keeps a tap from ever
-/// reaching `409 lesson_locked`.
-JuniorNodeState _stateFor(Lesson lesson, {required bool inLockedModule}) {
-  if (lesson.completed) return JuniorNodeState.completed;
+/// A lesson's look: [completed] — a saved note (Issue #415) — wins the look,
+/// while whether it opens is [JuniorMapNode.locked]. Otherwise the server's
+/// lock: a lesson in a locked module is locked — the backend lists such
+/// lessons `locked` already (a lesson's lock *is* its module's), so this
+/// only keeps a tap from ever reaching `409 lesson_locked`. "Open and
+/// unfinished" is what is left — see [JuniorNodeState.open]. The server's
+/// own `completed` flag is not read: completion is the note.
+JuniorNodeState _stateFor(
+  Lesson lesson, {
+  required bool inLockedModule,
+  required bool completed,
+}) {
+  if (completed) return JuniorNodeState.completed;
   if (lesson.locked || inLockedModule) return JuniorNodeState.locked;
   return JuniorNodeState.open;
 }

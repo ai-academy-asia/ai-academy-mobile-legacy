@@ -107,6 +107,7 @@ void main() {
       'calendarLesson': (light.calendarLesson, const Color(0xFFE5F4FF)),
       'calendarMissed': (light.calendarMissed, const Color(0xFFFFE7E7)),
       'juniorMutedFill': (light.juniorMutedFill, const Color(0xFFEAEDF0)),
+      'juniorMutedGlyph': (light.juniorMutedGlyph, const Color(0xFFA4A6A8)),
       'juniorHeaderRule': (light.juniorHeaderRule, const Color(0xFFE4E6EF)),
       'onJuniorMapSky': (light.onJuniorMapSky, const Color(0xFFFFFFFF)),
       'scheduleBand': (light.scheduleBand, const Color(0xFF2970FF)),

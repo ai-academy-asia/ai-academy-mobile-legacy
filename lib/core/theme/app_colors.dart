@@ -298,6 +298,11 @@ abstract final class AppColors {
   /// certificate panel at the path's end.
   static const Color juniorMutedFill = _lineGrey;
 
+  /// The grey of a Junior map node's not-yet glyph: the exported padlock's
+  /// own ink (`node_lock.png`, measured `#A4A6A8`), so a tick tinted with it
+  /// — the attendance-completed node (Issue #415) — matches the padlock.
+  static const Color juniorMutedGlyph = Color(0xFFA4A6A8);
+
   /// The rule under Junior Home's header — a step darker than [divider].
   static const Color juniorHeaderRule = _fieldGrey;
 

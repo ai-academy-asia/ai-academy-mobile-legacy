@@ -116,6 +116,9 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         width: glyphSize,
         height: glyphSize,
         filterQuality: FilterQuality.high,
+        // The attendance tick: the completed node's own sprite in grey.
+        color: style.tint,
+        colorBlendMode: style.tint == null ? null : BlendMode.srcIn,
       ),
       // The continue lesson: the frame alone carries it.
       null => const SizedBox.shrink(),
@@ -176,6 +179,7 @@ class _NodeStyle {
     required this.fill,
     required this.border,
     required this.glyph,
+    this.tint,
   });
 
   final Color fill;
@@ -184,6 +188,10 @@ class _NodeStyle {
   /// The exported sprite's name; null for the continue lesson's empty
   /// active frame.
   final String? glyph;
+
+  /// A colour the sprite is drawn in instead of its own, or null to keep
+  /// its exported colours.
+  final Color? tint;
 
   /// The live check-in: the updated reference's QR stop — the white face in
   /// the accent frame.
@@ -204,6 +212,14 @@ class _NodeStyle {
           fill: palette.juniorCard,
           border: palette.accent,
           glyph: 'node_check',
+        ),
+        // ATTENDANCE_COMPLETED (Issue #415): the completed node's geometry
+        // and tick, every colour grey — the padlock's face, outline and ink.
+        JuniorNodeState.attendanceCompleted => _NodeStyle(
+          fill: palette.juniorMutedFill,
+          border: palette.outline,
+          glyph: 'node_check',
+          tint: palette.juniorMutedGlyph,
         ),
         JuniorNodeState.current => _NodeStyle(
           fill: palette.surface,
