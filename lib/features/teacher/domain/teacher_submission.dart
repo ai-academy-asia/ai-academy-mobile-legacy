@@ -4,11 +4,12 @@ import '../../../core/models/localized_text.dart';
 /// `GET /teacher/cohorts/{cohort_id}/assignments` (Issue #233).
 ///
 /// Only what the Gradebook reads is modelled: `id`, the title
-/// (`title_mn` / `title_en`, falling back to `title`) and `max_score`. The
-/// other confirmed fields — `cohort_id`, `lesson_id`, `instructions`,
-/// `due_date`, `submitted_students`, `teacher_id`, `is_active`,
-/// `attachment` / `attachment_material_id` — are unread. No field names the
-/// assignment's module (BACKEND GAP, Issue #390).
+/// (`title_mn` / `title_en`, each falling back to its side of the `{mn, en}`
+/// `title` object) and `max_score`. The other confirmed fields —
+/// `cohort_id`, `lesson_id`, `instructions`, `due_date`,
+/// `submitted_students`, `teacher_id`, `is_active`, `attachment` /
+/// `attachment_material_id` — are unread. Assignments are not grouped by
+/// module (PRODUCT DECISION, Issue #394).
 class TeacherAssignment {
   const TeacherAssignment({
     required this.id,

@@ -152,14 +152,25 @@ TeacherAssignment _assignment(Object? entry) {
   if (maxScore != null && maxScore is! num) {
     throw _shape('assignment $id: max_score');
   }
+  final title = _titleObject(entry, id);
   return TeacherAssignment(
     id: id,
     title: LocalizedText(
-      mn: _string(entry, 'title_mn') ?? _string(entry, 'title'),
-      en: _string(entry, 'title_en') ?? _string(entry, 'title'),
+      mn: _string(entry, 'title_mn') ?? title.mn,
+      en: _string(entry, 'title_en') ?? title.en,
     ),
     maxScore: maxScore as num?,
   );
+}
+
+/// An assignment's `title`: the backend's `{mn, en}` object, either side
+/// nullable (`title_en` is optional), or absent. Never a string. The flat
+/// `title_mn` / `title_en` win; this only fills a missing one (Issue #394).
+({String? mn, String? en}) _titleObject(Map<String, dynamic> entry, int id) {
+  final title = entry['title'];
+  if (title == null) return (mn: null, en: null);
+  if (title is! Map<String, dynamic>) throw _shape('assignment $id: title');
+  return (mn: _string(title, 'mn'), en: _string(title, 'en'));
 }
 
 /// `{cohort_id, students: [{student_id, enrollment_id, name, phone}]}` —

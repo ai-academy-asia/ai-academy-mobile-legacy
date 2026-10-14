@@ -571,6 +571,20 @@ void main() {
       expect(repo.reviewCalls, [(30, 'Сайн', 85)]);
     });
 
+    testWidgets('a class with no assignments: the student says so, with no '
+        'selector, thread or composer', (tester) async {
+      final repo = FakeTeacherGradebookRepository(
+        classes: [sampleClass()],
+        students: {2: roster},
+      );
+      await openStudent(tester, 'Student A', repository: repo);
+      expect(repo.assignmentCalls, [2]);
+      expect(find.text(TeacherGradebookStrings.noAssignments), findsOneWidget);
+      expect(find.byType(AssignmentSelector), findsNothing);
+      expect(replyField(), findsNothing);
+      expect(pill(TeacherGradebookStrings.submit), findsNothing);
+    });
+
     testWidgets('a student who submitted nothing: no thread, no composer', (
       tester,
     ) async {

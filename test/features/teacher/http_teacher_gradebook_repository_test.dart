@@ -56,17 +56,25 @@ String submissionsBody(List<Object?> submissions) => jsonEncode({
   'submissions': submissions,
 });
 
-/// One assignment with the confirmed fields. Test values.
+/// Marks [assignmentEntry]'s `title` as the backend's own: built from
+/// `title_mn` / `title_en`.
+const Object _backendTitle = Object();
+
+/// One assignment in the backend's shape (`serializers.assignment_dict` +
+/// `staff_assignment_dict`): `title` is the `{mn, en}` object of `title_mn`
+/// / `title_en` unless a test passes its own. Test values.
 Map<String, Object?> assignmentEntry({
   Object? id = 2,
   Object? titleMn = 'Даалгавар 2',
   Object? titleEn = 'Homework 2',
-  Object? title = 'Даалгавар 2',
+  Object? title = _backendTitle,
 }) => {
   'id': id,
   'cohort_id': 2,
   'lesson_id': 5,
-  'title': title,
+  'title': identical(title, _backendTitle)
+      ? {'mn': titleMn, 'en': titleEn}
+      : title,
   'title_mn': titleMn,
   'title_en': titleEn,
   'instructions': 'Loop ашиглан ...',
@@ -109,7 +117,7 @@ void main() {
         return jsonResponse(
           assignmentsBody([
             assignmentEntry(),
-            assignmentEntry(id: 3, titleMn: null, title: 'Homework 3'),
+            assignmentEntry(id: 3, titleMn: null, titleEn: 'Homework 3'),
           ]),
           200,
         );
@@ -121,8 +129,57 @@ void main() {
       expect(sent.headers['Authorization'], 'Bearer tok-123');
       expect([for (final a in assignments) a.id], [2, 3]);
       expect(assignments[0].displayTitle, 'Даалгавар 2');
-      // No Mongolian title: `title` stands in.
+      // No Mongolian title: the English one stands in.
       expect(assignments[1].displayTitle, 'Homework 3');
+    });
+
+    test('no English title (title_en and title.en null) still parses — the '
+        'whole list, not just the one (Issue #394)', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(
+          assignmentsBody([
+            assignmentEntry(),
+            assignmentEntry(id: 3, titleMn: 'Гэрийн даалгавар', titleEn: null),
+            assignmentEntry(id: 4, titleMn: 'Төсөл', titleEn: 'Project'),
+          ]),
+          200,
+        ),
+      );
+      final assignments = await repo.getAssignments(2);
+      expect([for (final a in assignments) a.id], [2, 3, 4]);
+      expect(assignments[1].title.mn, 'Гэрийн даалгавар');
+      expect(assignments[1].title.en, isNull);
+      expect(assignments[1].displayTitle, 'Гэрийн даалгавар');
+      expect(assignments[2].title.en, 'Project');
+    });
+
+    test('a missing flat title falls back to the title object\'s own side; '
+        'the flat one wins when both are there', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(
+          assignmentsBody([
+            {
+              'id': 5,
+              'title': {'mn': 'Объектоос', 'en': 'From the object'},
+            },
+            {
+              'id': 6,
+              'title': {'mn': 'Объект', 'en': 'Object'},
+              'title_mn': 'Хавтгай',
+              'title_en': null,
+            },
+            {'id': 7},
+          ]),
+          200,
+        ),
+      );
+      final assignments = await repo.getAssignments(2);
+      expect(assignments[0].title.mn, 'Объектоос');
+      expect(assignments[0].title.en, 'From the object');
+      expect(assignments[1].title.mn, 'Хавтгай');
+      expect(assignments[1].title.en, 'Object');
+      // No title anywhere: the id stands in, as before.
+      expect(assignments[2].displayTitle, '#7');
     });
 
     test('an empty class has no assignments', () async {
@@ -139,6 +196,12 @@ void main() {
         jsonEncode([assignmentEntry()]),
         assignmentsBody([assignmentEntry(id: '2')]),
         assignmentsBody([assignmentEntry(titleMn: 5)]),
+        // `title` is the {mn, en} object — never a string; its sides are
+        // strings or null.
+        assignmentsBody([assignmentEntry(title: 'Даалгавар 2')]),
+        assignmentsBody([
+          assignmentEntry(titleEn: null, title: {'mn': 'Даалгавар 2', 'en': 5}),
+        ]),
         'not json',
       ]) {
         final repo = repositoryReturning((_) async => jsonResponse(body, 200));
@@ -356,7 +419,11 @@ void main() {
       final list = await repo.getAssignments(2);
       expect(list.map((a) => a.maxScore), [100, null]);
       body = assignmentsBody([
-        {'id': 2, 'title': 'x', 'max_score': '100'},
+        {
+          'id': 2,
+          'title': {'mn': 'x', 'en': null},
+          'max_score': '100',
+        },
       ]);
       expect(
         (await failureOf(repo.getAssignments(2))).kind,
