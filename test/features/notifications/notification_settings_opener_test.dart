@@ -71,4 +71,49 @@ void main() {
       expect(calls, isEmpty);
     },
   );
+
+  group('the default channel\'s blocked state (Issue #433)', () {
+    test('Android: asks MainActivity "isDefaultChannelBlocked", and reports '
+        'its answer', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      answer((_) => true);
+      expect(await isDefaultNotificationChannelBlocked(), isTrue);
+      answer((_) => false);
+      expect(await isDefaultNotificationChannelBlocked(), isFalse);
+      answer((_) => null);
+      expect(await isDefaultNotificationChannelBlocked(), isFalse);
+
+      expect(calls, [
+        'isDefaultChannelBlocked',
+        'isDefaultChannelBlocked',
+        'isDefaultChannelBlocked',
+      ]);
+    });
+
+    test(
+      'Android: a platform error reaches the caller, which decides',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        answer((_) => throw PlatformException(code: 'boom'));
+
+        await expectLater(
+          isDefaultNotificationChannelBlocked(),
+          throwsA(isA<PlatformException>()),
+        );
+      },
+    );
+
+    test(
+      'iOS and elsewhere have no such channels: false, nothing asked',
+      () async {
+        answer((_) => true);
+        for (final platform in [TargetPlatform.iOS, TargetPlatform.linux]) {
+          debugDefaultTargetPlatformOverride = platform;
+          expect(await isDefaultNotificationChannelBlocked(), isFalse);
+        }
+        expect(calls, isEmpty);
+      },
+    );
+  });
 }

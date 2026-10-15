@@ -554,6 +554,75 @@ void main() {
     });
   });
 
+  group('the push channel\'s blocked state (Issue #433)', () {
+    test('push off: not blocked, and the channel is never asked', () async {
+      await push.attach(null);
+
+      await push.refreshPermission();
+
+      expect(push.channelBlocked.value, isFalse);
+      expect(messaging.calls, isEmpty);
+    });
+
+    test('a refresh reads the channel with the permission: granted and '
+        'blocked, granted and unblocked, denied', () async {
+      await attach();
+      for (final (permission, blocked) in const [
+        (PushPermission.granted, true),
+        (PushPermission.granted, false),
+        (PushPermission.denied, false),
+        (PushPermission.denied, true),
+      ]) {
+        messaging
+          ..status = permission
+          ..channelBlocked = blocked;
+        await push.refreshPermission();
+        expect(push.permissionState.value, permission);
+        expect(push.channelBlocked.value, blocked);
+      }
+      expect(messaging.calls, isNot(contains('requestPermission')));
+    });
+
+    test('a failed channel read counts as not blocked, and the permission is '
+        'still read', () async {
+      await attach();
+      messaging
+        ..channelBlocked = true
+        ..channelError = StateError('no channel api');
+
+      await push.refreshPermission();
+
+      expect(push.channelBlocked.value, isFalse);
+      expect(push.permissionState.value, PushPermission.granted);
+    });
+
+    testWidgets('unblocked in the OS settings, it is re-read on return', (
+      tester,
+    ) async {
+      messaging.channelBlocked = true;
+      await attach();
+      await push.refreshPermission();
+      expect(push.channelBlocked.value, isTrue);
+
+      messaging.channelBlocked = false;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+
+      expect(push.channelBlocked.value, isFalse);
+    });
+
+    test('detaching clears it', () async {
+      messaging.channelBlocked = true;
+      await attach();
+      await push.refreshPermission();
+      expect(push.channelBlocked.value, isTrue);
+
+      await push.detach();
+
+      expect(push.channelBlocked.value, isFalse);
+    });
+  });
+
   test('notification_id is read from a string or an int; anything else is '
       'none', () {
     expect(

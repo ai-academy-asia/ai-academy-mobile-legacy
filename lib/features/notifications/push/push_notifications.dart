@@ -147,13 +147,22 @@ class PushNotifications {
   ValueListenable<PushPermission?> get permissionState => _permission;
   final ValueNotifier<PushPermission?> _permission = ValueNotifier(null);
 
+  /// Whether the user blocked the channel pushes are shown in, as last read
+  /// with the permission (Issue #433): granted plus blocked shows nothing.
+  /// False while push is off, where there are no channels, and when the read
+  /// fails — a failed read never turns the switch off.
+  ValueListenable<bool> get channelBlocked => _channelBlocked;
+  final ValueNotifier<bool> _channelBlocked = ValueNotifier(false);
+
   /// Reads the OS permission again, without prompting — when Profile opens,
-  /// and on every resume, since it only changes in the OS's settings. A
-  /// no-op while push is off. Never throws.
+  /// and on every resume, since it only changes in the OS's settings — and
+  /// with it whether the push channel is blocked (Issue #433). A no-op while
+  /// push is off. Never throws.
   Future<void> refreshPermission() async {
     final messaging = _messaging;
     if (messaging == null) {
       _permission.value = null;
+      _channelBlocked.value = false;
       return;
     }
     try {
@@ -162,6 +171,13 @@ class PushNotifications {
     } catch (error) {
       debugPrint('Push: permission check failed (${error.runtimeType}).');
     }
+    var blocked = false;
+    try {
+      blocked = await messaging.notificationChannelBlocked();
+    } catch (error) {
+      debugPrint('Push: channel check failed (${error.runtimeType}).');
+    }
+    if (identical(messaging, _messaging)) _channelBlocked.value = blocked;
   }
 
   /// Opens this app's notification settings in the OS — the switch cannot
@@ -228,6 +244,7 @@ class PushNotifications {
     _store.removeListener(_sessionChanged);
     _messaging = null;
     _permission.value = null;
+    _channelBlocked.value = false;
   }
 
   void _onRoute(Route<Object?> route) {

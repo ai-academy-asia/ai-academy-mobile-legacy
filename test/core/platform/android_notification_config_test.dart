@@ -119,7 +119,10 @@ void main() {
       ).firstMatch(activity)?.group(1);
       expect(channel, notificationSettingsChannel.name);
       expect(activity, contains('configureFlutterEngine'));
-      expect(activity, contains('call.method == "open"'));
+      expect(
+        activity,
+        contains('"open" -> result.success(openNotificationSettings())'),
+      );
     });
 
     test('opens the app\'s notification settings on API 26+, its details '
@@ -131,6 +134,53 @@ void main() {
         contains('Settings.ACTION_APPLICATION_DETAILS_SETTINGS'),
       );
       expect(activity, contains('catch (e: ActivityNotFoundException)'));
+    });
+  });
+
+  group('reading whether "Мэдэгдэл" is blocked (Issue #433)', () {
+    final body = RegExp(
+      r'private fun isDefaultChannelBlocked\(\): Boolean \{([\s\S]*?)\n    \}',
+    ).firstMatch(activity)?.group(1);
+
+    test('MainActivity answers it on the same channel', () {
+      expect(
+        activity,
+        contains(
+          '"isDefaultChannelBlocked" -> result.success(isDefaultChannelBlocked())',
+        ),
+      );
+      expect(body, isNotNull);
+    });
+
+    test('reads the default channel\'s importance: blocked only at NONE; '
+        'false below API 26 and for a missing channel', () {
+      expect(
+        body,
+        contains('Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false'),
+      );
+      expect(
+        body,
+        contains(
+          'getNotificationChannel(getString(R.string.default_notification_channel_id))',
+        ),
+      );
+      expect(body, contains('?: return false'));
+      expect(
+        body,
+        contains('importance == NotificationManager.IMPORTANCE_NONE'),
+      );
+    });
+
+    test('only reads: never creates, changes or re-enables the channel', () {
+      for (final write in [
+        'createNotificationChannel',
+        'setImportance',
+        'deleteNotificationChannel',
+      ]) {
+        expect(body, isNot(contains(write)), reason: write);
+      }
+      // A comparison (`==`) is allowed; an assignment to importance is not.
+      expect(RegExp(r'importance\s*=(?!=)').hasMatch(body!), isFalse);
     });
   });
 

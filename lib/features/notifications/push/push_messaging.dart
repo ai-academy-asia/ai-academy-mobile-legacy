@@ -47,6 +47,11 @@ abstract interface class PushMessaging {
   /// refused permission can be changed (Issue #429). True when they opened.
   Future<bool> openNotificationSettings();
 
+  /// Whether the user blocked the channel pushes are shown in (Issue #433) —
+  /// a permission can read granted while nothing appears. False where there
+  /// are no channels.
+  Future<bool> notificationChannelBlocked();
+
   /// This device's FCM registration token, or null while one cannot be had
   /// yet — on iOS before APNs has issued its token.
   Future<String?> token();
