@@ -32,7 +32,8 @@ class CourseBadge extends StatelessWidget {
 
 /// Category, level, format and status — the four short classifying strings
 /// the contract gives, shown verbatim. None has a confirmed closed set of
-/// values, so none is translated or mapped to a different label.
+/// values, so none is translated or mapped to a different label. A course with
+/// no category (Issue #426) draws the other three, never an empty pill.
 class CourseBadges extends StatelessWidget {
   const CourseBadges({required this.course, super.key});
 
@@ -40,11 +41,17 @@ class CourseBadges extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final category = course.category;
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final label in [course.category, course.level, course.format, course.status])
+        for (final label in [
+          if (category != null && category.trim().isNotEmpty) category,
+          course.level,
+          course.format,
+          course.status,
+        ])
           CourseBadge(label),
       ],
     );

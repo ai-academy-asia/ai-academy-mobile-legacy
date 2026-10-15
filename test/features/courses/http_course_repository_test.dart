@@ -394,6 +394,133 @@ void main() {
     });
   });
 
+  group('optional category (Issue #426, the Admin Panel category change)', () {
+    Future<List<Object?>> categoriesOf(
+      List<Map<String, dynamic>> entries,
+    ) async {
+      final body = jsonEncode({'courses': entries});
+      final courses = await repositoryReturning(
+        (_) async => jsonResponse(body, 200),
+      ).getCourses();
+      return courses.map((c) => c.category).toList();
+    }
+
+    test('a string category is read as before', () async {
+      expect(await categoriesOf([_courseJson()]), ['bootcamp']);
+    });
+
+    test(
+      'a missing category key reads as null, and the course still parses',
+      () async {
+        final body = jsonEncode({
+          'courses': [_courseJson()..remove('category')],
+        });
+        final course = (await repositoryReturning(
+          (_) async => jsonResponse(body, 200),
+        ).getCourses()).single;
+
+        expect(course.category, isNull);
+        expect(course.id, 4);
+        expect(course.slug, 'summer-bootcamp');
+        expect(course.level, 'junior');
+        expect(course.format, 'in_person');
+        expect(course.status, 'open');
+        expect(course.title.mn, 'Зуны бүтээлч кэмп');
+        expect(course.finalPriceAmount, 960000.0);
+      },
+    );
+
+    test('category: null reads as null', () async {
+      expect(
+        await categoriesOf([
+          _courseJson(overrides: {'category': null}),
+        ]),
+        [null],
+      );
+    });
+
+    test(
+      'a non-string category reads as null instead of failing the catalogue',
+      () async {
+        for (final value in <Object>[
+          42,
+          1.5,
+          true,
+          <String, Object?>{'mn': 'Кэмп'},
+          <Object?>[],
+        ]) {
+          expect(
+            await categoriesOf([
+              _courseJson(overrides: {'category': value}),
+            ]),
+            [null],
+            reason: '$value',
+          );
+        }
+      },
+    );
+
+    test(
+      'the catalogue loads every course when only some have a category',
+      () async {
+        final categories = await categoriesOf([
+          _courseJson(overrides: {'id': 1, 'slug': 'a'}),
+          _courseJson(overrides: {'id': 2, 'slug': 'b'})..remove('category'),
+          _courseJson(overrides: {'id': 3, 'slug': 'c', 'category': null}),
+          _courseJson(overrides: {'id': 4, 'slug': 'd', 'category': 7}),
+        ]);
+        expect(categories, ['bootcamp', null, null, null]);
+      },
+    );
+
+    test('course detail loads for a course with no usable category', () async {
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(
+          jsonEncode(_courseJson(overrides: {'category': 3})),
+          200,
+        ),
+      );
+
+      final course = await repository.getCourseDetail('summer-bootcamp');
+
+      expect(course.category, isNull);
+      expect(course.slug, 'summer-bootcamp');
+    });
+
+    test('no other field is loosened: a missing or wrong-typed required field '
+        'still fails, with or without a category', () async {
+      Future<ApiFailure> failureFor(Map<String, dynamic> entry) async {
+        final body = jsonEncode({
+          'courses': [entry],
+        });
+        try {
+          await repositoryReturning(
+            (_) async => jsonResponse(body, 200),
+          ).getCourses();
+        } on ApiFailure catch (failure) {
+          return failure;
+        }
+        fail('expected an ApiFailure');
+      }
+
+      final cases = <String, Map<String, dynamic>>{
+        'course.level': _courseJson()..remove('level'),
+        'course.format': _courseJson(overrides: {'category': null})
+          ..remove('format'),
+        'course.status': _courseJson(overrides: {'status': 5}),
+        'course.slug': (_courseJson()..remove('category'))..remove('slug'),
+        'course.title': _courseJson(
+          overrides: {'category': 9, 'title': 'Bootcamp'},
+        ),
+      };
+      for (final MapEntry(key: field, value: entry) in cases.entries) {
+        final failure = await failureFor(entry);
+        expect(failure.kind, ApiFailureKind.server, reason: field);
+        expect(failure.detail, contains(field), reason: field);
+      }
+    });
+  });
+
   group('HTTP failures', () {
     Future<ApiFailure> failureFrom(HttpCourseRepository repository) async {
       try {
