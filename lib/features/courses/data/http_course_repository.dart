@@ -135,7 +135,10 @@ Course _courseFromJson(Object? entry) {
     slug: _requireString(entry, 'slug'),
     title: _requireLocalizedText(entry, 'title'),
     tagline: _requireLocalizedText(entry, 'tagline'),
-    category: _requireString(entry, 'category'),
+    // Optional since the Admin Panel's category change (Issue #426): absent,
+    // `null` or any non-string reads as no category, and the course still
+    // loads — a classification is not worth failing the catalogue over.
+    category: _softString(entry, 'category'),
     level: _requireString(entry, 'level'),
     format: _requireString(entry, 'format'),
     status: _requireString(entry, 'status'),
@@ -270,6 +273,8 @@ String? _optionalString(Map<String, dynamic> json, String key) {
 // confirmed *name*; a mismatch here just as easily means this code guessed the
 // type wrong, which is not a fault worth failing the whole detail fetch over.
 // Read as null instead, and the screen shows less rather than nothing.
+// One list field reads this way too: `category`, optional since the Admin
+// Panel's category change (Issue #426) and possibly a different shape.
 
 String? _softString(Map<String, dynamic> json, String key) {
   final value = json[key];

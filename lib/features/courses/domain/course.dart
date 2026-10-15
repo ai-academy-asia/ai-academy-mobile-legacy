@@ -8,7 +8,8 @@ import '../../../core/models/localized_text.dart';
 /// (`banner_image_url`, `duration_label`, `icon`, `sort_order`,
 /// `target_audience`, and the individual `en`/`mn` keys inside [title] and
 /// [tagline]) — plus [ageMax], which the production catalog later showed as
-/// `null`. Everything else is modelled as required.
+/// `null`, and [category], which the Admin Panel's category change makes
+/// optional (Issue #426). Everything else is modelled as required.
 ///
 /// **That is a real limitation, not a guarantee.** A field that happened to
 /// carry a value in the one example (`age_min`, `discount_percent`, …) could
@@ -105,8 +106,9 @@ class Course {
   final LocalizedText title;
   final LocalizedText tagline;
 
-  /// e.g. "bootcamp".
-  final String category;
+  /// e.g. "bootcamp". Null when the course has none: the key absent, `null`,
+  /// or not a string (Issue #426) — never a reason to drop the course.
+  final String? category;
 
   /// e.g. "junior".
   final String level;

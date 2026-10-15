@@ -117,7 +117,7 @@ Course sampleCourse({
     mn: 'Зуны бүтээлч кэмп',
   ),
   LocalizedText tagline = const LocalizedText(mn: '3 долоо хоногийн эрчимжүүлсэн'),
-  String category = 'bootcamp',
+  String? category = 'bootcamp',
   String level = 'junior',
   String format = 'in_person',
   String status = 'open',
