@@ -165,19 +165,45 @@ class PushNotifications {
       _channelBlocked.value = false;
       return;
     }
+    PushPermission? permission;
+    var permissionRead = false;
     try {
-      final permission = await messaging.permission();
-      if (identical(messaging, _messaging)) _permission.value = permission;
+      permission = await messaging.permission();
+      permissionRead = true;
     } catch (error) {
       debugPrint('Push: permission check failed (${error.runtimeType}).');
     }
-    var blocked = false;
+    final blocked = await _channelBlockedOf(messaging);
+    // Both read before either is shown: publishing the permission first let
+    // the switch flash on for a blocked channel (Issue #433).
+    if (!identical(messaging, _messaging)) return;
+    _publish(permissionRead ? permission : _permission.value, blocked);
+  }
+
+  /// Whether [messaging]'s push channel is blocked. A failed read counts as
+  /// not blocked — it never turns the switch off.
+  Future<bool> _channelBlockedOf(PushMessaging messaging) async {
     try {
-      blocked = await messaging.notificationChannelBlocked();
+      return await messaging.notificationChannelBlocked();
     } catch (error) {
       debugPrint('Push: channel check failed (${error.runtimeType}).');
+      return false;
     }
-    if (identical(messaging, _messaging)) _channelBlocked.value = blocked;
+  }
+
+  /// Publishes the permission and the channel state together (Issue #433),
+  /// in the same synchronous turn, so no frame sees one without the other.
+  /// Whichever value turns the switch off goes first — the channel when the
+  /// permission is granted, the permission otherwise — so even a listener
+  /// never sees it pass through on on its way to off.
+  void _publish(PushPermission? permission, bool blocked) {
+    if (permission == PushPermission.granted) {
+      _channelBlocked.value = blocked;
+      _permission.value = permission;
+    } else {
+      _permission.value = permission;
+      _channelBlocked.value = blocked;
+    }
   }
 
   /// Opens this app's notification settings in the OS — the switch cannot
@@ -290,7 +316,15 @@ class PushNotifications {
         permission = await messaging.requestPermission();
       }
       if (generation != _generation) return;
-      _permission.value = permission;
+      // Granted, the switch's on depends on the channel too: read it before
+      // showing the permission (Issue #433). Refused, it is off either way.
+      final blocked = permission == PushPermission.granted
+          ? await _channelBlockedOf(messaging)
+          : _channelBlocked.value;
+      if (generation != _generation || !identical(messaging, _messaging)) {
+        return;
+      }
+      _publish(permission, blocked);
       _permitted = permission == PushPermission.granted;
       if (!_permitted) return;
       final token = await messaging.token();
