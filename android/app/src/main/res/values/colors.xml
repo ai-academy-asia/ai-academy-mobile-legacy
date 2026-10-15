@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- The notification's accent (Issue #425): the theme's primary,
+         AppColors.blue in lib/core/theme/app_colors.dart. -->
+    <color name="notification_accent">#296CFF</color>
 </resources>

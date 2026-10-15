@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -11,6 +14,44 @@ plugins {
 // push stays off at runtime.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
+}
+
+// Release signing (Issue #425). android/key.properties (git-ignored, as are
+// *.jks and *.keystore) names the upload keystore:
+//   storeFile=<path, relative to android/app>
+//   storePassword=…   keyAlias=…   keyPassword=…
+// With it, release builds are signed with that key; a file missing a field, or
+// naming a keystore that does not exist, stops the build. Without it, a local
+// release APK (`flutter run --release`, `flutter build apk --release`) is still
+// signed with the debug keys, with a warning, so testing keeps working — but an
+// App Bundle, the format Play takes, refuses to build: debug keys are never a
+// production signature.
+val releaseSigningFields = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val releaseSigning: Properties? =
+    rootProject.file("key.properties").takeIf { it.exists() }?.let { source ->
+        Properties().apply { FileInputStream(source).use { load(it) } }
+    }
+releaseSigning?.let { props ->
+    val missing = releaseSigningFields.filter { props.getProperty(it).isNullOrBlank() }
+    if (missing.isNotEmpty()) {
+        throw GradleException("android/key.properties is missing: ${missing.joinToString()}")
+    }
+    if (!file(props.getProperty("storeFile")).isFile) {
+        throw GradleException("android/key.properties: storeFile does not exist (relative to android/app)")
+    }
+}
+
+gradle.taskGraph.whenReady {
+    if (releaseSigning != null) return@whenReady
+    val tasks = allTasks.map { it.name }.toSet()
+    if ("bundleRelease" in tasks) {
+        throw GradleException(
+            "No android/key.properties: an App Bundle is never signed with the debug keys.",
+        )
+    }
+    if ("assembleRelease" in tasks) {
+        logger.warn("No android/key.properties: this release APK is signed with the DEBUG keys and is not for distribution.")
+    }
 }
 
 android {
@@ -34,11 +75,22 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        releaseSigning?.let { props ->
+            create("release") {
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // The upload key when android/key.properties provides one; otherwise
+            // the debug keys for local release runs only — see the top of this file.
+            signingConfig = signingConfigs.getByName(if (releaseSigning != null) "release" else "debug")
         }
     }
 }
