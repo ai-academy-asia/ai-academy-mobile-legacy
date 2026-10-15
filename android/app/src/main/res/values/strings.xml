@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Push notifications (Issue #425). The default channel Firebase posts
+         notification messages to; MainActivity creates it. The id is fixed
+         once shipped: Android keeps a channel's settings under its id. -->
+    <string name="default_notification_channel_id" translatable="false">aia_default</string>
+    <string name="default_notification_channel_name">Мэдэгдэл</string>
+</resources>

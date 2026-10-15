@@ -167,22 +167,16 @@ Everything below was read from the repository. Where a value is inherited rather
 | Java / Kotlin | `sourceCompatibility` and `targetCompatibility` `VERSION_17`; Kotlin `jvmTarget` `JVM_17` |
 | App label | `android:label="AI Academy Asia"` in `AndroidManifest.xml` |
 | Firebase (Issue #398) | `com.google.gms.google-services` 4.5.0, declared in `settings.gradle.kts` and applied by `:app` **only when `android/app/google-services.json` exists** — none is committed, so push is off and the build is unchanged without it. `POST_NOTIFICATIONS` and the FCM services come from `firebase_messaging`'s own manifest. See [DATA_AND_API.md](DATA_AND_API.md) §1.2 |
+| Notification defaults (Issue #425) | `AndroidManifest.xml` names Firebase's `default_notification_channel_id` (`aia_default`, "Мэдэгдэл", created by `MainActivity` on API 26+, importance default), `default_notification_icon` (`drawable/ic_stat_notification`, the in-app bell as a white vector) and `default_notification_color` (`#296CFF`, `AppColors.blue`). `test/core/platform/android_notification_config_test.dart` pins the wiring |
 
 **No SDK level is pinned in this repository** — all four come from the Flutter tooling, so the effective numbers move with the Flutter version. To know the concrete values for a given checkout, resolve them from the installed Flutter SDK; do not assume.
 
-**Release signing is not configured.** The release build type still carries the Flutter template's arrangement:
+**Release signing (Issue #425).** `android/app/build.gradle.kts` reads `android/key.properties`, which is git-ignored, as are `*.jks` and `*.keystore` (`android/.gitignore`). Its fields are `storeFile` (relative to `android/app`), `storePassword`, `keyAlias` and `keyPassword`.
+- **With the file**, release builds are signed with that upload key. A missing field, or a `storeFile` that does not exist, stops the build. The error names the field, never a value.
+- **Without it**, a local release APK (`flutter run --release`, `flutter build apk --release`) is still signed with the debug keys, so testing keeps working. Gradle warns that it is not for distribution; Flutter shows the warning with `-v`.
+- **An App Bundle** (`flutter build appbundle`, the format Play takes) **refuses to build without the file.** Debug keys are never a production signature.
 
-```kotlin
-buildTypes {
-    release {
-        // TODO: Add your own signing config for the release build.
-        // Signing with the debug keys for now, so `flutter run --release` works.
-        signingConfig = signingConfigs.getByName("debug")
-    }
-}
-```
-
-That is the scaffold default, left in place. **Release builds are signed with debug keys**, which is fine for `flutter run --release` and **not** shippable. Treat configuring real release signing as its own task. (These two `TODO:` markers are the Flutter template's own and live in Gradle config — they are not a contradiction of the "no `TODO`/`FIXME`" rule, which is scoped to `lib/` and `test/`.)
+No real keystore exists in the repository or the workspace. Creating the upload key and enrolling in Play App Signing are owner tasks. (The `TODO:` left in `build.gradle.kts`, on `applicationId`, is the Flutter template's own and lives in Gradle config. It does not contradict the "no `TODO`/`FIXME`" rule, which is scoped to `lib/` and `test/`.)
 
 ### iOS — `ios/`
 
