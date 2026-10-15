@@ -142,6 +142,45 @@ class PushNotifications {
   /// Whether push is on — Firebase started and messaging attached.
   bool get enabled => _messaging != null;
 
+  /// The OS notification permission as last read, for the Profile switch
+  /// (Issue #429): null while push is off, or before the first read.
+  ValueListenable<PushPermission?> get permissionState => _permission;
+  final ValueNotifier<PushPermission?> _permission = ValueNotifier(null);
+
+  /// Reads the OS permission again, without prompting — when Profile opens,
+  /// and on every resume, since it only changes in the OS's settings. A
+  /// no-op while push is off. Never throws.
+  Future<void> refreshPermission() async {
+    final messaging = _messaging;
+    if (messaging == null) {
+      _permission.value = null;
+      return;
+    }
+    try {
+      final permission = await messaging.permission();
+      if (identical(messaging, _messaging)) _permission.value = permission;
+    } catch (error) {
+      debugPrint('Push: permission check failed (${error.runtimeType}).');
+    }
+  }
+
+  /// Opens this app's notification settings in the OS — the switch cannot
+  /// change the permission itself. False while push is off, or when nothing
+  /// opened. Never throws. What the user chose there is read on return.
+  Future<bool> openNotificationSettings() async {
+    final messaging = _messaging;
+    if (messaging == null) return false;
+    try {
+      return await messaging.openNotificationSettings();
+    } catch (error) {
+      debugPrint(
+        'Push: opening notification settings failed '
+        '(${error.runtimeType}).',
+      );
+      return false;
+    }
+  }
+
   /// The token registered for the signed-in account, if any. For tests and
   /// diagnostics; never logged.
   @visibleForTesting
@@ -188,6 +227,7 @@ class PushNotifications {
     _lifecycle = null;
     _store.removeListener(_sessionChanged);
     _messaging = null;
+    _permission.value = null;
   }
 
   void _onRoute(Route<Object?> route) {
@@ -233,6 +273,7 @@ class PushNotifications {
         permission = await messaging.requestPermission();
       }
       if (generation != _generation) return;
+      _permission.value = permission;
       _permitted = permission == PushPermission.granted;
       if (!_permitted) return;
       final token = await messaging.token();
@@ -277,6 +318,10 @@ class PushNotifications {
   }
 
   void _resumed() {
+    // The permission may have changed in the OS's settings meanwhile — the
+    // Profile switch's way out (Issue #429).
+    unawaited(refreshPermission());
+    // Granted there, an unregistered session registers now.
     if (_homeShown && _registeredToken == null && _store.isSignedIn) {
       unawaited(start());
     }

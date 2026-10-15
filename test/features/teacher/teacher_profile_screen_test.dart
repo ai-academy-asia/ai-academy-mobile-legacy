@@ -1,3 +1,4 @@
+import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
 import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
@@ -22,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../support/screenshot.dart';
 import '../auth/fake_auth_repository.dart';
 import '../profile/fake_current_user_repository.dart';
+import '../notifications/notification_switch_cases.dart';
 
 /// A teacher's `/auth/me`, in the confirmed shape. Test values only.
 const teacher = CurrentUser(
@@ -52,6 +54,7 @@ void main() {
     FakeCurrentUserRepository? repository,
     FakeAuthRepository? auth,
     AuthSessionStore? store,
+    PushNotifications? push,
   }) async {
     useLogicalViewport(tester, const Size(393, 966), padding: iPhonePadding);
     await tester.pumpWidget(
@@ -62,6 +65,7 @@ void main() {
             repository: repository ?? FakeCurrentUserRepository(user: teacher),
             authRepository: auth ?? FakeAuthRepository(),
             sessionStore: store ?? AuthSessionStore(),
+            push: push,
           ),
           loginRoute: (_) => const Scaffold(body: Text('login')),
         },
@@ -69,6 +73,11 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  notificationPermissionSwitchCases(
+    label: ProfileStrings.notification,
+    pumpWith: (tester, push) => pump(tester, push: push),
+  );
 
   group('account', () {
     testWidgets('name, email and phone come from /auth/me, as returned', (

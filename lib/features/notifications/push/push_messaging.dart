@@ -43,6 +43,10 @@ abstract interface class PushMessaging {
   /// Prompts for permission (the OS may decline to show the prompt again).
   Future<PushPermission> requestPermission();
 
+  /// Opens this app's notification settings in the OS — the only place a
+  /// refused permission can be changed (Issue #429). True when they opened.
+  Future<bool> openNotificationSettings();
+
   /// This device's FCM registration token, or null while one cannot be had
   /// yet — on iOS before APNs has issued its token.
   Future<String?> token();

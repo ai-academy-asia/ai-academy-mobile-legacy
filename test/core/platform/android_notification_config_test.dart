@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:aia_mobile/core/theme/app_colors.dart';
+import 'package:aia_mobile/features/notifications/push/notification_settings_opener.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The Android side of push notifications (Issue #425): the manifest's
@@ -109,6 +110,28 @@ void main() {
         expect(vectorPaths.toList(), svgPaths.toList());
       },
     );
+  });
+
+  group('opening this app\'s notification settings (Issue #429)', () {
+    test('MainActivity answers on the channel Dart calls', () {
+      final channel = RegExp(
+        r'NOTIFICATION_SETTINGS_CHANNEL = "([^"]+)"',
+      ).firstMatch(activity)?.group(1);
+      expect(channel, notificationSettingsChannel.name);
+      expect(activity, contains('configureFlutterEngine'));
+      expect(activity, contains('call.method == "open"'));
+    });
+
+    test('opens the app\'s notification settings on API 26+, its details '
+        'screen below, and answers false when nothing can', () {
+      expect(activity, contains('Settings.ACTION_APP_NOTIFICATION_SETTINGS'));
+      expect(activity, contains('Settings.EXTRA_APP_PACKAGE, packageName'));
+      expect(
+        activity,
+        contains('Settings.ACTION_APPLICATION_DETAILS_SETTINGS'),
+      );
+      expect(activity, contains('catch (e: ActivityNotFoundException)'));
+    });
   });
 
   group('release signing', () {

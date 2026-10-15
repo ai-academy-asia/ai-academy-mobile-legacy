@@ -1,5 +1,6 @@
 import 'dart:ui' show Tristate;
 
+import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
 import '../profile/fake_current_user_repository.dart';
+import '../notifications/notification_switch_cases.dart';
 
 /// Junior Profile — the "Kids - Profile" frame.
 void main() {
@@ -27,6 +29,7 @@ void main() {
     WidgetTester tester, {
     FakeCurrentUserRepository? repository,
     Size size = const Size(393, 1274),
+    PushNotifications? push,
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
     await tester.pumpWidget(
@@ -34,11 +37,17 @@ void main() {
         theme: AppTheme.light,
         home: JuniorProfileScreen(
           repository: repository ?? FakeCurrentUserRepository(hold: true),
+          push: push,
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  notificationPermissionSwitchCases(
+    label: JuniorProfileStrings.notification,
+    pumpWith: (tester, push) => pumpScreen(tester, push: push),
+  );
 
   testWidgets('draws every line of the frame\'s copy except its placeholder '
       'account data (Issue #223)', (tester) async {

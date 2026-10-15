@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show Tristate;
 
+import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
 import 'package:aia_mobile/core/theme/app_theme_controller.dart';
 import 'package:aia_mobile/core/theme/theme_preference.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
@@ -27,6 +28,7 @@ import 'package:http/testing.dart';
 
 import '../../support/theme_storage.dart';
 import 'fake_current_user_repository.dart';
+import '../notifications/notification_switch_cases.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
 /// without it, text is measured in the fallback font.
@@ -67,6 +69,7 @@ void main() {
     FakeCurrentUserRepository? repository,
     ThemeData? theme,
     AppThemeController? themeController,
+    PushNotifications? push,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -84,11 +87,17 @@ void main() {
                 ),
               ),
           themeController: themeController,
+          push: push,
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  notificationPermissionSwitchCases(
+    label: ProfileStrings.notification,
+    pumpWith: (tester, push) => pumpProfile(tester, push: push),
+  );
 
   group('layout', () {
     testWidgets('shows the heading and every section caption', (tester) async {
