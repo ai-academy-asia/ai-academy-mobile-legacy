@@ -98,6 +98,32 @@ void main() {
       expect(find.byType(Image), findsNothing);
     });
 
+    testWidgets('an account without a last name or phone draws the first '
+        'name, the email and no "null" (Issue #423)', (tester) async {
+      const bare = CurrentUser(
+        id: 31,
+        actorId: 7,
+        actorType: 'teacher',
+        email: 'test.teacher@example.mn',
+        role: 'teacher',
+        isActive: true,
+        mustChangePassword: false,
+        profile: UserProfile(
+          id: 7,
+          firstName: 'Test',
+          lastName: null,
+          phone: null,
+          uiMode: null,
+        ),
+      );
+      await pump(tester, repository: FakeCurrentUserRepository(user: bare));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Test'), findsOneWidget);
+      expect(find.text('test.teacher@example.mn'), findsOneWidget);
+      expect(find.textContaining('null'), findsNothing);
+    });
+
     testWidgets('while /auth/me loads, and after it fails, the lines stay '
         'empty', (tester) async {
       final held = FakeCurrentUserRepository(user: teacher, hold: true);

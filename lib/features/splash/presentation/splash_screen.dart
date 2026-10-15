@@ -8,10 +8,23 @@ import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
+import '../../auth/domain/current_user_failure.dart';
 import '../../auth/domain/current_user_repository.dart';
 import '../../auth/presentation/home_route.dart';
 import '../../auth/presentation/login_screen.dart';
 import 'splash_strings.dart';
+
+/// What Splash logs when a held session could not be restored (Issue #423):
+/// the failure's kind and, for a response that did not match the contract,
+/// which field (`detail` names the key and the type found, never a value).
+/// Anything else is its type only. Never a token, credential or field value.
+@visibleForTesting
+String restoreFailureLabel(Object error) => switch (error) {
+  CurrentUserFailure(kind: CurrentUserFailureKind.server, :final detail) =>
+    detail == null ? 'server' : 'server: $detail',
+  CurrentUserFailure(:final kind) => kind.name,
+  _ => error.runtimeType.toString(),
+};
 
 /// The screen shown on launch, before sign-in.
 ///
@@ -195,7 +208,12 @@ class _SplashScreenState extends State<SplashScreen>
         homeRoute: homeRouteFor(user.userType),
         mustChangePassword: user.mustChangePassword,
       );
-    } catch (_) {
+    } catch (error) {
+      // Otherwise invisible: a valid session for an account `/auth/me` could
+      // not be read fell back to Login with no trace (Issue #423).
+      debugPrint(
+        'Splash: session not restored (${restoreFailureLabel(error)}).',
+      );
       return null;
     }
   }

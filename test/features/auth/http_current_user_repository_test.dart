@@ -65,8 +65,8 @@ void main() {
     bool mustChangePassword = true,
     int profileId = 5,
     String firstName = 'CRUD',
-    String lastName = 'TestStudent',
-    String phone = '99123456',
+    Object? lastName = 'TestStudent',
+    Object? phone = '99123456',
     Object? uiMode = 'kids',
     String? userType = 'child',
   }) => jsonEncode({
@@ -207,6 +207,45 @@ void main() {
       expect(user.userType, UserType.adult);
     });
 
+    test('a null profile.phone parses, as null (Issue #423)', () async {
+      // The backend's column is nullable and `to_dict` always sends the key;
+      // `flask auth create-student` takes no phone at all.
+      final repository = repositoryReturning(
+        (_) async => http.Response(validBody(phone: null), 200),
+      );
+
+      final user = await repository.getCurrentUser();
+
+      expect(user.profile.phone, isNull);
+      expect(user.displayName, 'CRUD TestStudent');
+    });
+
+    test('a null profile.last_name parses; the name is the first name alone '
+        '(Issue #423)', () async {
+      final repository = repositoryReturning(
+        (_) async => http.Response(validBody(lastName: null), 200),
+      );
+
+      final user = await repository.getCurrentUser();
+
+      expect(user.profile.lastName, isNull);
+      expect(user.displayName, 'CRUD');
+    });
+
+    test('both null still parses, with every other field as sent', () async {
+      final repository = repositoryReturning(
+        (_) async => http.Response(validBody(lastName: null, phone: null), 200),
+      );
+
+      final user = await repository.getCurrentUser();
+
+      expect(user.profile.firstName, 'CRUD');
+      expect(user.profile.lastName, isNull);
+      expect(user.profile.phone, isNull);
+      expect(user.email, 'crud-test-student-20260909@example.mn');
+      expect(user.userType, UserType.child);
+    });
+
     test('a response without user_type still parses, as unknown', () async {
       final repository = repositoryReturning(
         (_) async => http.Response(validBody(userType: null), 200),
@@ -299,7 +338,7 @@ void main() {
         'profile': {
           'first_name': 'CRUD',
           'id': 5,
-          'last_name': null,
+          'last_name': 42,
           'phone': '99123456',
           'ui_mode': 'kids',
         },
@@ -310,6 +349,26 @@ void main() {
       );
       expect(failure.kind, CurrentUserFailureKind.server);
       expect(failure.detail, contains('last_name'));
+    });
+
+    test('a phone or last_name that is neither a string nor null is still a '
+        'server fault', () async {
+      for (final value in [42, true, <String, Object?>{}, <Object?>[]]) {
+        for (final (field, body) in [
+          ('phone', validBody(phone: value)),
+          ('last_name', validBody(lastName: value)),
+        ]) {
+          final failure = await failureFrom(
+            repositoryReturning((_) async => http.Response(body, 200)),
+          );
+          expect(
+            failure.kind,
+            CurrentUserFailureKind.server,
+            reason: '$field $value',
+          );
+          expect(failure.detail, contains(field), reason: '$field $value');
+        }
+      }
     });
 
     test('a ui_mode that is neither a string nor null is still a server fault', () async {
