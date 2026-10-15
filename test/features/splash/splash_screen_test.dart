@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/auth/data/http_current_user_repository.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
+import 'package:aia_mobile/features/auth/domain/current_user_repository.dart';
 import 'package:aia_mobile/features/auth/domain/user_type.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
@@ -14,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../profile/fake_current_user_repository.dart';
 
@@ -51,7 +57,7 @@ void main() {
     WidgetTester tester, {
     List<NavigatorObserver> observers = const [],
     AuthSessionStore? sessionStore,
-    FakeCurrentUserRepository? currentUser,
+    CurrentUserRepository? currentUser,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = const Size(393, 852) * 3;
@@ -477,6 +483,100 @@ void main() {
       expect(currentUser.callCount, 0);
       expect(find.byType(LoginScreen), findsOneWidget);
     });
+
+    testWidgets('a held session whose /auth/me has no phone or last name '
+        'lands on its Home, not Login (Issue #423)', (tester) async {
+      // The real parser over the backend's own shape for such an account:
+      // both keys present, both null.
+      final store = signedIn();
+      final body = jsonEncode({
+        'actor_id': 5,
+        'actor_type': 'student',
+        'email': 'student@example.mn',
+        'id': 9,
+        'is_active': true,
+        'must_change_password': false,
+        'profile': {
+          'first_name': 'A',
+          'id': 5,
+          'last_name': null,
+          'phone': null,
+          'ui_mode': null,
+        },
+        'role': 'student',
+        'user_type': 'adult',
+      });
+      await pumpSplash(
+        tester,
+        sessionStore: store,
+        currentUser: HttpCurrentUserRepository(
+          client: MockClient((_) async => http.Response(body, 200)),
+          sessionStore: store,
+        ),
+      );
+
+      await runToHandOff(tester);
+
+      expect(find.text('adult home'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    testWidgets('a session that cannot be restored says why in the log — '
+        'the kind and field, never a value (Issue #423)', (tester) async {
+      final logged = <String>[];
+      final original = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) logged.add(message);
+      };
+      try {
+        await pumpSplash(
+          tester,
+          sessionStore: signedIn(),
+          currentUser: FakeCurrentUserRepository(
+            failure: const CurrentUserFailure(
+              CurrentUserFailureKind.server,
+              detail: 'phone: expected a string or null, got int',
+            ),
+          ),
+        );
+        await runToHandOff(tester);
+      } finally {
+        // Restored inside the body: the framework checks it before tearDown.
+        debugPrint = original;
+      }
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(
+        logged,
+        contains(
+          'Splash: session not restored '
+          '(server: phone: expected a string or null, got int).',
+        ),
+      );
+      expect(logged.join('\n'), isNot(contains('tok')));
+    });
+
+    test(
+      'the restore-failure label never carries more than kind and field',
+      () {
+        expect(
+          restoreFailureLabel(
+            const CurrentUserFailure(
+              CurrentUserFailureKind.network,
+              detail: 'x',
+            ),
+          ),
+          'network',
+        );
+        expect(
+          restoreFailureLabel(
+            const CurrentUserFailure(CurrentUserFailureKind.server),
+          ),
+          'server',
+        );
+        expect(restoreFailureLabel(StateError('secret')), 'StateError');
+      },
+    );
 
     testWidgets('a refused /auth/me falls back to Login', (tester) async {
       await pumpSplash(

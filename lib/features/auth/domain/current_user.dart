@@ -48,8 +48,10 @@ class CurrentUser {
   /// response carried none.
   final UserType userType;
 
-  /// The name the profile header shows: first and last name, space-joined.
-  String get displayName => '${profile.firstName} ${profile.lastName}'.trim();
+  /// The name the profile header shows: first and last name, space-joined —
+  /// the first name alone when there is no last name (Issue #423).
+  String get displayName =>
+      '${profile.firstName} ${profile.lastName ?? ''}'.trim();
 }
 
 /// The `profile` object nested in the `/auth/me` response.
@@ -64,8 +66,11 @@ class UserProfile {
 
   final int id;
   final String firstName;
-  final String lastName;
-  final String phone;
+
+  /// Null when the account has none: the backend's `last_name` and `phone`
+  /// columns are nullable and `/auth/me` always sends both keys (Issue #423).
+  final String? lastName;
+  final String? phone;
 
   /// Null when the account has none — production sends `"ui_mode": null`
   /// for some adult accounts (Issue #168).

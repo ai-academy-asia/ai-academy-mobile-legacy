@@ -141,8 +141,10 @@ UserProfile _profileFrom(Map<String, dynamic> json) {
   return UserProfile(
     id: _requireInt(json, 'id'),
     firstName: _requireString(json, 'first_name'),
-    lastName: _requireString(json, 'last_name'),
-    phone: _requireString(json, 'phone'),
+    // Nullable in the backend, and null for an account created without
+    // them; required here, a valid session fell back to Login (Issue #423).
+    lastName: _optionalString(json, 'last_name'),
+    phone: _optionalString(json, 'phone'),
     // Null for some real adult accounts (Issue #168); any other non-string
     // is still a malformed response.
     uiMode: _optionalString(json, 'ui_mode'),
