@@ -19,6 +19,8 @@ import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../profile/presentation/profile_controller.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../../profile/presentation/widgets/profile_parts.dart';
+import '../../notifications/push/notification_permission_switch.dart';
+import '../../notifications/push/push_notifications.dart';
 
 /// The hero's text column: 8 after the avatar, as the frame inks the name
 /// 9 in with its glyph's own bearing.
@@ -91,6 +93,7 @@ class TeacherProfileScreen extends StatefulWidget {
     this.authRepository,
     this.sessionStore,
     this.themeController,
+    this.push,
   });
 
   /// Defaults to the real `GET /auth/me` with the app-wide session. Injected
@@ -100,6 +103,11 @@ class TeacherProfileScreen extends StatefulWidget {
   /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
+
+  /// The OS notification permission the Notification switch shows and whose
+  /// settings it opens (Issue #429). Defaults to
+  /// [PushNotifications.instance]; injected in tests.
+  final PushNotifications? push;
 
   /// Where Log out revokes the session, and the session it clears — both
   /// default to the app's own (see [signOutToLogin]). Injected in tests.
@@ -214,15 +222,20 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           ),
 
           const ProfileCaption(ProfileStrings.notificationSection),
-          const ProfileGroup(
+          ProfileGroup(
             rows: [
               ProfileRow(
                 icon: ProfileIcons.notification,
                 label: ProfileStrings.notification,
-                trailing: ProfileSwitch(
-                  value: false,
-                  onChanged: null,
-                  semanticLabel: ProfileStrings.notification,
+                // The OS notification permission, not a preference — none
+                // exists (#291). A tap opens the OS settings (Issue #429).
+                trailing: NotificationPermissionSwitch(
+                  push: widget.push,
+                  builder: (context, value, onChanged) => ProfileSwitch(
+                    value: value,
+                    onChanged: onChanged,
+                    semanticLabel: ProfileStrings.notification,
+                  ),
                 ),
               ),
             ],

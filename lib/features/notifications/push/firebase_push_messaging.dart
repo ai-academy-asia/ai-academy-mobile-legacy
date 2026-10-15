@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
+import 'notification_settings_opener.dart';
 import 'push_messaging.dart';
 
 /// The iOS app's Firebase options, given at build time (Issue #398):
@@ -83,6 +84,9 @@ class FirebasePushMessaging implements PushMessaging {
   @override
   Future<PushPermission> requestPermission() async =>
       _permission((await _messaging.requestPermission()).authorizationStatus);
+
+  @override
+  Future<bool> openNotificationSettings() => openAppNotificationSettings();
 
   @override
   Future<String?> token() async {

@@ -27,6 +27,8 @@ import '../../profile/presentation/profile_strings.dart';
 import '../../profile/presentation/widgets/profile_parts.dart';
 import 'junior_profile_strings.dart';
 import 'widgets/junior_bottom_nav.dart';
+import '../../notifications/push/notification_permission_switch.dart';
+import '../../notifications/push/push_notifications.dart';
 
 // Measured off the Junior Profile frame at 1:1 (393 wide, a 44pt status-bar
 // inset).
@@ -107,6 +109,7 @@ class JuniorProfileScreen extends StatefulWidget {
     this.courseLearningRepository,
     this.contractRepository,
     this.themeController,
+    this.push,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -134,6 +137,11 @@ class JuniorProfileScreen extends StatefulWidget {
   /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
+
+  /// The OS notification permission the Notification switch shows and whose
+  /// settings it opens (Issue #429). Defaults to
+  /// [PushNotifications.instance]; injected in tests.
+  final PushNotifications? push;
 
   @override
   State<JuniorProfileScreen> createState() => _JuniorProfileScreenState();
@@ -301,13 +309,15 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
               _Row(
                 icon: const _RowIcon(ProfileIcons.notification),
                 label: JuniorProfileStrings.notification,
-                trailing: _Switch(
-                  // No preference endpoint exists (`BACKEND GAP`, Issue
-                  // #291): off and inert, as on Teacher Profile, rather
-                  // than a switch that changes nothing.
-                  value: false,
-                  onChanged: null,
-                  semanticLabel: JuniorProfileStrings.notification,
+                // The OS notification permission, not a preference — none
+                // exists (#291). A tap opens the OS settings (Issue #429).
+                trailing: NotificationPermissionSwitch(
+                  push: widget.push,
+                  builder: (context, value, onChanged) => _Switch(
+                    value: value,
+                    onChanged: onChanged,
+                    semanticLabel: JuniorProfileStrings.notification,
+                  ),
                 ),
               ),
             ],

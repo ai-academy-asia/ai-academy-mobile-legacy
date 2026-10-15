@@ -26,6 +26,8 @@ import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import 'profile_controller.dart';
 import 'profile_strings.dart';
 import 'widgets/profile_parts.dart';
+import '../../notifications/push/notification_permission_switch.dart';
+import '../../notifications/push/push_notifications.dart';
 
 export 'widgets/profile_parts.dart' show captionStyle, rowLabelStyle;
 
@@ -98,6 +100,7 @@ class ProfileScreen extends StatefulWidget {
     this.courseLearningRepository,
     this.contractRepository,
     this.themeController,
+    this.push,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -124,6 +127,11 @@ class ProfileScreen extends StatefulWidget {
   /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
+
+  /// The OS notification permission the Notification switch shows and whose
+  /// settings it opens (Issue #429). Defaults to
+  /// [PushNotifications.instance]; injected in tests.
+  final PushNotifications? push;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -284,13 +292,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ProfileRow(
                 icon: ProfileIcons.notification,
                 label: ProfileStrings.notification,
-                trailing: ProfileSwitch(
-                  // No preference endpoint exists (`BACKEND GAP`, Issue
-                  // #291): off and inert, as on Teacher Profile, rather
-                  // than a switch that changes nothing.
-                  value: false,
-                  onChanged: null,
-                  semanticLabel: ProfileStrings.notification,
+                // The OS notification permission, not a preference — none
+                // exists (#291). A tap opens the OS settings (Issue #429).
+                trailing: NotificationPermissionSwitch(
+                  push: widget.push,
+                  builder: (context, value, onChanged) => ProfileSwitch(
+                    value: value,
+                    onChanged: onChanged,
+                    semanticLabel: ProfileStrings.notification,
+                  ),
                 ),
               ),
             ],

@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../auth/fake_auth_repository.dart';
 import 'fake_notification_repository.dart';
+import 'fake_push.dart';
 
 /// Push notifications (Issue #398) on a fake messaging layer: no Firebase,
 /// no network, no device. The token rules, the permission prompt, sign-out
@@ -447,6 +448,112 @@ void main() {
     });
   });
 
+  group('the Profile switch\'s permission state (Issue #429)', () {
+    test('push off: no state, nothing read, nothing opened', () async {
+      await push.attach(null);
+
+      await push.refreshPermission();
+      expect(push.permissionState.value, isNull);
+      expect(await push.openNotificationSettings(), isFalse);
+      expect(messaging.calls, isEmpty);
+    });
+
+    test('a refresh reads the OS permission without prompting', () async {
+      await attach();
+      for (final permission in PushPermission.values) {
+        messaging.status = permission;
+        await push.refreshPermission();
+        expect(push.permissionState.value, permission);
+      }
+      expect(messaging.calls, isNot(contains('requestPermission')));
+    });
+
+    test(
+      'opening the settings asks the OS, and reports what it answered',
+      () async {
+        await attach();
+
+        expect(await push.openNotificationSettings(), isTrue);
+        messaging.settingsOpen = false;
+        expect(await push.openNotificationSettings(), isFalse);
+        expect(
+          messaging.calls.where((c) => c == 'openNotificationSettings'),
+          hasLength(2),
+        );
+      },
+    );
+
+    test('settings that fail to open answer false and never throw', () async {
+      await attach();
+      messaging.settingsError = StateError('no activity');
+
+      expect(await push.openNotificationSettings(), isFalse);
+    });
+
+    testWidgets('the start\'s own read keeps the state current', (
+      tester,
+    ) async {
+      messaging.status = PushPermission.granted;
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+
+      expect(push.permissionState.value, PushPermission.granted);
+    });
+
+    testWidgets('allowed in the OS settings, the app registers on return — '
+        'the existing path, once, with no prompt', (tester) async {
+      // Android 13+: refused at the one prompt, so never asked again.
+      messaging
+        ..status = PushPermission.denied
+        ..answer = PushPermission.denied;
+      memory.wasAsked = true;
+      await attach();
+      await pumpApp(tester);
+      await goHome(tester);
+      expect(push.permissionState.value, PushPermission.denied);
+      expect(tokens.registered, isEmpty);
+
+      expect(await push.openNotificationSettings(), isTrue);
+      messaging.status = PushPermission.granted;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+
+      expect(push.permissionState.value, PushPermission.granted);
+      expect(tokens.registered, [('fcm-1', PushPlatform.android)]);
+      expect(messaging.calls, isNot(contains('requestPermission')));
+
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+      expect(tokens.registered, hasLength(1));
+    });
+
+    testWidgets('every resume re-reads it, signed in or not', (tester) async {
+      store.clear();
+      messaging.status = PushPermission.denied;
+      await attach();
+      await push.refreshPermission();
+      expect(push.permissionState.value, PushPermission.denied);
+
+      messaging.status = PushPermission.granted;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+
+      expect(push.permissionState.value, PushPermission.granted);
+      expect(tokens.attempts, 0);
+    });
+
+    test('detaching clears the state', () async {
+      await attach();
+      await push.refreshPermission();
+      expect(push.permissionState.value, PushPermission.granted);
+
+      await push.detach();
+
+      expect(push.permissionState.value, isNull);
+    });
+  });
+
   test('notification_id is read from a string or an int; anything else is '
       'none', () {
     expect(
@@ -460,102 +567,4 @@ void main() {
     );
     expect(const PushMessage().notificationId, isNull);
   });
-}
-
-class FakePushMessaging implements PushMessaging {
-  PushPermission status = PushPermission.granted;
-
-  /// What the prompt answers.
-  PushPermission answer = PushPermission.granted;
-  String? nextToken = 'fcm-1';
-  PushMessage? launchMessage;
-  final List<String> calls = [];
-
-  /// When set, [permission] waits on it — a start held mid-way.
-  Completer<void>? permissionGate;
-
-  final _refreshes = StreamController<String>.broadcast();
-  final _foreground = StreamController<PushMessage>.broadcast();
-  final _opened = StreamController<PushMessage>.broadcast();
-
-  void refresh(String token) => _refreshes.add(token);
-  void receive(PushMessage message) => _foreground.add(message);
-  void tap(PushMessage message) => _opened.add(message);
-
-  Future<void> close() async {
-    await _refreshes.close();
-    await _foreground.close();
-    await _opened.close();
-  }
-
-  @override
-  Future<PushPermission> permission() async {
-    calls.add('permission');
-    if (permissionGate case final gate?) await gate.future;
-    return status;
-  }
-
-  @override
-  Future<PushPermission> requestPermission() async {
-    calls.add('requestPermission');
-    return status = answer;
-  }
-
-  @override
-  Future<String?> token() async {
-    calls.add('token');
-    return nextToken;
-  }
-
-  @override
-  Future<void> deleteToken() async => calls.add('deleteToken');
-
-  @override
-  Stream<String> get tokenRefreshes => _refreshes.stream;
-
-  @override
-  Stream<PushMessage> get foregroundMessages => _foreground.stream;
-
-  @override
-  Stream<PushMessage> get openedMessages => _opened.stream;
-
-  @override
-  Future<PushMessage?> initialMessage() async => launchMessage;
-}
-
-class FakePushTokens implements PushTokenRepository {
-  final List<(String, PushPlatform)> registered = [];
-  final List<String> removed = [];
-  int attempts = 0;
-  NotificationFailure? failure;
-  Completer<void>? gate;
-  void Function()? onRemove;
-
-  @override
-  Future<void> registerPushToken({
-    required String token,
-    required PushPlatform platform,
-  }) async {
-    attempts++;
-    if (gate case final gate?) await gate.future;
-    if (failure case final failure?) throw failure;
-    registered.add((token, platform));
-  }
-
-  @override
-  Future<void> removePushToken(String token) async {
-    removed.add(token);
-    onRemove?.call();
-    if (gate case final gate?) await gate.future;
-  }
-}
-
-class FakePermissionMemory implements PushPermissionMemory {
-  bool wasAsked = false;
-
-  @override
-  Future<bool> asked() async => wasAsked;
-
-  @override
-  Future<void> markAsked() async => wasAsked = true;
 }
