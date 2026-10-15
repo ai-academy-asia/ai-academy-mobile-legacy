@@ -52,7 +52,7 @@ ios/Runner/AppDelegate.swift
 
 **NEVER restore, reset, stash, overwrite, check out or clean these files as part of an unrelated task. Never recommend a command that would.**
 
-What they actually contain (inspected, for context on why reverting them breaks local builds): a local Apple `DEVELOPMENT_TEAM` signing identifier, an `IPHONEOS_DEPLOYMENT_TARGET` raised from 13.0 to 15.0, Xcode project-format upgrades (`objectVersion` 54 → 60, `LastUpgradeCheck`/`LastUpgradeVersion` bumps) and newer build-setting defaults. They are the local toolchain's and the local signing setup's, not a feature's.
+What they actually contain (inspected, for context on why reverting them breaks local builds): a local Apple `DEVELOPMENT_TEAM` signing identifier, Xcode project-format upgrades (`objectVersion` 54 → 60, `LastUpgradeCheck`/`LastUpgradeVersion` bumps) and newer build-setting defaults. They are the local toolchain's and the local signing setup's, not a feature's.
 
 **Always distinguish them from task-specific changes.** In every report, list them separately as *pre-existing, protected, untouched*. A clean run of any task should show these three still modified and nothing about them changed.
 
