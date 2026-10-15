@@ -267,7 +267,10 @@ void main() {
     testWidgets('a lesson in the list opens Exercise Detail for that lesson', (
       tester,
     ) async {
-      final repository = FakeCourseLearningRepository();
+      final repository = FakeCourseLearningRepository(
+        // Completed by its saved note (Issue #415), so it opens.
+        notesByLesson: {1: sampleNote()},
+      );
       await pumpScreen(tester, repository);
       await tester.pumpAndSettle();
 
@@ -464,7 +467,13 @@ void main() {
       // The normal flow this screen sits in: previous screen (Home/Cohort
       // List, stood in for here by a plain "open" button) → Module List →
       // Lesson List → Exercise Detail.
-      await pumpScreen(tester, FakeCourseLearningRepository());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(
+          // Completed by its saved note (Issue #415), so it opens.
+          notesByLesson: {1: sampleNote()},
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Prediction and Probabilities'));

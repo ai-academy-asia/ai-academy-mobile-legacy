@@ -177,7 +177,10 @@ void main() {
 
     testWidgets('a completed lesson shows the check, a locked one the '
         'padlock, an open one neither', (tester) async {
-      await pumpScreen(tester, FakeCourseLearningRepository());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(notesByLesson: {1: sampleNote()}),
+      );
       await tester.pumpAndSettle();
 
       Finder inCard(String title, Finder finder) => find.descendant(
@@ -301,7 +304,10 @@ void main() {
 
     testWidgets('the check keeps a clear gap from the title, and sits 16 in '
         'from the card edge', (tester) async {
-      await pumpScreen(tester, FakeCourseLearningRepository());
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(notesByLesson: {1: sampleNote()}),
+      );
       await tester.pumpAndSettle();
 
       const check =

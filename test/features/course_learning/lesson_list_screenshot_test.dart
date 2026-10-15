@@ -31,7 +31,10 @@ void main() {
           moduleId: 2,
           moduleOrder: 2,
           moduleTitle: 'Language Model Training',
-          repository: FakeCourseLearningRepository(),
+          // The sample's completed lesson, by its saved note (Issue #415).
+          repository: FakeCourseLearningRepository(
+            notesByLesson: {1: sampleNote()},
+          ),
         ),
       ),
     );

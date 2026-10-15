@@ -57,17 +57,46 @@ void main() {
     expect(repository.lessonCalls, [3]);
   });
 
-  test('holds the fetched lessons on success', () async {
+  test('holds the fetched lessons on success — each completed by its saved '
+      'note, not the server\'s flag (Issue #415)', () async {
     final lessons = sampleLessons(moduleId: 2);
+    final repository = FakeCourseLearningRepository(
+      lessons: lessons,
+      // Lesson 2 has a note; lesson 1, which the server counts completed,
+      // has none.
+      notesByLesson: {2: sampleNote()},
+    );
     final controller = LessonListController(
-      repository: FakeCourseLearningRepository(lessons: lessons),
+      repository: repository,
       moduleId: 2,
     );
 
     await controller.load();
 
-    expect(controller.lessons, lessons);
+    expect(controller.lessons.map((l) => l.id), lessons.map((l) => l.id));
+    expect(controller.lessons.map((l) => l.completed), [false, true, false]);
+    // Locked lesson 3's note is never asked for.
+    expect(repository.noteCalls..sort(), [1, 2]);
   });
+
+  test(
+    'a failed note read fails the load — never completion on a guess',
+    () async {
+      final controller = LessonListController(
+        repository: FakeCourseLearningRepository(
+          noteFailure: const CourseLearningFailure(
+            CourseLearningFailureKind.network,
+          ),
+        ),
+        moduleId: 2,
+      );
+
+      await controller.load();
+
+      expect(controller.lessons, isEmpty);
+      expect(controller.errorMessage, isNotNull);
+    },
+  );
 
   test('a failure becomes its own copy, with no lessons', () async {
     for (final kind in CourseLearningFailureKind.values) {

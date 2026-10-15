@@ -12,8 +12,14 @@
 /// List's rows all ask this, through `openLesson`. It is a client rule,
 /// stricter than the server: the backend locks by class date alone and
 /// enforces no order (`BACKEND GAP`, `docs/ai/DATA_AND_API.md` §7).
+///
+/// [attended] — the backend confirmed the student's attendance at the
+/// lesson's class (Issue #415's ATTENDANCE_COMPLETED) — opens it too. No
+/// backend data supplies it per lesson yet (#414), so every caller passes
+/// false today.
 bool lessonOpens({
   required bool locked,
   required bool completed,
   required bool isResume,
-}) => !locked && (completed || isResume);
+  bool attended = false,
+}) => !locked && (completed || isResume || attended);

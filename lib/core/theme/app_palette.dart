@@ -112,6 +112,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.calendarLesson,
     required this.calendarMissed,
     required this.juniorMutedFill,
+    required this.juniorMutedGlyph,
     required this.juniorHeaderRule,
     required this.onJuniorMapSky,
     required this.scheduleBand,
@@ -217,6 +218,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     calendarLesson: AppColors.calendarLesson,
     calendarMissed: AppColors.calendarMissed,
     juniorMutedFill: AppColors.juniorMutedFill,
+    juniorMutedGlyph: AppColors.juniorMutedGlyph,
     juniorHeaderRule: AppColors.juniorHeaderRule,
     onJuniorMapSky: AppColors.onJuniorMapSky,
     scheduleBand: AppColors.scheduleBand,
@@ -414,6 +416,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     calendarMissed: _Dark.calendarMissed,
     // UNRESOLVED: §11 nodes are open; surfaceMuted stands in (see §18)
     juniorMutedFill: _Dark.muted,
+    // DERIVED: the padlock sprite's ink; the sprite is not themed
+    juniorMutedGlyph: AppColors.juniorMutedGlyph,
     // DERIVED: a header rule; every other is divider
     juniorHeaderRule: _Dark.divider,
     // DERIVED: white reads on the dusk sky
@@ -750,6 +754,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// locked tile.
   final Color juniorMutedFill;
 
+  /// A grey glyph on a Junior map node, the padlock sprite's own ink: the
+  /// tint of the attendance-completed node's tick (Issue #415). The same in
+  /// both themes, as the padlock export it matches is not themed.
+  final Color juniorMutedGlyph;
+
   /// The rule under Junior Home's header (`#E4E6EF`). Every other header
   /// rule, Junior Learning Progress's included, is [divider] (`#EAEDF0`);
   /// whether this one should be too is a design decision (Issue #272). Not
@@ -913,6 +922,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? calendarLesson,
     Color? calendarMissed,
     Color? juniorMutedFill,
+    Color? juniorMutedGlyph,
     Color? juniorHeaderRule,
     Color? onJuniorMapSky,
     Color? scheduleBand,
@@ -1016,6 +1026,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     calendarLesson: calendarLesson ?? this.calendarLesson,
     calendarMissed: calendarMissed ?? this.calendarMissed,
     juniorMutedFill: juniorMutedFill ?? this.juniorMutedFill,
+    juniorMutedGlyph: juniorMutedGlyph ?? this.juniorMutedGlyph,
     juniorHeaderRule: juniorHeaderRule ?? this.juniorHeaderRule,
     onJuniorMapSky: onJuniorMapSky ?? this.onJuniorMapSky,
     scheduleBand: scheduleBand ?? this.scheduleBand,
@@ -1130,6 +1141,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       calendarLesson: mix(calendarLesson, other.calendarLesson),
       calendarMissed: mix(calendarMissed, other.calendarMissed),
       juniorMutedFill: mix(juniorMutedFill, other.juniorMutedFill),
+      juniorMutedGlyph: mix(juniorMutedGlyph, other.juniorMutedGlyph),
       juniorHeaderRule: mix(juniorHeaderRule, other.juniorHeaderRule),
       onJuniorMapSky: mix(onJuniorMapSky, other.onJuniorMapSky),
       scheduleBand: mix(scheduleBand, other.scheduleBand),

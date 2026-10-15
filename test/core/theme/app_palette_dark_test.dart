@@ -172,6 +172,11 @@ void main() {
       const Color(0xFF20252E),
       'UNRESOLVED',
     ),
+    'juniorMutedGlyph': (
+      dark.juniorMutedGlyph,
+      const Color(0xFFA4A6A8),
+      'DERIVED',
+    ),
     'juniorHeaderRule': (
       dark.juniorHeaderRule,
       const Color(0xFF2A303A),
@@ -248,7 +253,7 @@ void main() {
     final declared = RegExp(
       r'required this\.(\w+),',
     ).allMatches(source).map((m) => m.group(1)!).toList();
-    expect(declared, hasLength(101));
+    expect(declared, hasLength(102));
     expect(roles.keys.toSet(), declared.toSet());
     for (final MapEntry(key: role, value: (actual, expected, status))
         in roles.entries) {

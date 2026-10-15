@@ -205,6 +205,8 @@ void main() {
     ) async {
       final learning = FakeCourseLearningRepository(
         exercise: sampleExercise(),
+        // 'Done' is completed by its saved note (Issue #415).
+        notesByLesson: {41: sampleNote()},
         lessons: [
           sampleLesson(
             id: 41,
@@ -268,8 +270,9 @@ void main() {
       );
     });
 
-    testWidgets('a completed lesson whose class moved later keeps its '
-        'completed check and cannot be opened', (tester) async {
+    testWidgets('a lesson the server counts completed, whose class moved '
+        'later, shows the padlock and cannot be opened — its note can\'t be '
+        'read (Issue #415)', (tester) async {
       final learning = FakeCourseLearningRepository(
         exercise: sampleExercise(),
         lessons: [
@@ -286,8 +289,9 @@ void main() {
       await pumpHome(tester, list(learning));
 
       final done = row('Done before');
-      expect(svg(done, 'course_detail_completed_check.svg'), findsOneWidget);
-      expect(svg(done, 'course_detail_lock.svg'), findsNothing);
+      expect(svg(done, 'course_detail_completed_check.svg'), findsNothing);
+      expect(svg(done, 'course_detail_lock.svg'), findsOneWidget);
+      expect(learning.noteCalls, isEmpty);
       expect(tester.widget<LessonListItem>(done).onTap, isNull);
       await tester.tap(find.text('Done before'));
       await tester.pumpAndSettle();

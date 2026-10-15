@@ -5,6 +5,7 @@ import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/course_learning/data/http_course_learning_repository.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
@@ -102,6 +103,41 @@ void main() {
           'modules': scrambled ? modules.reversed.toList() : modules,
         };
       }
+      if (path.startsWith('/me/lessons/')) {
+        // §2.3 lesson detail: its saved note — what completes it (Issue
+        // #415) — on the lessons the seed completed.
+        final id = int.parse(path.split('/')[3]);
+        final n = lessonsInOrder.indexWhere((l) => l.$3 == id);
+        final l = lessonsInOrder[n];
+        return {
+          'id': id,
+          'module': {
+            'id': l.$1,
+            'order': l.$2,
+            'title': {'en': 'Module ${l.$2}'},
+          },
+          'order': l.$4,
+          'title': {'en': 'Lesson ${n + 1}'},
+          'type': 'recording',
+          'duration_seconds': 10800,
+          'video': null,
+          'summary': null,
+          'sections': <Object?>[],
+          'completed': completedAt(n),
+          'materials': <Object?>[],
+          'note': completedAt(n)
+              ? {
+                  'id': 900 + n,
+                  'content': 'My note on lesson ${n + 1}',
+                  'created_at': '2026-07-01T01:00:00+00:00',
+                  'updated_at': '2026-07-01T01:00:00+00:00',
+                  'author': {'name': 'Ерөөл Баярмагнай', 'initials': 'ЕБ'},
+                }
+              : null,
+          'assignment': null,
+          'quiz': null,
+        };
+      }
       final moduleId = int.parse(path.split('/')[3]);
       final lessons = [
         for (final (n, l) in lessonsInOrder.indexed)
@@ -162,6 +198,7 @@ void main() {
           for (final n in map.nodes)
             switch (n.state) {
               JuniorNodeState.completed => '✓',
+              JuniorNodeState.attendanceCompleted => 'A',
               JuniorNodeState.current => '◉',
               JuniorNodeState.open => '🔒',
               JuniorNodeState.locked => 'L',
@@ -188,6 +225,11 @@ void main() {
       useReducedMotion(tester);
       final learning = FakeCourseLearningRepository(
         exercise: sampleExercise(),
+        // The seed's completed lessons, as saved notes (Issue #415).
+        notesByLesson: {
+          for (final (n, l) in lessonsInOrder.indexed)
+            if (completedAt(n)) l.$3: sampleNote(),
+        },
         path: samplePath(
           courseSlug: slug,
           percentComplete: 54,
@@ -335,7 +377,7 @@ void main() {
       'reordered by lock or by completion', () {
     // Module 2's first class moved later (its server lock), modules 1 and
     // 3 open; one of module 3's lessons completed.
-    final map = juniorMapFrom(
+    final map = mapFrom(
       samplePath(
         continueModuleId: 1,
         continueLessonId: 12,
@@ -372,7 +414,9 @@ void main() {
       JuniorNodeState.completed,
       JuniorNodeState.current,
       JuniorNodeState.locked,
-      JuniorNodeState.completed, // completed, its module locked again
+      // Its module locked again: its note can't be read (409), so it is
+      // LOCKED, never completed on a guess (Issue #415).
+      JuniorNodeState.locked,
       JuniorNodeState.completed,
       JuniorNodeState.open,
     ]);
@@ -409,7 +453,13 @@ void main() {
           moduleId: 41,
           moduleOrder: 1,
           moduleTitle: 'Module 1',
-          repository: FakeCourseLearningRepository(lessons: lessons),
+          repository: FakeCourseLearningRepository(
+            lessons: lessons,
+            notesByLesson: {
+              for (final lesson in lessons)
+                if (lesson.completed) lesson.id: sampleNote(),
+            },
+          ),
           resumeLessonId: continueLessonId,
         ),
       ),
@@ -425,3 +475,23 @@ void main() {
     expect(tappable, [4101, 4102, 4103, 4104, 4106]);
   });
 }
+
+/// The fixtures' `completed: true` stands for a saved, non-empty note
+/// (Issue #415): completion is the note, not the server's flag. As in the
+/// repository, a locked lesson's note is never read.
+JuniorLearningMap mapFrom(
+  CourseLearningPath path, {
+  Map<int, List<Lesson>> lessons = const {},
+  NextLesson? nextLesson,
+  bool? attendanceRecorded,
+}) => juniorMapFrom(
+  path,
+  lessons: lessons,
+  nextLesson: nextLesson,
+  attendanceRecorded: attendanceRecorded,
+  completedByNote: {
+    for (final module in path.modules)
+      for (final lesson in lessons[module.id] ?? const <Lesson>[])
+        if (lesson.completed && !lesson.locked && !module.locked) lesson.id,
+  },
+);

@@ -35,6 +35,8 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.exercise,
     this.holdExercise = false,
     this.exerciseFailure,
+    Map<int, CourseExerciseNote>? notesByLesson,
+    this.noteFailure,
     this.savedNote,
     this.holdSave = false,
     this.saveFailure,
@@ -60,7 +62,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.finishFailure,
     this.attemptResult,
     this.attemptReadFailure,
-  });
+  }) : notesByLesson = notesByLesson ?? {};
 
   // --- getCourseLearning ---------------------------------------------------
 
@@ -178,6 +180,26 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     return exercise ?? sampleExercise(lessonId: lessonId);
   }
 
+  // --- getLessonNote -------------------------------------------------------
+
+  /// The persisted notes, by lesson — what the backend holds. Empty unless a
+  /// test sets one; a successful [saveNote] writes here too, as the backend
+  /// persists it, and a failed one does not.
+  final Map<int, CourseExerciseNote> notesByLesson;
+
+  /// Thrown by [getLessonNote] instead of answering, when set.
+  CourseLearningFailure? noteFailure;
+
+  /// Every lesson id [getLessonNote] was asked for, in order.
+  final List<int> noteCalls = [];
+
+  @override
+  Future<CourseExerciseNote?> getLessonNote(int lessonId) async {
+    noteCalls.add(lessonId);
+    if (noteFailure case final failure?) throw failure;
+    return notesByLesson[lessonId];
+  }
+
   // --- saveNote ----------------------------------------------------------
 
   /// Returned on success. Unset, the saved note is what
@@ -214,8 +236,10 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
 
     if (saveFailure case final failure?) throw failure;
 
-    return savedNote ??
-        sampleNote(message: content, timestampLabel: 'Just now');
+    final saved =
+        savedNote ?? sampleNote(message: content, timestampLabel: 'Just now');
+    notesByLesson[lessonId] = saved;
+    return saved;
   }
 
   // --- completeLesson ------------------------------------------------------
