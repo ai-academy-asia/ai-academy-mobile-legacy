@@ -22,9 +22,28 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NOTIFICATION_SETTINGS_CHANNEL)
             .setMethodCallHandler { call, result ->
-                if (call.method == "open") result.success(openNotificationSettings())
-                else result.notImplemented()
+                when (call.method) {
+                    "open" -> result.success(openNotificationSettings())
+                    "isDefaultChannelBlocked" -> result.success(isDefaultChannelBlocked())
+                    else -> result.notImplemented()
+                }
             }
+    }
+
+    /**
+     * Whether the user blocked the default channel, "Мэдэгдэл" (Issue #433).
+     * Firebase reports only the app-level permission, yet posts every push
+     * into this channel — blocked, pushes arrive and are never shown. Only
+     * read, never changed. False below API 26 (no channels) and when the
+     * channel does not exist yet; Firebase then shows pushes in its fallback.
+     */
+    private fun isDefaultChannelBlocked(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        val manager = getSystemService(NotificationManager::class.java) ?: return false
+        val channel =
+            manager.getNotificationChannel(getString(R.string.default_notification_channel_id))
+                ?: return false
+        return channel.importance == NotificationManager.IMPORTANCE_NONE
     }
 
     /**

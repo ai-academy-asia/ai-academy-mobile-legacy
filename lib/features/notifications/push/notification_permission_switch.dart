@@ -17,10 +17,12 @@ typedef NotificationSwitchBuilder =
 /// notification permission for this app, not a server-side preference — none
 /// exists (#291).
 ///
-/// With push on, it is on when the permission is granted and off otherwise,
-/// read when Profile opens and again on every resume ([PushNotifications]
-/// re-reads it there). A tap opens this app's notification settings in the
-/// OS; the switch never pretends to change the permission itself. With push
+/// With push on, it is on when the permission is granted and the push
+/// channel is not blocked (Issue #433) — when notifications can actually
+/// appear — and off otherwise, read when Profile opens and again on every
+/// resume ([PushNotifications] re-reads both there). A tap opens this app's
+/// notification settings in the OS; the switch never pretends to change the
+/// permission itself. With push
 /// off — no Firebase configuration, iOS today — it is inert and off.
 ///
 /// Each Profile draws its own switch through [builder]; this decides only
@@ -55,11 +57,13 @@ class _NotificationPermissionSwitchState
   @override
   Widget build(BuildContext context) {
     final push = _push;
-    return ValueListenableBuilder<PushPermission?>(
-      valueListenable: push.permissionState,
-      builder: (context, permission, _) => widget.builder(
+    return ListenableBuilder(
+      listenable: Listenable.merge([push.permissionState, push.channelBlocked]),
+      builder: (context, _) => widget.builder(
         context,
-        push.enabled && permission == PushPermission.granted,
+        push.enabled &&
+            push.permissionState.value == PushPermission.granted &&
+            !push.channelBlocked.value,
         push.enabled ? (_) => unawaited(push.openNotificationSettings()) : null,
       ),
     );

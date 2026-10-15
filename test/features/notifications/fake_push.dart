@@ -58,6 +58,23 @@ class FakePushMessaging implements PushMessaging {
     return settingsOpen;
   }
 
+  /// Whether the push channel reads blocked (Issue #433); an error to throw
+  /// instead, when set.
+  bool channelBlocked = false;
+  Object? channelError;
+
+  /// When set, [notificationChannelBlocked] waits on it — a read held open,
+  /// so a test can look inside the window before it answers.
+  Completer<void>? channelGate;
+
+  @override
+  Future<bool> notificationChannelBlocked() async {
+    calls.add('notificationChannelBlocked');
+    if (channelGate case final gate?) await gate.future;
+    if (channelError case final error?) throw error;
+    return channelBlocked;
+  }
+
   @override
   Future<String?> token() async {
     calls.add('token');

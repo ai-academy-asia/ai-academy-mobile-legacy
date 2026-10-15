@@ -26,3 +26,19 @@ Future<bool> openAppNotificationSettings() async {
       return false;
   }
 }
+
+/// Whether this app's default notification channel, "Мэдэгдэл"
+/// (`aia_default`), is blocked in the OS (Issue #433) — pushes then arrive and
+/// are never shown, though the permission reads granted.
+///
+/// Android only: `MainActivity`'s `isDefaultChannelBlocked`, which reads the
+/// channel's importance and never changes it — false below API 26 or while the
+/// channel does not exist. Elsewhere there are no such channels: false. A
+/// platform error propagates; the caller decides what failure means.
+Future<bool> isDefaultNotificationChannelBlocked() async {
+  if (defaultTargetPlatform != TargetPlatform.android) return false;
+  return await notificationSettingsChannel.invokeMethod<bool>(
+        'isDefaultChannelBlocked',
+      ) ??
+      false;
+}

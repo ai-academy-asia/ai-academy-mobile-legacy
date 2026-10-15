@@ -89,6 +89,10 @@ class FirebasePushMessaging implements PushMessaging {
   Future<bool> openNotificationSettings() => openAppNotificationSettings();
 
   @override
+  Future<bool> notificationChannelBlocked() =>
+      isDefaultNotificationChannelBlocked();
+
+  @override
   Future<String?> token() async {
     // iOS: FCM needs the APNs token first; until APNs has issued it (or
     // without the Push capability) there is no FCM token to have.

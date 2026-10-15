@@ -99,7 +99,8 @@ Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын яв
 
 **The Profile Notification switch (Issue #429).** `NotificationPermissionSwitch` shows `PushNotifications.permissionState`, the OS permission read without prompting.
 - **When it is read:** when Profile opens (`refreshPermission`), on every resume, and by each start.
-- **Values:** on when granted; off when denied or not determined.
+- **Values:** on when granted **and** the "Мэдэгдэл" channel (`aia_default`) is not blocked; off when denied, not determined, or the channel is blocked (Issue #433).
+- **Why the channel matters:** `firebase_messaging` reports only the app-level permission (`POST_NOTIFICATIONS` on API 33+, `areNotificationsEnabled()` below), yet Firebase posts every push into that channel. Blocked, pushes arrive and are never shown. `MainActivity`'s `isDefaultChannelBlocked` reads the channel's importance (`NONE` = blocked) and never changes it. It answers false below API 26, for a missing channel, and when the read fails.
 - **A tap** opens this app's notification settings (`openNotificationSettings`). On Android that is `MainActivity`'s `com.aiacademyasia.aia_mobile/notification_settings` channel: `ACTION_APP_NOTIFICATION_SETTINGS` on API 26+, the app-details screen below that. On iOS it is `app-settings:` through `url_launcher`, so the protected `AppDelegate.swift` is untouched. The switch never changes the permission itself, and a failure to open answers false without throwing.
 - **Coming back allowed:** the existing resume path registers the token, with no prompt. This is the only way back on Android 13+, where the app asks once per install.
 - **With push off,** the switch is inert and off.

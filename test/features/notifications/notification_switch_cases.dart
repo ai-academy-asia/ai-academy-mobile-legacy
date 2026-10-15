@@ -55,8 +55,14 @@ void notificationPermissionSwitchCases({
     late FakePushMessaging messaging;
     late PushNotifications push;
 
-    Future<void> pump(WidgetTester tester, PushPermission permission) async {
-      messaging = FakePushMessaging()..status = permission;
+    Future<void> pump(
+      WidgetTester tester,
+      PushPermission permission, {
+      bool channelBlocked = false,
+    }) async {
+      messaging = FakePushMessaging()
+        ..status = permission
+        ..channelBlocked = channelBlocked;
       push = await attachedPush(messaging);
       addTearDown(() async {
         await push.detach();
@@ -114,6 +120,57 @@ void notificationPermissionSwitchCases({
 
       expect(isOn(tester), isTrue);
     });
+
+    testWidgets('granted, but the "Мэдэгдэл" channel blocked: off — pushes '
+        'would arrive unseen (Issue #433) — and still live', (tester) async {
+      await pump(tester, PushPermission.granted, channelBlocked: true);
+
+      expect(isOn(tester), isFalse);
+      expect(isInert(tester), isFalse);
+      expect(messaging.calls, contains('notificationChannelBlocked'));
+
+      await tester.tap(find.bySemanticsLabel(label).last);
+      await tester.pumpAndSettle();
+      expect(
+        messaging.calls.where((c) => c == 'openNotificationSettings'),
+        hasLength(1),
+      );
+    });
+
+    testWidgets('the channel unblocked in the OS settings: on after returning; '
+        'blocked again: off (Issue #433)', (tester) async {
+      await pump(tester, PushPermission.granted, channelBlocked: true);
+      expect(isOn(tester), isFalse);
+
+      messaging.channelBlocked = false;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+      expect(isOn(tester), isTrue);
+
+      messaging.channelBlocked = true;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+      expect(isOn(tester), isFalse);
+    });
+
+    testWidgets(
+      'a channel that cannot be read never turns a granted switch off '
+      '(Issue #433)',
+      (tester) async {
+        messaging = FakePushMessaging()
+          ..status = PushPermission.granted
+          ..channelError = PlatformException(code: 'no_channel_api');
+        push = await attachedPush(messaging);
+        addTearDown(() async {
+          await push.detach();
+          await messaging.close();
+        });
+        await pumpWith(tester, push);
+
+        expect(isOn(tester), isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets('settings that cannot open do not crash the Profile', (
       tester,

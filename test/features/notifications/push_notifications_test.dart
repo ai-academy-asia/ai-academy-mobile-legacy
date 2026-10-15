@@ -554,6 +554,211 @@ void main() {
     });
   });
 
+  group('the push channel\'s blocked state (Issue #433)', () {
+    test('push off: not blocked, and the channel is never asked', () async {
+      await push.attach(null);
+
+      await push.refreshPermission();
+
+      expect(push.channelBlocked.value, isFalse);
+      expect(messaging.calls, isEmpty);
+    });
+
+    test('a refresh reads the channel with the permission: granted and '
+        'blocked, granted and unblocked, denied', () async {
+      await attach();
+      for (final (permission, blocked) in const [
+        (PushPermission.granted, true),
+        (PushPermission.granted, false),
+        (PushPermission.denied, false),
+        (PushPermission.denied, true),
+      ]) {
+        messaging
+          ..status = permission
+          ..channelBlocked = blocked;
+        await push.refreshPermission();
+        expect(push.permissionState.value, permission);
+        expect(push.channelBlocked.value, blocked);
+      }
+      expect(messaging.calls, isNot(contains('requestPermission')));
+    });
+
+    test('a failed channel read counts as not blocked, and the permission is '
+        'still read', () async {
+      await attach();
+      messaging
+        ..channelBlocked = true
+        ..channelError = StateError('no channel api');
+
+      await push.refreshPermission();
+
+      expect(push.channelBlocked.value, isFalse);
+      expect(push.permissionState.value, PushPermission.granted);
+    });
+
+    testWidgets('unblocked in the OS settings, it is re-read on return', (
+      tester,
+    ) async {
+      messaging.channelBlocked = true;
+      await attach();
+      await push.refreshPermission();
+      expect(push.channelBlocked.value, isTrue);
+
+      messaging.channelBlocked = false;
+      leaveAndReturn(tester);
+      await tester.pumpAndSettle();
+
+      expect(push.channelBlocked.value, isFalse);
+    });
+
+    test('detaching clears it', () async {
+      messaging.channelBlocked = true;
+      await attach();
+      await push.refreshPermission();
+      expect(push.channelBlocked.value, isTrue);
+
+      await push.detach();
+
+      expect(push.channelBlocked.value, isFalse);
+    });
+  });
+
+  group('the switch never flashes on for a blocked channel (Issue #433)', () {
+    /// Every on/off the switch could show, recorded at every single change
+    /// of either value — finer than any frame.
+    List<bool> recordSwitch() {
+      final seen = <bool>[];
+      void record() => seen.add(
+        push.permissionState.value == PushPermission.granted &&
+            !push.channelBlocked.value,
+      );
+      push.permissionState.addListener(record);
+      push.channelBlocked.addListener(record);
+      addTearDown(() {
+        push.permissionState.removeListener(record);
+        push.channelBlocked.removeListener(record);
+      });
+      return seen;
+    }
+
+    testWidgets('cold start through sign-in, granted but blocked: never on, '
+        'even while the channel read is still out', (tester) async {
+      messaging
+        ..status = PushPermission.granted
+        ..channelBlocked = true
+        ..channelGate = Completer<void>();
+      await attach();
+      final seen = recordSwitch();
+      await pumpApp(tester);
+      await goHome(tester);
+
+      // The permission is known; the channel read is held open.
+      expect(messaging.calls, contains('notificationChannelBlocked'));
+      expect(seen, isNot(contains(true)));
+
+      messaging.channelGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(seen, isNot(contains(true)));
+      expect(seen, isNotEmpty);
+      expect(push.permissionState.value, PushPermission.granted);
+      expect(push.channelBlocked.value, isTrue);
+      // A blocked channel does not stop the token being registered.
+      expect(tokens.registered, [('fcm-1', PushPlatform.android)]);
+    });
+
+    testWidgets('cold start, granted and unblocked: on, once, and registered', (
+      tester,
+    ) async {
+      await attach();
+      final seen = recordSwitch();
+      await pumpApp(tester);
+      await goHome(tester);
+
+      expect(seen, isNotEmpty);
+      expect(seen.last, isTrue);
+      expect(seen.where((on) => on), hasLength(1));
+      expect(tokens.registered, [('fcm-1', PushPlatform.android)]);
+    });
+
+    test('a refresh, granted but blocked: never on while the channel read '
+        'is still out', () async {
+      messaging
+        ..status = PushPermission.granted
+        ..channelBlocked = true
+        ..channelGate = Completer<void>();
+      await attach();
+      final seen = recordSwitch();
+
+      final refresh = push.refreshPermission();
+      await Future<void>.delayed(Duration.zero);
+      expect(messaging.calls, contains('notificationChannelBlocked'));
+      expect(seen, isEmpty); // nothing published until both are known
+
+      messaging.channelGate!.complete();
+      await refresh;
+
+      expect(seen, isNot(contains(true)));
+      expect(push.permissionState.value, PushPermission.granted);
+      expect(push.channelBlocked.value, isTrue);
+    });
+
+    test(
+      'blocked to unblocked after returning from Settings: off, then on',
+      () async {
+        messaging
+          ..status = PushPermission.granted
+          ..channelBlocked = true;
+        await attach();
+        await push.refreshPermission();
+        final seen = recordSwitch();
+
+        messaging.channelBlocked = false;
+        await push.refreshPermission();
+
+        expect(seen, [true]);
+      },
+    );
+
+    test(
+      'granted and unblocked to refused: never on on the way to off',
+      () async {
+        await attach();
+        await push.refreshPermission();
+        final seen = recordSwitch();
+
+        messaging
+          ..status = PushPermission.denied
+          ..channelBlocked = true;
+        await push.refreshPermission();
+
+        expect(seen, isNot(contains(true)));
+        expect(seen.last, isFalse);
+      },
+    );
+
+    test(
+      'detached while the channel read is out: nothing stale is published',
+      () async {
+        messaging
+          ..status = PushPermission.granted
+          ..channelGate = Completer<void>();
+        await attach();
+        final refresh = push.refreshPermission();
+        await Future<void>.delayed(Duration.zero);
+
+        await push.detach();
+        final seen = recordSwitch();
+        messaging.channelGate!.complete();
+        await refresh;
+
+        expect(seen, isEmpty);
+        expect(push.permissionState.value, isNull);
+        expect(push.channelBlocked.value, isFalse);
+      },
+    );
+  });
+
   test('notification_id is read from a string or an int; anything else is '
       'none', () {
     expect(
