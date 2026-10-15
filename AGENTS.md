@@ -56,7 +56,7 @@ Proceed with what is confirmed and carry the labelled gap into the Issue, the PR
 - `git add -A`, `git add .`, `git commit -a` — **stage edited files by explicit path**
 - `dart format lib/` (or any blanket format) — format only the files you edited
 
-**Protected files** — intentional persistent local changes (signing team, iOS deployment target 15.0, Xcode format upgrades). They show as modified in `git status` essentially always:
+**Protected files** — intentional persistent local changes (signing team, Xcode format upgrades). They show as modified in `git status` essentially always:
 
 ```
 ios/Runner.xcodeproj/project.pbxproj
