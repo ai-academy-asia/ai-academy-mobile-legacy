@@ -12,6 +12,14 @@ abstract final class SplashStrings {
   /// Announced in place of the wordmark artwork. One line rather than two:
   /// the line break is a typographic choice in the artwork, not a pause.
   static const String wordmarkSemanticsLabel = '$wordmarkLine1 $wordmarkLine2';
+
+  /// Shown when a held session could not be restored for want of a network
+  /// (Issue #435) — the product's own copy.
+  static const String networkError =
+      'Интернэт холболтоо шалгаад дахин оролдоно уу.';
+
+  /// The app's retry label, as on every other error state.
+  static const String retry = 'Дахин оролдох';
 }
 
 /// The splash screen's own assets, both exported from the Figma Splash frame.

@@ -14,6 +14,7 @@ import 'package:aia_mobile/features/auth/presentation/login_screen.dart';
 import 'package:aia_mobile/features/auth/presentation/reset_password_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_screen.dart';
 import 'package:aia_mobile/features/splash/presentation/splash_strings.dart';
+import 'package:aia_mobile/shared/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -594,6 +595,242 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text('junior home'), findsNothing);
       expect(find.text('adult home'), findsNothing);
+    });
+
+    group('a network failure offers Retry instead of Login (Issue #435)', () {
+      CurrentUserFailure networkDown() =>
+          const CurrentUserFailure(CurrentUserFailureKind.network);
+
+      Finder retryButton() => find.byType(AppButton);
+
+      Future<void> tapRetry(WidgetTester tester) async {
+        await tester.tap(retryButton());
+        await tester.pump();
+      }
+
+      testWidgets('stays on Splash with the exact message and Retry; Login '
+          'never opens', (tester) async {
+        final currentUser = FakeCurrentUserRepository(failure: networkDown());
+        await pumpSplash(
+          tester,
+          sessionStore: signedIn(),
+          currentUser: currentUser,
+        );
+
+        await runToHandOff(tester);
+        // Long after the hand-off, still nothing opened on its own.
+        await tester.pump(const Duration(seconds: 30));
+
+        expect(find.byType(SplashScreen), findsOneWidget);
+        expect(
+          find.text('Интернэт холболтоо шалгаад дахин оролдоно уу.'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(AppButton, 'Дахин оролдох'), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
+        expect(currentUser.callCount, 1);
+      });
+
+      for (final (type, home) in [
+        (UserType.adult, 'adult home'),
+        (UserType.child, 'junior home'),
+        (UserType.teacher, 'teacher home'),
+      ]) {
+        testWidgets('Retry asks /auth/me again and, restored, lands a '
+            '${type.name} on its Home', (tester) async {
+          final currentUser = FakeCurrentUserRepository(
+            user: accountOf(type),
+            failure: networkDown(),
+          );
+          await pumpSplash(
+            tester,
+            sessionStore: signedIn(),
+            currentUser: currentUser,
+          );
+          await runToHandOff(tester);
+
+          currentUser.failure = null;
+          await tapRetry(tester);
+          await tester.pumpAndSettle();
+
+          expect(currentUser.callCount, 2);
+          expect(find.text(home), findsOneWidget);
+          expect(find.byType(LoginScreen), findsNothing);
+          expect(find.byType(SplashScreen), findsNothing);
+        });
+      }
+
+      testWidgets('restored by Retry, an account that must change its '
+          'password still opens "Нууц үгээ тохируулах" first', (tester) async {
+        final currentUser = FakeCurrentUserRepository(
+          user: accountOf(UserType.adult, mustChangePassword: true),
+          failure: networkDown(),
+        );
+        await pumpSplash(
+          tester,
+          sessionStore: signedIn(),
+          currentUser: currentUser,
+        );
+        await runToHandOff(tester);
+
+        currentUser.failure = null;
+        await tapRetry(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ResetPasswordScreen), findsOneWidget);
+        expect(find.text('adult home'), findsNothing);
+      });
+
+      testWidgets('a Retry that fails on the network again stays, and can be '
+          'retried again', (tester) async {
+        final currentUser = FakeCurrentUserRepository(
+          user: accountOf(UserType.adult),
+          failure: networkDown(),
+        );
+        await pumpSplash(
+          tester,
+          sessionStore: signedIn(),
+          currentUser: currentUser,
+        );
+        await runToHandOff(tester);
+
+        await tapRetry(tester);
+        await tester.pumpAndSettle();
+
+        expect(currentUser.callCount, 2);
+        expect(find.byType(SplashScreen), findsOneWidget);
+        expect(
+          find.text('Интернэт холболтоо шалгаад дахин оролдоно уу.'),
+          findsOneWidget,
+        );
+        expect(find.byType(LoginScreen), findsNothing);
+        // Enabled again, its label back.
+        expect(
+          tester.widget<AppButton>(retryButton()),
+          isA<AppButton>()
+              .having((b) => b.loading, 'loading', isFalse)
+              .having((b) => b.onPressed, 'onPressed', isNotNull),
+        );
+
+        currentUser.failure = null;
+        await tapRetry(tester);
+        await tester.pumpAndSettle();
+
+        expect(currentUser.callCount, 3);
+        expect(find.text('adult home'), findsOneWidget);
+      });
+
+      testWidgets('while a Retry is out the button shows its spinner, and more '
+          'taps make no second request', (tester) async {
+        final currentUser = FakeCurrentUserRepository(
+          user: accountOf(UserType.adult),
+          failure: networkDown(),
+        );
+        await pumpSplash(
+          tester,
+          sessionStore: signedIn(),
+          currentUser: currentUser,
+        );
+        await runToHandOff(tester);
+
+        currentUser
+          ..failure = null
+          ..hold = true;
+        await tapRetry(tester);
+        expect(tester.widget<AppButton>(retryButton()).loading, isTrue);
+        expect(find.text('Дахин оролдох'), findsNothing);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        for (var i = 0; i < 3; i++) {
+          await tester.tap(retryButton(), warnIfMissed: false);
+          await tester.pump();
+        }
+        expect(currentUser.callCount, 2);
+
+        currentUser.release();
+        await tester.pumpAndSettle();
+
+        expect(currentUser.callCount, 2);
+        expect(find.text('adult home'), findsOneWidget);
+      });
+
+      testWidgets(
+        'a Retry the API refuses goes to Login, as any refusal does',
+        (tester) async {
+          final currentUser = FakeCurrentUserRepository(failure: networkDown());
+          await pumpSplash(
+            tester,
+            sessionStore: signedIn(),
+            currentUser: currentUser,
+          );
+          await runToHandOff(tester);
+
+          currentUser.failure = const CurrentUserFailure(
+            CurrentUserFailureKind.sessionExpired,
+          );
+          await tapRetry(tester);
+          await tester.pumpAndSettle();
+
+          expect(find.byType(LoginScreen), findsOneWidget);
+        },
+      );
+
+      testWidgets('a session gone by the time of Retry goes to Login without '
+          'asking /auth/me', (tester) async {
+        final store = signedIn();
+        final currentUser = FakeCurrentUserRepository(failure: networkDown());
+        await pumpSplash(tester, sessionStore: store, currentUser: currentUser);
+        await runToHandOff(tester);
+
+        store.clear();
+        await tapRetry(tester);
+        await tester.pumpAndSettle();
+
+        expect(currentUser.callCount, 1);
+        expect(find.byType(LoginScreen), findsOneWidget);
+      });
+
+      for (final kind in [
+        CurrentUserFailureKind.sessionExpired,
+        CurrentUserFailureKind.rejected,
+        CurrentUserFailureKind.server,
+        CurrentUserFailureKind.unexpected,
+      ]) {
+        testWidgets('a ${kind.name} failure still goes straight to Login, '
+            'with no Retry', (tester) async {
+          await pumpSplash(
+            tester,
+            sessionStore: signedIn(),
+            currentUser: FakeCurrentUserRepository(
+              failure: CurrentUserFailure(kind),
+            ),
+          );
+
+          await runToHandOff(tester);
+
+          expect(find.byType(LoginScreen), findsOneWidget);
+          expect(find.byType(SplashScreen), findsNothing);
+          expect(
+            find.text('Интернэт холболтоо шалгаад дахин оролдоно уу.'),
+            findsNothing,
+          );
+        });
+      }
+
+      testWidgets('no held session goes to Login even with the network down, '
+          'without asking /auth/me', (tester) async {
+        final currentUser = FakeCurrentUserRepository(failure: networkDown());
+        await pumpSplash(tester, currentUser: currentUser);
+
+        await runToHandOff(tester);
+
+        expect(currentUser.callCount, 0);
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(
+          find.text('Интернэт холболтоо шалгаад дахин оролдоно уу.'),
+          findsNothing,
+        );
+      });
     });
   });
 }

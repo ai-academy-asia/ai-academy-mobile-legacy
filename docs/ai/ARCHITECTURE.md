@@ -58,7 +58,7 @@ Conventions that hold across the codebase:
 
 | Route | Screen |
 |---|---|
-| `/` | `SplashScreen` — animates, then `pushReplacement` to `/login` after 7s |
+| `/` | `SplashScreen` — animates, then after 7s hands off: a held session's Home, else `/login`; a network failure restoring the session shows Retry instead (Issue #435) |
 | `/login` | `LoginScreen` — on success, `openSignedIn` opens the `homeRouteFor` Home, or first "Нууц үгээ тохируулах" when `must_change_password` (Issue #182) |
 | `/reset-password` | `ResetPasswordScreen` — the authenticated change-password form: from Profile's Change password, from Login's "Нууц үг сэргээх" only while a live session is held, and in place of Home when `must_change_password` (#182). Signed out, "Нууц үг сэргээх" and the "Менежертэй холбогдоорой" card open the contact sheet instead (`chooseManagerContact`, Issue #186): "Утасдах" opens `tel:+97675051055`, "Email бичих" `mailto:info@ai-academy.asia` — the business-confirmed contact (`ManagerContact`, Issue #184) — and dismissing the sheet (barrier, drag, back; it has no cancel button since #239) opens nothing |
 | `/home` | `AdultStudentShell` on Нүүр (`HomeScreen`) — the adult tabs' persistent shell (Issue #237) |
