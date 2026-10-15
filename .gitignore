@@ -47,3 +47,17 @@ app.*.map.json
 # Local Postman workspace files
 .postman/
 postman/
+
+# Push notifications (Issue #421): Firebase and Apple keys never belong here.
+# A service account is the backend's credential; an APNs key is uploaded to
+# Firebase. Neither is needed to build the app.
+*firebase-adminsdk*.json
+*service-account*.json
+*.p8
+# The project's app configuration is added locally until its owner decides
+# whether to commit it (DATA_AND_API.md §1.2).
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist
+# The iOS values for --dart-define-from-file; the committed
+# firebase_ios.example.json shows the keys.
+/firebase_ios.local.json
