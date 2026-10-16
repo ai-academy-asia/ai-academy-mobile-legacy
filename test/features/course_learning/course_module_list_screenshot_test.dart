@@ -31,7 +31,13 @@ void main() {
         debugShowCheckedModeBanner: false,
         home: CourseModuleListScreen(
           courseSlug: 'how-ai-works',
-          repository: FakeCourseLearningRepository(),
+          // Every lesson of the course, one to continue with (Issue #437).
+          repository: FakeCourseLearningRepository(
+            path: samplePath(continueModuleId: 2, continueLessonId: 21),
+            lessons: const [],
+            lessonsByModule: sampleCourseLessons(),
+            notesByLesson: sampleCourseNotes(),
+          ),
         ),
       ),
     );

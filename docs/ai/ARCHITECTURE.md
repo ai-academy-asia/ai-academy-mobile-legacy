@@ -73,7 +73,7 @@ Conventions that hold across the codebase:
 | `/cohorts` | `CohortListScreen`, optional `int` course-id argument via `ModalRoute.settings.arguments` |
 | `/profile` | `AdultStudentShell` on Профайл (`ProfileScreen`) |
 
-**Everything deeper is pushed imperatively** with `Navigator.push(MaterialPageRoute(...))`: Course Detail, Course Module List, Lesson List (from an unlocked module card), Exercise Detail, and the two Quiz screens. There is no deep-linking and no route-argument type safety beyond the one `/cohorts` cast.
+**Everything deeper is pushed imperatively** with `Navigator.push(MaterialPageRoute(...))`: Course Detail, Course Module List (which lists every lesson and opens Exercise Detail itself, Issue #437), Exercise Detail, and the two Quiz screens. The Lesson List is no longer reached from anywhere. There is no deep-linking and no route-argument type safety beyond the one `/cohorts` cast.
 
 One navigation idiom worth knowing, in `course_learning`: `CourseQuizScreen` finishes by calling `pushReplacement` to `CourseQuizResultScreen`, passing the server's `QuizAttemptResult` as the **replaced route's** result. That completes the *original* `push` future immediately (not when the result screen later pops), which is invisible to the user because Exercise Detail is off-screen throughout. Exercise Detail then re-reads the lesson for its quiz summary (`refreshQuiz`) — it does so however the quiz screen ends, since closing part-way leaves an attempt open on the server. The result screen pops once to return there.
 

@@ -4,6 +4,7 @@ import 'package:aia_mobile/features/course_learning/presentation/course_exercise
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/course_module_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_tab.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_materials_tab.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
@@ -320,9 +321,12 @@ void main() {
         find.byType(CourseModuleListScreen),
       );
       expect(detail.courseSlug, slug);
-      // The same `GET /me/courses/{slug}/learning` contract.
+      // The same `GET /me/courses/{slug}/learning` contract, then every
+      // module's lessons for the course-wide lesson list (Issue #437).
       expect(learning.calls, [slug]);
-      expect(learning.lessonCalls, isEmpty);
+      expect(learning.lessonCalls, [
+        for (final module in learning.path!.modules) module.id,
+      ]);
 
       await back(tester);
       expect(find.byType(JuniorLearningMapView), findsOneWidget);
@@ -390,10 +394,16 @@ void main() {
   });
 
   group('Junior Course Detail', () {
+    /// Course Detail lists every lesson of the course (Issue #437); here only
+    /// module 2 has lessons — its three — so each title and id is the
+    /// course's only one, as real lesson data's are.
     Future<void> pumpDetail(
       WidgetTester tester,
       FakeCourseLearningRepository learning,
     ) async {
+      learning
+        ..lessons = const []
+        ..lessonsByModule = {2: sampleLessons()};
       useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
       await tester.pumpWidget(
         MaterialApp(
@@ -412,30 +422,38 @@ void main() {
         find.text(CourseLearningStrings.percentComplete(30)),
         findsWidgets,
       );
-      expect(find.text('Prediction and Probabilities'), findsOneWidget);
-      expect(find.text('Deep network models'), findsOneWidget);
+      // The course's lessons, not its modules (Issue #437).
+      expect(find.text('Introduction to loops'), findsOneWidget);
+      expect(find.text('Nesting loops'), findsOneWidget);
+      expect(find.text('Practice: matrix traversal'), findsOneWidget);
+      expect(find.byType(CourseModuleCard), findsNothing);
       expect(
         find.text(CourseLearningStrings.certificationLabel),
         findsOneWidget,
       );
     });
 
-    testWidgets('a module opens its lessons, and a locked module does '
-        'nothing', (tester) async {
+    testWidgets('every lesson is on Course Detail itself: the open ones open '
+        'their lesson, a locked one does nothing (Issue #437)', (tester) async {
       final learning = course();
       await pumpDetail(tester, learning);
 
-      await tester.tap(find.text('Deep network models'));
-      await tester.pumpAndSettle();
-      expect(find.byType(LessonListScreen), findsNothing);
+      expect(learning.lessonCalls, [
+        for (final module in learning.path!.modules) module.id,
+      ]);
+      expect(find.byType(CourseLessonCard), findsNWidgets(3));
 
-      await tester.tap(find.text('Language Model Training'));
+      await tester.ensureVisible(find.text('Practice: matrix traversal'));
+      await tester.tap(find.text('Practice: matrix traversal'));
       await tester.pumpAndSettle();
-      final lessons = tester.widget<LessonListScreen>(
-        find.byType(LessonListScreen),
-      );
-      expect(lessons.moduleId, 2);
-      expect(learning.lessonCalls, [2]);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+
+      await tester.ensureVisible(find.text('Nesting loops'));
+      await tester.tap(find.text('Nesting loops'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
+      expect(find.byType(LessonListScreen), findsNothing);
+      expect(learning.exerciseCalls, [2]);
     });
 
     /// A backend lesson (real writes) with a note, an assignment and a quiz.
@@ -456,8 +474,7 @@ void main() {
         )..savedNote = sampleNote(message: 'Saved on the server.');
 
     Future<void> openLesson(WidgetTester tester) async {
-      await tester.tap(find.text('Language Model Training'));
-      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Nesting loops'));
       await tester.tap(find.text('Nesting loops'));
       await tester.pumpAndSettle();
     }
@@ -600,7 +617,9 @@ void main() {
   group('Adult Course Detail', () {
     testWidgets('a lesson offers the same tabs in the same order, and every '
         'tab opens its own content', (tester) async {
-      final learning = course();
+      final learning = course()
+        ..lessons = const []
+        ..lessonsByModule = {2: sampleLessons()};
       useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
       await tester.pumpWidget(
         MaterialApp(
@@ -610,8 +629,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Language Model Training'));
-      await tester.pumpAndSettle();
+      // The lesson is on Course Detail itself (Issue #437).
+      await tester.ensureVisible(find.text('Nesting loops'));
       await tester.tap(find.text('Nesting loops'));
       await tester.pumpAndSettle();
 

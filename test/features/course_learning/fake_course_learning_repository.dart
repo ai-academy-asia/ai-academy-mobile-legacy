@@ -789,6 +789,51 @@ List<Lesson> sampleLessons({int moduleId = 2, List<Lesson>? lessons}) =>
       ),
     ];
 
+/// A course's lessons as Course Detail lists them (Issue #437): each module's
+/// own, with ids unique across the course, titled after the Figma
+/// module-detail frame. Module 1's two are completed when [notesByLesson]
+/// holds notes for 11 and 12 ([sampleCourseNotes]); module 3's one is locked
+/// with its module. Pair with `samplePath(continueModuleId: 2,
+/// continueLessonId: 21)` for a lesson to continue with.
+Map<int, List<Lesson>> sampleCourseLessons() => {
+  1: [
+    sampleLesson(id: 11, moduleId: 1, order: 1, title: 'Recognizing patterns'),
+    sampleLesson(
+      id: 12,
+      moduleId: 1,
+      order: 2,
+      title: 'Controlling with logic',
+      durationLabel: '18:40',
+    ),
+  ],
+  2: [
+    sampleLesson(id: 21, moduleId: 2, order: 1, title: 'Nesting loops'),
+    sampleLesson(
+      id: 22,
+      moduleId: 2,
+      order: 2,
+      title: 'Combining loops',
+      durationLabel: '15:05',
+    ),
+  ],
+  3: [
+    sampleLesson(
+      id: 31,
+      moduleId: 3,
+      order: 1,
+      title: 'Loop combo',
+      durationLabel: '9:50',
+      locked: true,
+    ),
+  ],
+};
+
+/// The saved notes that complete [sampleCourseLessons]' first two lessons.
+Map<int, CourseExerciseNote> sampleCourseNotes() => {
+  11: sampleNote(),
+  12: sampleNote(),
+};
+
 /// The Figma "Nesting loops" sample, note included by default — pass
 /// `note: null` for the empty/edit-state fixture.
 CourseExercise sampleExercise({
