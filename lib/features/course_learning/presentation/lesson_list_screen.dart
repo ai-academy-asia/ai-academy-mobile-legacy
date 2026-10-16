@@ -22,12 +22,10 @@ import 'widgets/lesson_list_item.dart';
 /// The Lesson List — one module's lessons, from
 /// `GET /me/modules/{module_id}/lessons`.
 ///
-/// Opened by an unlocked module card on `CourseModuleListScreen` and by a
-/// completed Junior Home node. A module card knows only its module and the
-/// contract names no lesson for one, so this screen is where the student
-/// picks the lesson instead of the client inventing a rule for it.
-/// "Continue learning" still skips it, opening the server's
-/// `continue.lesson_id` directly.
+/// **Not reached from anywhere since Issue #437:** Course Detail
+/// (`CourseModuleListScreen`) lists every lesson of the course itself, and
+/// Junior Home's nodes open their lessons directly (Issue #410). Kept, with
+/// its tests and goldens, rather than removed in that change.
 ///
 /// Drawn to the Figma level-detail reference (Issue #215): a hero in the
 /// module's own accent with its own artwork — exactly what that module's

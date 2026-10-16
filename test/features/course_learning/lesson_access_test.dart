@@ -45,6 +45,35 @@ void main() {
         );
       }
     });
+
+    test('reached — the server\'s own progress — opens an unlocked lesson '
+        'without a note, never a locked one (Issue #439)', () {
+      expect(
+        lessonOpens(
+          locked: false,
+          completed: false,
+          isResume: false,
+          reached: true,
+        ),
+        isTrue,
+      );
+      expect(
+        lessonOpens(
+          locked: true,
+          completed: false,
+          isResume: false,
+          reached: true,
+        ),
+        isFalse,
+        reason: 'the server lock always wins',
+      );
+      // Not passed — every caller but Course Detail, Junior Home's nodes
+      // included — it changes nothing.
+      expect(
+        lessonOpens(locked: false, completed: false, isResume: false),
+        isFalse,
+      );
+    });
   });
 
   group('openLesson — the one opener', () {
@@ -306,17 +335,27 @@ void main() {
           repository: learning,
         );
 
-    testWidgets('a module whose class date has not come does not open its '
-        'lessons', (tester) async {
-      // The sample: modules 1–2 completed, 3–5 locked.
-      final learning = FakeCourseLearningRepository(exercise: sampleExercise());
+    testWidgets('a lesson whose module\'s class date has not come does not '
+        'open, and its note is never read (Issue #437)', (tester) async {
+      // The sample: modules 1–2 completed, 3–5 locked. The lesson itself is
+      // not flagged; its module's lock is its own.
+      final learning = FakeCourseLearningRepository(
+        exercise: sampleExercise(),
+        lessons: const [],
+        lessonsByModule: {
+          3: [sampleLesson(id: 31, moduleId: 3, title: 'Deep nets')],
+        },
+        notesByLesson: {31: sampleNote()},
+      );
       await pumpHome(tester, detail(learning));
 
-      await tester.tap(find.text('Deep network models'));
+      await tester.ensureVisible(find.text('Deep nets'));
+      await tester.tap(find.text('Deep nets'));
       await tester.pumpAndSettle();
 
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
       expect(find.byType(LessonListScreen), findsNothing);
-      expect(learning.lessonCalls, isEmpty);
+      expect(learning.noteCalls, isNot(contains(31)));
     });
 
     testWidgets('"Continue learning" never opens a lesson in a locked '

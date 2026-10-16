@@ -74,8 +74,8 @@ Every pushed page offers its way back: a back button in every state, loading and
 | Teacher Profile | Профайл tab of `TeacherShell` (no route; Change password pushed on top) | `TabTitleBar`; the shell's teacher bottom nav, Профайл selected | `auth` current user (real); log out and change password real; MN/EN, Notification, contact rows inert |
 | Course Catalog | `/courses` | — | `courses` (real) |
 | Course Detail | pushed | — | `courses` (real) |
-| Course Module List | pushed | back button | `course_learning` — `GET /me/courses/{slug}/learning` (real) |
-| Lesson List | pushed from an unlocked module card or a completed Junior node | back button in the hero | `course_learning` — `GET /me/modules/{id}/lessons` (real) |
+| Course Module List | pushed | back button | `course_learning` — `GET /me/courses/{slug}/learning`, every module's `GET /me/modules/{id}/lessons` and each unlocked lesson's note (real, Issue #437) |
+| Lesson List | not reached since Issue #437 (Course Detail lists every lesson) | back button in the hero | `course_learning` — `GET /me/modules/{id}/lessons` (real) |
 | Exercise Detail | pushed | in-video back | `course_learning` — `GET /me/lessons/{id}` (real) |
 | Quiz / Quiz Result | pushed | close button / none | `course_learning` — §2.7 quiz attempt endpoints (real) |
 

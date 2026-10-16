@@ -295,8 +295,14 @@ void main() {
         surface,
       ]);
 
-      // Four rules join the five cards; none reads the card's own roles.
-      expect(coloredBoxes(tester).where((c) => c == divider), hasLength(4));
+      // A rule joins each pair of lesson cards (Issue #437); none reads the
+      // card's own roles.
+      final cards = find.byType(CourseLessonCard).evaluate().length;
+      expect(cards, greaterThan(1));
+      expect(
+        coloredBoxes(tester).where((c) => c == divider),
+        hasLength(cards - 1),
+      );
       expect(
         coloredBoxes(tester).where((c) => c == cardDepth || c == outlineFaint),
         isEmpty,

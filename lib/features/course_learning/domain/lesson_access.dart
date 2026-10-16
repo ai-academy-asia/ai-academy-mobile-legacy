@@ -17,9 +17,18 @@
 /// lesson's class (Issue #415's ATTENDANCE_COMPLETED) — opens it too. No
 /// backend data supplies it per lesson yet (#414), so every caller passes
 /// false today.
+///
+/// [reached] — the server's own progress on the lesson (§2.2
+/// `lesson.completed`, a `LessonProgress` row): the student has already been
+/// through it, so it opens again even without the note that would tick it
+/// (Issue #439). The server's continue lesson is the first unlocked lesson
+/// without that progress, so every unlocked lesson before it is reached.
+/// Only Course Detail passes it; Junior Home's nodes do not, and are
+/// unchanged.
 bool lessonOpens({
   required bool locked,
   required bool completed,
   required bool isResume,
   bool attended = false,
-}) => !locked && (completed || isResume || attended);
+  bool reached = false,
+}) => !locked && (completed || isResume || attended || reached);

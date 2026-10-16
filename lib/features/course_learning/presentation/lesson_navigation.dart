@@ -21,6 +21,9 @@ import 'course_exercise_detail_screen.dart';
 /// lesson order at all. The lesson screen shows the server's refusal if one
 /// ever reaches it.
 ///
+/// [reached] is the server's own progress on the lesson (Issue #439); see
+/// `lessonOpens`. Only Course Detail passes it.
+///
 /// Completes once the lesson screen is closed, so a caller can refresh what
 /// may have changed there; true when a lesson was opened.
 Future<bool> openLesson(
@@ -30,11 +33,13 @@ Future<bool> openLesson(
   required bool completed,
   required int? resumeLessonId,
   CourseLearningRepository? repository,
+  bool reached = false,
 }) async {
   if (!lessonOpens(
     locked: locked,
     completed: completed,
     isResume: lessonId == resumeLessonId,
+    reached: reached,
   )) {
     return false;
   }
