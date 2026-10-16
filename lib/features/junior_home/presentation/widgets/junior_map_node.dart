@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../domain/junior_learning_map.dart';
 import '../junior_home_strings.dart';
@@ -20,8 +21,9 @@ import 'junior_map_geometry.dart';
 /// other unfinished lesson, which cannot be opened, the grey padlock —
 /// whether its class date has not come ([JuniorNodeState.locked]) or it has
 /// but its turn has not ([JuniorNodeState.open]): a node that does not open
-/// never looks as if it might. No other glyph is ever drawn on the path;
-/// the screen-reader label still tells the two apart.
+/// never looks as if it might. Besides these, only the attendance glyph
+/// (below) is drawn on the path; the screen-reader label still tells the
+/// two padlocks apart.
 ///
 /// **The check-in node** (Issues #202, #410): while check-in is actionable
 /// ([checkIn] true) the lesson draws as the updated reference's check-in
@@ -29,6 +31,12 @@ import 'junior_map_geometry.dart';
 /// gently, unless the platform asks for reduced motion. The pulse only
 /// scales what is painted: the node's place and its tap target never move.
 /// When check-in is not actionable the node is simply its lesson.
+///
+/// **Attendance confirmed, lesson not completed** (Issue #441,
+/// [JuniorNodeState.attendanceCompleted]): the white face in the accent
+/// frame, as the lesson it still is to work on, carrying the app's own
+/// attendance glyph — Phosphor "CalendarCheck", the "Хичээлийн ирц" card's —
+/// in the accent. Never the tick: the tick is the lesson list's completion.
 class JuniorMapNodeTile extends StatefulWidget {
   const JuniorMapNodeTile({
     required this.node,
@@ -116,9 +124,15 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         width: glyphSize,
         height: glyphSize,
         filterQuality: FilterQuality.high,
-        // The attendance tick: the completed node's own sprite in grey.
+        // A sprite drawn in another colour than its own, when asked to.
         color: style.tint,
         colorBlendMode: style.tint == null ? null : BlendMode.srcIn,
+      ),
+      // Attendance confirmed: the app's attendance glyph, not a sprite.
+      null when style.icon != null => Icon(
+        style.icon,
+        size: glyphSize * _attendanceGlyphFactor,
+        color: style.tint,
       ),
       // The continue lesson: the frame alone carries it.
       null => const SizedBox.shrink(),
@@ -174,12 +188,19 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
   }
 }
 
+/// The attendance glyph's share of the 48 glyph box. The exported sprites
+/// carry their own margin — the tick's and the QR's ink is about 22–30 of
+/// their 48 — while a font glyph fills its box, so at 0.7 (about 34) its ink
+/// weighs the same as theirs.
+const double _attendanceGlyphFactor = 0.7;
+
 class _NodeStyle {
   const _NodeStyle({
     required this.fill,
     required this.border,
     required this.glyph,
     this.tint,
+    this.icon,
   });
 
   final Color fill;
@@ -190,8 +211,11 @@ class _NodeStyle {
   final String? glyph;
 
   /// A colour the sprite is drawn in instead of its own, or null to keep
-  /// its exported colours.
+  /// its exported colours; the [icon]'s colour.
   final Color? tint;
+
+  /// A font glyph drawn in place of a sprite — only with no [glyph].
+  final IconData? icon;
 
   /// The live check-in: the updated reference's QR stop — the white face in
   /// the accent frame.
@@ -213,13 +237,15 @@ class _NodeStyle {
           border: palette.accent,
           glyph: 'node_check',
         ),
-        // ATTENDANCE_COMPLETED (Issue #415): the completed node's geometry
-        // and tick, every colour grey — the padlock's face, outline and ink.
+        // ATTENDANCE_COMPLETED (Issues #415, #441): attended, not yet
+        // completed — the active frame with the attendance glyph in the
+        // accent. No tick: a tick always means completed.
         JuniorNodeState.attendanceCompleted => _NodeStyle(
-          fill: palette.juniorMutedFill,
-          border: palette.outline,
-          glyph: 'node_check',
-          tint: palette.juniorMutedGlyph,
+          fill: palette.surface,
+          border: palette.accent,
+          glyph: null,
+          icon: AppIcons.calendarCheck,
+          tint: palette.accent,
         ),
         JuniorNodeState.current => _NodeStyle(
           fill: palette.surface,
