@@ -580,17 +580,21 @@ class _LessonList extends StatelessWidget {
   }) {
     final lesson = entry.lesson;
     // The one rule, through the one opener (Issue #410): unlocked, and
-    // completed or the lesson to continue with; any other card is inert.
+    // completed, the lesson to continue with, or already reached by the
+    // student (the server's own progress, Issue #439); any other card is
+    // inert, and drawn disabled.
     final opens = lessonOpens(
       locked: entry.locked,
       completed: lesson.completed,
       isResume: lesson.id == resumeLessonId,
+      reached: entry.reached,
     );
     return CourseLessonCard(
       // Only the current card needs a key: the one-time scroll finds it.
       key: current ? currentLessonKey : null,
       entry: entry,
       current: current,
+      available: opens,
       onTap: opens
           ? () async {
               final opened = await openLesson(
@@ -600,6 +604,7 @@ class _LessonList extends StatelessWidget {
                 completed: lesson.completed,
                 resumeLessonId: resumeLessonId,
                 repository: repository,
+                reached: entry.reached,
               );
               if (opened) onLessonClosed();
             }

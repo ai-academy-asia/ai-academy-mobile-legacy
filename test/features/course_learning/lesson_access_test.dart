@@ -45,6 +45,35 @@ void main() {
         );
       }
     });
+
+    test('reached — the server\'s own progress — opens an unlocked lesson '
+        'without a note, never a locked one (Issue #439)', () {
+      expect(
+        lessonOpens(
+          locked: false,
+          completed: false,
+          isResume: false,
+          reached: true,
+        ),
+        isTrue,
+      );
+      expect(
+        lessonOpens(
+          locked: true,
+          completed: false,
+          isResume: false,
+          reached: true,
+        ),
+        isFalse,
+        reason: 'the server lock always wins',
+      );
+      // Not passed — every caller but Course Detail, Junior Home's nodes
+      // included — it changes nothing.
+      expect(
+        lessonOpens(locked: false, completed: false, isResume: false),
+        isFalse,
+      );
+    });
   });
 
   group('openLesson — the one opener', () {

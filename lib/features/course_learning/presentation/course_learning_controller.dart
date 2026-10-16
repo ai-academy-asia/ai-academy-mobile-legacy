@@ -75,6 +75,7 @@ class CourseLearningController extends ChangeNotifier {
             ),
             module: entry.module,
             number: entry.number,
+            reached: entry.reached,
           ),
       ];
     } on CourseLearningFailure catch (failure) {
