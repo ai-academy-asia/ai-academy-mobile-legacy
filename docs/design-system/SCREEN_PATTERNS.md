@@ -58,7 +58,7 @@ Every pushed page offers its way back: a back button in every state, loading and
 
 | Screen | Route | Chrome | Data |
 |---|---|---|---|
-| Splash | `/` | none | none — 7000 ms, then `pushReplacement` to `/login` |
+| Splash | `/` | none | none — 7000 ms, then a held session's Home or `/login`; a network failure restoring the session shows the `COMPONENT_PATTERNS.md` §6 error state with Retry (Issue #435) |
 | Login | `/login` | none | `auth` (real) |
 | Reset Password | `/reset-password` (required change: auth layout, no back); pushed from every Profile as Change password | the required change: none, its own heading; Change password: `BackTitleHeader` carrying the title | `auth` (real) |
 | Home | `/home` (in `AdultStudentShell`) | bottom nav — the shell's, persistent | composed (real) |

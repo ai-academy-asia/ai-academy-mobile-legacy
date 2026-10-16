@@ -3,9 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/app_button.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../../auth/domain/current_user_failure.dart';
@@ -67,7 +70,11 @@ String restoreFailureLabel(Object error) => switch (error) {
 /// same [homeRouteFor] sign-in uses, not whatever the login response once
 /// said. The request starts in `initState`, so it runs under the animation
 /// rather than after it. No session, an expired one, or any failure of that
-/// request falls back to Login, the only recovery the API offers. The store
+/// request other than the network falls back to Login, the only recovery the
+/// API offers. A **network** failure (Issue #435) keeps the session and the
+/// screen: once the animation ends, Splash shows
+/// [SplashStrings.networkError] with a Retry that runs the same restore again
+/// — one request at a time — and hands off as usual once it settles. The store
 /// is restored from secure storage before the first frame (Issue #235), so
 /// a cold start — the OS having killed the app in the background — finds the
 /// session here too. An account whose
@@ -143,8 +150,14 @@ class _SplashScreenState extends State<SplashScreen>
   /// start it again — see the class doc.
   bool _navigating = false;
 
-  /// Where an already-held session lands, or null for Login.
-  late final Future<_RestoredSession?> _restoredRoute;
+  /// What restoring an already-held session came to. Replaced by each retry.
+  late Future<_Restore> _restoredRoute;
+
+  /// A restore failed for want of a network: the error and Retry show.
+  bool _offline = false;
+
+  /// A retry's restore is out: Retry is disabled, showing its spinner.
+  bool _retrying = false;
 
   @override
   void initState() {
@@ -193,10 +206,11 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  /// See the class doc's "An existing session skips sign-in".
-  Future<_RestoredSession?> _resolveRestoredRoute() async {
+  /// See the class doc's "An existing session skips sign-in". Never throws:
+  /// the result is awaited only once the animation ends, seconds later.
+  Future<_Restore> _resolveRestoredRoute() async {
     final store = widget.sessionStore ?? AuthSessionStore.instance;
-    if (!store.isSignedIn || store.isExpired()) return null;
+    if (!store.isSignedIn || store.isExpired()) return _Restore.login;
     try {
       final repository =
           widget.currentUserRepository ??
@@ -204,17 +218,22 @@ class _SplashScreenState extends State<SplashScreen>
       final user = await repository.getCurrentUser();
       // The account it identified, in its own theme before Home (Issue #286).
       await AppThemeController.instance.ready;
-      return (
+      return _Restore.home((
         homeRoute: homeRouteFor(user.userType),
         mustChangePassword: user.mustChangePassword,
-      );
+      ));
     } catch (error) {
       // Otherwise invisible: a valid session for an account `/auth/me` could
       // not be read fell back to Login with no trace (Issue #423).
       debugPrint(
         'Splash: session not restored (${restoreFailureLabel(error)}).',
       );
-      return null;
+      // Only the network is worth asking again (Issue #435): every other
+      // failure is the API's answer, and Login is still its recovery.
+      return error is CurrentUserFailure &&
+              error.kind == CurrentUserFailureKind.network
+          ? _Restore.network
+          : _Restore.login;
     }
   }
 
@@ -226,8 +245,16 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _handOff() async {
-    final restored = await _restoredRoute;
+    final restore = await _restoredRoute;
     if (!mounted) return;
+    if (restore.offline) {
+      setState(() {
+        _offline = true;
+        _retrying = false;
+      });
+      return;
+    }
+    final restored = restore.session;
     if (restored != null) {
       // The same hand-off sign-in makes, so a held session that must change
       // its password cannot skip "Нууц үгээ тохируулах" (Issue #182).
@@ -253,6 +280,15 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  /// Runs the restore again — `GET /auth/me` included — and hands off to
+  /// whatever it comes to. Ignored while one is out, so taps never overlap.
+  void _retry() {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    _restoredRoute = _resolveRestoredRoute();
+    _handOff();
+  }
+
   @override
   void dispose() {
     _controller.removeStatusListener(_onStatusChanged);
@@ -272,43 +308,45 @@ class _SplashScreenState extends State<SplashScreen>
       child: Scaffold(
         backgroundColor: context.palette.surfaceSubtle,
         body: SafeArea(
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) => Opacity(
-                key: SplashScreen.screenFadeKey,
-                opacity: _screenFade.value,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Opacity(
-                      key: SplashScreen.logoOpacityKey,
-                      opacity: _logoOpacity.value,
-                      child: Transform.scale(
-                        scale: _logoScale.value,
-                        child: const _LogoMark(),
-                      ),
-                    ),
-                    ClipRect(
-                      child: Align(
-                        key: SplashScreen.textSlotKey,
-                        alignment: Alignment.centerLeft,
-                        widthFactor: _textSlotFactor.value,
-                        child: Opacity(
-                          key: SplashScreen.textOpacityKey,
-                          opacity: _textOpacity.value,
-                          child: Transform.translate(
-                            offset: Offset(_textSlide.value, 0),
-                            child: const _Wordmark(),
+          child: _offline
+              ? _NetworkErrorView(retrying: _retrying, onRetry: _retry)
+              : Center(
+                  child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, _) => Opacity(
+                      key: SplashScreen.screenFadeKey,
+                      opacity: _screenFade.value,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Opacity(
+                            key: SplashScreen.logoOpacityKey,
+                            opacity: _logoOpacity.value,
+                            child: Transform.scale(
+                              scale: _logoScale.value,
+                              child: const _LogoMark(),
+                            ),
                           ),
-                        ),
+                          ClipRect(
+                            child: Align(
+                              key: SplashScreen.textSlotKey,
+                              alignment: Alignment.centerLeft,
+                              widthFactor: _textSlotFactor.value,
+                              child: Opacity(
+                                key: SplashScreen.textOpacityKey,
+                                opacity: _textOpacity.value,
+                                child: Transform.translate(
+                                  offset: Offset(_textSlide.value, 0),
+                                  child: const _Wordmark(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -376,6 +414,61 @@ class _Wordmark extends StatelessWidget {
   }
 }
 
+/// The restore's network failure (Issue #435): the app's error-state
+/// pattern (`COMPONENT_PATTERNS.md` §6 — centred `supporting` line, outlined
+/// Retry), in place of the lockup, which has faded out by then. No frame
+/// draws Splash with an error.
+class _NetworkErrorView extends StatelessWidget {
+  const _NetworkErrorView({required this.retrying, required this.onRetry});
+
+  final bool retrying;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              SplashStrings.networkError,
+              style: AppTypography.supporting.copyWith(
+                color: context.palette.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: SplashStrings.retry,
+              variant: AppButtonVariant.outlined,
+              loading: retrying,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// What a held session resolves to: its Home, and whether the account must
 /// change its password before reaching it.
 typedef _RestoredSession = ({String homeRoute, bool mustChangePassword});
+
+/// What restoring a held session came to: its Home ([session]), Login (no
+/// session), or — a network failure only — Retry on Splash ([offline]).
+class _Restore {
+  const _Restore._({this.session, this.offline = false});
+
+  const _Restore.home(_RestoredSession session) : this._(session: session);
+
+  static const _Restore login = _Restore._();
+  static const _Restore network = _Restore._(offline: true);
+
+  final _RestoredSession? session;
+  final bool offline;
+}
