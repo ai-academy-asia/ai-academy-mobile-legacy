@@ -10,11 +10,12 @@ import '../../../shared/widgets/app_button.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
+import '../domain/course_lesson.dart';
 import '../domain/course_module.dart';
+import '../domain/lesson_access.dart';
 import 'lesson_navigation.dart';
 import 'course_learning_controller.dart';
 import 'course_learning_strings.dart';
-import 'lesson_list_screen.dart';
 import 'widgets/certificate_preview.dart';
 import '../../../shared/widgets/app_back_button.dart';
 import 'widgets/course_progress_cta_row.dart';
@@ -51,9 +52,15 @@ const double _illustrationRise = -6;
 const double _heroCtaWidth = 164;
 const double _certificationCtaWidth = 148;
 
-/// Module cards: an 86-tall box every 102, so 16 of layout gap between boxes —
-/// 4 of which the card's own band fills, leaving the reference's 12 of white.
+/// Lesson cards (on the module card's design): an 86-tall box every 102, so
+/// 16 of layout gap between boxes — 4 of which the card's own band fills,
+/// leaving the reference's 12 of white.
 const double _moduleGap = 16;
+
+/// Where the lesson to continue with lands when the screen first opens: its
+/// top a fifth of the way down the scrolling area (Issue #437).
+const double _currentLessonAlignment = 0.2;
+const Duration _focusDuration = Duration(milliseconds: 400);
 const double _connectorHeight = 12;
 const double _connectorWidth = 2;
 
@@ -69,13 +76,15 @@ const double _connectorWidth = 2;
 /// lesson the server selected — `continue.lesson_id`, see
 /// [_continueLessonId] — loaded from `GET /me/lessons/{lesson_id}`.
 ///
-/// An unlocked module card opens `LessonListScreen` for that module — see
-/// [_openLessonList] — and a lesson there opens `CourseExerciseDetailScreen`.
-/// The Figma flow draws no Lesson List step, but Exercise Detail is keyed by
-/// lesson, a module card knows only its module, and the contract names no
-/// lesson for one; picking one on the client would be inventing a rule, so
-/// the student picks it from the module's own lessons instead. Locked modules
-/// stay genuinely inert (`onTap: null`).
+/// Below them, every lesson of the course in one list (Issue #437), in course
+/// order and numbered `01`–`N`, each on the module card's own design
+/// (`CourseLessonCard`). A lesson opens `CourseExerciseDetailScreen` only by
+/// the one rule every screen asks (`lessonOpens`, through `openLesson`); any
+/// other card is inert. The lesson to continue with — the server's, checked
+/// by [_continueLessonId] — is highlighted and, on the first successful load
+/// only, scrolled to a fifth of the way down. Back from a lesson, the screen
+/// reloads (a saved note completes a lesson, Issue #415) and stays where it
+/// was. `LessonListScreen` is no longer reached from here.
 class CourseModuleListScreen extends StatefulWidget {
   const CourseModuleListScreen({
     required this.courseSlug,
@@ -100,13 +109,45 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
       widget.repository ?? HttpCourseLearningRepository();
   late final CourseLearningController _controller;
 
+  /// The lesson to continue with's card, for the one-time scroll to it.
+  final GlobalKey _currentLessonKey = GlobalKey();
+
+  /// Set by the first successful load: the screen is scrolled to the current
+  /// lesson once, never again on a reload or on coming back from a lesson.
+  bool _focused = false;
+
   @override
   void initState() {
     super.initState();
     _controller = CourseLearningController(
       repository: _repository,
       courseSlug: widget.courseSlug,
-    )..load();
+    );
+    _load();
+  }
+
+  /// The first load, and a retry after a failed one: the only loads that may
+  /// scroll to the current lesson.
+  Future<void> _load() async {
+    await _controller.load();
+    if (!mounted || _focused || _controller.path == null) return;
+    _focused = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _currentLessonKey.currentContext;
+      if (!mounted || target == null) return;
+      final reduceMotion = MediaQuery.disableAnimationsOf(context);
+      Scrollable.ensureVisible(
+        target,
+        alignment: _currentLessonAlignment,
+        duration: reduceMotion ? Duration.zero : _focusDuration,
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  /// Back from a lesson: what changed there shows; the scroll stays put.
+  void _reload() {
+    if (mounted) _controller.load();
   }
 
   @override
@@ -174,7 +215,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
 
   Widget _buildBody() {
     if (_controller.errorMessage case final message?) {
-      return _ErrorView(message: message, onRetry: () => _controller.load());
+      return _ErrorView(message: message, onRetry: _load);
     }
     final path = _controller.path;
     // Null with no error means the request is still in flight — or has not
@@ -184,7 +225,13 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
     if (path == null) {
       return const _LoadingView();
     }
-    return _CourseLearningBody(path: path, repository: _repository);
+    return _CourseLearningBody(
+      path: path,
+      lessons: _controller.lessons,
+      repository: _repository,
+      currentLessonKey: _currentLessonKey,
+      onLessonClosed: _reload,
+    );
   }
 }
 
@@ -283,39 +330,22 @@ int? _continueLessonId(CourseLearningPath path) {
   return path.continueLessonId;
 }
 
-/// Where an unlocked module card leads: that module's lessons, loaded from
-/// `GET /me/modules/{module_id}/lessons` with the module's own id.
-///
-/// Through this screen's repository, as [openLesson] is — HTTP in
-/// production, the injected one in tests. The title is passed along rather
-/// than re-fetched: `LessonListScreen` draws it as its heading, and this
-/// screen already holds it.
-void _openLessonList(
-  BuildContext context,
-  CourseModule module,
-  CourseLearningRepository repository,
-  int? resumeLessonId,
-) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => LessonListScreen(
-        moduleId: module.id,
-        moduleOrder: module.order,
-        moduleTitle: module.title,
-        repository: repository,
-        // The course's continue lesson: the one unfinished lesson that
-        // opens there too (Issue #410).
-        resumeLessonId: resumeLessonId,
-      ),
-    ),
-  );
-}
-
 class _CourseLearningBody extends StatelessWidget {
-  const _CourseLearningBody({required this.path, required this.repository});
+  const _CourseLearningBody({
+    required this.path,
+    required this.lessons,
+    required this.repository,
+    required this.currentLessonKey,
+    required this.onLessonClosed,
+  });
 
   final CourseLearningPath path;
+  final List<CourseLesson> lessons;
   final CourseLearningRepository repository;
+  final GlobalKey currentLessonKey;
+
+  /// Called when a lesson opened from this screen closes.
+  final VoidCallback onLessonClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -335,15 +365,23 @@ class _CourseLearningBody extends StatelessWidget {
             path: path,
             repository: repository,
             buttonWidth: _heroCtaWidth,
+            onLessonClosed: onLessonClosed,
           ),
           const SizedBox(height: 48),
-          _ModuleList(
-            modules: path.modules,
+          _LessonList(
+            lessons: lessons,
             repository: repository,
             resumeLessonId: path.continueLessonId,
+            currentLessonId: _continueLessonId(path),
+            currentLessonKey: currentLessonKey,
+            onLessonClosed: onLessonClosed,
           ),
           const SizedBox(height: 32),
-          _CertificationSection(path: path, repository: repository),
+          _CertificationSection(
+            path: path,
+            repository: repository,
+            onLessonClosed: onLessonClosed,
+          ),
         ],
       ),
     );
@@ -440,7 +478,11 @@ class _ProgressCtaRow extends StatelessWidget {
     required this.path,
     required this.repository,
     required this.buttonWidth,
+    required this.onLessonClosed,
   });
+
+  /// Called when the lesson "Continue learning" opened closes.
+  final VoidCallback onLessonClosed;
 
   /// The whole path, not just its percentage: the button beside the bar needs
   /// `continueModuleId` as well, and splitting the two into separate
@@ -463,56 +505,110 @@ class _ProgressCtaRow extends StatelessWidget {
       // unfinished lesson the rule lets open, unless its module is locked.
       onContinue: lessonId == null
           ? null
-          : () => openLesson(
-              context,
-              lessonId: lessonId,
-              locked: _continueLearningTarget(path)?.locked ?? true,
-              completed: false,
-              resumeLessonId: lessonId,
-              repository: repository,
-            ),
+          : () async {
+              final opened = await openLesson(
+                context,
+                lessonId: lessonId,
+                locked: _continueLearningTarget(path)?.locked ?? true,
+                completed: false,
+                resumeLessonId: lessonId,
+                repository: repository,
+              );
+              if (opened) onLessonClosed();
+            },
     );
   }
 }
 
-/// The five module cards, each connected to the next by a short vertical
-/// rule — the Figma reference draws a thin line running down the card list,
-/// centred under the icon column.
-class _ModuleList extends StatelessWidget {
-  const _ModuleList({
-    required this.modules,
+/// Every lesson of the course, each connected to the next by the short
+/// vertical rule the module cards had (Issue #437).
+class _LessonList extends StatelessWidget {
+  const _LessonList({
+    required this.lessons,
     required this.repository,
     required this.resumeLessonId,
+    required this.currentLessonId,
+    required this.currentLessonKey,
+    required this.onLessonClosed,
   });
 
-  final List<CourseModule> modules;
+  final List<CourseLesson> lessons;
   final CourseLearningRepository repository;
+
+  /// The server's `continue.lesson_id`, as `lessonOpens` asks it.
   final int? resumeLessonId;
+
+  /// The lesson highlighted as the one to continue with: [resumeLessonId]
+  /// once [_continueLessonId] has checked it, else null.
+  final int? currentLessonId;
+  final GlobalKey currentLessonKey;
+  final VoidCallback onLessonClosed;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (var i = 0; i < modules.length; i++) ...[
-          CourseModuleCard(
-            module: modules[i],
-            onTap: modules[i].locked
-                ? null
-                : () => _openLessonList(
-                    context,
-                    modules[i],
-                    repository,
-                    resumeLessonId,
-                  ),
+    if (lessons.isEmpty) {
+      return Center(
+        child: Text(
+          CourseLearningStrings.lessonsEmpty,
+          style: AppTypography.supporting.copyWith(
+            color: context.palette.textSecondary,
           ),
-          if (i != modules.length - 1) const _ModuleConnector(),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    // One card at most is the current one — the first that matches, should
+    // an id ever repeat — since the one-time scroll keys it.
+    final currentIndex = lessons.indexWhere(
+      (entry) => entry.lesson.id == currentLessonId && !entry.locked,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < lessons.length; i++) ...[
+          _card(context, lessons[i], current: i == currentIndex),
+          if (i != lessons.length - 1) const _ModuleConnector(),
         ],
       ],
     );
   }
+
+  Widget _card(
+    BuildContext context,
+    CourseLesson entry, {
+    required bool current,
+  }) {
+    final lesson = entry.lesson;
+    // The one rule, through the one opener (Issue #410): unlocked, and
+    // completed or the lesson to continue with; any other card is inert.
+    final opens = lessonOpens(
+      locked: entry.locked,
+      completed: lesson.completed,
+      isResume: lesson.id == resumeLessonId,
+    );
+    return CourseLessonCard(
+      // Only the current card needs a key: the one-time scroll finds it.
+      key: current ? currentLessonKey : null,
+      entry: entry,
+      current: current,
+      onTap: opens
+          ? () async {
+              final opened = await openLesson(
+                context,
+                lessonId: lesson.id,
+                locked: entry.locked,
+                completed: lesson.completed,
+                resumeLessonId: resumeLessonId,
+                repository: repository,
+              );
+              if (opened) onLessonClosed();
+            }
+          : null,
+    );
+  }
 }
 
-/// The rule between two module cards.
+/// The rule between two cards.
 ///
 /// It runs down the *centre of the page* — the reference puts it on x196.5,
 /// the content column's own midpoint, not under the icon tile where an earlier
@@ -550,10 +646,15 @@ class _ModuleConnector extends StatelessWidget {
 /// width as everything above it, with its own padding standing in for the
 /// reference's edge-to-edge bleed.
 class _CertificationSection extends StatelessWidget {
-  const _CertificationSection({required this.path, required this.repository});
+  const _CertificationSection({
+    required this.path,
+    required this.repository,
+    required this.onLessonClosed,
+  });
 
   final CourseLearningPath path;
   final CourseLearningRepository repository;
+  final VoidCallback onLessonClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -613,6 +714,7 @@ class _CertificationSection extends StatelessWidget {
             path: path,
             repository: repository,
             buttonWidth: _certificationCtaWidth,
+            onLessonClosed: onLessonClosed,
           ),
         ],
       ),

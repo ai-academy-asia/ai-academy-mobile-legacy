@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../domain/course_lesson.dart';
 import '../../domain/course_module.dart';
 import '../course_learning_strings.dart';
 
@@ -124,7 +125,11 @@ class CourseModuleCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              _ModuleIcon(module: module),
+              _ModuleIcon(
+                iconAsset: module.iconAsset,
+                accentColor: module.accentColor,
+                locked: locked,
+              ),
               const SizedBox(width: _tileToText),
               Expanded(
                 child: Column(
@@ -171,14 +176,23 @@ class CourseModuleCard extends StatelessWidget {
   }
 }
 
+/// The card's 56 tile: the module's artwork in a tint of its accent, or the
+/// padlock in flat grey when [locked]. Shared by [CourseModuleCard] and
+/// [CourseLessonCard], so a lesson wears its module's tile.
 class _ModuleIcon extends StatelessWidget {
-  const _ModuleIcon({required this.module});
+  const _ModuleIcon({
+    required this.iconAsset,
+    required this.accentColor,
+    required this.locked,
+  });
 
-  final CourseModule module;
+  final String iconAsset;
+  final Color accentColor;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
-    if (module.locked) {
+    if (locked) {
       return Container(
         width: _iconSlot,
         height: _iconSlot,
@@ -200,14 +214,164 @@ class _ModuleIcon extends StatelessWidget {
       width: _iconSlot,
       height: _iconSlot,
       decoration: BoxDecoration(
-        color: module.accentColor.withValues(alpha: _tileTintOpacity),
+        color: accentColor.withValues(alpha: _tileTintOpacity),
         borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
       ),
       // No padding: each `module_*.svg` already carries its own margin inside
       // its viewBox, so the artwork still sits ~8 in from the tile's edge. At
       // the 8 this had, the drawing came out 28 wide against the reference's
       // 39 — the inset was being applied twice.
-      child: SvgPicture.asset(module.iconAsset, fit: BoxFit.contain),
+      child: SvgPicture.asset(iconAsset, fit: BoxFit.contain),
+    );
+  }
+}
+
+/// The current lesson's outline: the card's own edge, in the accent and
+/// twice as heavy, so the lesson to continue with reads at a glance.
+const double _currentBorderWidth = AppDimens.borderWidth * 2;
+
+/// The current lesson's label pill.
+const double _currentLabelGap = 6;
+const EdgeInsets _currentLabelPadding = EdgeInsets.symmetric(
+  horizontal: 8,
+  vertical: 2,
+);
+
+/// One lesson on Course Detail's lesson list (Issue #437), on the module
+/// card's own design — the same white card, outline, flat band and 56 tile,
+/// with the lesson's details where the module's were:
+///
+///  * the tile is the lesson's module's artwork and accent, or the padlock
+///    when the lesson or its module is locked ([CourseLesson.locked]);
+///  * the caption is the lesson's number across the whole course, `01`–`N`;
+///  * then its title, and its duration when the server sent one;
+///  * the green check when it is completed.
+///
+/// [current] marks the lesson to continue with: the outline, number and title
+/// in the accent, and the "Эндээс үргэлжлүүлнэ" pill under the title — the
+/// level-detail reference's blue current-lesson treatment, on this card.
+class CourseLessonCard extends StatelessWidget {
+  const CourseLessonCard({
+    required this.entry,
+    super.key,
+    this.current = false,
+    this.onTap,
+  });
+
+  final CourseLesson entry;
+
+  /// Whether this is the lesson to continue with.
+  final bool current;
+
+  /// Null when the lesson may not be opened (`lessonOpens`).
+  final VoidCallback? onTap;
+
+  /// [CourseLesson.number] as the caption draws it: at least two digits.
+  static String numberLabel(int number) => number.toString().padLeft(2, '0');
+
+  @override
+  Widget build(BuildContext context) {
+    final lesson = entry.lesson;
+    final locked = entry.locked;
+    final palette = context.palette;
+    final titleInk = locked
+        ? palette.textLocked
+        : current
+        ? palette.primary
+        : palette.textTitle;
+
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: _cardHeight),
+          padding: const EdgeInsets.all(_tileInset),
+          decoration: BoxDecoration(
+            // Opaque for the reason `CourseModuleCard` gives.
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(AppDimens.homeCardRadius),
+            border: Border.all(
+              color: current ? palette.primary : palette.outlineFaint,
+              width: current ? _currentBorderWidth : AppDimens.borderWidth,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: palette.cardDepth,
+                offset: const Offset(0, _liftOffset),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              _ModuleIcon(
+                iconAsset: entry.module.iconAsset,
+                accentColor: entry.module.accentColor,
+                locked: locked,
+              ),
+              const SizedBox(width: _tileToText),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      numberLabel(entry.number),
+                      style: AppTypography.caption.copyWith(
+                        color: current && !locked
+                            ? palette.primary
+                            : palette.textSupporting,
+                      ),
+                    ),
+                    Text(
+                      lesson.title,
+                      style: AppTypography.itemTitle.copyWith(color: titleInk),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (lesson.durationLabel.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        lesson.durationLabel,
+                        style: AppTypography.supporting.copyWith(
+                          color: palette.textSupporting,
+                        ),
+                      ),
+                    ],
+                    if (current) ...[
+                      const SizedBox(height: _currentLabelGap),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: palette.primary,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.homeCardRadius,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: _currentLabelPadding,
+                          child: Text(
+                            CourseLearningStrings.continueHere,
+                            style: AppTypography.caption.copyWith(
+                              color: palette.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (lesson.completed) ...[
+                const SizedBox(width: 8),
+                const _CompletedCheck(),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

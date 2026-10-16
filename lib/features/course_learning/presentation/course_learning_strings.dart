@@ -117,6 +117,10 @@ abstract final class CourseLearningStrings {
 
   static const String moduleCaption = 'Modules';
 
+  /// The label on Course Detail's lesson to continue with (Issue #437) —
+  /// the product's own copy.
+  static const String continueHere = 'Эндээс үргэлжлүүлнэ';
+
   // --- Lesson List -------------------------------------------------------
 
   /// A module whose lessons loaded but number none. No Figma frame or copy

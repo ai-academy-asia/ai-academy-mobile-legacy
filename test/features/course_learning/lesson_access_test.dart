@@ -306,17 +306,27 @@ void main() {
           repository: learning,
         );
 
-    testWidgets('a module whose class date has not come does not open its '
-        'lessons', (tester) async {
-      // The sample: modules 1–2 completed, 3–5 locked.
-      final learning = FakeCourseLearningRepository(exercise: sampleExercise());
+    testWidgets('a lesson whose module\'s class date has not come does not '
+        'open, and its note is never read (Issue #437)', (tester) async {
+      // The sample: modules 1–2 completed, 3–5 locked. The lesson itself is
+      // not flagged; its module's lock is its own.
+      final learning = FakeCourseLearningRepository(
+        exercise: sampleExercise(),
+        lessons: const [],
+        lessonsByModule: {
+          3: [sampleLesson(id: 31, moduleId: 3, title: 'Deep nets')],
+        },
+        notesByLesson: {31: sampleNote()},
+      );
       await pumpHome(tester, detail(learning));
 
-      await tester.tap(find.text('Deep network models'));
+      await tester.ensureVisible(find.text('Deep nets'));
+      await tester.tap(find.text('Deep nets'));
       await tester.pumpAndSettle();
 
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
       expect(find.byType(LessonListScreen), findsNothing);
-      expect(learning.lessonCalls, isEmpty);
+      expect(learning.noteCalls, isNot(contains(31)));
     });
 
     testWidgets('"Continue learning" never opens a lesson in a locked '
