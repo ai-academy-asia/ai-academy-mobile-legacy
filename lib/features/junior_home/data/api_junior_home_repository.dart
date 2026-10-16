@@ -107,6 +107,7 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       completedByNote: completedByNote,
       nextLesson: nextLesson,
       attendanceRecorded: attendanceRecordedOn(await attendance, nextLesson),
+      attendanceConfirmed: attendanceConfirmedOn(await attendance, nextLesson),
     );
   }
 
@@ -132,8 +133,31 @@ bool? attendanceRecordedOn(
   NextLesson? nextLesson,
 ) {
   if (attendance == null || nextLesson == null) return null;
+  return _sessionOn(attendance, nextLesson)?.status != null;
+}
+
+/// Whether the student's attendance at [nextLesson]'s class was
+/// successfully registered (Issue #441): that day's session counts as
+/// attended — `present` or `late`, [AttendanceSession.countsAsAttended], the
+/// rule the attendance summary and the Junior calendar already use. False
+/// for `absent`, an `excused` or unrecorded session, or a day with none;
+/// null when there is no lesson to ask about or [attendance] could not be
+/// read.
+bool? attendanceConfirmedOn(
+  CourseAttendance? attendance,
+  NextLesson? nextLesson,
+) {
+  if (attendance == null || nextLesson == null) return null;
+  return _sessionOn(attendance, nextLesson)?.countsAsAttended ?? false;
+}
+
+/// [attendance]'s session on [nextLesson]'s day, if it lists one.
+AttendanceSession? _sessionOn(
+  CourseAttendance attendance,
+  NextLesson nextLesson,
+) {
   final day = nextLesson.startsAt;
-  final session = attendance.sessions
+  return attendance.sessions
       .where(
         (s) =>
             s.date.year == day.year &&
@@ -141,7 +165,6 @@ bool? attendanceRecordedOn(
             s.date.day == day.day,
       )
       .firstOrNull;
-  return session?.status != null;
 }
 
 /// `HomeFailureKind` into this screen's family.
@@ -171,12 +194,20 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 /// never by the server's own `completed` flag. [nextLesson] is the
 /// dashboard's, from the cohort's schedule, and [attendanceRecorded] today's
 /// record — what the check-in node reads (Issues #202, #410).
+///
+/// [attendanceConfirmed] — that record counts as attended
+/// ([attendanceConfirmedOn]) — gives the lesson to continue with, the lesson
+/// that check-in belongs to, ATTENDANCE_COMPLETED (Issue #441), by the same
+/// [lessonPathStateFor] every lesson state comes from: attended, but not
+/// completed by the lesson list's own rule. No other lesson's attendance is
+/// known — the backend sends none per lesson (#414).
 JuniorLearningMap juniorMapFrom(
   CourseLearningPath path, {
   Map<int, List<Lesson>> lessons = const {},
   Set<int> completedByNote = const {},
   NextLesson? nextLesson,
   bool? attendanceRecorded,
+  bool? attendanceConfirmed,
 }) => JuniorLearningMap(
   nextLesson: nextLesson,
   attendanceRecorded: attendanceRecorded,
@@ -189,25 +220,29 @@ JuniorLearningMap juniorMapFrom(
   ),
   // Sorted on `order` rather than trusting either array, so the route's
   // order is the course's; then the resume lesson picked out (Issue #410).
-  nodes: withResumeLesson(continueLessonId: path.continueLessonId, [
-    for (final module
-        in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
-      for (final lesson
-          in (lessons[module.id] ?? const <Lesson>[]).toList()
-            ..sort((a, b) => a.order.compareTo(b.order)))
-        JuniorMapNode(
-          id: lesson.id,
-          state: _stateFor(
-            lesson,
-            inLockedModule: module.locked,
-            completed: completedByNote.contains(lesson.id),
+  nodes: _withAttendance(
+    attendanceConfirmed: attendanceConfirmed,
+    completedByNote: completedByNote,
+    withResumeLesson(continueLessonId: path.continueLessonId, [
+      for (final module
+          in path.modules.toList()..sort((a, b) => a.order.compareTo(b.order)))
+        for (final lesson
+            in (lessons[module.id] ?? const <Lesson>[]).toList()
+              ..sort((a, b) => a.order.compareTo(b.order)))
+          JuniorMapNode(
+            id: lesson.id,
+            state: _stateFor(
+              lesson,
+              inLockedModule: module.locked,
+              completed: completedByNote.contains(lesson.id),
+            ),
+            locked: lesson.locked || module.locked,
+            title: lesson.title,
+            moduleId: module.id,
+            moduleOrder: module.order,
           ),
-          locked: lesson.locked || module.locked,
-          title: lesson.title,
-          moduleId: module.id,
-          moduleOrder: module.order,
-        ),
-  ]),
+    ]),
+  ),
   certificate: JuniorCertificate(
     track: JuniorHomeContent.track,
     // The one course name the contract carries. The Figma frame happens to
@@ -220,6 +255,40 @@ JuniorLearningMap juniorMapFrom(
   continueModuleId: path.continueModuleId,
   continueLessonId: path.continueLessonId,
 );
+
+/// [nodes] with the lesson to continue with — the check-in's lesson — in the
+/// state [lessonPathStateFor] gives it once its attendance is confirmed
+/// (Issue #441): ATTENDANCE_COMPLETED while the lesson list's own rule
+/// ([completedByNote], `noteCompletesLesson`) does not complete it. Every
+/// other node, and every node while attendance is not confirmed, as is.
+List<JuniorMapNode> _withAttendance(
+  List<JuniorMapNode> nodes, {
+  required bool? attendanceConfirmed,
+  required Set<int> completedByNote,
+}) {
+  if (attendanceConfirmed != true) return nodes;
+  return [
+    for (final node in nodes)
+      if (node.state == JuniorNodeState.current)
+        JuniorMapNode(
+          id: node.id,
+          state: juniorNodeStateOf(
+            lessonPathStateFor(
+              hasSavedNote: completedByNote.contains(node.id),
+              attendanceConfirmed: true,
+              classDateArrived: null,
+              checkInActive: null,
+            ),
+          ),
+          locked: node.locked,
+          title: node.title,
+          moduleId: node.moduleId,
+          moduleOrder: node.moduleOrder,
+        )
+      else
+        node,
+  ];
+}
 
 /// A lesson's look: [completed] — a saved note (Issue #415) — wins the look,
 /// while whether it opens is [JuniorMapNode.locked]. Otherwise the server's

@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
@@ -7,6 +8,7 @@ import 'package:aia_mobile/features/course_learning/domain/course_learning_failu
 import 'package:aia_mobile/features/course_learning/domain/lesson_note_completion.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
+import 'package:aia_mobile/features/course_learning/presentation/lesson_list_controller.dart';
 import 'package:aia_mobile/features/course_learning/presentation/lesson_list_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/lesson_list_item.dart';
@@ -209,23 +211,37 @@ void main() {
       ),
     );
 
-    testWidgets('the completed node\'s geometry and tick, every colour grey: '
-        'the padlock\'s face, outline and ink', (tester) async {
+    testWidgets('attendance confirmed, not completed (Issue #441): the '
+        'active frame with the attendance glyph in the accent — never the '
+        'tick — on the completed node\'s geometry', (tester) async {
       await pumpTile(
         tester,
         const JuniorMapNode(id: 1, state: JuniorNodeState.attendanceCompleted),
       );
       final palette = tester.element(find.byType(JuniorMapNodeTile)).palette;
       final attended = decorationOf(tester);
-      final tick = imageOf(tester);
       final size = tester.getSize(find.byType(JuniorMapNodeTile));
 
-      expect(attended.color, palette.juniorMutedFill);
-      expect((attended.border! as Border).top.color, palette.outline);
-      expect(attended.boxShadow!.single.color, palette.outline);
-      expect((tick.image as AssetImage).assetName, endsWith('node_check.png'));
-      expect(tick.color, palette.juniorMutedGlyph);
-      expect(tick.colorBlendMode, BlendMode.srcIn);
+      expect(attended.color, palette.surface);
+      expect((attended.border! as Border).top.color, palette.accent);
+      expect(attended.boxShadow!.single.color, palette.accent);
+      // The app's attendance glyph, Phosphor "CalendarCheck", in the accent.
+      final glyph = tester.widget<Icon>(
+        find.descendant(
+          of: find.byType(JuniorMapNodeTile),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(glyph.icon, AppIcons.calendarCheck);
+      expect(glyph.color, palette.accent);
+      // No sprite at all — so no tick.
+      expect(
+        find.descendant(
+          of: find.byType(JuniorMapNodeTile),
+          matching: find.byType(Image),
+        ),
+        findsNothing,
+      );
       expect(
         find.bySemanticsLabel('Lesson 1, attendance recorded'),
         findsOneWidget,
@@ -248,7 +264,12 @@ void main() {
         attended.boxShadow!.single.offset,
       );
       expect(imageOf(tester).color, isNull);
-      expect(imageOf(tester).width, tick.width);
+      expect(
+        (imageOf(tester).image as AssetImage).assetName,
+        endsWith('node_check.png'),
+      );
+      // The glyph weighs as the sprites' ink does: 0.7 of their 48 box.
+      expect(glyph.size, closeTo(imageOf(tester).width! * 0.7, 0.01));
     });
 
     test('opens — attended lessons open — unless the server locks it', () {
@@ -458,6 +479,136 @@ void main() {
       expect(learning.completeCalls, isEmpty);
     });
 
+    // --- The four Junior states (Issue #441) --------------------------------
+
+    CourseAttendance attendanceOn6Oct(String? status) => CourseAttendance(
+      attended: 0,
+      totalPast: 0,
+      percent: 0,
+      sessions: [
+        AttendanceSession(date: DateTime(2026, 10, 6), status: status),
+      ],
+    );
+
+    Finder within(int id, Finder matching) =>
+        find.descendant(of: tile(id), matching: matching);
+
+    testWidgets('State 3: attendance registered, no completing note — the '
+        'attendance glyph, no tick; the node still opens its Lesson Detail '
+        'directly', (tester) async {
+      final learning = learningFor();
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
+
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+      expect(within(101, find.byIcon(AppIcons.calendarCheck)), findsOneWidget);
+      expect(within(101, find.byType(Image)), findsNothing);
+
+      await tester.tap(tile(101));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<CourseExerciseDetailScreen>(
+              find.byType(CourseExerciseDetailScreen),
+            )
+            .lessonId,
+        101,
+      );
+      expect(find.byType(LessonListScreen), findsNothing);
+      expect(learning.completeCalls, isEmpty);
+    });
+
+    testWidgets('only an attended record counts: late does, absent, excused '
+        'and none leave the lesson as it was', (tester) async {
+      await pumpHome(
+        tester,
+        learningFor(),
+        attendance: attendanceOn6Oct('late'),
+      );
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+
+      for (final status in ['absent', 'excused', null]) {
+        await pumpHome(
+          tester,
+          learningFor(),
+          attendance: attendanceOn6Oct(status),
+        );
+        expect(stateOf(tester, 101), JuniorNodeState.current, reason: status);
+      }
+    });
+
+    testWidgets('State 4: the lesson list\'s completion rule holds — the tick, '
+        'attendance or not', (tester) async {
+      await pumpHome(
+        tester,
+        learningFor(notes: {101: sampleNote()}),
+        attendance: attendanceOn6Oct('present'),
+      );
+      expect(stateOf(tester, 101), JuniorNodeState.completed);
+      expect(within(101, find.byIcon(AppIcons.calendarCheck)), findsNothing);
+      final tick = tester.widget<Image>(within(101, find.byType(Image)));
+      expect((tick.image as AssetImage).assetName, endsWith('node_check.png'));
+    });
+
+    testWidgets('completion is exactly the lesson list\'s: the same lessons '
+        'are completed on both, note-only lessons included', (tester) async {
+      // A saved note; a blank one; the server's own flag without a note; a
+      // note on a locked lesson — every case the lesson list's rule decides.
+      final learning = learningFor(
+        serverCompleted101: true,
+        notes: {
+          102: sampleNote(),
+          101: sampleNote(message: '   '),
+          201: sampleNote(),
+        },
+      );
+
+      final list = LessonListController(repository: learning, moduleId: 1);
+      await list.load();
+      final listCompleted = {
+        for (final lesson in list.lessons)
+          if (lesson.completed) lesson.id,
+      };
+      list.dispose();
+
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct(null));
+      final homeCompleted = {
+        for (final node in tester.widgetList<JuniorMapNodeTile>(
+          find.byType(JuniorMapNodeTile),
+        ))
+          if (node.node.state == JuniorNodeState.completed) node.node.id,
+      };
+
+      expect(listCompleted, {102});
+      expect(homeCompleted, listCompleted);
+    });
+
+    testWidgets('States 1 and 2 are unchanged: the locked lesson keeps its '
+        'padlock, and the live check-in its QR, which opens the scanner', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        learningFor(),
+        attendance: attendanceOn6Oct(null),
+        now: DateTime(2026, 10, 6, 10),
+      );
+
+      expect(stateOf(tester, 201), JuniorNodeState.locked);
+      final padlock = tester.widget<Image>(within(201, find.byType(Image)));
+      expect(
+        (padlock.image as AssetImage).assetName,
+        endsWith('node_lock.png'),
+      );
+
+      final checkIn = tester.widget<JuniorMapNodeTile>(tile(101));
+      expect(checkIn.checkIn, isTrue);
+      final qr = tester.widget<Image>(within(101, find.byType(Image)));
+      expect((qr.image as AssetImage).assetName, endsWith('node_current.png'));
+      await tester.tap(tile(101));
+      await tester.pumpAndSettle();
+      expect(find.byType(AttendanceScannerScreen), findsOneWidget);
+    });
+
     testWidgets('opening a lesson alone completes nothing', (tester) async {
       final learning = learningFor();
       await pumpHome(tester, learning);
@@ -588,5 +739,47 @@ void main() {
     expect(row('First').lesson.completed, isTrue);
     expect(row('Second').lesson.completed, isFalse);
     expect(learning.completeCalls, isEmpty);
+  });
+
+  group('attendanceConfirmedOn (Issue #441)', () {
+    final next = NextLesson(
+      startsAt: DateTime(2026, 10, 6, 9),
+      endsAt: DateTime(2026, 10, 6, 11),
+    );
+    CourseAttendance on(DateTime day, String? status) => CourseAttendance(
+      attended: 0,
+      totalPast: 0,
+      percent: 0,
+      sessions: [AttendanceSession(date: day, status: status)],
+    );
+
+    test('present and late — countsAsAttended — on the lesson\'s day', () {
+      for (final status in ['present', 'late']) {
+        expect(
+          attendanceConfirmedOn(on(DateTime(2026, 10, 6), status), next),
+          isTrue,
+          reason: status,
+        );
+      }
+      for (final status in ['absent', 'excused', null]) {
+        expect(
+          attendanceConfirmedOn(on(DateTime(2026, 10, 6), status), next),
+          isFalse,
+          reason: status,
+        );
+      }
+    });
+
+    test('another day\'s record is not this lesson\'s; unknown is null', () {
+      expect(
+        attendanceConfirmedOn(on(DateTime(2026, 10, 5), 'present'), next),
+        isFalse,
+      );
+      expect(attendanceConfirmedOn(null, next), isNull);
+      expect(
+        attendanceConfirmedOn(on(DateTime(2026, 10, 6), 'present'), null),
+        isNull,
+      );
+    });
   });
 }
