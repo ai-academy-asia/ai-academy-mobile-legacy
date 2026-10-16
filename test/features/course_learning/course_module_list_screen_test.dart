@@ -182,7 +182,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(svgAsset('course_detail_completed_check'), findsNWidgets(2));
-      expect(svgAsset('course_detail_lock'), findsOneWidget);
+      // The locked lesson and the unreached one (Issue #439).
+      expect(svgAsset('course_detail_lock'), findsNWidgets(2));
       expect(cardFor(tester, 'Patterns').entry.lesson.completed, isTrue);
       expect(cardFor(tester, 'Deep nets').entry.locked, isTrue);
       expect(cardFor(tester, 'Combining').entry.lesson.completed, isFalse);
@@ -262,6 +263,169 @@ void main() {
 
       expect(find.text(CourseLearningStrings.networkError), findsOneWidget);
       expect(find.byType(CourseLessonCard), findsNothing);
+    });
+  });
+
+  group('lessons the student has reached open (Issue #439)', () {
+    /// The server's own progress, as `agentic.s01` has it on the local
+    /// backend: module 1's lessons reached (`completed: true`) — one with a
+    /// note, one without; module 2's first the continue lesson, its second
+    /// unlocked but not reached; module 3's locked, and one there the server
+    /// counts reached although its class moved later.
+    FakeCourseLearningRepository progressed() => FakeCourseLearningRepository(
+      path: samplePath(continueModuleId: 2, continueLessonId: 21),
+      lessons: const [],
+      lessonsByModule: {
+        1: [
+          sampleLesson(
+            id: 11,
+            moduleId: 1,
+            order: 1,
+            title: 'Reached, no note',
+            completed: true,
+          ),
+          sampleLesson(
+            id: 12,
+            moduleId: 1,
+            order: 2,
+            title: 'Reached, with note',
+            completed: true,
+          ),
+        ],
+        2: [
+          sampleLesson(id: 21, moduleId: 2, order: 1, title: 'Current'),
+          sampleLesson(id: 22, moduleId: 2, order: 2, title: 'Not reached'),
+        ],
+        3: [
+          sampleLesson(
+            id: 31,
+            moduleId: 3,
+            order: 1,
+            title: 'Locked future',
+            locked: true,
+          ),
+          sampleLesson(
+            id: 32,
+            moduleId: 3,
+            order: 2,
+            title: 'Reached, now locked',
+            completed: true,
+            locked: true,
+          ),
+        ],
+      },
+      notesByLesson: {12: sampleNote()},
+    );
+
+    Finder lockIn(String title) => find.descendant(
+      of: find.widgetWithText(CourseLessonCard, title),
+      matching: svgAsset('course_detail_lock'),
+    );
+    Finder checkIn(String title) => find.descendant(
+      of: find.widgetWithText(CourseLessonCard, title),
+      matching: svgAsset('course_detail_completed_check'),
+    );
+
+    Future<void> opens(
+      WidgetTester tester,
+      FakeCourseLearningRepository repository,
+      String title,
+      int id,
+    ) async {
+      await tester.ensureVisible(find.text(title));
+      await tester.tap(find.text(title));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<CourseExerciseDetailScreen>(
+              find.byType(CourseExerciseDetailScreen),
+            )
+            .lessonId,
+        id,
+      );
+      await tester.tap(find.byIcon(AppIcons.arrowLeft));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a previous lesson without a note opens — enabled, no tick', (
+      tester,
+    ) async {
+      final repository = progressed();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      final card = cardFor(tester, 'Reached, no note');
+      expect(card.entry.reached, isTrue);
+      expect(card.entry.lesson.completed, isFalse); // the note rule: no tick
+      expect(card.available, isTrue);
+      expect(checkIn('Reached, no note'), findsNothing);
+      expect(lockIn('Reached, no note'), findsNothing);
+      await opens(tester, repository, 'Reached, no note', 11);
+    });
+
+    testWidgets('a completed lesson opens, with its tick', (tester) async {
+      final repository = progressed();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      expect(cardFor(tester, 'Reached, with note').available, isTrue);
+      expect(checkIn('Reached, with note'), findsOneWidget);
+      await opens(tester, repository, 'Reached, with note', 12);
+    });
+
+    testWidgets('the lesson to continue with opens and stays highlighted', (
+      tester,
+    ) async {
+      final repository = progressed();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      final card = cardFor(tester, 'Current');
+      expect(card.current, isTrue);
+      expect(card.available, isTrue);
+      expect(find.text(CourseLearningStrings.continueHere), findsOneWidget);
+      await opens(tester, repository, 'Current', 21);
+      expect(cardFor(tester, 'Current').current, isTrue);
+    });
+
+    testWidgets('a locked future lesson is inert and drawn disabled', (
+      tester,
+    ) async {
+      final repository = progressed();
+      await pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      for (final title in [
+        'Locked future',
+        'Not reached',
+        'Reached, now locked',
+      ]) {
+        final card = cardFor(tester, title);
+        expect(card.available, isFalse, reason: title);
+        expect(card.onTap, isNull, reason: title);
+        expect(lockIn(title), findsOneWidget, reason: title);
+        expect(
+          tester
+              .widget<Text>(
+                find.descendant(
+                  of: find.widgetWithText(CourseLessonCard, title),
+                  matching: find.text(title),
+                ),
+              )
+              .style!
+              .color,
+          const Color(0xFFB5B5B5),
+          reason: title,
+        );
+        await tester.ensureVisible(find.text(title));
+        await tester.tap(find.text(title));
+        await tester.pumpAndSettle();
+        expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      }
+      expect(repository.exerciseCalls, isEmpty);
+      // A locked lesson's note is never asked for.
+      expect(repository.noteCalls, isNot(contains(31)));
+      expect(repository.noteCalls, isNot(contains(32)));
     });
   });
 
@@ -748,7 +912,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(svgAsset('course_detail_lock'), findsOneWidget);
+      // The locked lesson, and — with no lesson to continue with — module 2's
+      // two unreached ones, all drawn disabled (Issue #439).
+      expect(svgAsset('course_detail_lock'), findsNWidgets(3));
       final tile = tester.getSize(
         find
             .ancestor(

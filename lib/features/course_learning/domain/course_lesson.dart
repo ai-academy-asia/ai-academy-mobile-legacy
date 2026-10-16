@@ -8,6 +8,7 @@ class CourseLesson {
     required this.lesson,
     required this.module,
     required this.number,
+    this.reached = false,
   });
 
   /// The lesson as `GET /me/modules/{module_id}/lessons` sent it, with its
@@ -21,6 +22,13 @@ class CourseLesson {
   /// The lesson's position in the whole course, from 1: modules in the order
   /// the server lists them, then each module's lessons in theirs.
   final int number;
+
+  /// The server's own progress on the lesson — §2.2 `lesson.completed`, a
+  /// `LessonProgress` row — kept here because [lesson]'s `completed` is the
+  /// note rule (Issue #415) and replaces it. True for every unlocked lesson
+  /// before the server's continue lesson (Issue #439): the student has
+  /// reached it, so it opens even without a note. Never ticks it.
+  final bool reached;
 
   /// Locked when the server locks the lesson or its module — the same reading
   /// Junior Home's lesson path makes of the same data.
@@ -38,7 +46,13 @@ List<CourseLesson> courseLessonsOf(
   for (final module in modules) {
     for (final lesson in lessonsByModule[module.id] ?? const <Lesson>[]) {
       result.add(
-        CourseLesson(lesson: lesson, module: module, number: result.length + 1),
+        CourseLesson(
+          lesson: lesson,
+          module: module,
+          number: result.length + 1,
+          // As the server sent it, before the note rule replaces it.
+          reached: lesson.completed,
+        ),
       );
     }
   }

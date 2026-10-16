@@ -242,7 +242,8 @@ const EdgeInsets _currentLabelPadding = EdgeInsets.symmetric(
 /// with the lesson's details where the module's were:
 ///
 ///  * the tile is the lesson's module's artwork and accent, or the padlock
-///    when the lesson or its module is locked ([CourseLesson.locked]);
+///    when the lesson cannot be opened ([available] false: the lesson or its
+///    module is locked, or the student has not reached it yet);
 ///  * the caption is the lesson's number across the whole course, `01`–`N`;
 ///  * then its title, and its duration when the server sent one;
 ///  * the green check when it is completed.
@@ -255,6 +256,7 @@ class CourseLessonCard extends StatelessWidget {
     required this.entry,
     super.key,
     this.current = false,
+    this.available = true,
     this.onTap,
   });
 
@@ -262,6 +264,12 @@ class CourseLessonCard extends StatelessWidget {
 
   /// Whether this is the lesson to continue with.
   final bool current;
+
+  /// Whether the lesson may be opened (`lessonOpens`). One that may not —
+  /// locked by the server, or not yet reached — is drawn disabled: the
+  /// padlock tile and the dimmed title, as Junior Home draws a lesson waiting
+  /// its turn (Issue #439).
+  final bool available;
 
   /// Null when the lesson may not be opened (`lessonOpens`).
   final VoidCallback? onTap;
@@ -272,7 +280,7 @@ class CourseLessonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lesson = entry.lesson;
-    final locked = entry.locked;
+    final locked = entry.locked || !available;
     final palette = context.palette;
     final titleInk = locked
         ? palette.textLocked
