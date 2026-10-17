@@ -424,6 +424,18 @@ void main() {
     JuniorNodeState stateOf(WidgetTester tester, int id) =>
         tester.widget<JuniorMapNodeTile>(tile(id)).node.state;
 
+    /// The continue lesson's class day (6 Oct) with [status] recorded — what
+    /// `attendanceConfirmedOn` reads. `present` is what opens the continue
+    /// lesson on Junior (Issue #443).
+    CourseAttendance attendanceOn6Oct(String? status) => CourseAttendance(
+      attended: 0,
+      totalPast: 0,
+      percent: 0,
+      sessions: [
+        AttendanceSession(date: DateTime(2026, 10, 6), status: status),
+      ],
+    );
+
     Future<void> saveNote(WidgetTester tester, String text) async {
       await tester.enterText(find.byType(TextField).first, text);
       await tester.pump();
@@ -454,8 +466,9 @@ void main() {
       tester,
     ) async {
       final learning = learningFor();
-      await pumpHome(tester, learning);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      // Attended, so the continue lesson opens (Issue #443).
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
@@ -480,15 +493,6 @@ void main() {
     });
 
     // --- The four Junior states (Issue #441) --------------------------------
-
-    CourseAttendance attendanceOn6Oct(String? status) => CourseAttendance(
-      attended: 0,
-      totalPast: 0,
-      percent: 0,
-      sessions: [
-        AttendanceSession(date: DateTime(2026, 10, 6), status: status),
-      ],
-    );
 
     Finder within(int id, Finder matching) =>
         find.descendant(of: tile(id), matching: matching);
@@ -611,13 +615,15 @@ void main() {
 
     testWidgets('opening a lesson alone completes nothing', (tester) async {
       final learning = learningFor();
-      await pumpHome(tester, learning);
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
       await back(tester);
 
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      // Attended, not completed: attendance never completes a lesson.
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
       expect(learning.completeCalls, isEmpty);
       expect(learning.saveCalls, isEmpty);
     });
@@ -627,14 +633,14 @@ void main() {
         ..saveFailure = const CourseLearningFailure(
           CourseLearningFailureKind.network,
         );
-      await pumpHome(tester, learning);
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
       await saveNote(tester, 'Lost on the way');
       await back(tester);
 
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
       expect(learning.notesByLesson, isEmpty);
     });
 
@@ -642,7 +648,7 @@ void main() {
       tester,
     ) async {
       final learning = learningFor();
-      await pumpHome(tester, learning);
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
@@ -650,7 +656,7 @@ void main() {
       await back(tester);
 
       expect(learning.notesByLesson, isEmpty);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
     });
 
     testWidgets('a failed note read fails the map with retry — never a '

@@ -15,13 +15,12 @@ import 'junior_map_geometry.dart';
 /// The tick, the scan mark and the padlock are the design's exported
 /// artwork — none has a match in the bundled Phosphor set (Issue #410): a
 /// completed lesson the tick on the pale blue face — **a tick always means
-/// completed**; **the lesson to continue with** the active frame (the white
-/// face in the accent outline and band) with no glyph, as it is not done
-/// yet — the one unfinished lesson that opens; every
-/// other unfinished lesson, which cannot be opened, the grey padlock —
-/// whether its class date has not come ([JuniorNodeState.locked]) or it has
-/// but its turn has not ([JuniorNodeState.open]): a node that does not open
-/// never looks as if it might. Besides these, only the attendance glyph
+/// completed**; every unfinished lesson that cannot be opened, the grey
+/// padlock — whether its class date has not come ([JuniorNodeState.locked]),
+/// it has but its turn has not ([JuniorNodeState.open]), or it is **the
+/// lesson to continue with** ([JuniorNodeState.current]) whose attendance is
+/// not confirmed yet outside a live check-in (Issue #443): a node that does
+/// not open never looks as if it might. Besides these, only the attendance glyph
 /// (below) is drawn on the path; the screen-reader label still tells the
 /// two padlocks apart.
 ///
@@ -134,7 +133,7 @@ class _JuniorMapNodeTileState extends State<JuniorMapNodeTile>
         size: glyphSize * _attendanceGlyphFactor,
         color: style.tint,
       ),
-      // The continue lesson: the frame alone carries it.
+      // No glyph: no style draws one today.
       null => const SizedBox.shrink(),
     };
 
@@ -226,10 +225,9 @@ class _NodeStyle {
   );
 
   /// Completed: the tick on the course card's pale blue (`juniorCard`) in
-  /// the accent. Current: the active frame — a `surface` node in the
-  /// accent — with no tick: it is not completed. Open and locked — both
-  /// cannot be opened: the padlock on the map's not-yet-reached grey
-  /// (`juniorMutedFill`) in the `outline`.
+  /// the accent. Current (outside a live check-in, attendance not
+  /// confirmed), open and locked — none can be opened: the padlock on the
+  /// map's not-yet-reached grey (`juniorMutedFill`) in the `outline`.
   static _NodeStyle of(JuniorNodeState state, AppPalette palette) =>
       switch (state) {
         JuniorNodeState.completed => _NodeStyle(
@@ -247,12 +245,12 @@ class _NodeStyle {
           icon: AppIcons.calendarCheck,
           tint: palette.accent,
         ),
-        JuniorNodeState.current => _NodeStyle(
-          fill: palette.surface,
-          border: palette.accent,
-          glyph: null,
-        ),
-        JuniorNodeState.open || JuniorNodeState.locked => _NodeStyle(
+        // The lesson to continue with, outside a live check-in and without
+        // confirmed attendance (Issue #443): it cannot be opened, so it is
+        // drawn as LOCKED — the padlock — not the empty active frame.
+        JuniorNodeState.current ||
+        JuniorNodeState.open ||
+        JuniorNodeState.locked => _NodeStyle(
           fill: palette.juniorMutedFill,
           border: palette.outline,
           glyph: 'node_lock',

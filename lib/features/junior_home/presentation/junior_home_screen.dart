@@ -209,6 +209,11 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
         builder: (_) => CourseModuleListScreen(
           courseSlug: slug,
           repository: widget.courseLearningRepository,
+          // Junior's attendance gate (Issue #443): the continue lesson opens
+          // there only once its attendance is confirmed.
+          juniorAttendanceGate: true,
+          continueAttendanceConfirmed:
+              _controller.map?.continueAttendanceConfirmed ?? false,
         ),
       ),
     );
@@ -227,7 +232,10 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
       lessonId: node.id,
       locked: node.locked,
       completed: node.state == JuniorNodeState.completed,
-      resumeLessonId: _controller.map?.continueLessonId,
+      // The continue lesson opens only once attended (Issue #443) — never as
+      // the resume lesson.
+      resumeLessonId: null,
+      attended: node.state == JuniorNodeState.attendanceCompleted,
       repository: widget.courseLearningRepository,
     );
     if (opened && mounted) await _controller.load(fresh: true);

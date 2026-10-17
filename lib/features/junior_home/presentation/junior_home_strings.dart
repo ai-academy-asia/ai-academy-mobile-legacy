@@ -90,7 +90,6 @@ abstract final class JuniorHomeStrings {
 
   static const String nodeCompleted = 'completed';
   static const String nodeAttended = 'attendance recorded';
-  static const String nodeCurrent = 'current lesson';
   static const String nodeOpen = 'not yet available';
   static const String nodeLocked = 'locked';
 
@@ -106,7 +105,8 @@ abstract final class JuniorHomeStrings {
       '${_lesson(number, title)}, ${switch (state) {
         JuniorNodeState.completed => nodeCompleted,
         JuniorNodeState.attendanceCompleted => nodeAttended,
-        JuniorNodeState.current => nodeCurrent,
+        // Locked until attendance is confirmed (Issue #443).
+        JuniorNodeState.current => nodeLocked,
         JuniorNodeState.open => nodeOpen,
         JuniorNodeState.locked => nodeLocked,
       }}';

@@ -181,11 +181,13 @@ void main() {
       routeRender(tester),
       paintsColours([palette.accent, palette.accent, palette.surface]),
     );
+    // The completed lesson opens; the locked one and the continue lesson,
+    // not attended (Issue #443), do not.
     expect(
       tester
           .widgetList<JuniorMapNodeTile>(find.byType(JuniorMapNodeTile))
           .map((t) => t.onTap != null),
-      [true, false, true],
+      [true, false, false],
     );
   });
 
@@ -221,9 +223,9 @@ void main() {
       return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    // The tick now marks only the completed node; the continue lesson is
-    // the empty active frame (it drew the same tick before the fix) …
-    expect(glyph(0), isNull);
+    // The tick now marks only the completed node; the continue lesson, its
+    // attendance not confirmed, is the padlock (Issue #443) …
+    expect(glyph(0), 'node_lock.png');
     expect(glyph(1), 'node_check.png');
     // … as only node 2 is completed: node 1 is the continue lesson.
     expect(tiles[0].node.state, current);
@@ -268,7 +270,8 @@ void main() {
       ))
         t.onTap != null,
     ];
-    expect(taps, [true, true, true, false, true, false]);
+    // The continue lesson (third) waits for attendance (Issue #443).
+    expect(taps, [true, true, false, false, true, false]);
   });
 
   group('scenery never colours the route', () {

@@ -191,8 +191,9 @@ void main() {
         'whether it opens', () async {
       final map = await load();
 
-      // ✓ completed (opens) · ◉ the continue lesson (opens) · 🔒 not yet
-      // its turn (does not open). No lesson is server-locked here.
+      // ✓ completed (opens) · ◉ the continue lesson (opens only once its
+      // attendance is confirmed — not here, Issue #443) · 🔒 not yet its turn
+      // (does not open). No lesson is server-locked here.
       expect(
         [
           for (final n in map.nodes)
@@ -210,7 +211,6 @@ void main() {
       expect(
         map.nodes.where((n) => n.opens).map((n) => n.id),
         [
-          continueLessonId,
           for (final (n, l) in lessonsInOrder.indexed)
             if (completedAt(n)) l.$3,
         ]..sort(),
@@ -293,9 +293,9 @@ void main() {
       return (images.single.image as AssetImage).assetName.split('/').last;
     }
 
-    testWidgets('every node: a tick, the empty active frame, or a padlock; '
-        'and a tap opens exactly the completed lessons and the '
-        'one to continue with', (tester) async {
+    testWidgets('every node: a tick or a padlock; and a tap opens exactly '
+        'the completed lessons — the one to continue with waits for its '
+        'attendance (Issue #443)', (tester) async {
       final learning = await pumpHome(tester);
 
       expect(
@@ -308,11 +308,10 @@ void main() {
       final opened = <int>[];
       for (final (n, l) in lessonsInOrder.indexed) {
         final id = l.$3;
-        // A tick only on completed lessons; the continue lesson's frame
-        // carries no glyph; every other lesson the padlock.
-        final expectedGlyph = id == continueLessonId
-            ? null
-            : completedAt(n)
+        // A tick only on completed lessons; every other lesson — the
+        // continue lesson, its attendance not confirmed, included — the
+        // padlock.
+        final expectedGlyph = completedAt(n)
             ? 'node_check.png'
             : 'node_lock.png';
         expect(glyphOf(tester, id), expectedGlyph, reason: 'lesson $id');
@@ -334,8 +333,9 @@ void main() {
 
       expect(opened, [
         for (final (n, l) in lessonsInOrder.indexed)
-          if (l.$3 == continueLessonId || completedAt(n)) l.$3,
+          if (completedAt(n)) l.$3,
       ]);
+      expect(opened, isNot(contains(continueLessonId)));
       expect(learning.exerciseCalls, opened);
     });
 
@@ -350,18 +350,22 @@ void main() {
       ];
       final before = states();
 
-      for (final id in [continueLessonId, 4102, 4106]) {
+      for (final id in [4102, 4106]) {
         await tester.tap(tile(id));
         await tester.pumpAndSettle();
         expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
         await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
         await tester.pumpAndSettle();
       }
+      // The continue lesson, not attended here, stays shut (Issue #443).
+      await tester.tap(tile(continueLessonId));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
 
       // `POST /me/lessons/{id}/complete` was never asked for; only the
       // lessons' content was read.
       expect(learning.completeCalls, isEmpty);
-      expect(learning.exerciseCalls, [continueLessonId, 4102, 4106]);
+      expect(learning.exerciseCalls, [4102, 4106]);
       expect(states(), before);
       expect(
         find.descendant(
@@ -422,7 +426,8 @@ void main() {
     ]);
     expect(map.nodes.map((n) => n.opens), [
       true,
-      true,
+      // The continue lesson: not until attendance is confirmed (#443).
+      false,
       false,
       false,
       true,

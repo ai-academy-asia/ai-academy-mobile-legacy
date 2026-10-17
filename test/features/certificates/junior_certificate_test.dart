@@ -122,6 +122,10 @@ void main() {
       find.byType(CourseModuleListScreen),
     );
     expect(screen.courseSlug, 'test-junior-course-2');
+    // Junior's attendance gate, with attendance unknown from here: the
+    // continue lesson stays shut (Issue #443).
+    expect(screen.juniorAttendanceGate, isTrue);
+    expect(screen.continueAttendanceConfirmed, isFalse);
     expect(learning.calls, ['test-junior-course-2']);
 
     Navigator.of(tester.element(find.byType(CourseModuleListScreen))).pop();

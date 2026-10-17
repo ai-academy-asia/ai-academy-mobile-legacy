@@ -203,9 +203,9 @@ void main() {
         ],
       };
 
-      test('states and taps: done and the continue lesson open; a lesson '
-          'whose date has come but whose turn has not waits; server-locked '
-          'ones never open', () {
+      test('states and taps: done opens; the continue lesson waits for its '
+          'attendance (Issue #443); a lesson whose date has come but whose '
+          'turn has not waits; server-locked ones never open', () {
         final map = mapFrom(path, lessons: lessons);
 
         expect(map.nodes.map((n) => n.state), [
@@ -224,11 +224,54 @@ void main() {
         ]);
         expect(map.nodes.map((n) => n.opens), [
           true,
+          false,
+          false,
+          false,
+          false,
+        ]);
+        expect(map.continueAttendanceConfirmed, isFalse);
+      });
+
+      test('confirmed attendance (present or late) opens the continue lesson, '
+          'and only it; unconfirmed or unknown opens nothing new '
+          '(Issue #443)', () {
+        final attended = mapFrom(
+          path,
+          lessons: lessons,
+          attendanceConfirmed: true,
+        );
+        expect(attended.nodes.map((n) => n.state), [
+          JuniorNodeState.completed,
+          JuniorNodeState.attendanceCompleted,
+          JuniorNodeState.open,
+          JuniorNodeState.locked,
+          JuniorNodeState.locked,
+        ]);
+        expect(attended.nodes.map((n) => n.opens), [
+          true,
           true,
           false,
           false,
           false,
         ]);
+        // What Junior Course Detail's attendance gate is given.
+        expect(attended.continueAttendanceConfirmed, isTrue);
+
+        for (final confirmed in [false, null]) {
+          final map = mapFrom(
+            path,
+            lessons: lessons,
+            attendanceConfirmed: confirmed,
+          );
+          expect(map.nodes.map((n) => n.opens), [
+            true,
+            false,
+            false,
+            false,
+            false,
+          ], reason: '$confirmed');
+          expect(map.continueAttendanceConfirmed, isFalse);
+        }
       });
 
       test('the continue lesson is picked out — the one unfinished lesson '
@@ -827,11 +870,13 @@ JuniorLearningMap mapFrom(
   Map<int, List<Lesson>> lessons = const {},
   NextLesson? nextLesson,
   bool? attendanceRecorded,
+  bool? attendanceConfirmed,
 }) => juniorMapFrom(
   path,
   lessons: lessons,
   nextLesson: nextLesson,
   attendanceRecorded: attendanceRecorded,
+  attendanceConfirmed: attendanceConfirmed,
   completedByNote: {
     for (final module in path.modules)
       for (final lesson in lessons[module.id] ?? const <Lesson>[])

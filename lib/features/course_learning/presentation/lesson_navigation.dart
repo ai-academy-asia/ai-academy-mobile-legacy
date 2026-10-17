@@ -22,7 +22,10 @@ import 'course_exercise_detail_screen.dart';
 /// ever reaches it.
 ///
 /// [reached] is the server's own progress on the lesson (Issue #439); see
-/// `lessonOpens`. Only Course Detail passes it.
+/// `lessonOpens`. Only Course Detail passes it. [attended] — the student's
+/// attendance at the lesson's class is confirmed (`present` or `late`) — is
+/// what opens Junior's continue lesson (Issue #443); only Junior Home passes
+/// it.
 ///
 /// Completes once the lesson screen is closed, so a caller can refresh what
 /// may have changed there; true when a lesson was opened.
@@ -34,12 +37,14 @@ Future<bool> openLesson(
   required int? resumeLessonId,
   CourseLearningRepository? repository,
   bool reached = false,
+  bool attended = false,
 }) async {
   if (!lessonOpens(
     locked: locked,
     completed: completed,
     isResume: lessonId == resumeLessonId,
     reached: reached,
+    attended: attended,
   )) {
     return false;
   }

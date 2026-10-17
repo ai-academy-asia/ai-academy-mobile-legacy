@@ -49,7 +49,14 @@ class CertificateScreen extends StatefulWidget {
     this.repository,
     this.courseLearning,
     this.openUrl,
+    this.juniorAttendanceGate = false,
   });
+
+  /// Set when a Junior student opened this (Issue #443): "Continue learning"
+  /// opens Course Detail with Junior's attendance gate. This screen does not
+  /// read attendance, so the continue lesson stays shut from here — unknown
+  /// never opens it. False for Adult, unchanged.
+  final bool juniorAttendanceGate;
 
   /// The cards. Defaults to the real composition over the API. Injected in
   /// tests.
@@ -70,11 +77,13 @@ class CertificateScreen extends StatefulWidget {
     BuildContext context, {
     CertificateListRepository? repository,
     CourseLearningRepository? courseLearning,
+    bool juniorAttendanceGate = false,
   }) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => CertificateScreen(
         repository: repository,
         courseLearning: courseLearning,
+        juniorAttendanceGate: juniorAttendanceGate,
       ),
     ),
   );
@@ -119,6 +128,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
       builder: (_) => CourseModuleListScreen(
         courseSlug: courseSlug,
         repository: _courseLearning,
+        juniorAttendanceGate: widget.juniorAttendanceGate,
       ),
     ),
   );

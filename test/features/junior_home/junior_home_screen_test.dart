@@ -113,8 +113,9 @@ void main() {
       await pumpScreen(tester);
 
       expect(find.bySemanticsLabel('Lesson 1, completed'), findsOneWidget);
-      // With no lesson under way the check-in node is simply its lesson.
-      expect(find.bySemanticsLabel('Lesson 3, current lesson'), findsOneWidget);
+      // With no lesson under way and attendance not confirmed, the continue
+      // lesson is locked (Issue #443).
+      expect(find.bySemanticsLabel('Lesson 3, locked'), findsOneWidget);
       expect(
         find.bySemanticsLabel('Lesson 12, locked', skipOffstage: false),
         findsOneWidget,
