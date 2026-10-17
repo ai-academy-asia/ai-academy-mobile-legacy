@@ -286,12 +286,13 @@ class JuniorLearningMap {
   /// (Issue #202).
   final NextLesson? nextLesson;
 
-  /// Whether today's class session already has an attendance record —
-  /// `GET /me/attendance`'s `sessions[].status` for [nextLesson]'s date,
-  /// which the backend leaves null until a record exists (Issue #410).
-  /// Null when it is not known — not read (no [nextLesson]) or not
-  /// readable: check-in then stays closed rather than risk offering one
-  /// already recorded; the next reload asks again.
+  /// Whether the student's attendance at [nextLesson]'s class is already
+  /// confirmed — that day's session is `present` or `late` (Issues #410,
+  /// #443). Any other status keeps check-in offered: the backend reports
+  /// today's session `absent` from midnight until a record exists, and a
+  /// check-in over an existing record returns it untouched. Null when it is
+  /// not known — not read (no [nextLesson]) or not readable: check-in then
+  /// stays closed; the next reload asks again.
   final bool? attendanceRecorded;
 
   /// Every lesson completed, by the server's own `completed` flags — the

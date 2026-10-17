@@ -212,6 +212,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
           // Junior's attendance gate (Issue #443): the continue lesson opens
           // there only once its attendance is confirmed.
           juniorAttendanceGate: true,
+          // The map's own answer — no second attendance read.
           continueAttendanceConfirmed:
               _controller.map?.continueAttendanceConfirmed ?? false,
         ),

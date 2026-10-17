@@ -11,6 +11,7 @@ import '../../home/data/enrolled_home_dashboard_repository.dart';
 import '../../home/domain/home_dashboard.dart';
 import '../../home/domain/home_dashboard_repository.dart';
 import '../../home/domain/home_failure.dart';
+import '../../attendance/domain/continue_attendance.dart';
 import '../domain/junior_home_repository.dart';
 import '../domain/junior_learning_map.dart';
 import 'junior_home_content.dart';
@@ -50,13 +51,18 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
     HomeDashboardRepository? dashboardRepository,
     CourseLearningRepository? courseLearningRepository,
     AttendanceRepository? attendanceRepository,
+    DateTime Function()? clock,
   }) : _dashboard = dashboardRepository ?? EnrolledHomeDashboardRepository(),
        _learning = courseLearningRepository ?? HttpCourseLearningRepository(),
-       _attendance = attendanceRepository ?? HttpAttendanceRepository();
+       _attendance = attendanceRepository ?? HttpAttendanceRepository(),
+       _clock = clock ?? DateTime.now;
 
   final HomeDashboardRepository _dashboard;
   final CourseLearningRepository _learning;
   final AttendanceRepository _attendance;
+
+  /// The time attendance is judged at (Issue #443). Injected in tests.
+  final DateTime Function() _clock;
 
   @override
   Future<JuniorLearningMap?> getLearningMap() async {
@@ -77,12 +83,12 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       );
     }
 
-    // Attendance only matters for a next lesson's check-in; read it — when
-    // there is one — alongside the path and lessons rather than after them.
-    // It never throws (see [_attendanceOrNull]).
-    final attendance = nextLesson == null
-        ? Future<CourseAttendance?>.value()
-        : _attendanceOrNull(slug);
+    // Attendance: the check-in's, and what confirms the lesson to continue
+    // with (Issue #443) — read even with no next lesson, so a course whose
+    // last class has passed still counts its attendance. Alongside the path
+    // and lessons rather than after them; it never throws (see
+    // [_attendanceOrNull]).
+    final attendance = _attendanceOrNull(slug);
     final path = await _learning.getCourseLearning(slug);
     // Every module's lessons (Issue #410), all at once: the lesson path is
     // one node per lesson. The same `GET /me/modules/{id}/lessons` the
@@ -107,7 +113,10 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       completedByNote: completedByNote,
       nextLesson: nextLesson,
       attendanceRecorded: attendanceRecordedOn(await attendance, nextLesson),
-      attendanceConfirmed: attendanceConfirmedOn(await attendance, nextLesson),
+      attendanceConfirmed: continueAttendanceConfirmedBy(
+        await attendance,
+        now: _clock(),
+      ),
     );
   }
 
@@ -123,27 +132,18 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
   }
 }
 
-/// Whether [nextLesson]'s day already has an attendance record (Issue
-/// #410): its session's `status` is non-null — the backend leaves it null
-/// until a record exists (`present`, `late`, `excused`, or the teacher's
-/// `absent`). False when the day has no session listed; null when there is
-/// no lesson to ask about or [attendance] could not be read.
+/// Whether the student's attendance at [nextLesson]'s class is already
+/// confirmed — that day's session counts as attended, `present` or `late`
+/// ([AttendanceSession.countsAsAttended]) — which closes the check-in
+/// (Issues #410, #443). Any other status keeps it offered: the backend
+/// reports today's session `absent` from midnight until a record exists, so
+/// `absent` is not proof the student already checked in, and a check-in
+/// over an existing record (a teacher's `absent` or `excused`) is safe — it
+/// returns that record untouched (`check_in`: "a repeat scan returns the
+/// first record untouched"). False when the day has no session listed; null
+/// when there is no lesson to ask about or [attendance] could not be read —
+/// check-in then stays closed.
 bool? attendanceRecordedOn(
-  CourseAttendance? attendance,
-  NextLesson? nextLesson,
-) {
-  if (attendance == null || nextLesson == null) return null;
-  return _sessionOn(attendance, nextLesson)?.status != null;
-}
-
-/// Whether the student's attendance at [nextLesson]'s class was
-/// successfully registered (Issue #441): that day's session counts as
-/// attended — `present` or `late`, [AttendanceSession.countsAsAttended], the
-/// rule the attendance summary and the Junior calendar already use. False
-/// for `absent`, an `excused` or unrecorded session, or a day with none;
-/// null when there is no lesson to ask about or [attendance] could not be
-/// read.
-bool? attendanceConfirmedOn(
   CourseAttendance? attendance,
   NextLesson? nextLesson,
 ) {
@@ -192,12 +192,13 @@ CourseLearningFailureKind _kindFor(HomeFailureKind kind) => switch (kind) {
 /// module with none listed adds no node. A lesson is completed when its id
 /// is in [completedByNote] — it has a saved, non-empty note (Issue #415) —
 /// never by the server's own `completed` flag. [nextLesson] is the
-/// dashboard's, from the cohort's schedule, and [attendanceRecorded] today's
-/// record — what the check-in node reads (Issues #202, #410).
+/// dashboard's, from the cohort's schedule, and [attendanceRecorded] whether
+/// that class's attendance is already confirmed — what the check-in node
+/// reads (Issues #202, #410, #443).
 ///
-/// [attendanceConfirmed] — that record counts as attended
-/// ([attendanceConfirmedOn]) — gives the lesson to continue with, the lesson
-/// that check-in belongs to, ATTENDANCE_COMPLETED (Issue #441), by the same
+/// [attendanceConfirmed] — the most recent class counts as attended
+/// ([continueAttendanceConfirmedBy], Issue #443) — gives the lesson to
+/// continue with ATTENDANCE_COMPLETED (Issue #441), by the same
 /// [lessonPathStateFor] every lesson state comes from: attended, but not
 /// completed by the lesson list's own rule. No other lesson's attendance is
 /// known — the backend sends none per lesson (#414).

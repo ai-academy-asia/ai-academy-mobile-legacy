@@ -41,21 +41,34 @@ class CourseAttendance {
 
 /// One session from `GET /me/attendance` `sessions` — held, or still to come.
 ///
-/// Modelled: [date] and [status] — what the Junior calendar marks. The entry
-/// also carries `session_id`, `start_time`, `end_time` and `topic_id`
-/// (confirmed in the same response); nothing reads them yet, so they are not
-/// modelled, and a later change to them cannot fail this parse.
+/// Modelled: [date] and [status] — what the Junior calendar marks — and
+/// [startTime], which orders two sessions on one day (Issue #443). The entry
+/// also carries `session_id`, `end_time` and `topic_id` (confirmed in the
+/// same response); nothing reads them yet, so they are not modelled, and a
+/// later change to them cannot fail this parse.
 class AttendanceSession {
-  const AttendanceSession({required this.date, required this.status});
+  const AttendanceSession({
+    required this.date,
+    required this.status,
+    this.startTime,
+  });
 
   /// The session's calendar day, as a local date.
   final DateTime date;
 
-  /// The raw wire value. Seen: `"present"`, `"late"`, `"absent"`, and `null`
-  /// for a session not held yet (Issue #170). That is not enough to call the
-  /// set closed, so it stays a `String` — the same policy `Cohort.status`
-  /// follows.
+  /// The raw wire value. Seen: `"present"`, `"late"`, `"absent"`,
+  /// `"excused"`, and `null` for a session on a later day (Issue #170). The
+  /// backend reports **every session dated today or earlier that has no
+  /// record as `"absent"`** — today's included, from midnight, before the
+  /// class has even started (`app/services/attendance/student.py`); so
+  /// `absent` on today's session does not mean the student missed it yet.
+  /// That is not enough to call the set closed, so it stays a `String` — the
+  /// same policy `Cohort.status` follows.
   final String? status;
+
+  /// The session's `start_time`, `"HH:MM"` in Ulaanbaatar, as sent; null
+  /// when the response has none. Only ever compared as text.
+  final String? startTime;
 
   /// Whether the server counts this session as attended.
   ///

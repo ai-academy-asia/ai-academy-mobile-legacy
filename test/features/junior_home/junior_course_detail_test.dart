@@ -20,6 +20,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
+import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
+
+import '../attendance/fake_attendance_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import 'fake_junior_home_repository.dart';
 
@@ -688,7 +692,10 @@ void main() {
     /// note), 2 the continue lesson, 3 locked.
     Future<FakeCourseLearningRepository> pumpGated(
       WidgetTester tester, {
-      required bool confirmed,
+      required bool? confirmed,
+      bool gate = true,
+      FakeAttendanceRepository? attendance,
+      DateTime? now,
     }) async {
       final learning = course()
         ..lessons = const []
@@ -700,8 +707,10 @@ void main() {
           home: CourseModuleListScreen(
             courseSlug: slug,
             repository: learning,
-            juniorAttendanceGate: true,
+            juniorAttendanceGate: gate,
             continueAttendanceConfirmed: confirmed,
+            attendanceRepository: attendance ?? FakeAttendanceRepository(),
+            clock: () => now ?? DateTime(2026, 10, 6, 14),
           ),
         ),
       );
@@ -765,6 +774,101 @@ void main() {
       await tester.tap(find.text(CourseLearningStrings.continueLearning).first);
       await tester.pumpAndSettle();
       expect(learning.exerciseCalls, [2, 2]);
+    });
+
+    // --- No result from the opener: the Certificate route (#443) ---------
+
+    /// 6 Oct's class with [status]; judged at 14:00 that day, after it ended.
+    FakeAttendanceRepository attended(String? status) =>
+        FakeAttendanceRepository(
+          attendance: CourseAttendance(
+            attended: 0,
+            totalPast: 0,
+            percent: 0,
+            sessions: [
+              AttendanceSession(
+                date: DateTime(2026, 10, 6),
+                status: status,
+                startTime: '09:00',
+              ),
+            ],
+          ),
+        );
+
+    for (final status in ['present', 'late']) {
+      testWidgets('the Certificate route reads attendance itself — $status '
+          'opens the continue lesson', (tester) async {
+        final attendance = attended(status);
+        final learning = await pumpGated(
+          tester,
+          confirmed: null,
+          attendance: attendance,
+        );
+
+        // One read-only request for this course — never a check-in.
+        expect(attendance.calls, [slug]);
+        expect(attendance.checkInCalls, 0);
+        expect(card(tester, 'Nesting loops').available, isTrue);
+        await tester.ensureVisible(find.text('Nesting loops'));
+        await tester.tap(find.text('Nesting loops'));
+        await tester.pumpAndSettle();
+        expect(learning.exerciseCalls, [2]);
+      });
+    }
+
+    for (final status in ['absent', 'excused', null]) {
+      testWidgets('the Certificate route with the most recent class $status: '
+          'locked', (tester) async {
+        await pumpGated(tester, confirmed: null, attendance: attended(status));
+        expect(card(tester, 'Nesting loops').available, isFalse);
+      });
+    }
+
+    testWidgets('the Certificate route\'s lookup failing keeps the lesson '
+        'locked — and a reached lesson still opens', (tester) async {
+      final attendance = FakeAttendanceRepository(
+        failure: const AttendanceFailure(AttendanceFailureKind.network),
+      );
+      final learning = await pumpGated(
+        tester,
+        confirmed: null,
+        attendance: attendance,
+      );
+
+      expect(attendance.calls, [slug]);
+      expect(card(tester, 'Nesting loops').available, isFalse);
+      expect(card(tester, 'Nesting loops').current, isFalse);
+      await tester.ensureVisible(find.text('Introduction to loops'));
+      await tester.tap(find.text('Introduction to loops'));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, [1]);
+    });
+
+    testWidgets('a result from the opener is used as is — no second '
+        'attendance request', (tester) async {
+      for (final confirmed in [true, false]) {
+        final attendance = attended('present');
+        await pumpGated(tester, confirmed: confirmed, attendance: attendance);
+        expect(attendance.calls, isEmpty, reason: '$confirmed');
+      }
+    });
+
+    testWidgets('Adult (no gate) never makes the Junior attendance request, '
+        'and opens the continue lesson as before', (tester) async {
+      final attendance = attended('absent');
+      final learning = await pumpGated(
+        tester,
+        confirmed: null,
+        gate: false,
+        attendance: attendance,
+      );
+
+      expect(attendance.calls, isEmpty);
+      expect(card(tester, 'Nesting loops').current, isTrue);
+      await tester.ensureVisible(find.text('Nesting loops'));
+      await tester.tap(find.text('Nesting loops'));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, [2]);
     });
 
     testWidgets('a locked lesson stays shut either way', (tester) async {

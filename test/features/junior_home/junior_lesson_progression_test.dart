@@ -85,11 +85,6 @@ void main() {
       ..addAll({for (var i = 0; i < done; i++) 101 + i: sampleNote()});
   }
 
-  final lesson = NextLesson(
-    startsAt: DateTime(2026, 10, 6, 9),
-    endsAt: DateTime(2026, 10, 6, 11),
-  );
-
   /// The class day (6 Oct) recorded `present` — confirmed attendance, which
   /// is what opens the lesson to continue with on Junior (Issue #443).
   CourseAttendance presentOn6Oct() => CourseAttendance(
@@ -107,6 +102,9 @@ void main() {
     DateTime? now,
     CourseAttendance? attendance,
   }) async {
+    // One clock for the screen and the repository, and the next lesson
+    // production would derive from it (Issue #443).
+    final at = now ?? DateTime(2026, 10, 6, 12);
     useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
     useReducedMotion(tester);
     final learning = FakeCourseLearningRepository(exercise: sampleExercise());
@@ -120,10 +118,14 @@ void main() {
           repository: ApiJuniorHomeRepository(
             dashboardRepository: FakeHomeDashboardRepository(
               dashboard: HomeDashboard(
-                program: sampleProgram(courseSlug: slug, nextLesson: lesson),
+                program: sampleProgram(
+                  courseSlug: slug,
+                  nextLesson: realisticNextLesson(at),
+                ),
               ),
             ),
             courseLearningRepository: learning,
+            clock: () => at,
             attendanceRepository: FakeAttendanceRepository(
               attendance:
                   attendance ??
@@ -141,7 +143,7 @@ void main() {
             ),
           ),
           courseLearningRepository: learning,
-          clock: () => now ?? DateTime(2026, 10, 6, 12),
+          clock: () => at,
         ),
       ),
     );
@@ -373,3 +375,17 @@ void main() {
     expect(learning.exerciseCalls, [101]);
   });
 }
+
+/// The dashboard's next lesson as production derives it at [now]
+/// (`nextLessonFor`, Issue #443): the 6 Oct class (09:00–11:00) until it has
+/// ended, then the next one, 13 Oct.
+NextLesson realisticNextLesson(DateTime now) =>
+    now.isBefore(DateTime(2026, 10, 6, 11))
+    ? NextLesson(
+        startsAt: DateTime(2026, 10, 6, 9),
+        endsAt: DateTime(2026, 10, 6, 11),
+      )
+    : NextLesson(
+        startsAt: DateTime(2026, 10, 13, 9),
+        endsAt: DateTime(2026, 10, 13, 11),
+      );

@@ -37,7 +37,9 @@ void main() {
     CourseLearningFailure? learningFailure,
     FakeCourseLearningRepository? learning,
     FakeAttendanceRepository? attendance,
+    DateTime Function()? clock,
   }) => ApiJuniorHomeRepository(
+    clock: clock,
     dashboardRepository: FakeHomeDashboardRepository(
       dashboard: dashboard ?? HomeDashboard(program: sampleProgram()),
       failure: dashboardFailure,
@@ -753,21 +755,25 @@ void main() {
           ],
         );
 
-    test(
-      'the day\'s session with a record is recorded, whatever the record',
-      () {
-        for (final status in ['present', 'late', 'excused', 'absent']) {
-          expect(
-            attendanceRecordedOn(
-              attendance([(DateTime(2026, 10, 6), status)]),
-              lesson,
-            ),
-            isTrue,
-            reason: status,
-          );
-        }
-      },
-    );
+    test('only attended closes check-in: present and late do; absent — '
+        'today\'s default before any record — and excused keep it offered '
+        '(Issue #443)', () {
+      for (final (status, closes) in [
+        ('present', true),
+        ('late', true),
+        ('absent', false),
+        ('excused', false),
+      ]) {
+        expect(
+          attendanceRecordedOn(
+            attendance([(DateTime(2026, 10, 6), status)]),
+            lesson,
+          ),
+          closes,
+          reason: status,
+        );
+      }
+    });
 
     test('no record yet — or no session that day — is not recorded', () {
       expect(
@@ -836,15 +842,39 @@ void main() {
       expect(map.checkInOpenAt(DateTime(2026, 10, 6, 10)), isFalse);
     });
 
-    test('no next lesson: attendance is not read at all', () async {
-      final attendanceRepository = FakeAttendanceRepository();
+    test('no next lesson — the course\'s last class has passed: attendance '
+        'is still read, and that last class, attended, opens the lesson to '
+        'continue with; check-in stays closed (Issue #443)', () async {
+      final attendanceRepository = FakeAttendanceRepository(
+        attendance: attendance([
+          (DateTime(2026, 9, 29), 'present'),
+          (DateTime(2026, 10, 6), 'late'),
+        ]),
+      );
       final map = await repositoryFor(
-        dashboard: HomeDashboard(program: sampleProgram()),
+        dashboard: HomeDashboard(
+          program: sampleProgram(courseSlug: 'junior-ai'),
+        ),
+        learning: FakeCourseLearningRepository(
+          path: samplePath(
+            continueModuleId: 1,
+            continueLessonId: 5,
+            modules: [sampleModule(id: 1, order: 1)],
+          ),
+          lessonsByModule: {
+            1: [sampleLesson(id: 5, moduleId: 1, order: 1)],
+          },
+        ),
         attendance: attendanceRepository,
+        // Weeks after the last class (UTC 04:00 = 12:00 in Ulaanbaatar).
+        clock: () => DateTime.utc(2026, 11, 2, 4),
       ).getLearningMap();
 
-      expect(attendanceRepository.calls, isEmpty);
+      expect(attendanceRepository.calls, ['junior-ai']);
       expect(map?.attendanceRecorded, isNull);
+      expect(map!.nodes.single.state, JuniorNodeState.attendanceCompleted);
+      expect(map.nodes.single.opens, isTrue);
+      expect(map.continueAttendanceConfirmed, isTrue);
     });
   });
 

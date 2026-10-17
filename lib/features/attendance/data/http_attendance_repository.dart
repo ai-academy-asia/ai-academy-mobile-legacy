@@ -309,9 +309,11 @@ List<AttendanceSession> _sessions(Object? value) {
       if (entry is Map<String, dynamic>)
         AttendanceSession(
           date: _requireDate(entry, 'date'),
-          // Null for a session not held yet (Issue #170); any other
+          // Null for a session on a later day (Issue #170); any other
           // non-string is still a malformed response.
           status: _optionalString(entry, 'status'),
+          // Orders two sessions on one day (Issue #443).
+          startTime: _optionalString(entry, 'start_time'),
         )
       else
         throw AttendanceFailure(
