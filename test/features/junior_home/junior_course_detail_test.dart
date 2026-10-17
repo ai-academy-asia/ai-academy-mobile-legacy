@@ -20,6 +20,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
+import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
+
+import '../attendance/fake_attendance_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
 import 'fake_junior_home_repository.dart';
 
@@ -145,15 +149,20 @@ void main() {
   }
 
   group('the Junior Home entry point', () {
-    for (final (id, label) in [
-      (201, 'completed'),
-      (202, 'completed'),
-      (203, 'open'),
+    for (final (id, label, states) in [
+      (201, 'completed', const <int, JuniorNodeState>{}),
+      (202, 'completed', const <int, JuniorNodeState>{}),
+      // The continue lesson opens once attended (Issue #443).
+      (203, 'attended', {203: JuniorNodeState.attendanceCompleted}),
     ]) {
       testWidgets('$label lesson $id opens that lesson itself — no module '
           'screen between (Issue #410)', (tester) async {
         final learning = course();
-        await pumpHome(tester, learning: learning);
+        await pumpHome(
+          tester,
+          learning: learning,
+          learningMap: map(states: states),
+        );
 
         await tapTile(tester, id);
 
@@ -186,11 +195,15 @@ void main() {
 
     testWidgets('back from a lesson reloads the map, so a lesson finished '
         'there shows as completed', (tester) async {
-      final home = FakeJuniorHomeRepository(map: map());
+      // Attended, so the continue lesson opens (Issue #443).
+      final home = FakeJuniorHomeRepository(
+        map: map(states: {203: JuniorNodeState.attendanceCompleted}),
+      );
       await pumpHome(tester, learning: course(), home: home);
       expect(home.calls, 1);
 
       await tapTile(tester, 203);
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
       home.map = map(states: {203: JuniorNodeState.completed});
       await back(tester);
 
@@ -247,17 +260,27 @@ void main() {
       expect(learning.exerciseCalls, isEmpty);
     });
 
-    testWidgets('outside a lesson the check-in node is just its lesson', (
-      tester,
-    ) async {
+    testWidgets('outside a live check-in, the continue lesson without '
+        'confirmed attendance is locked: the padlock, no scanner, no lesson '
+        '(Issue #443)', (tester) async {
       final learning = course();
       await pumpHome(tester, learning: learning);
 
-      expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isFalse);
+      final node = tester.widget<JuniorMapNodeTile>(tile(203));
+      expect(node.checkIn, isFalse);
+      expect(node.onTap, isNull);
+      final padlock = tester.widget<Image>(
+        find.descendant(of: tile(203), matching: find.byType(Image)),
+      );
+      expect(
+        (padlock.image as AssetImage).assetName,
+        endsWith('node_lock.png'),
+      );
       await tapTile(tester, 203);
 
       expect(find.byType(AttendanceScannerScreen), findsNothing);
-      expect(learning.exerciseCalls, [203]);
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
     });
 
     testWidgets('with check-in open, the node opens the scanner, not the '
@@ -272,13 +295,17 @@ void main() {
       expect(learning.exerciseCalls, isEmpty);
     });
 
-    testWidgets('with attendance already recorded, the node is no longer '
-        'check-in: it opens its lesson', (tester) async {
+    testWidgets('with attendance confirmed (present or late), the node is no '
+        'longer check-in: it opens its lesson', (tester) async {
       final learning = course();
       await pumpHome(
         tester,
         learning: learning,
-        learningMap: map(live: true, attendanceRecorded: true),
+        learningMap: map(
+          live: true,
+          attendanceRecorded: true,
+          states: {203: JuniorNodeState.attendanceCompleted},
+        ),
       );
 
       expect(tester.widget<JuniorMapNodeTile>(tile(203)).checkIn, isFalse);
@@ -286,6 +313,25 @@ void main() {
 
       expect(find.byType(AttendanceScannerScreen), findsNothing);
       expect(learning.exerciseCalls, [203]);
+    });
+
+    testWidgets('a record that is not attendance (absent, excused) closes '
+        'check-in but opens nothing (Issue #443)', (tester) async {
+      final learning = course();
+      await pumpHome(
+        tester,
+        learning: learning,
+        // Recorded, but the map has no confirmed attendance: still current.
+        learningMap: map(live: true, attendanceRecorded: true),
+      );
+
+      final node = tester.widget<JuniorMapNodeTile>(tile(203));
+      expect(node.checkIn, isFalse);
+      expect(node.onTap, isNull);
+      await tapTile(tester, 203);
+
+      expect(find.byType(AttendanceScannerScreen), findsNothing);
+      expect(learning.exerciseCalls, isEmpty);
     });
 
     testWidgets('back from the scanner reloads the map, so a recorded '
@@ -298,7 +344,12 @@ void main() {
 
       await tapTile(tester, 203);
       expect(find.byType(AttendanceScannerScreen), findsOneWidget);
-      home.map = map(live: true, attendanceRecorded: true);
+      // The check-in went through: present, so attendance is confirmed.
+      home.map = map(
+        live: true,
+        attendanceRecorded: true,
+        states: {203: JuniorNodeState.attendanceCompleted},
+      );
       tester.state<NavigatorState>(find.byType(Navigator).first).pop();
       await tester.pumpAndSettle();
 
@@ -321,6 +372,9 @@ void main() {
         find.byType(CourseModuleListScreen),
       );
       expect(detail.courseSlug, slug);
+      // Junior's attendance gate, given the map's confirmation (#443).
+      expect(detail.juniorAttendanceGate, isTrue);
+      expect(detail.continueAttendanceConfirmed, isFalse);
       // The same `GET /me/courses/{slug}/learning` contract, then every
       // module's lessons for the course-wide lesson list (Issue #437).
       expect(learning.calls, [slug]);
@@ -330,6 +384,24 @@ void main() {
 
       await back(tester);
       expect(find.byType(JuniorLearningMapView), findsOneWidget);
+    });
+
+    testWidgets('with the continue lesson attended, the course card passes '
+        'that confirmation to Course Detail (Issue #443)', (tester) async {
+      await pumpHome(
+        tester,
+        learning: course(),
+        learningMap: map(states: {203: JuniorNodeState.attendanceCompleted}),
+      );
+
+      await tester.tap(find.byType(JuniorCourseProgressCard));
+      await tester.pumpAndSettle();
+
+      final detail = tester.widget<CourseModuleListScreen>(
+        find.byType(CourseModuleListScreen),
+      );
+      expect(detail.juniorAttendanceGate, isTrue);
+      expect(detail.continueAttendanceConfirmed, isTrue);
     });
 
     testWidgets('back from Course Detail reloads the map too — lessons can '
@@ -388,7 +460,8 @@ void main() {
       await pumpHome(tester, learning: course());
 
       expect(tester.getSemantics(tile(201)).flagsCollection.isButton, isTrue);
-      expect(tester.getSemantics(tile(203)).flagsCollection.isButton, isTrue);
+      // The continue lesson, not attended yet: locked (Issue #443).
+      expect(tester.getSemantics(tile(203)).flagsCollection.isButton, isFalse);
       expect(tester.getSemantics(tile(204)).flagsCollection.isButton, isFalse);
     });
   });
@@ -611,6 +684,198 @@ void main() {
       expect(exercise.lessonId, 2);
       expectTabOrder(tester);
       expect(find.byType(NoteTab), findsOneWidget);
+    });
+  });
+
+  group('Junior Course Detail — the attendance gate (Issue #443)', () {
+    /// Module 2's lessons only: 1 reached (the server's own progress, no
+    /// note), 2 the continue lesson, 3 locked.
+    Future<FakeCourseLearningRepository> pumpGated(
+      WidgetTester tester, {
+      required bool? confirmed,
+      bool gate = true,
+      FakeAttendanceRepository? attendance,
+      DateTime? now,
+    }) async {
+      final learning = course()
+        ..lessons = const []
+        ..lessonsByModule = {2: sampleLessons()};
+      useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: CourseModuleListScreen(
+            courseSlug: slug,
+            repository: learning,
+            juniorAttendanceGate: gate,
+            continueAttendanceConfirmed: confirmed,
+            attendanceRepository: attendance ?? FakeAttendanceRepository(),
+            clock: () => now ?? DateTime(2026, 10, 6, 14),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return learning;
+    }
+
+    CourseLessonCard card(WidgetTester tester, String title) => tester
+        .widget<CourseLessonCard>(find.widgetWithText(CourseLessonCard, title));
+
+    testWidgets('attendance not confirmed: "Continue learning" is inert and '
+        'the continue lesson\'s card is unavailable and not highlighted; a '
+        'reached lesson still opens', (tester) async {
+      final learning = await pumpGated(tester, confirmed: false);
+
+      final continueCard = card(tester, 'Nesting loops');
+      expect(continueCard.current, isFalse);
+      expect(continueCard.available, isFalse);
+      expect(continueCard.onTap, isNull);
+      expect(find.text(CourseLearningStrings.continueHere), findsNothing);
+
+      for (final button
+          in find
+              .text(CourseLearningStrings.continueLearning)
+              .evaluate()
+              .toList()) {
+        await tester.ensureVisible(find.byWidget(button.widget));
+        await tester.tap(find.byWidget(button.widget), warnIfMissed: false);
+        await tester.pumpAndSettle();
+      }
+      expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+
+      // Reached by the server's progress, attendance unknown: still opens.
+      expect(card(tester, 'Introduction to loops').available, isTrue);
+      await tester.ensureVisible(find.text('Introduction to loops'));
+      await tester.tap(find.text('Introduction to loops'));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, [1]);
+    });
+
+    testWidgets('attendance confirmed: the continue lesson is highlighted and '
+        'opens, from its card and from "Continue learning"', (tester) async {
+      final learning = await pumpGated(tester, confirmed: true);
+
+      final continueCard = card(tester, 'Nesting loops');
+      expect(continueCard.current, isTrue);
+      expect(continueCard.available, isTrue);
+
+      await tester.ensureVisible(find.text('Nesting loops'));
+      await tester.tap(find.text('Nesting loops'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
+      Navigator.of(
+        tester.element(find.byType(CourseExerciseDetailScreen)),
+      ).pop();
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.text(CourseLearningStrings.continueLearning).first,
+      );
+      await tester.tap(find.text(CourseLearningStrings.continueLearning).first);
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, [2, 2]);
+    });
+
+    // --- No result from the opener: the Certificate route (#443) ---------
+
+    /// 6 Oct's class with [status]; judged at 14:00 that day, after it ended.
+    FakeAttendanceRepository attended(String? status) =>
+        FakeAttendanceRepository(
+          attendance: CourseAttendance(
+            attended: 0,
+            totalPast: 0,
+            percent: 0,
+            sessions: [
+              AttendanceSession(
+                date: DateTime(2026, 10, 6),
+                status: status,
+                startTime: '09:00',
+              ),
+            ],
+          ),
+        );
+
+    for (final status in ['present', 'late']) {
+      testWidgets('the Certificate route reads attendance itself — $status '
+          'opens the continue lesson', (tester) async {
+        final attendance = attended(status);
+        final learning = await pumpGated(
+          tester,
+          confirmed: null,
+          attendance: attendance,
+        );
+
+        // One read-only request for this course — never a check-in.
+        expect(attendance.calls, [slug]);
+        expect(attendance.checkInCalls, 0);
+        expect(card(tester, 'Nesting loops').available, isTrue);
+        await tester.ensureVisible(find.text('Nesting loops'));
+        await tester.tap(find.text('Nesting loops'));
+        await tester.pumpAndSettle();
+        expect(learning.exerciseCalls, [2]);
+      });
+    }
+
+    for (final status in ['absent', 'excused', null]) {
+      testWidgets('the Certificate route with the most recent class $status: '
+          'locked', (tester) async {
+        await pumpGated(tester, confirmed: null, attendance: attended(status));
+        expect(card(tester, 'Nesting loops').available, isFalse);
+      });
+    }
+
+    testWidgets('the Certificate route\'s lookup failing keeps the lesson '
+        'locked — and a reached lesson still opens', (tester) async {
+      final attendance = FakeAttendanceRepository(
+        failure: const AttendanceFailure(AttendanceFailureKind.network),
+      );
+      final learning = await pumpGated(
+        tester,
+        confirmed: null,
+        attendance: attendance,
+      );
+
+      expect(attendance.calls, [slug]);
+      expect(card(tester, 'Nesting loops').available, isFalse);
+      expect(card(tester, 'Nesting loops').current, isFalse);
+      await tester.ensureVisible(find.text('Introduction to loops'));
+      await tester.tap(find.text('Introduction to loops'));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, [1]);
+    });
+
+    testWidgets('a result from the opener is used as is — no second '
+        'attendance request', (tester) async {
+      for (final confirmed in [true, false]) {
+        final attendance = attended('present');
+        await pumpGated(tester, confirmed: confirmed, attendance: attendance);
+        expect(attendance.calls, isEmpty, reason: '$confirmed');
+      }
+    });
+
+    testWidgets('Adult (no gate) never makes the Junior attendance request, '
+        'and opens the continue lesson as before', (tester) async {
+      final attendance = attended('absent');
+      final learning = await pumpGated(
+        tester,
+        confirmed: null,
+        gate: false,
+        attendance: attendance,
+      );
+
+      expect(attendance.calls, isEmpty);
+      expect(card(tester, 'Nesting loops').current, isTrue);
+      await tester.ensureVisible(find.text('Nesting loops'));
+      await tester.tap(find.text('Nesting loops'));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, [2]);
+    });
+
+    testWidgets('a locked lesson stays shut either way', (tester) async {
+      for (final confirmed in [false, true]) {
+        await pumpGated(tester, confirmed: confirmed);
+        expect(card(tester, 'Practice: matrix traversal').onTap, isNull);
+      }
     });
   });
 

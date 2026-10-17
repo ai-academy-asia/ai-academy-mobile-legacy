@@ -85,9 +85,15 @@ void main() {
       ..addAll({for (var i = 0; i < done; i++) 101 + i: sampleNote()});
   }
 
-  final lesson = NextLesson(
-    startsAt: DateTime(2026, 10, 6, 9),
-    endsAt: DateTime(2026, 10, 6, 11),
+  /// The class day (6 Oct) recorded `present` — confirmed attendance, which
+  /// is what opens the lesson to continue with on Junior (Issue #443).
+  CourseAttendance presentOn6Oct() => CourseAttendance(
+    attended: 1,
+    totalPast: 1,
+    percent: 100,
+    sessions: [
+      AttendanceSession(date: DateTime(2026, 10, 6), status: 'present'),
+    ],
   );
 
   Future<FakeCourseLearningRepository> pumpHome(
@@ -96,6 +102,9 @@ void main() {
     DateTime? now,
     CourseAttendance? attendance,
   }) async {
+    // One clock for the screen and the repository, and the next lesson
+    // production would derive from it (Issue #443).
+    final at = now ?? DateTime(2026, 10, 6, 12);
     useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
     useReducedMotion(tester);
     final learning = FakeCourseLearningRepository(exercise: sampleExercise());
@@ -104,13 +113,19 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: JuniorHomeScreen(
+          // A fresh screen per pump, so a second pump loads its own data.
+          key: UniqueKey(),
           repository: ApiJuniorHomeRepository(
             dashboardRepository: FakeHomeDashboardRepository(
               dashboard: HomeDashboard(
-                program: sampleProgram(courseSlug: slug, nextLesson: lesson),
+                program: sampleProgram(
+                  courseSlug: slug,
+                  nextLesson: realisticNextLesson(at),
+                ),
               ),
             ),
             courseLearningRepository: learning,
+            clock: () => at,
             attendanceRepository: FakeAttendanceRepository(
               attendance:
                   attendance ??
@@ -128,7 +143,7 @@ void main() {
             ),
           ),
           courseLearningRepository: learning,
-          clock: () => now ?? DateTime(2026, 10, 6, 12),
+          clock: () => at,
         ),
       ),
     );
@@ -173,22 +188,24 @@ void main() {
     final learning = await pumpHome(tester);
     final palette = tester.element(tile(101)).palette;
 
-    // Drawn: 101 the lesson to continue with — the empty accent frame (a
-    // tick means completed); 102 a lesson whose class date has come but whose turn has not
-    // — the grey padlock, as it cannot be opened.
-    expect(glyphOf(tester, 101), isNull);
-    expect(edgeOf(tester, 101), palette.accent);
-    expect(glyphOf(tester, 102), 'node_lock');
-    expect(edgeOf(tester, 102), palette.outline);
-
-    // Tapped: the padlocked node does nothing, sends nothing …
-    expect(tester.widget<JuniorMapNodeTile>(tile(102)).onTap, isNull);
-    await tester.tap(tile(102));
-    await tester.pumpAndSettle();
+    // Drawn: 101 the lesson to continue with, its attendance not confirmed
+    // outside a live check-in — the grey padlock, as it cannot be opened yet
+    // (Issue #443), never the empty frame; 102 a lesson whose class date has
+    // come but whose turn has not — the grey padlock too.
+    for (final id in [101, 102]) {
+      expect(glyphOf(tester, id), 'node_lock');
+      expect(edgeOf(tester, id), palette.outline);
+      expect(tester.widget<JuniorMapNodeTile>(tile(id)).onTap, isNull);
+      await tester.tap(tile(id));
+      await tester.pumpAndSettle();
+    }
+    // Tapped: neither does anything, nor sends anything …
     expect(find.byType(CourseExerciseDetailScreen), findsNothing);
     expect(learning.exerciseCalls, isEmpty);
 
-    // … the blue-tick node opens its own lesson.
+    // … until attendance is confirmed: then the lesson opens.
+    final attended = await pumpHome(tester, attendance: presentOn6Oct());
+    expect(glyphOf(tester, 101), isNull); // the attendance glyph, a font icon
     await tester.tap(tile(101));
     await tester.pumpAndSettle();
     expect(
@@ -199,13 +216,12 @@ void main() {
           .lessonId,
       101,
     );
-    expect(learning.exerciseCalls, [101]);
+    expect(attended.exerciseCalls, [101]);
   });
 
-  testWidgets('every state, drawn and tapped: done opens, the lesson to '
-      'continue with opens; waiting, locked and done-but-locked do not', (
-    tester,
-  ) async {
+  testWidgets('every state, drawn and tapped: done opens; the lesson to '
+      'continue with waits for attendance (Issue #443); waiting, locked and '
+      'done-but-locked do not', (tester) async {
     // 101 done, 102 the continue lesson, 201–202 future, 301 done but its
     // class moved later.
     final learning = await pumpHome(tester, done: 1);
@@ -220,32 +236,28 @@ void main() {
       findsOneWidget,
     );
     expect(glyphOf(tester, 101), 'node_check');
-    expect(glyphOf(tester, 102), isNull);
+    expect(glyphOf(tester, 102), 'node_lock'); // not attended yet
     expect(glyphOf(tester, 201), 'node_lock');
     expect(glyphOf(tester, 301), 'node_lock'); // its note can't be read
 
-    for (final id in [201, 202, 301]) {
+    for (final id in [102, 201, 202, 301]) {
       expect(tester.widget<JuniorMapNodeTile>(tile(id)).onTap, isNull);
       await tester.tap(tile(id));
       await tester.pumpAndSettle();
     }
     expect(learning.exerciseCalls, isEmpty);
 
-    for (final id in [101, 102]) {
-      await tester.tap(tile(id));
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<CourseExerciseDetailScreen>(
-              find.byType(CourseExerciseDetailScreen),
-            )
-            .lessonId,
-        id,
-      );
-      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
-      await tester.pumpAndSettle();
-    }
-    expect(learning.exerciseCalls, [101, 102]);
+    await tester.tap(tile(101));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<CourseExerciseDetailScreen>(
+            find.byType(CourseExerciseDetailScreen),
+          )
+          .lessonId,
+      101,
+    );
+    expect(learning.exerciseCalls, [101]);
   });
 
   testWidgets('a lesson whose class date has not come cannot be opened — no '
@@ -278,15 +290,27 @@ void main() {
 
   testWidgets('completing a lesson and coming back reloads the server\'s '
       'answer: ticked, and the resume lesson moves on', (tester) async {
-    final learning = await pumpHome(tester);
+    // Attended, so the continue lesson opens (Issue #443).
+    final learning = await pumpHome(tester, attendance: presentOn6Oct());
+    expect(states(tester).first, JuniorNodeState.attendanceCompleted);
 
     await tester.tap(tile(101));
     await tester.pumpAndSettle();
+    expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
     serve(learning, done: 1);
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
-    expect(states(tester), [done, current, locked, locked, locked]);
+    // 101 ticked; the resume lesson is now 102. Attendance is known per
+    // class day, not per lesson (#414), so the same day's `present` is read
+    // as 102's too — the known limitation, unchanged here.
+    expect(states(tester), [
+      done,
+      JuniorNodeState.attendanceCompleted,
+      locked,
+      locked,
+      locked,
+    ]);
   });
 
   testWidgets('when the class date comes, the next load opens the module — '
@@ -294,14 +318,19 @@ void main() {
     final learning = await pumpHome(tester, done: 1);
     expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNull);
 
-    await tester.tap(tile(102));
+    // Into a done lesson and back: the reload.
+    await tester.tap(tile(101));
     await tester.pumpAndSettle();
     serve(learning, done: 2, future: false);
     await tester.tap(find.bySemanticsLabel(CourseLearningStrings.back));
     await tester.pumpAndSettle();
 
     expect(states(tester), [done, done, current, open, locked]);
-    expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNotNull);
+    expect(tester.widget<JuniorMapNodeTile>(tile(102)).onTap, isNotNull);
+    // 201 is now the lesson to continue with: its module opened, but it
+    // waits for confirmed attendance (Issue #443).
+    expect(tester.widget<JuniorMapNodeTile>(tile(201)).onTap, isNull);
+    expect(glyphOf(tester, 201), 'node_lock');
     expect(tester.widget<JuniorMapNodeTile>(tile(301)).onTap, isNull);
   });
 
@@ -346,3 +375,17 @@ void main() {
     expect(learning.exerciseCalls, [101]);
   });
 }
+
+/// The dashboard's next lesson as production derives it at [now]
+/// (`nextLessonFor`, Issue #443): the 6 Oct class (09:00–11:00) until it has
+/// ended, then the next one, 13 Oct.
+NextLesson realisticNextLesson(DateTime now) =>
+    now.isBefore(DateTime(2026, 10, 6, 11))
+    ? NextLesson(
+        startsAt: DateTime(2026, 10, 6, 9),
+        endsAt: DateTime(2026, 10, 6, 11),
+      )
+    : NextLesson(
+        startsAt: DateTime(2026, 10, 13, 9),
+        endsAt: DateTime(2026, 10, 13, 11),
+      );

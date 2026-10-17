@@ -16,8 +16,10 @@ import '../../home/domain/home_dashboard.dart';
 ///   attendance at its class, no note yet: the grey tick. Opens. Not derived
 ///   from data yet — the backend has no per-lesson attendance (#414).
 /// * [current] — the lesson to continue with: the server's
-///   `continue.lesson_id`, unlocked and not yet done. The one unfinished
-///   lesson that opens.
+///   `continue.lesson_id`, unlocked and not yet done. It opens only once its
+///   attendance is confirmed — then it is [attendanceCompleted] (Issue
+///   #443); while check-in is live a tap opens the scanner, and otherwise it
+///   is drawn with the padlock and does not open.
 /// * [open] — any other lesson the server leaves unlocked and not yet
 ///   done: its class date has come, but it waits its turn. Drawn with the
 ///   padlock, as it cannot be opened; read as "not yet available".
@@ -69,12 +71,16 @@ class JuniorMapNode {
   final bool locked;
 
   /// Whether this lesson opens on a tap — `lessonOpens`, the one rule every
-  /// screen asks: unlocked, and completed or the lesson to continue with
-  /// ([JuniorNodeState.current]).
+  /// screen asks: unlocked, and completed (a saved note) or attended
+  /// ([JuniorNodeState.attendanceCompleted]). **The lesson to continue with
+  /// ([JuniorNodeState.current]) does not open** until its attendance is
+  /// confirmed as `present` or `late` (Issue #443): while check-in is live a
+  /// tap opens the scanner (the map's own routing), and otherwise it is
+  /// drawn and treated as locked.
   bool get opens => lessonOpens(
     locked: locked,
     completed: state == JuniorNodeState.completed,
-    isResume: state == JuniorNodeState.current,
+    isResume: false,
     attended: state == JuniorNodeState.attendanceCompleted,
   );
 }
@@ -280,12 +286,13 @@ class JuniorLearningMap {
   /// (Issue #202).
   final NextLesson? nextLesson;
 
-  /// Whether today's class session already has an attendance record —
-  /// `GET /me/attendance`'s `sessions[].status` for [nextLesson]'s date,
-  /// which the backend leaves null until a record exists (Issue #410).
-  /// Null when it is not known — not read (no [nextLesson]) or not
-  /// readable: check-in then stays closed rather than risk offering one
-  /// already recorded; the next reload asks again.
+  /// Whether the student's attendance at [nextLesson]'s class is already
+  /// confirmed — that day's session is `present` or `late` (Issues #410,
+  /// #443). Any other status keeps check-in offered: the backend reports
+  /// today's session `absent` from midnight until a record exists, and a
+  /// check-in over an existing record returns it untouched. Null when it is
+  /// not known — not read (no [nextLesson]) or not readable: check-in then
+  /// stays closed; the next reload asks again.
   final bool? attendanceRecorded;
 
   /// Every lesson completed, by the server's own `completed` flags — the
@@ -305,6 +312,15 @@ class JuniorLearningMap {
     return current.where((n) => n.id == continueLessonId).firstOrNull ??
         current.firstOrNull;
   }
+
+  /// Whether the lesson to continue with has its attendance confirmed —
+  /// `present` or `late`, so its node is ATTENDANCE_COMPLETED (Issue #441).
+  /// What Junior Course Detail's attendance gate is given (Issue #443).
+  bool get continueAttendanceConfirmed => nodes.any(
+    (node) =>
+        node.id == continueLessonId &&
+        node.state == JuniorNodeState.attendanceCompleted,
+  );
 
   /// Whether check-in is actionable at [now]: there is a [checkInNode], a
   /// lesson is under way by the cohort schedule — Adult Home's own rule

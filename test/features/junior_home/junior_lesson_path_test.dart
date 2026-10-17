@@ -87,11 +87,12 @@ void main() {
           (
             JuniorNodeState.current,
             false,
-            // The continue lesson: the active frame, no tick — a tick always
-            // means completed.
-            null,
-            (p) => p.surface,
-            (p) => p.accent,
+            // The continue lesson outside a live check-in, its attendance
+            // not confirmed: it cannot be opened, so the padlock (Issue #443)
+            // — never a tick, which always means completed.
+            'node_lock',
+            (p) => p.juniorMutedFill,
+            (p) => p.outline,
           ),
           (
             JuniorNodeState.locked,
@@ -228,9 +229,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(AppIcons.bookOpenText), findsNothing);
-      // The two completed lessons; the continue lesson carries no tick.
+      // The two completed lessons; the continue lesson, not attended,
+      // carries the padlock (Issue #443) — never a tick.
       expect(sprite('node_check'), findsNWidgets(2));
-      expect(sprite('node_lock'), findsNWidgets(9));
+      expect(sprite('node_lock'), findsNWidgets(10));
     });
   });
 

@@ -7,6 +7,9 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../attendance/data/http_attendance_repository.dart';
+import '../../attendance/domain/attendance_repository.dart';
+import '../../attendance/domain/continue_attendance.dart';
 import '../data/http_course_learning_repository.dart';
 import '../domain/course_learning_path.dart';
 import '../domain/course_learning_repository.dart';
@@ -90,6 +93,10 @@ class CourseModuleListScreen extends StatefulWidget {
     required this.courseSlug,
     super.key,
     this.repository,
+    this.juniorAttendanceGate = false,
+    this.continueAttendanceConfirmed,
+    this.attendanceRepository,
+    this.clock,
   });
 
   /// `Course.slug` — which course's learning path to load.
@@ -99,6 +106,32 @@ class CourseModuleListScreen extends StatefulWidget {
   /// `GET /me/courses/{course_slug}/learning` against the signed-in student's
   /// token. Injected in tests.
   final CourseLearningRepository? repository;
+
+  /// Junior's attendance gate (Issue #443): the lesson to continue with
+  /// opens only once its attendance is confirmed — `present` or `late`,
+  /// [continueAttendanceConfirmed]. Until then "Continue learning" is inert,
+  /// and the continue lesson's card is neither highlighted nor openable;
+  /// completed and already-reached lessons open as ever. Set by the screens a
+  /// Junior student reaches Course Detail from; false — Adult's rule,
+  /// unchanged — everywhere else.
+  final bool juniorAttendanceGate;
+
+  /// Whether the continue lesson's attendance is confirmed, as the screen
+  /// that opened this already knows it (Junior Home's map). Null when it has
+  /// no result — the Certificate route: with [juniorAttendanceGate] this
+  /// screen then reads it itself, once, with the read-only
+  /// `GET /me/attendance?course={slug}` ([continueAttendanceConfirmedBy];
+  /// Issue #443), and keeps the lesson shut until — and unless — that
+  /// confirms it. A failed read keeps it shut.
+  final bool? continueAttendanceConfirmed;
+
+  /// Defaults to `HttpAttendanceRepository`. Asked only for the lookup
+  /// above, never on Adult's routes. Injected in tests.
+  final AttendanceRepository? attendanceRepository;
+
+  /// The time attendance is judged at. Defaults to the device's. Injected
+  /// in tests.
+  final DateTime Function()? clock;
 
   @override
   State<CourseModuleListScreen> createState() => _CourseModuleListScreenState();
@@ -119,6 +152,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
   @override
   void initState() {
     super.initState();
+    _lookUpAttendance();
     _controller = CourseLearningController(
       repository: _repository,
       courseSlug: widget.courseSlug,
@@ -148,6 +182,40 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
   /// Back from a lesson: what changed there shows; the scroll stays put.
   void _reload() {
     if (mounted) _controller.load();
+  }
+
+  /// The gate's own answer when the opener had none (Issue #443): null until
+  /// the lookup lands — shut meanwhile — then its result; false on failure.
+  bool? _lookedUpConfirmed;
+
+  /// Whether Junior's attendance gate is closed: the continue lesson is not
+  /// the lesson to continue with yet. Always open on Adult's routes.
+  bool get _continueGated {
+    if (!widget.juniorAttendanceGate) return false;
+    final confirmed =
+        widget.continueAttendanceConfirmed ?? _lookedUpConfirmed ?? false;
+    return !confirmed;
+  }
+
+  /// Reads attendance once, only for the attendance-gated route that came
+  /// without a result; fails closed.
+  Future<void> _lookUpAttendance() async {
+    if (!widget.juniorAttendanceGate ||
+        widget.continueAttendanceConfirmed != null) {
+      return;
+    }
+    final repository =
+        widget.attendanceRepository ?? HttpAttendanceRepository();
+    bool confirmed;
+    try {
+      confirmed = continueAttendanceConfirmedBy(
+        await repository.getCourseAttendance(widget.courseSlug),
+        now: (widget.clock ?? DateTime.now)(),
+      );
+    } catch (_) {
+      confirmed = false;
+    }
+    if (mounted) setState(() => _lookedUpConfirmed = confirmed);
   }
 
   @override
@@ -231,6 +299,7 @@ class _CourseModuleListScreenState extends State<CourseModuleListScreen> {
       repository: _repository,
       currentLessonKey: _currentLessonKey,
       onLessonClosed: _reload,
+      continueGated: _continueGated,
     );
   }
 }
@@ -337,6 +406,7 @@ class _CourseLearningBody extends StatelessWidget {
     required this.repository,
     required this.currentLessonKey,
     required this.onLessonClosed,
+    required this.continueGated,
   });
 
   final CourseLearningPath path;
@@ -346,6 +416,11 @@ class _CourseLearningBody extends StatelessWidget {
 
   /// Called when a lesson opened from this screen closes.
   final VoidCallback onLessonClosed;
+
+  /// Junior's attendance gate is closed (Issue #443): the continue lesson is
+  /// not the lesson to continue with yet — no resume, no highlight, no
+  /// "Continue learning".
+  final bool continueGated;
 
   @override
   Widget build(BuildContext context) {
@@ -366,13 +441,14 @@ class _CourseLearningBody extends StatelessWidget {
             repository: repository,
             buttonWidth: _heroCtaWidth,
             onLessonClosed: onLessonClosed,
+            continueGated: continueGated,
           ),
           const SizedBox(height: 48),
           _LessonList(
             lessons: lessons,
             repository: repository,
-            resumeLessonId: path.continueLessonId,
-            currentLessonId: _continueLessonId(path),
+            resumeLessonId: continueGated ? null : path.continueLessonId,
+            currentLessonId: continueGated ? null : _continueLessonId(path),
             currentLessonKey: currentLessonKey,
             onLessonClosed: onLessonClosed,
           ),
@@ -381,6 +457,7 @@ class _CourseLearningBody extends StatelessWidget {
             path: path,
             repository: repository,
             onLessonClosed: onLessonClosed,
+            continueGated: continueGated,
           ),
         ],
       ),
@@ -479,10 +556,14 @@ class _ProgressCtaRow extends StatelessWidget {
     required this.repository,
     required this.buttonWidth,
     required this.onLessonClosed,
+    required this.continueGated,
   });
 
   /// Called when the lesson "Continue learning" opened closes.
   final VoidCallback onLessonClosed;
+
+  /// Junior's attendance gate is closed: the button is inert (Issue #443).
+  final bool continueGated;
 
   /// The whole path, not just its percentage: the button beside the bar needs
   /// `continueModuleId` as well, and splitting the two into separate
@@ -497,7 +578,7 @@ class _ProgressCtaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lessonId = _continueLessonId(path);
+    final lessonId = continueGated ? null : _continueLessonId(path);
     return CourseProgressCtaRow(
       percent: path.percentComplete,
       buttonWidth: buttonWidth,
@@ -655,11 +736,13 @@ class _CertificationSection extends StatelessWidget {
     required this.path,
     required this.repository,
     required this.onLessonClosed,
+    required this.continueGated,
   });
 
   final CourseLearningPath path;
   final CourseLearningRepository repository;
   final VoidCallback onLessonClosed;
+  final bool continueGated;
 
   @override
   Widget build(BuildContext context) {
@@ -720,6 +803,7 @@ class _CertificationSection extends StatelessWidget {
             repository: repository,
             buttonWidth: _certificationCtaWidth,
             onLessonClosed: onLessonClosed,
+            continueGated: continueGated,
           ),
         ],
       ),

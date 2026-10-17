@@ -37,7 +37,9 @@ void main() {
     CourseLearningFailure? learningFailure,
     FakeCourseLearningRepository? learning,
     FakeAttendanceRepository? attendance,
+    DateTime Function()? clock,
   }) => ApiJuniorHomeRepository(
+    clock: clock,
     dashboardRepository: FakeHomeDashboardRepository(
       dashboard: dashboard ?? HomeDashboard(program: sampleProgram()),
       failure: dashboardFailure,
@@ -203,9 +205,9 @@ void main() {
         ],
       };
 
-      test('states and taps: done and the continue lesson open; a lesson '
-          'whose date has come but whose turn has not waits; server-locked '
-          'ones never open', () {
+      test('states and taps: done opens; the continue lesson waits for its '
+          'attendance (Issue #443); a lesson whose date has come but whose '
+          'turn has not waits; server-locked ones never open', () {
         final map = mapFrom(path, lessons: lessons);
 
         expect(map.nodes.map((n) => n.state), [
@@ -224,11 +226,54 @@ void main() {
         ]);
         expect(map.nodes.map((n) => n.opens), [
           true,
+          false,
+          false,
+          false,
+          false,
+        ]);
+        expect(map.continueAttendanceConfirmed, isFalse);
+      });
+
+      test('confirmed attendance (present or late) opens the continue lesson, '
+          'and only it; unconfirmed or unknown opens nothing new '
+          '(Issue #443)', () {
+        final attended = mapFrom(
+          path,
+          lessons: lessons,
+          attendanceConfirmed: true,
+        );
+        expect(attended.nodes.map((n) => n.state), [
+          JuniorNodeState.completed,
+          JuniorNodeState.attendanceCompleted,
+          JuniorNodeState.open,
+          JuniorNodeState.locked,
+          JuniorNodeState.locked,
+        ]);
+        expect(attended.nodes.map((n) => n.opens), [
+          true,
           true,
           false,
           false,
           false,
         ]);
+        // What Junior Course Detail's attendance gate is given.
+        expect(attended.continueAttendanceConfirmed, isTrue);
+
+        for (final confirmed in [false, null]) {
+          final map = mapFrom(
+            path,
+            lessons: lessons,
+            attendanceConfirmed: confirmed,
+          );
+          expect(map.nodes.map((n) => n.opens), [
+            true,
+            false,
+            false,
+            false,
+            false,
+          ], reason: '$confirmed');
+          expect(map.continueAttendanceConfirmed, isFalse);
+        }
       });
 
       test('the continue lesson is picked out — the one unfinished lesson '
@@ -710,21 +755,25 @@ void main() {
           ],
         );
 
-    test(
-      'the day\'s session with a record is recorded, whatever the record',
-      () {
-        for (final status in ['present', 'late', 'excused', 'absent']) {
-          expect(
-            attendanceRecordedOn(
-              attendance([(DateTime(2026, 10, 6), status)]),
-              lesson,
-            ),
-            isTrue,
-            reason: status,
-          );
-        }
-      },
-    );
+    test('only attended closes check-in: present and late do; absent — '
+        'today\'s default before any record — and excused keep it offered '
+        '(Issue #443)', () {
+      for (final (status, closes) in [
+        ('present', true),
+        ('late', true),
+        ('absent', false),
+        ('excused', false),
+      ]) {
+        expect(
+          attendanceRecordedOn(
+            attendance([(DateTime(2026, 10, 6), status)]),
+            lesson,
+          ),
+          closes,
+          reason: status,
+        );
+      }
+    });
 
     test('no record yet — or no session that day — is not recorded', () {
       expect(
@@ -793,15 +842,39 @@ void main() {
       expect(map.checkInOpenAt(DateTime(2026, 10, 6, 10)), isFalse);
     });
 
-    test('no next lesson: attendance is not read at all', () async {
-      final attendanceRepository = FakeAttendanceRepository();
+    test('no next lesson — the course\'s last class has passed: attendance '
+        'is still read, and that last class, attended, opens the lesson to '
+        'continue with; check-in stays closed (Issue #443)', () async {
+      final attendanceRepository = FakeAttendanceRepository(
+        attendance: attendance([
+          (DateTime(2026, 9, 29), 'present'),
+          (DateTime(2026, 10, 6), 'late'),
+        ]),
+      );
       final map = await repositoryFor(
-        dashboard: HomeDashboard(program: sampleProgram()),
+        dashboard: HomeDashboard(
+          program: sampleProgram(courseSlug: 'junior-ai'),
+        ),
+        learning: FakeCourseLearningRepository(
+          path: samplePath(
+            continueModuleId: 1,
+            continueLessonId: 5,
+            modules: [sampleModule(id: 1, order: 1)],
+          ),
+          lessonsByModule: {
+            1: [sampleLesson(id: 5, moduleId: 1, order: 1)],
+          },
+        ),
         attendance: attendanceRepository,
+        // Weeks after the last class (UTC 04:00 = 12:00 in Ulaanbaatar).
+        clock: () => DateTime.utc(2026, 11, 2, 4),
       ).getLearningMap();
 
-      expect(attendanceRepository.calls, isEmpty);
+      expect(attendanceRepository.calls, ['junior-ai']);
       expect(map?.attendanceRecorded, isNull);
+      expect(map!.nodes.single.state, JuniorNodeState.attendanceCompleted);
+      expect(map.nodes.single.opens, isTrue);
+      expect(map.continueAttendanceConfirmed, isTrue);
     });
   });
 
@@ -827,11 +900,13 @@ JuniorLearningMap mapFrom(
   Map<int, List<Lesson>> lessons = const {},
   NextLesson? nextLesson,
   bool? attendanceRecorded,
+  bool? attendanceConfirmed,
 }) => juniorMapFrom(
   path,
   lessons: lessons,
   nextLesson: nextLesson,
   attendanceRecorded: attendanceRecorded,
+  attendanceConfirmed: attendanceConfirmed,
   completedByNote: {
     for (final module in path.modules)
       for (final lesson in lessons[module.id] ?? const <Lesson>[])

@@ -374,6 +374,9 @@ void main() {
       DateTime? now,
       CourseAttendance? attendance,
     }) async {
+      // One clock for the screen and the repository, and the next lesson
+      // production would derive from it (Issue #443).
+      final at = now ?? DateTime(2026, 10, 6, 12);
       useLogicalViewport(tester, const Size(393, 1400), padding: iPhonePadding);
       useReducedMotion(tester);
       await tester.pumpWidget(
@@ -386,14 +389,12 @@ void main() {
                 dashboard: HomeDashboard(
                   program: sampleProgram(
                     courseSlug: slug,
-                    nextLesson: NextLesson(
-                      startsAt: DateTime(2026, 10, 6, 9),
-                      endsAt: DateTime(2026, 10, 6, 11),
-                    ),
+                    nextLesson: realisticNextLesson(at),
                   ),
                 ),
               ),
               courseLearningRepository: learning,
+              clock: () => at,
               attendanceRepository: FakeAttendanceRepository(
                 attendance:
                     attendance ??
@@ -411,7 +412,7 @@ void main() {
               ),
             ),
             courseLearningRepository: learning,
-            clock: () => now ?? DateTime(2026, 10, 6, 12),
+            clock: () => at,
           ),
         ),
       );
@@ -423,6 +424,18 @@ void main() {
     );
     JuniorNodeState stateOf(WidgetTester tester, int id) =>
         tester.widget<JuniorMapNodeTile>(tile(id)).node.state;
+
+    /// The continue lesson's class day (6 Oct) with [status] recorded — what
+    /// `continueAttendanceConfirmedBy` reads. `present` is what opens the continue
+    /// lesson on Junior (Issue #443).
+    CourseAttendance attendanceOn6Oct(String? status) => CourseAttendance(
+      attended: 0,
+      totalPast: 0,
+      percent: 0,
+      sessions: [
+        AttendanceSession(date: DateTime(2026, 10, 6), status: status),
+      ],
+    );
 
     Future<void> saveNote(WidgetTester tester, String text) async {
       await tester.enterText(find.byType(TextField).first, text);
@@ -454,8 +467,9 @@ void main() {
       tester,
     ) async {
       final learning = learningFor();
-      await pumpHome(tester, learning);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      // Attended, so the continue lesson opens (Issue #443).
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
@@ -480,15 +494,6 @@ void main() {
     });
 
     // --- The four Junior states (Issue #441) --------------------------------
-
-    CourseAttendance attendanceOn6Oct(String? status) => CourseAttendance(
-      attended: 0,
-      totalPast: 0,
-      percent: 0,
-      sessions: [
-        AttendanceSession(date: DateTime(2026, 10, 6), status: status),
-      ],
-    );
 
     Finder within(int id, Finder matching) =>
         find.descendant(of: tile(id), matching: matching);
@@ -609,15 +614,142 @@ void main() {
       expect(find.byType(AttendanceScannerScreen), findsOneWidget);
     });
 
+    // --- The attendance gate against the backend's own statuses (#443) ---
+
+    /// 6 Oct's class and 13 Oct's, as `GET /me/attendance` lists them.
+    CourseAttendance twoClasses(String? sixth, String? thirteenth) =>
+        CourseAttendance(
+          attended: 0,
+          totalPast: 0,
+          percent: 0,
+          sessions: [
+            AttendanceSession(
+              date: DateTime(2026, 10, 6),
+              status: sixth,
+              startTime: '09:00',
+            ),
+            AttendanceSession(
+              date: DateTime(2026, 10, 13),
+              status: thirteenth,
+              startTime: '09:00',
+            ),
+          ],
+        );
+
+    // During the 6 Oct class (09:00–11:00).
+    final duringClass = DateTime(2026, 10, 6, 10);
+
+    for (final status in ['absent', null, 'excused']) {
+      testWidgets('during the live window, today\'s $status — the backend '
+          'reports an unrecorded session absent from midnight — offers the '
+          'scanner, and the lesson stays locked', (tester) async {
+        final learning = learningFor();
+        await pumpHome(
+          tester,
+          learning,
+          now: duringClass,
+          attendance: twoClasses(status, null),
+        );
+
+        expect(tester.widget<JuniorMapNodeTile>(tile(101)).checkIn, isTrue);
+        expect(stateOf(tester, 101), JuniorNodeState.current);
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        expect(find.byType(AttendanceScannerScreen), findsOneWidget);
+        // The scanner being offered opens no lesson.
+        expect(find.byType(CourseExerciseDetailScreen), findsNothing);
+        expect(learning.exerciseCalls, isEmpty);
+      });
+    }
+
+    for (final status in ['present', 'late']) {
+      testWidgets('during the live window, today\'s $status: no scanner '
+          'again, and the lesson opens', (tester) async {
+        final learning = learningFor();
+        await pumpHome(
+          tester,
+          learning,
+          now: duringClass,
+          attendance: twoClasses(status, null),
+        );
+
+        expect(tester.widget<JuniorMapNodeTile>(tile(101)).checkIn, isFalse);
+        expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        expect(find.byType(AttendanceScannerScreen), findsNothing);
+        expect(learning.exerciseCalls, [101]);
+      });
+
+      testWidgets('after the class has ended, $status still opens the lesson '
+          '— the next lesson has moved on to 13 Oct', (tester) async {
+        final learning = learningFor();
+        await pumpHome(
+          tester,
+          learning,
+          now: DateTime(2026, 10, 6, 14),
+          attendance: twoClasses(status, null),
+        );
+
+        expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+        await tester.tap(tile(101));
+        await tester.pumpAndSettle();
+        expect(learning.exerciseCalls, [101]);
+      });
+    }
+
+    testWidgets('a new class day before check-in is locked again: last '
+        'week\'s present no longer opens it', (tester) async {
+      final learning = learningFor();
+      await pumpHome(
+        tester,
+        learning,
+        // 08:00 on 13 Oct, before the class.
+        now: DateTime(2026, 10, 13, 8),
+        attendance: twoClasses('present', 'absent'),
+      );
+
+      expect(stateOf(tester, 101), JuniorNodeState.current);
+      final node = tester.widget<JuniorMapNodeTile>(tile(101));
+      expect(node.checkIn, isFalse);
+      expect(node.onTap, isNull);
+      await tester.tap(tile(101));
+      await tester.pumpAndSettle();
+      expect(learning.exerciseCalls, isEmpty);
+    });
+
+    testWidgets('attendance never completes a lesson: attended, it opens but '
+        'is not ticked; a saved note ticks it', (tester) async {
+      final learning = learningFor();
+      await pumpHome(
+        tester,
+        learning,
+        now: DateTime(2026, 10, 6, 14),
+        attendance: twoClasses('present', null),
+      );
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
+      expect(learning.completeCalls, isEmpty);
+
+      await pumpHome(
+        tester,
+        learningFor(notes: {101: sampleNote()}),
+        now: DateTime(2026, 10, 6, 14),
+        attendance: twoClasses('present', null),
+      );
+      expect(stateOf(tester, 101), JuniorNodeState.completed);
+    });
+
     testWidgets('opening a lesson alone completes nothing', (tester) async {
       final learning = learningFor();
-      await pumpHome(tester, learning);
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
+      expect(find.byType(CourseExerciseDetailScreen), findsOneWidget);
       await back(tester);
 
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      // Attended, not completed: attendance never completes a lesson.
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
       expect(learning.completeCalls, isEmpty);
       expect(learning.saveCalls, isEmpty);
     });
@@ -627,14 +759,14 @@ void main() {
         ..saveFailure = const CourseLearningFailure(
           CourseLearningFailureKind.network,
         );
-      await pumpHome(tester, learning);
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
       await saveNote(tester, 'Lost on the way');
       await back(tester);
 
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
       expect(learning.notesByLesson, isEmpty);
     });
 
@@ -642,7 +774,7 @@ void main() {
       tester,
     ) async {
       final learning = learningFor();
-      await pumpHome(tester, learning);
+      await pumpHome(tester, learning, attendance: attendanceOn6Oct('present'));
 
       await tester.tap(tile(101));
       await tester.pumpAndSettle();
@@ -650,7 +782,7 @@ void main() {
       await back(tester);
 
       expect(learning.notesByLesson, isEmpty);
-      expect(stateOf(tester, 101), JuniorNodeState.current);
+      expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
     });
 
     testWidgets('a failed note read fails the map with retry — never a '
@@ -740,46 +872,18 @@ void main() {
     expect(row('Second').lesson.completed, isFalse);
     expect(learning.completeCalls, isEmpty);
   });
-
-  group('attendanceConfirmedOn (Issue #441)', () {
-    final next = NextLesson(
-      startsAt: DateTime(2026, 10, 6, 9),
-      endsAt: DateTime(2026, 10, 6, 11),
-    );
-    CourseAttendance on(DateTime day, String? status) => CourseAttendance(
-      attended: 0,
-      totalPast: 0,
-      percent: 0,
-      sessions: [AttendanceSession(date: day, status: status)],
-    );
-
-    test('present and late — countsAsAttended — on the lesson\'s day', () {
-      for (final status in ['present', 'late']) {
-        expect(
-          attendanceConfirmedOn(on(DateTime(2026, 10, 6), status), next),
-          isTrue,
-          reason: status,
-        );
-      }
-      for (final status in ['absent', 'excused', null]) {
-        expect(
-          attendanceConfirmedOn(on(DateTime(2026, 10, 6), status), next),
-          isFalse,
-          reason: status,
-        );
-      }
-    });
-
-    test('another day\'s record is not this lesson\'s; unknown is null', () {
-      expect(
-        attendanceConfirmedOn(on(DateTime(2026, 10, 5), 'present'), next),
-        isFalse,
-      );
-      expect(attendanceConfirmedOn(null, next), isNull);
-      expect(
-        attendanceConfirmedOn(on(DateTime(2026, 10, 6), 'present'), null),
-        isNull,
-      );
-    });
-  });
 }
+
+/// The dashboard's next lesson as production derives it at [now]
+/// (`nextLessonFor`, Issue #443): the 6 Oct class (09:00–11:00) until it has
+/// ended, then the next one, 13 Oct.
+NextLesson realisticNextLesson(DateTime now) =>
+    now.isBefore(DateTime(2026, 10, 6, 11))
+    ? NextLesson(
+        startsAt: DateTime(2026, 10, 6, 9),
+        endsAt: DateTime(2026, 10, 6, 11),
+      )
+    : NextLesson(
+        startsAt: DateTime(2026, 10, 13, 9),
+        endsAt: DateTime(2026, 10, 13, 11),
+      );

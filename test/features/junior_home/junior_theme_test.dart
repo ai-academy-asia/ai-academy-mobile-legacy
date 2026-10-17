@@ -162,10 +162,10 @@ void main() {
       expect(colours, contains(juniorMapSky));
     });
 
-    testWidgets('map nodes: completed juniorCard in accent, the available '
-        'lesson and the live check-in surface in accent, locked '
-        'juniorMutedFill (not divider) in outline — each on a band of its own '
-        'outline', (tester) async {
+    testWidgets('map nodes: completed juniorCard in accent, the live check-in '
+        'surface in accent, locked — the continue lesson outside check-in '
+        'included — juniorMutedFill (not divider) in outline — each on a band '
+        'of its own outline', (tester) async {
       Future<Set<(Color?, Color?)>> styles(DateTime now) async {
         await pump(
           tester,
@@ -191,10 +191,10 @@ void main() {
         return {for (final d in nodes) (d.color, edge(d))};
       }
 
-      // No lesson under way: the available lesson, in the active frame.
+      // No lesson under way: the continue lesson, its attendance not
+      // confirmed, is locked like the rest (Issue #443) — no active frame.
       expect(await styles(sampleLessonTime.add(const Duration(days: 1))), {
         (juniorCard, accent),
-        (surface, accent),
         (juniorMutedFill, outline),
       });
       // During it: the open lesson is the check-in, in the accent frame.

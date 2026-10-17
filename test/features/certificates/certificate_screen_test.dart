@@ -394,6 +394,8 @@ void main() {
         find.byType(CourseModuleListScreen),
       );
       expect(screen.courseSlug, 'test-course-two');
+      // Adult: no Junior attendance gate (Issue #443).
+      expect(screen.juniorAttendanceGate, isFalse);
       expect(learning.calls, ['test-course-two']);
     });
   });

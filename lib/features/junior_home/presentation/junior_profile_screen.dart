@@ -254,6 +254,8 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
                   context,
                   repository: widget.certificateRepository,
                   courseLearning: widget.courseLearningRepository,
+                  // Junior's attendance gate on its Course Detail (#443).
+                  juniorAttendanceGate: true,
                 ),
               ),
               const _Row(
