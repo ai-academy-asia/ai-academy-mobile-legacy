@@ -215,6 +215,89 @@ void main() {
     });
   });
 
+  // Issue #451: a notification with no body is listed title-only.
+  group('title-only (null body)', () {
+    setUp(() {
+      final now = DateTime.now();
+      repository.notifications = [
+        sampleNotification(
+          id: 5,
+          title: 'Title only',
+          body: null,
+          createdAt: now.subtract(const Duration(days: 1, minutes: 1)),
+        ),
+        sampleNotification(
+          id: 2,
+          title: 'Read title',
+          body: 'Read body',
+          createdAt: now.subtract(const Duration(days: 7, minutes: 1)),
+          readAt: now.subtract(const Duration(days: 6)),
+        ),
+      ];
+    });
+
+    testWidgets('shows the title and no body line', (tester) async {
+      await pumpScreen(tester);
+
+      final tile = tileOf('Title only');
+      expect(tile, findsOneWidget);
+      final texts = tester
+          .widgetList<Text>(
+            find.descendant(of: tile, matching: find.byType(Text)),
+          )
+          .map((t) => t.data)
+          .toList();
+      // The title and the age — no body line, and never "null".
+      expect(texts, ['Title only', '1d']);
+      expect(find.text('null'), findsNothing);
+    });
+
+    testWidgets('keeps the minimum row height: 71, 72 with its rule', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      expect(tester.getRect(tileOf('Title only')).height, 72);
+      // A row with a body is unchanged.
+      expect(tester.getRect(tileOf('Read title')).height, 74);
+    });
+
+    testWidgets('an unread one still has its dot', (tester) async {
+      await pumpScreen(tester);
+
+      expect(dotIn(tileOf('Title only')), findsOneWidget);
+      expect(dotIn(tileOf('Read title')), findsNothing);
+    });
+
+    testWidgets('its label is state, title and age — no body, no "null"', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpScreen(tester);
+
+      final label = tester.getSemantics(tileOf('Title only')).label;
+      expect(label, 'Шинэ, Title only, 1d');
+      expect(label, isNot(contains('null')));
+      // A row with a body keeps it in its label.
+      expect(
+        tester.getSemantics(tileOf('Read title')).label,
+        'Read title, Read body, 7d',
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('tapping it opens the detail', (tester) async {
+      await pumpScreen(tester);
+
+      await tester.tap(tileOf('Title only'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotificationDetailScreen), findsOneWidget);
+      expect(repository.markCalls, [5]);
+      expect(center.unreadCount, 0);
+    });
+  });
+
   group('reading', () {
     Finder detail() => find.byType(NotificationDetailScreen);
 

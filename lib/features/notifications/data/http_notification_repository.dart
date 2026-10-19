@@ -256,7 +256,12 @@ AppNotification? notificationFrom(Map<String, dynamic> json) {
   final readAt = json['read_at'];
   final data = json['data'];
 
-  if (id is! int || title is! String || body is! String || kind is! String) {
+  // `body` may be missing or null — a title-only notification (Issue #451);
+  // present, it must be a string.
+  if (id is! int ||
+      title is! String ||
+      (body != null && body is! String) ||
+      kind is! String) {
     return null;
   }
   final created = createdAt is String ? DateTime.tryParse(createdAt) : null;
@@ -272,7 +277,7 @@ AppNotification? notificationFrom(Map<String, dynamic> json) {
   return AppNotification(
     id: id,
     title: title,
-    body: body,
+    body: body as String?,
     kind: kind,
     createdAt: created,
     readAt: read,
@@ -313,7 +318,8 @@ int _unreadCount(Map<String, dynamic> json) {
 /// Why [item] was not read — field names only, never their values.
 String _reasonFor(Object? item) {
   if (item is! Map<String, dynamic>) return 'not an object';
-  const required = ['id', 'title', 'body', 'kind', 'created_at'];
+  // `body` is optional (Issue #451).
+  const required = ['id', 'title', 'kind', 'created_at'];
   final missing = [
     for (final key in required)
       if (!item.containsKey(key)) key,

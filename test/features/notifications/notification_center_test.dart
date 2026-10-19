@@ -1,9 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
+import 'package:aia_mobile/features/auth/domain/auth_session.dart';
+import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/notifications/data/http_notification_repository.dart';
 import 'package:aia_mobile/features/notifications/domain/notification_failure.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_strings.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'fake_notification_repository.dart';
 
@@ -76,6 +83,61 @@ void main() {
 
       expect(repository.feedCalls, 1);
     });
+  });
+
+  // Issue #451: through the real parser, an unread notification with no
+  // body is listed, so the server's unread count matches the unread rows —
+  // before, it was dropped while still counted.
+  test('an unread null-body notification is listed, and the count matches '
+      'the unread rows', () async {
+    final httpCenter = NotificationCenter(
+      repository: HttpNotificationRepository(
+        client: MockClient(
+          (_) async => http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'notifications': [
+                  {
+                    'id': 7,
+                    'title': 'Title only',
+                    'body': null,
+                    'kind': 'general',
+                    'created_at': '2026-10-08T06:00:00Z',
+                    'read_at': null,
+                    'data': null,
+                  },
+                  {
+                    'id': 6,
+                    'title': 'With body',
+                    'body': 'b',
+                    'kind': 'general',
+                    'created_at': '2026-10-08T05:00:00Z',
+                    'read_at': null,
+                    'data': null,
+                  },
+                ],
+                'unread_count': 2,
+              }),
+            ),
+            200,
+            headers: {
+              HttpHeaders.contentTypeHeader: 'application/json; charset=utf-8',
+            },
+          ),
+        ),
+        sessionStore: AuthSessionStore()
+          ..save(const AuthSession(accessToken: 'tok-123')),
+      ),
+      clock: () => now,
+    );
+
+    await httpCenter.load();
+
+    expect([for (final n in httpCenter.notifications) n.id], [7, 6]);
+    expect(httpCenter.notifications.first.body, isNull);
+    final unreadRows = httpCenter.notifications.where((n) => !n.isRead);
+    expect(httpCenter.unreadCount, 2);
+    expect(unreadRows, hasLength(httpCenter.unreadCount));
   });
 
   group('markRead', () {

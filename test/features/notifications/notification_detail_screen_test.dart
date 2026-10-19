@@ -188,6 +188,61 @@ void main() {
     expect(tester.getRect(text).top - groundRect.top, 16);
   });
 
+  // Issue #451: a notification with no body has no body container at all.
+  group('title-only (null body)', () {
+    Finder bodyCard() => find.descendant(
+      of: find.byType(NotificationDetailScreen),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is DecoratedBox &&
+            w.decoration is BoxDecoration &&
+            (w.decoration as BoxDecoration).color == AppColors.background &&
+            (w.decoration as BoxDecoration).borderRadius ==
+                BorderRadius.circular(AppDimens.cardRadius),
+      ),
+    );
+
+    Finder rule() => find.descendant(
+      of: find.byType(NotificationDetailScreen),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is SizedBox &&
+            w.height == AppDimens.borderWidth &&
+            w.child is ColoredBox,
+      ),
+    );
+
+    testWidgets('no body container, and the title, date and rule stay', (
+      tester,
+    ) async {
+      final createdAt = DateTime(2026, 10, 1, 12, 57);
+      await pumpDetail(
+        tester,
+        sampleNotification(
+          title: 'Title only',
+          body: null,
+          createdAt: createdAt,
+        ),
+      );
+
+      expect(bodyCard(), findsNothing);
+      expect(find.text('Title only'), findsOneWidget);
+      expect(find.text(NotificationStrings.sentAt(createdAt)), findsOneWidget);
+      expect(rule(), findsOneWidget);
+      expect(find.text('null'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a notification with a body keeps its container', (
+      tester,
+    ) async {
+      await pumpDetail(tester, sampleNotification(body: 'A body to read'));
+
+      expect(bodyCard(), findsOneWidget);
+      expect(rule(), findsOneWidget);
+    });
+  });
+
   testWidgets('a short body is one tidy section, close under the rule', (
     tester,
   ) async {

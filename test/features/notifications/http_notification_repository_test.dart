@@ -172,6 +172,91 @@ void main() {
     });
   });
 
+  // Issue #451: a staff announcement may carry no body (source-documented,
+  // not seen live). It is read as a title-only notification, not skipped.
+  group('a missing or null body', () {
+    Map<String, Object?> item({
+      int id = 30,
+      Object? body = _absent,
+      Object? kind = 'general',
+    }) => {
+      'id': id,
+      'title': 'Title only',
+      if (!identical(body, _absent)) 'body': body,
+      'kind': ?kind,
+      'created_at': '2026-10-01T00:00:00Z',
+      'read_at': null,
+      'data': null,
+    };
+
+    test('an explicit null body is read, with body == null', () async {
+      final feed = await repositoryAnswering({
+        'notifications': [item(body: null)],
+        'unread_count': 1,
+      }).getNotifications();
+
+      expect(feed.skipped, 0);
+      expect(feed.notifications.single.id, 30);
+      expect(feed.notifications.single.title, 'Title only');
+      expect(feed.notifications.single.body, isNull);
+    });
+
+    test('a missing body key is read too', () async {
+      final feed = await repositoryAnswering({
+        'notifications': [item()],
+        'unread_count': 1,
+      }).getNotifications();
+
+      expect(feed.skipped, 0);
+      expect(feed.notifications.single.body, isNull);
+    });
+
+    test(
+      'a present body that is not a string is still skipped and counted',
+      () async {
+        final feed = await repositoryAnswering({
+          'notifications': [
+            item(id: 31, body: 42),
+            item(id: 32, body: {'text': 'x'}),
+            item(id: 33, body: ['x']),
+            item(id: 34, body: 'kept'),
+          ],
+          'unread_count': 4,
+        }).getNotifications();
+
+        expect(feed.skipped, 3);
+        expect([for (final n in feed.notifications) n.id], [34]);
+        expect(feed.notifications.single.body, 'kept');
+      },
+    );
+
+    test('an item missing kind stays skipped even with no body', () async {
+      final feed = await repositoryAnswering({
+        'notifications': [item(kind: null)],
+        'unread_count': 0,
+      }).getNotifications();
+
+      expect(feed.skipped, 1);
+      expect(feed.notifications, isEmpty);
+    });
+
+    test(
+      'markRead returns a null-body notification, not a server failure',
+      () async {
+        final result = await repositoryAnswering({
+          ...item(body: null),
+          'read_at': '2026-10-08T06:53:25+00:00',
+          'unread_count': 0,
+        }).markRead(30);
+
+        expect(result.notification.id, 30);
+        expect(result.notification.body, isNull);
+        expect(result.notification.isRead, isTrue);
+        expect(result.unreadCount, 0);
+      },
+    );
+  });
+
   group('markRead', () {
     const readItem = {
       'body': 'b',
@@ -310,3 +395,6 @@ void main() {
     });
   });
 }
+
+/// Marks a key left out of a test item, as opposed to sent as null.
+const Object _absent = Object();

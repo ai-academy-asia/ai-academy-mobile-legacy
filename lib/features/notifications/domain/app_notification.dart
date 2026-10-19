@@ -1,7 +1,7 @@
 /// One in-app notification — an item of `GET /me/notifications` (Issue
 /// #246), exactly the fields verified live in Phase 0: `id`, `title`,
 /// `body`, `kind`, `created_at`, `read_at` (nullable) and `data`
-/// (nullable).
+/// (nullable). [body] may also be missing or null (Issue #451).
 class AppNotification {
   const AppNotification({
     required this.id,
@@ -15,7 +15,11 @@ class AppNotification {
 
   final int id;
   final String title;
-  final String body;
+
+  /// The message under the title. Null when the backend sent none — a staff
+  /// announcement may have a title only (Issue #451; source-documented, not
+  /// seen live). Such a notification is drawn title-only.
+  final String? body;
 
   /// The backend's category, as sent — `general` and `assignment` are the
   /// two seen. Kept as a string: the set is not known to be closed, and no

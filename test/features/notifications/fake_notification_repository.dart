@@ -4,11 +4,12 @@ import 'package:aia_mobile/features/notifications/domain/app_notification.dart';
 import 'package:aia_mobile/features/notifications/domain/notification_failure.dart';
 import 'package:aia_mobile/features/notifications/domain/notification_repository.dart';
 
-/// A notification. Test values only, in the verified Phase 0 shape.
+/// A notification. Test values only, in the verified Phase 0 shape. Pass
+/// `body: null` for a title-only one (Issue #451).
 AppNotification sampleNotification({
   int id = 24,
   String title = 'Test title',
-  String body = 'Test body',
+  String? body = 'Test body',
   String kind = 'general',
   DateTime? createdAt,
   DateTime? readAt,
