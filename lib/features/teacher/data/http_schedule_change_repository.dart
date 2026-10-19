@@ -8,11 +8,17 @@ import '../domain/schedule_change.dart';
 import '../domain/teacher_failure.dart';
 import 'teacher_http.dart';
 
-/// The schedule-change request, phase 1 (Issue #449), against the AI Academy
-/// API:
+/// The schedule-change request against the AI Academy API — phase 1
+/// (Issue #449), sending:
 ///
 ///     GET  https://api.ai-academy.asia/teacher/sessions/{session_id}/eligible-teachers
 ///     POST https://api.ai-academy.asia/teacher/schedule-change-requests
+///
+/// and phase 2 (Issue #453), answering an incoming request:
+///
+///     GET  https://api.ai-academy.asia/teacher/schedule-change-requests/{id}
+///     POST https://api.ai-academy.asia/teacher/schedule-change-requests/{id}/accept
+///     POST https://api.ai-academy.asia/teacher/schedule-change-requests/{id}/reject
 ///     Authorization: Bearer <access_token>
 ///
 /// From the backend's documented contract (`ai-academy-backend`
@@ -95,6 +101,86 @@ class HttpScheduleChangeRepository implements ScheduleChangeRepository {
       recipientTeacherId: recipientTeacherId,
     );
   }
+
+  @override
+  Future<ScheduleChangeRequest> getRequest(int requestId) async {
+    ensureTeacherSession(_sessionStore);
+    final response = await teacherSend(
+      send: (headers) => getRaw(
+        client: _client,
+        url: _requestUrl(requestId),
+        headers: headers,
+        timeout: timeout,
+      ),
+      sessionStore: _sessionStore,
+    );
+    return scheduleChangeRequestFromJson(
+      teacherJsonObject(response.body),
+      requestId: requestId,
+    );
+  }
+
+  @override
+  Future<ScheduleChangeRequest> acceptRequest(int requestId) => _decide(
+    requestId,
+    action: 'accept',
+    body: const {},
+    expected: ScheduleChangeStatus.accepted,
+  );
+
+  @override
+  Future<ScheduleChangeRequest> rejectRequest(
+    int requestId, {
+    String? reason,
+  }) => _decide(
+    requestId,
+    action: 'reject',
+    // The contract's optional reason; the sheet has no field, so null.
+    body: {'reason': reason},
+    expected: ScheduleChangeStatus.rejected,
+  );
+
+  Uri _requestUrl(int requestId) =>
+      _baseUrl.resolve('/teacher/schedule-change-requests/$requestId');
+
+  /// POSTs [action] for [requestId] and answers the request — only a `200`
+  /// whose request object is [requestId] at [expected], the decision just
+  /// made (a repeat of the same decision answers it unchanged, contract
+  /// §2). Anything else is not a confirmed decision: a failure.
+  Future<ScheduleChangeRequest> _decide(
+    int requestId, {
+    required String action,
+    required Map<String, Object?> body,
+    required String expected,
+  }) async {
+    ensureTeacherSession(_sessionStore);
+    final response = await teacherSend(
+      send: (headers) => postJsonRaw(
+        client: _client,
+        url: _baseUrl.resolve(
+          '/teacher/schedule-change-requests/$requestId/$action',
+        ),
+        body: body,
+        headers: headers,
+        timeout: timeout,
+      ),
+      sessionStore: _sessionStore,
+    );
+    if (response.statusCode != 200) {
+      throw TeacherFailure(
+        TeacherFailureKind.unexpected,
+        detail: 'HTTP ${response.statusCode}',
+      );
+    }
+    final request = scheduleChangeRequestFromJson(
+      teacherJsonObject(response.body),
+      requestId: requestId,
+    );
+    if (request.status != expected) {
+      throw _shape('status: not "$expected"');
+    }
+    return request;
+  }
 }
 
 /// `{session_id, items: [{id, name, photo_url}]}` for [sessionId]. Anything
@@ -159,6 +245,59 @@ SentScheduleChange sentScheduleChangeFromJson(
     recipientTeacherId: recipientTeacherId,
     status: status as String,
   );
+}
+
+/// The request object (contract §3) for [requestId]. Read: `id` (must be
+/// [requestId]), `session_id`, `status` (one of [ScheduleChangeStatus.all]),
+/// `sender.name`, and the `session` brief — `date` required, `start_time`,
+/// `end_time`, `title`, `cohort_name` and `room` each a string or null.
+/// Anything else is the API misbehaving: a `server` failure.
+ScheduleChangeRequest scheduleChangeRequestFromJson(
+  Map<String, dynamic> json, {
+  required int requestId,
+}) {
+  final id = json['id'];
+  final sessionId = json['session_id'];
+  final status = json['status'];
+  final sender = json['sender'];
+  final session = json['session'];
+  if (id != requestId) throw _shape('id: not $requestId');
+  if (sessionId is! int) throw _shape('session_id: not an integer');
+  if (status is! String || !ScheduleChangeStatus.all.contains(status)) {
+    throw _shape('status: not a documented status');
+  }
+  if (sender is! Map<String, dynamic>) {
+    throw _shape('sender: expected an object');
+  }
+  final senderName = sender['name'];
+  if (senderName is! String || senderName.trim().isEmpty) {
+    throw _shape('sender.name: not a non-empty string');
+  }
+  if (session is! Map<String, dynamic>) {
+    throw _shape('session: expected an object');
+  }
+  final date = session['date'];
+  final day = date is String ? DateTime.tryParse(date) : null;
+  if (day == null) throw _shape('session.date: not a date');
+  return ScheduleChangeRequest(
+    id: requestId,
+    sessionId: sessionId,
+    status: status,
+    senderName: senderName,
+    sessionDate: DateTime(day.year, day.month, day.day),
+    startTime: _optionalText(session, 'start_time'),
+    endTime: _optionalText(session, 'end_time'),
+    courseTitle: _optionalText(session, 'title'),
+    cohortName: _optionalText(session, 'cohort_name'),
+    room: _optionalText(session, 'room'),
+  );
+}
+
+String? _optionalText(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is String) return value;
+  throw _shape('session.$key: neither null nor a string');
 }
 
 TeacherFailure _shape(String detail) =>

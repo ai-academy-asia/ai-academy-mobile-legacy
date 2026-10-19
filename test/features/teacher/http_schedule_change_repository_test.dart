@@ -353,4 +353,225 @@ void main() {
       expect(requests, 0);
     });
   });
+
+  // Issue #453: reading and answering an incoming request.
+  group('incoming request', () {
+    test(
+      'GETs the request with the token and reads its current state',
+      () async {
+        late http.Request sent;
+        final request = await repositoryReturning((r) async {
+          sent = r;
+          return jsonResponse(requestBody(id: 12), 200);
+        }).getRequest(12);
+
+        expect(sent.method, 'GET');
+        expect(
+          sent.url.toString(),
+          'https://api.example.test/teacher/schedule-change-requests/12',
+        );
+        expect(sent.headers['Authorization'], 'Bearer tok-123');
+        expect(request.id, 12);
+        expect(request.sessionId, 41);
+        expect(request.status, 'pending');
+        expect(request.isPending, isTrue);
+        expect(request.senderName, 'Анар Бат');
+        expect(request.sessionDate, DateTime(2026, 10, 20));
+        expect(request.startTime, '09:00');
+        expect(request.endTime, '11:00');
+        expect(request.courseTitle, 'Corporate Leaders');
+        expect(request.cohortName, 'CL-2026-10');
+        expect(request.room, 'Room 204');
+      },
+    );
+
+    test(
+      'every documented status is read; null session parts are null',
+      () async {
+        for (final status in [
+          'pending',
+          'accepted',
+          'rejected',
+          'cancelled',
+          'expired',
+        ]) {
+          final body =
+              jsonDecode(requestBody(status: status)) as Map<String, dynamic>;
+          (body['session'] as Map<String, dynamic>)
+            ..['room'] = null
+            ..['title'] = null
+            ..['end_time'] = null;
+          final request = await repositoryReturning(
+            (_) async => jsonResponse(jsonEncode(body), 200),
+          ).getRequest(12);
+          expect(request.status, status);
+          expect(request.room, isNull, reason: status);
+          expect(request.courseTitle, isNull, reason: status);
+          expect(request.endTime, isNull, reason: status);
+        }
+      },
+    );
+
+    test('a body off the documented shape is a server failure', () async {
+      Map<String, dynamic> base() =>
+          jsonDecode(requestBody()) as Map<String, dynamic>;
+      final bodies = <String, Object>{
+        'another request': base()..['id'] = 13,
+        'an unknown status': base()..['status'] = 'approved',
+        'no sender': base()..remove('sender'),
+        'a blank sender name': base()
+          ..['sender'] = {'id': 3, 'name': ' ', 'photo_url': null},
+        'no session': base()..remove('session'),
+        'a session date that is not a date': base()
+          ..['session'] = {...(base()['session'] as Map), 'date': 'soon'},
+        'a numeric room': base()
+          ..['session'] = {...(base()['session'] as Map), 'room': 204},
+        'a string session_id': base()..['session_id'] = '41',
+      };
+      for (final entry in bodies.entries) {
+        final failure = await failureOf(
+          repositoryReturning(
+            (_) async => jsonResponse(jsonEncode(entry.value), 200),
+          ).getRequest(12),
+        );
+        expect(failure.kind, TeacherFailureKind.server, reason: entry.key);
+      }
+    });
+
+    test(
+      'reading: request_not_found keeps its code; a no-code 404 has none',
+      () async {
+        final missing = await failureOf(
+          repositoryReturning(
+            (_) async => errorResponse(404, 'request_not_found'),
+          ).getRequest(12),
+        );
+        expect(missing.kind, TeacherFailureKind.rejected);
+        expect(missing.code, 'request_not_found');
+
+        final noRoute = await failureOf(
+          repositoryReturning(
+            (_) async => http.Response('<html>Not Found</html>', 404),
+          ).getRequest(12),
+        );
+        expect(noRoute.kind, TeacherFailureKind.rejected);
+        expect(noRoute.code, isNull);
+      },
+    );
+
+    test('accept POSTs to …/accept with an empty object and needs the answer '
+        'to be accepted', () async {
+      late http.Request sent;
+      final request = await repositoryReturning((r) async {
+        sent = r;
+        return jsonResponse(requestBody(status: 'accepted'), 200);
+      }).acceptRequest(12);
+
+      expect(sent.method, 'POST');
+      expect(
+        sent.url.toString(),
+        'https://api.example.test/teacher/schedule-change-requests/12/accept',
+      );
+      expect(sent.headers['Authorization'], 'Bearer tok-123');
+      expect(jsonDecode(sent.body), <String, Object?>{});
+      expect(request.status, 'accepted');
+    });
+
+    test(
+      'reject POSTs to …/reject with reason null, or the reason given',
+      () async {
+        final bodies = <Object?>[];
+        final repository = repositoryReturning((r) async {
+          bodies.add(jsonDecode(r.body));
+          expect(
+            r.url.toString(),
+            'https://api.example.test/teacher/schedule-change-requests/12/reject',
+          );
+          return jsonResponse(requestBody(status: 'rejected'), 200);
+        });
+
+        expect((await repository.rejectRequest(12)).status, 'rejected');
+        await repository.rejectRequest(12, reason: 'Завгүй');
+
+        expect(bodies, [
+          {'reason': null},
+          {'reason': 'Завгүй'},
+        ]);
+      },
+    );
+
+    test(
+      'an answer that does not confirm the decision is not a success',
+      () async {
+        // Still pending after accept; rejected after accept; another request.
+        for (final body in [
+          requestBody(status: 'pending'),
+          requestBody(status: 'rejected'),
+          requestBody(id: 13, status: 'accepted'),
+        ]) {
+          final failure = await failureOf(
+            repositoryReturning(
+              (_) async => jsonResponse(body, 200),
+            ).acceptRequest(12),
+          );
+          expect(failure.kind, TeacherFailureKind.server, reason: body);
+        }
+        // Any status but 200.
+        final created = await failureOf(
+          repositoryReturning(
+            (_) async => jsonResponse(requestBody(status: 'accepted'), 201),
+          ).acceptRequest(12),
+        );
+        expect(created.kind, TeacherFailureKind.unexpected);
+      },
+    );
+
+    test(
+      'each documented refusal keeps its code, for accept and reject',
+      () async {
+        for (final (status, code) in [
+          (409, 'request_already_resolved'),
+          (409, 'schedule_conflict'),
+          (409, 'session_already_covered'),
+          (409, 'session_started'),
+          (403, 'not_recipient'),
+          (404, 'request_not_found'),
+        ]) {
+          final repository = repositoryReturning(
+            (_) async => errorResponse(status, code),
+          );
+          for (final call in [
+            () => repository.acceptRequest(12),
+            () => repository.rejectRequest(12),
+          ]) {
+            final failure = await failureOf(call());
+            expect(failure.kind, TeacherFailureKind.rejected, reason: code);
+            expect(failure.code, code);
+          }
+        }
+      },
+    );
+
+    test(
+      'network and session failures; without a session nothing is sent',
+      () async {
+        final network = await failureOf(
+          repositoryReturning(
+            (_) async => throw http.ClientException('offline'),
+          ).acceptRequest(12),
+        );
+        expect(network.kind, TeacherFailureKind.network);
+
+        var requests = 0;
+        final noSession = await failureOf(
+          repositoryReturning((_) async {
+            requests++;
+            return jsonResponse(requestBody(status: 'rejected'), 200);
+          }, sessionStore: AuthSessionStore()).rejectRequest(12),
+        );
+        expect(noSession.kind, TeacherFailureKind.sessionExpired);
+        expect(requests, 0);
+      },
+    );
+  });
 }

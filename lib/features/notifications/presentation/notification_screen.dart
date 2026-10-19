@@ -7,6 +7,8 @@ import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../home/presentation/home_strings.dart';
+import '../../teacher/domain/schedule_change.dart';
+import '../../teacher/presentation/incoming_request_sheet.dart';
 import '../domain/app_notification.dart';
 import 'notification_center.dart';
 import 'notification_detail_screen.dart';
@@ -31,10 +33,18 @@ import 'notification_strings.dart';
 /// notice, and no payment kind is verified, so per-kind icons wait on a
 /// product decision.
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key, this.center});
+  const NotificationScreen({
+    super.key,
+    this.center,
+    this.scheduleChangeRepository,
+  });
 
   /// Defaults to [NotificationCenter.instance]. Injected in tests.
   final NotificationCenter? center;
+
+  /// What a `schedule_change_request` notification's sheet reads and answers
+  /// through (Issue #453). Defaults to the real API. Injected in tests.
+  final ScheduleChangeRepository? scheduleChangeRepository;
 
   /// Pushes the screen over [context]'s navigator — what every bell does.
   static Future<void> open(
@@ -71,8 +81,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
   /// never waiting on it: a failed mark rolls the row back and says why
   /// (the SnackBar shows over the detail), but never keeps the message from
   /// being read. A read row sends nothing.
+  ///
+  /// A `schedule_change_request` with a valid `request_id` and `session_id`
+  /// opens the incoming-request sheet instead (Issue #453), where it can be
+  /// answered; a malformed one opens the detail like any other kind.
   void _open(AppNotification notification) {
     if (!notification.isRead) _markRead(notification);
+    if (notification.scheduleChangeRequestId case final requestId?) {
+      showIncomingScheduleChangeRequest(
+        context,
+        requestId: requestId,
+        repository: widget.scheduleChangeRepository,
+      );
+      return;
+    }
     NotificationDetailScreen.open(context, notification);
   }
 

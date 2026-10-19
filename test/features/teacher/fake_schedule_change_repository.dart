@@ -13,6 +13,10 @@ class FakeScheduleChangeRepository implements ScheduleChangeRepository {
     this.loadFailure,
     this.sendFailure,
     this.holdSend = false,
+    this.request,
+    this.requestFailures = const [],
+    this.decisionFailure,
+    this.holdDecision = false,
   });
 
   List<EligibleTeacher> teachers;
@@ -27,6 +31,35 @@ class FakeScheduleChangeRepository implements ScheduleChangeRepository {
   final List<(int, int)> sendCalls = [];
 
   Completer<void>? _gate;
+
+  // --- Incoming requests (Issue #453) --------------------------------------
+
+  /// What a read answers — and what a decision answers, at its new status.
+  ScheduleChangeRequest? request;
+
+  /// Thrown by successive reads, in order; once used up, reads answer
+  /// [request].
+  List<TeacherFailure> requestFailures;
+
+  /// Thrown by accept or reject, instead of deciding.
+  TeacherFailure? decisionFailure;
+
+  /// When true, a decision waits for [releaseDecision].
+  bool holdDecision;
+
+  /// Every request id read, in order.
+  final List<int> requestReads = [];
+
+  /// Every decision, as (request id, 'accept' | 'reject', reason).
+  final List<(int, String, String?)> decisions = [];
+
+  Completer<void>? _decisionGate;
+
+  /// Lets a held decision finish.
+  void releaseDecision() {
+    final gate = _decisionGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
 
   /// Lets a held send finish.
   void releaseSend() {
@@ -60,7 +93,75 @@ class FakeScheduleChangeRepository implements ScheduleChangeRepository {
       status: 'pending',
     );
   }
+
+  @override
+  Future<ScheduleChangeRequest> getRequest(int requestId) async {
+    requestReads.add(requestId);
+    if (requestFailures.isNotEmpty) {
+      final failure = requestFailures.first;
+      requestFailures = requestFailures.sublist(1);
+      throw failure;
+    }
+    final request = this.request;
+    if (request == null) {
+      throw const TeacherFailure(
+        TeacherFailureKind.rejected,
+        code: 'request_not_found',
+      );
+    }
+    return request;
+  }
+
+  @override
+  Future<ScheduleChangeRequest> acceptRequest(int requestId) =>
+      _decide(requestId, 'accept', null, 'accepted');
+
+  @override
+  Future<ScheduleChangeRequest> rejectRequest(
+    int requestId, {
+    String? reason,
+  }) => _decide(requestId, 'reject', reason, 'rejected');
+
+  Future<ScheduleChangeRequest> _decide(
+    int requestId,
+    String action,
+    String? reason,
+    String status,
+  ) async {
+    decisions.add((requestId, action, reason));
+    if (holdDecision) {
+      _decisionGate = Completer<void>();
+      await _decisionGate!.future;
+    }
+    final failure = decisionFailure;
+    if (failure != null) throw failure;
+    final decided = sampleIncomingRequest(id: requestId, status: status);
+    request = decided;
+    return decided;
+  }
 }
+
+/// An incoming request, as `GET …/{id}` reads it. Test values only.
+ScheduleChangeRequest sampleIncomingRequest({
+  int id = 12,
+  String status = 'pending',
+  String? courseTitle = 'Corporate Leaders',
+  String? cohortName = 'CL-2026-10',
+  String? room = 'Room 204',
+  String? startTime = '09:00',
+  String? endTime = '11:00',
+}) => ScheduleChangeRequest(
+  id: id,
+  sessionId: 345,
+  status: status,
+  senderName: 'Анар Бат',
+  sessionDate: DateTime(2026, 10, 20),
+  startTime: startTime,
+  endTime: endTime,
+  courseTitle: courseTitle,
+  cohortName: cohortName,
+  room: room,
+);
 
 /// Two teachers, as `eligible-teachers` lists them.
 const sampleEligibleTeachers = [

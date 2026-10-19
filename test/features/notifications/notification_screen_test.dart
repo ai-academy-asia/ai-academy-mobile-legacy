@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/auth/presentation/sign_out.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/features/home/presentation/widgets/home_header.dart';
+import 'package:aia_mobile/features/notifications/domain/app_notification.dart';
 import 'package:aia_mobile/features/notifications/domain/notification_failure.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_center.dart';
 import 'package:aia_mobile/features/notifications/presentation/notification_detail_screen.dart';
@@ -15,12 +16,14 @@ import 'package:aia_mobile/features/notifications/presentation/notification_scre
 import 'package:aia_mobile/features/notifications/presentation/notification_strings.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_screen.dart';
 import 'package:aia_mobile/features/teacher/presentation/teacher_schedule_strings.dart';
+import 'package:aia_mobile/features/teacher/presentation/widgets/teacher_request_parts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
 import '../auth/fake_auth_repository.dart';
+import '../teacher/fake_schedule_change_repository.dart';
 import '../teacher/fake_teacher_schedule_repository.dart';
 import '../teacher/teacher_home_screen_test.dart' show tuesday;
 import 'fake_notification_repository.dart';
@@ -54,12 +57,20 @@ void main() {
     center = NotificationCenter(repository: repository);
   });
 
-  Future<void> pumpScreen(WidgetTester tester) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    FakeScheduleChangeRepository? scheduleChangeRepository,
+  }) async {
     useLogicalViewport(tester, const Size(393, 875), padding: iPhonePadding);
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: NotificationScreen(center: center),
+        home: NotificationScreen(
+          center: center,
+          // Never the real API (Issue #453).
+          scheduleChangeRepository:
+              scheduleChangeRepository ?? FakeScheduleChangeRepository(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -295,6 +306,111 @@ void main() {
       expect(find.byType(NotificationDetailScreen), findsOneWidget);
       expect(repository.markCalls, [5]);
       expect(center.unreadCount, 0);
+    });
+  });
+
+  // Issue #453: a `schedule_change_request` notification opens the
+  // incoming-request sheet; anything else — another kind, or a malformed
+  // payload — opens the detail as before.
+  group('a schedule-change request', () {
+    AppNotification requestNotification({Map<String, Object?>? data}) =>
+        sampleNotification(
+          id: 40,
+          title: 'Цаг солих хүсэлт',
+          kind: 'schedule_change_request',
+          data: data ?? const {'request_id': 12, 'session_id': 345},
+          createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+        );
+
+    testWidgets('a valid one opens the sheet with its request, not the '
+        'detail, and is marked read', (tester) async {
+      final requests = FakeScheduleChangeRepository(
+        request: sampleIncomingRequest(id: 12),
+      );
+      repository.notifications = [requestNotification()];
+      await pumpScreen(tester, scheduleChangeRepository: requests);
+
+      await tester.tap(tileOf('Цаг солих хүсэлт'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TeacherIncomingRequestSheet), findsOneWidget);
+      expect(find.byType(NotificationDetailScreen), findsNothing);
+      expect(requests.requestReads, [12]);
+      expect(find.text(TeacherScheduleStrings.requestAccept), findsOneWidget);
+      expect(repository.markCalls, [40]);
+    });
+
+    testWidgets('a stale one shows where it stands, with no actions', (
+      tester,
+    ) async {
+      repository.notifications = [requestNotification()];
+      await pumpScreen(
+        tester,
+        scheduleChangeRepository: FakeScheduleChangeRepository(
+          request: sampleIncomingRequest(id: 12, status: 'accepted'),
+        ),
+      );
+
+      await tester.tap(tileOf('Цаг солих хүсэлт'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(TeacherScheduleStrings.incomingAccepted),
+        findsOneWidget,
+      );
+      expect(find.text(TeacherScheduleStrings.requestAccept), findsNothing);
+      expect(find.text(TeacherScheduleStrings.requestDecline), findsNothing);
+    });
+
+    for (final data in <Map<String, Object?>>[
+      {'session_id': 345},
+      {'request_id': '12', 'session_id': 345},
+      {'request_id': 12},
+      {'request_id': 12, 'session_id': 'x'},
+      {'request_id': 0, 'session_id': 345},
+    ]) {
+      testWidgets('a malformed one ($data) opens the detail, reading no '
+          'request', (tester) async {
+        final requests = FakeScheduleChangeRepository(
+          request: sampleIncomingRequest(id: 12),
+        );
+        repository.notifications = [requestNotification(data: data)];
+        await pumpScreen(tester, scheduleChangeRepository: requests);
+
+        await tester.tap(tileOf('Цаг солих хүсэлт'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(NotificationDetailScreen), findsOneWidget);
+        expect(find.byType(TeacherIncomingRequestSheet), findsNothing);
+        expect(requests.requestReads, isEmpty);
+      });
+    }
+
+    testWidgets('another kind, even with the same data, opens the detail', (
+      tester,
+    ) async {
+      final requests = FakeScheduleChangeRepository(
+        request: sampleIncomingRequest(id: 12),
+      );
+      repository.notifications = [
+        sampleNotification(
+          id: 41,
+          title: 'Хариу',
+          kind: 'schedule_change_response',
+          data: const {
+            'request_id': 12,
+            'session_id': 345,
+            'status': 'accepted',
+          },
+        ),
+      ];
+      await pumpScreen(tester, scheduleChangeRepository: requests);
+
+      await tester.tap(tileOf('Хариу'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotificationDetailScreen), findsOneWidget);
+      expect(requests.requestReads, isEmpty);
     });
   });
 

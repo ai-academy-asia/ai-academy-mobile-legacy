@@ -27,15 +27,40 @@ import '../teacher_home_strings.dart';
 /// attendance summary as [footer].
 class TeacherClassCard extends StatelessWidget {
   const TeacherClassCard({
-    required this.teacherClass,
+    required TeacherClass this.teacherClass,
     super.key,
     this.timeLabel,
     this.footer,
     this.showDetails = true,
     this.compactDetails = false,
-  });
+  }) : caption = null,
+       title = null,
+       room = null;
 
-  final TeacherClass teacherClass;
+  /// The same card for a session known only by its brief — an incoming
+  /// schedule-change request's (Issue #453): the [caption] (cohort name),
+  /// the [title] (course), the [room] and the [timeLabel], each drawn only
+  /// when present. The brief carries no track or student count, so the card
+  /// draws no track badge and no count capsule — none is invented.
+  const TeacherClassCard.brief({
+    required String this.title,
+    required String this.timeLabel,
+    super.key,
+    this.caption,
+    this.room,
+    this.compactDetails = false,
+  }) : teacherClass = null,
+       footer = null,
+       showDetails = true;
+
+  /// The class, for the default card. Null for [TeacherClassCard.brief].
+  final TeacherClass? teacherClass;
+
+  /// [TeacherClassCard.brief]'s own parts; null for the default card, which
+  /// reads them from [teacherClass].
+  final String? caption;
+  final String? title;
+  final String? room;
 
   /// The time beside the clock. Null shows the cohort's
   /// `start_time`-`end_time`.
@@ -55,20 +80,25 @@ class TeacherClassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cohort = teacherClass.cohort;
-    final track = teacherClass.track;
-    final title = cohort.course.title.preferred ?? cohort.course.slug;
-    final room = cohort.classroom?.name;
+    final cohort = teacherClass?.cohort;
+    final track = teacherClass?.track;
+    final title = cohort != null
+        ? cohort.course.title.preferred ?? cohort.course.slug
+        : this.title!;
+    final caption = cohort != null ? cohort.name : this.caption;
+    final room = cohort != null ? cohort.classroom?.name : this.room;
     final detailStyle = compactDetails ? _compactDetailStyle : _detailStyle;
 
     final palette = context.palette;
-    final students = CardCapsule(
-      label: TeacherHomeStrings.students(cohort.enrolledCount),
-      outline: palette.successOutline,
-      fill: palette.successFill,
-      ink: palette.successInk,
-      horizontalPadding: 15,
-    );
+    final students = cohort == null
+        ? null
+        : CardCapsule(
+            label: TeacherHomeStrings.students(cohort.enrolledCount),
+            outline: palette.successOutline,
+            fill: palette.successFill,
+            ink: palette.successInk,
+            horizontalPadding: 15,
+          );
     final radius = BorderRadius.circular(16);
     return Container(
       decoration: BoxDecoration(
@@ -94,10 +124,13 @@ class TeacherClassCard extends StatelessWidget {
                   // (Issues #351, #404).
                   CardBadgeRow(track: track, trailing: students),
                   const SizedBox(height: _badgeToCaption),
-                  Text(
-                    cohort.name,
-                    style: _captionStyle.copyWith(color: palette.textSecondary),
-                  ),
+                  if (caption != null)
+                    Text(
+                      caption,
+                      style: _captionStyle.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
                   Text(
                     title,
                     style: _titleStyle.copyWith(color: palette.teacherTitle),
@@ -119,7 +152,7 @@ class TeacherClassCard extends StatelessWidget {
                           icon: AppIcons.clock,
                           label:
                               timeLabel ??
-                              '${_clock(cohort.startTime)}-${_clock(cohort.endTime)}',
+                              '${_clock(cohort!.startTime)}-${_clock(cohort.endTime)}',
                           semanticsLabel: TeacherHomeStrings.time,
                           style: detailStyle,
                         ),

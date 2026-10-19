@@ -46,6 +46,19 @@ class AppNotification {
     return value is int ? value : null;
   }
 
+  /// `data.request_id` on a `schedule_change_request` notification (Issue
+  /// #453) — the request a teacher is asked to answer. The contract's data
+  /// is `{request_id, session_id}`: both must be positive integers, else
+  /// this is null and the notification opens as any other does.
+  int? get scheduleChangeRequestId {
+    if (kind != 'schedule_change_request') return null;
+    final requestId = data?['request_id'];
+    final sessionId = data?['session_id'];
+    if (requestId is! int || requestId <= 0) return null;
+    if (sessionId is! int || sessionId <= 0) return null;
+    return requestId;
+  }
+
   AppNotification copyWith({DateTime? readAt}) => AppNotification(
     id: id,
     title: title,
