@@ -2,6 +2,7 @@ import '../../../core/api/api_failure.dart';
 import '../../cohorts/data/http_cohort_repository.dart';
 import '../../cohorts/domain/cohort.dart';
 import '../../cohorts/domain/cohort_course_resolver.dart';
+import '../../cohorts/domain/cohort_listing.dart';
 import '../../cohorts/domain/cohort_repository.dart';
 import '../../course_learning/data/http_course_learning_repository.dart';
 import '../../course_learning/domain/course_certificate.dart';
@@ -69,14 +70,14 @@ class EnrolledCertificateListRepository implements CertificateListRepository {
   @override
   Future<List<CertificateEntry>> getCertificates() async {
     final List<EnrolledCohortSummary> enrolled;
-    final List<Cohort> cohorts;
+    final CohortListing listing;
     try {
       final results = await Future.wait([
         _enrolledCohorts.getEnrolledCohorts(),
         _cohorts.getCohorts(),
       ]);
       enrolled = results[0] as List<EnrolledCohortSummary>;
-      cohorts = results[1] as List<Cohort>;
+      listing = results[1] as CohortListing;
     } on EnrollmentFailure catch (failure) {
       throw CourseLearningFailure(
         _kindForEnrollment(failure.kind),
@@ -92,8 +93,17 @@ class EnrolledCertificateListRepository implements CertificateListRepository {
     final progressByCohortId = {
       for (final entry in enrolled) entry.cohortId: entry.progressPct,
     };
+    // An unrelated malformed cohort is simply not listed (Issue #445). One
+    // that may be the student's own fails closed — a missing card could hide
+    // an issued certificate, as the class doc says of any other failure.
+    if (listing.mayHideAny(progressByCohortId.keys)) {
+      throw CourseLearningFailure(
+        CourseLearningFailureKind.server,
+        detail: 'GET /cohorts: unreadable cohort ${listing.describeSkipped()}',
+      );
+    }
     final mine = [
-      for (final cohort in cohorts)
+      for (final cohort in listing.cohorts)
         if (progressByCohortId.containsKey(cohort.id)) cohort,
     ];
     if (mine.isEmpty) return const [];

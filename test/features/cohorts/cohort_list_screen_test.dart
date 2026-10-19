@@ -9,6 +9,7 @@ import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort_listing.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_module_list_screen.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrollment_failure.dart';
@@ -566,6 +567,50 @@ void main() {
       expect(find.text('Open'), findsOneWidget);
       expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
     });
+
+    // Issue #445: a malformed row is left out; the valid ones still draw.
+    testWidgets('a malformed cohort is left out, and the valid rows render', (
+      tester,
+    ) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(
+          cohorts: [
+            sampleCohort(id: 1, name: 'A'),
+            sampleCohort(id: 3, name: 'C'),
+          ],
+          skipped: const [
+            SkippedCohort(
+              id: 2,
+              reason: 'cohort.teacher: expected an object, got Null',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final rendered = tester
+          .widgetList<CohortCard>(find.byType(CohortCard))
+          .map((card) => card.cohort.id)
+          .toList();
+      expect(rendered, [1, 3]);
+      expect(find.text(CohortListStrings.serverError), findsNothing);
+    });
+
+    testWidgets('every row malformed shows the server error, never the empty '
+        'message', (tester) async {
+      await pumpList(
+        tester,
+        FakeCohortRepository(
+          skipped: const [SkippedCohort(id: 2, reason: 'cohort.teacher')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CohortCard), findsNothing);
+      expect(find.text(CohortListStrings.serverError), findsOneWidget);
+      expect(find.text(CohortListStrings.empty), findsNothing);
+    });
   });
 
   group('course filter', () {
@@ -1068,6 +1113,108 @@ void main() {
       expect(find.text('Cohort 02'), findsNothing);
       expect(find.text('Active'), findsOneWidget);
       expect(find.text('Finished'), findsOneWidget);
+    });
+
+    // Issue #445: `GET /cohorts` reads row by row. A malformed row that may
+    // be one of the student's own cohorts fails closed; an unrelated one is
+    // simply not listed.
+    group('a malformed cohort row', () {
+      const unreadableTeacher = 'cohort.teacher: expected an object, got Null';
+
+      testWidgets('the student\'s own cohort malformed shows the server error '
+          'with retry, never "not enrolled"', (tester) async {
+        await pumpMine(
+          tester,
+          enrolled: const [EnrolledCohortSummary(cohortId: 3)],
+          repository: FakeCohortRepository(
+            cohorts: [sampleCohort(id: 1, name: 'Cohort 01')],
+            skipped: const [SkippedCohort(id: 3, reason: unreadableTeacher)],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(CohortListStrings.serverError), findsOneWidget);
+        expect(find.text(CohortListStrings.retry), findsOneWidget);
+        expect(find.text(CohortListStrings.emptyMine), findsNothing);
+        expect(find.byType(CohortCard), findsNothing);
+      });
+
+      testWidgets('an unrelated malformed cohort does not hide the student\'s '
+          'cards', (tester) async {
+        await pumpMine(
+          tester,
+          repository: FakeCohortRepository(
+            cohorts: [
+              sampleCohort(id: 1, name: 'Cohort 01', status: 'active'),
+              sampleCohort(id: 3, name: 'Cohort 03', status: 'finished'),
+            ],
+            skipped: const [SkippedCohort(id: 2, reason: unreadableTeacher)],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final rendered = tester
+            .widgetList<CohortCard>(find.byType(CohortCard))
+            .map((card) => card.cohort.id)
+            .toList();
+        expect(rendered, [1, 3]);
+        expect(find.text(CohortListStrings.serverError), findsNothing);
+      });
+
+      testWidgets('one of two enrolled cohorts malformed fails closed rather '
+          'than showing the other alone', (tester) async {
+        await pumpMine(
+          tester,
+          repository: FakeCohortRepository(
+            cohorts: [sampleCohort(id: 1, name: 'Cohort 01', status: 'active')],
+            skipped: const [SkippedCohort(id: 3, reason: unreadableTeacher)],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(CohortListStrings.serverError), findsOneWidget);
+        expect(find.byType(CohortCard), findsNothing);
+        expect(find.text('Cohort 01'), findsNothing);
+      });
+
+      testWidgets('a row with an unreadable id fails closed while one of the '
+          'student\'s cohorts is not among the valid rows', (tester) async {
+        await pumpMine(
+          tester,
+          repository: FakeCohortRepository(
+            cohorts: [sampleCohort(id: 1, name: 'Cohort 01', status: 'active')],
+            skipped: const [SkippedCohort(id: null, reason: 'cohort.id')],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(CohortListStrings.serverError), findsOneWidget);
+        expect(find.byType(CohortCard), findsNothing);
+      });
+
+      testWidgets('retry after the row is fixed shows the student\'s cards', (
+        tester,
+      ) async {
+        final repository = FakeCohortRepository(
+          cohorts: [sampleCohort(id: 1, name: 'Cohort 01', status: 'active')],
+          skipped: const [SkippedCohort(id: 3, reason: unreadableTeacher)],
+        );
+        await pumpMine(tester, repository: repository);
+        await tester.pumpAndSettle();
+        expect(find.text(CohortListStrings.serverError), findsOneWidget);
+
+        repository
+          ..cohorts = [
+            sampleCohort(id: 1, name: 'Cohort 01', status: 'active'),
+            sampleCohort(id: 3, name: 'Cohort 03', status: 'finished'),
+          ]
+          ..skipped = const [];
+        await tester.tap(find.text(CohortListStrings.retry));
+        await tester.pumpAndSettle();
+
+        expect(find.text(CohortListStrings.serverError), findsNothing);
+        expect(find.byType(CohortCard), findsNWidgets(2));
+      });
     });
 
     testWidgets('shows the real programme name on each card', (tester) async {

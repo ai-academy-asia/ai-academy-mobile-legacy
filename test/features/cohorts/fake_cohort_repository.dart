@@ -3,17 +3,28 @@ import 'dart:async';
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort_listing.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort_repository.dart';
 
 /// A repository the tests drive by hand. Same shape as
 /// `FakeCourseRepository`: either completes with [cohorts], throws a chosen
 /// [ApiFailure], or — when [hold] is set — waits for [release], which is how
 /// the loading state gets observed while the request is still in flight.
+/// [skipped] stands in for rows the real parser would have rejected
+/// (Issue #445).
 class FakeCohortRepository implements CohortRepository {
-  FakeCohortRepository({this.cohorts = const [], this.failure, this.hold = false});
+  FakeCohortRepository({
+    this.cohorts = const [],
+    this.skipped = const [],
+    this.failure,
+    this.hold = false,
+  });
 
   /// Returned on success.
   List<Cohort> cohorts;
+
+  /// Reported as skipped rows on success.
+  List<SkippedCohort> skipped;
 
   /// Thrown instead of returning, when set.
   ApiFailure? failure;
@@ -34,7 +45,7 @@ class FakeCohortRepository implements CohortRepository {
   }
 
   @override
-  Future<List<Cohort>> getCohorts() async {
+  Future<CohortListing> getCohorts() async {
     callCount++;
 
     if (hold) {
@@ -45,7 +56,7 @@ class FakeCohortRepository implements CohortRepository {
     final failure = this.failure;
     if (failure != null) throw failure;
 
-    return cohorts;
+    return CohortListing(cohorts: cohorts, skipped: skipped);
   }
 }
 

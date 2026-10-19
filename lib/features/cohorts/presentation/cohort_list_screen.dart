@@ -201,6 +201,15 @@ class _CohortListScreenState extends State<CohortListScreen> {
       if (_enrolledCohorts.errorMessage case final message?) {
         return _ErrorView(message: message, onRetry: _refresh);
       }
+      // One of the student's own cohorts may be a row `GET /cohorts` sent
+      // malformed (Issue #445): fail closed with the server error and its
+      // retry, never "not enrolled" or a list with that cohort missing.
+      if (_controller.mayHideAny(_enrolledCohorts.enrolledCohortIds)) {
+        return _ErrorView(
+          message: CohortListStrings.serverError,
+          onRetry: _refresh,
+        );
+      }
     }
 
     final cohorts = _visibleCohorts;

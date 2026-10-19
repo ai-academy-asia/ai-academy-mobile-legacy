@@ -1,7 +1,6 @@
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_config.dart';
-import '../../../core/api/api_failure.dart';
 import '../../auth/data/authenticated_client.dart';
 import '../../auth/data/http_current_user_repository.dart';
 import '../../auth/domain/auth_session_store.dart';
@@ -28,7 +27,7 @@ import 'teacher_http.dart';
 /// answers for it, every assignment's `teacher_id` carries it, and the public
 /// `cohort.teacher.id` matches it. The schedule answers `{teacher_id,
 /// cohorts: [...]}`, each cohort in exactly `GET /cohorts`'s shape, so it is
-/// read by the same [cohortFromJson].
+/// read by the same [cohortListingFromJson], row by row.
 ///
 /// A track for each class comes from the public `GET /courses` catalog's
 /// `level` — best-effort, as Adult Home treats its own catalog lookup: a
@@ -124,8 +123,13 @@ class HttpTeacherHomeRepository implements TeacherHomeRepository {
   }
 }
 
-/// The schedule's `cohorts`, each read by [cohortFromJson]. A body that is
-/// not that shape is the API misbehaving: a `server` failure.
+/// The schedule's `cohorts`, read row by row by [cohortListingFromJson]
+/// (Issue #445). Every row is the teacher's own class, so a row that does
+/// not parse fails closed: a `server` failure — as a body that is not the
+/// envelope's shape is — never a list with that class silently missing.
+/// Teacher Schedule, Teacher Programs and Teacher Home all read classes
+/// here, and each shows its existing error with retry. The failure detail
+/// names each skipped row's id and field, never a value.
 List<Cohort> _cohortsFromBody(String body) {
   final decoded = teacherJsonObject(body);
   final cohorts = decoded['cohorts'];
@@ -135,9 +139,12 @@ List<Cohort> _cohortsFromBody(String body) {
       detail: 'cohorts: expected a list, got ${cohorts.runtimeType}',
     );
   }
-  try {
-    return [for (final entry in cohorts) cohortFromJson(entry)];
-  } on ApiFailure catch (failure) {
-    throw TeacherFailure(TeacherFailureKind.server, detail: failure.detail);
+  final listing = cohortListingFromJson(cohorts);
+  if (listing.skipped.isNotEmpty) {
+    throw TeacherFailure(
+      TeacherFailureKind.server,
+      detail: 'unreadable cohort ${listing.describeSkipped()}',
+    );
   }
+  return listing.cohorts;
 }

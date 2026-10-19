@@ -2,6 +2,7 @@ import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/features/certificates/data/enrolled_certificate_list_repository.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort_listing.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_certificate.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
@@ -39,6 +40,7 @@ void main() {
       EnrolledCohortSummary(cohortId: 1),
     ],
     List<Cohort>? cohorts,
+    List<SkippedCohort> skipped = const [],
     EnrollmentFailure? enrolledFailure,
     ApiFailure? cohortsFailure,
   }) => EnrolledCertificateListRepository(
@@ -48,6 +50,7 @@ void main() {
     ),
     cohorts: FakeCohortRepository(
       cohorts: cohorts ?? [cohort(1, 'ai-basics')],
+      skipped: skipped,
       failure: cohortsFailure,
     ),
     courses: FakeCourseRepository(),
@@ -272,4 +275,53 @@ void main() {
       );
     },
   );
+
+  // Issue #445: `GET /cohorts` reads row by row. An unrelated malformed
+  // cohort is not listed; one that may be the student's own fails closed.
+  group('malformed cohort rows', () {
+    const unreadableTeacher = 'cohort.teacher: expected an object, got Null';
+
+    test(
+      'an unrelated malformed cohort still draws the student\'s cards',
+      () async {
+        final entries = await repository(
+          cohorts: [cohort(1, 'ai-basics')],
+          skipped: const [SkippedCohort(id: 2, reason: unreadableTeacher)],
+        ).getCertificates();
+
+        expect([for (final e in entries) e.cohortId], [1]);
+      },
+    );
+
+    test('the student\'s own malformed cohort is a server failure, not an '
+        'empty list', () async {
+      await expectLater(
+        repository(
+          enrolled: const [EnrolledCohortSummary(cohortId: 2)],
+          cohorts: [cohort(1, 'ai-basics')],
+          skipped: const [SkippedCohort(id: 2, reason: unreadableTeacher)],
+        ).getCertificates(),
+        throwsA(
+          isA<CourseLearningFailure>().having(
+            (f) => f.kind,
+            'kind',
+            CourseLearningFailureKind.server,
+          ),
+        ),
+      );
+      expect(learning.certificateCalls, isEmpty);
+    });
+
+    test('a row with an unreadable id fails closed while the student\'s '
+        'cohort is not among the valid rows', () async {
+      await expectLater(
+        repository(
+          enrolled: const [EnrolledCohortSummary(cohortId: 2)],
+          cohorts: [cohort(1, 'ai-basics')],
+          skipped: const [SkippedCohort(id: null, reason: 'cohort.id')],
+        ).getCertificates(),
+        throwsA(isA<CourseLearningFailure>()),
+      );
+    });
+  });
 }

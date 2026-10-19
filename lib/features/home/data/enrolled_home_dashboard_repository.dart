@@ -6,6 +6,7 @@ import '../../auth/domain/current_user_repository.dart';
 import '../../cohorts/data/http_cohort_repository.dart';
 import '../../cohorts/domain/cohort.dart';
 import '../../cohorts/domain/cohort_course_resolver.dart';
+import '../../cohorts/domain/cohort_listing.dart';
 import '../../cohorts/domain/cohort_repository.dart';
 import '../../contracts/data/http_contract_repository.dart';
 import '../../contracts/domain/contract_repository.dart';
@@ -116,7 +117,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   @override
   Future<HomeDashboard> getDashboard() async {
     final List<EnrolledCohortSummary> enrolled;
-    final List<Cohort> cohorts;
+    final CohortListing listing;
     try {
       // Both are needed to say anything at all, and neither depends on the
       // other, so they go out together rather than one after the next.
@@ -125,7 +126,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         _cohorts.getCohorts(),
       ]);
       enrolled = results[0] as List<EnrolledCohortSummary>;
-      cohorts = results[1] as List<Cohort>;
+      listing = results[1] as CohortListing;
     } on EnrollmentFailure catch (failure) {
       throw HomeFailure(
         _kindForEnrollment(failure.kind),
@@ -138,7 +139,19 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     final progressByCohortId = {
       for (final entry in enrolled) entry.cohortId: entry.progressPct,
     };
-    final cohort = _currentCohort(cohorts, progressByCohortId.keys.toSet());
+    // An unrelated malformed cohort is simply not listed (Issue #445). One
+    // that may be the student's own fails closed: a server failure, never
+    // the "not enrolled" dashboard.
+    if (listing.mayHideAny(progressByCohortId.keys)) {
+      throw HomeFailure(
+        HomeFailureKind.server,
+        detail: 'GET /cohorts: unreadable cohort ${listing.describeSkipped()}',
+      );
+    }
+    final cohort = _currentCohort(
+      listing.cohorts,
+      progressByCohortId.keys.toSet(),
+    );
     if (cohort == null) return const HomeDashboard();
 
     final progressPct = progressByCohortId[cohort.id];

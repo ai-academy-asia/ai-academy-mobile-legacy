@@ -1,5 +1,5 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
-import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort_listing.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort_repository.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_controller.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
@@ -158,6 +158,91 @@ void main() {
     expect(notifications, greaterThanOrEqualTo(2));
   });
 
+  // Issue #445: the controller keeps the rows `GET /cohorts` skipped.
+  group('malformed rows', () {
+    const teacher = 'cohort.teacher: expected an object, got Null';
+
+    CohortListController controllerFor(FakeCohortRepository repository) =>
+        CohortListController(
+          courseRepository: FakeCourseRepository(),
+          repository: repository,
+        );
+
+    test('every row malformed is a server error, not an empty list', () async {
+      final controller = controllerFor(
+        FakeCohortRepository(
+          skipped: const [
+            SkippedCohort(id: 1, reason: teacher),
+            SkippedCohort(id: null, reason: 'cohort.id'),
+          ],
+        ),
+      );
+
+      await controller.load();
+
+      expect(controller.errorMessage, CohortListStrings.serverError);
+      expect(controller.cohorts, isEmpty);
+      expect(controller.isEmpty, isFalse);
+      expect(
+        controller.mayHideAny(const [1]),
+        isFalse,
+        reason: 'a failed fetch keeps no skipped rows',
+      );
+    });
+
+    test('some rows malformed: the valid ones are held, and mayHideAny '
+        'answers for the skipped ones', () async {
+      final controller = controllerFor(
+        FakeCohortRepository(
+          cohorts: [sampleCohort(id: 1), sampleCohort(id: 3)],
+          skipped: const [SkippedCohort(id: 2, reason: teacher)],
+        ),
+      );
+
+      await controller.load();
+
+      expect(controller.errorMessage, isNull);
+      expect([for (final c in controller.cohorts) c.id], [1, 3]);
+      expect(controller.mayHideAny(const [2]), isTrue);
+      expect(controller.mayHideAny(const [1, 3]), isFalse);
+    });
+
+    test('a later clean fetch forgets the skipped rows', () async {
+      final repository = FakeCohortRepository(
+        cohorts: [sampleCohort(id: 1)],
+        skipped: const [SkippedCohort(id: 2, reason: teacher)],
+      );
+      final controller = controllerFor(repository);
+      await controller.load();
+      expect(controller.mayHideAny(const [2]), isTrue);
+
+      repository
+        ..cohorts = [sampleCohort(id: 1), sampleCohort(id: 2)]
+        ..skipped = const [];
+      await controller.load();
+
+      expect(controller.mayHideAny(const [2]), isFalse);
+    });
+
+    test(
+      'a failed fetch after a partial one forgets the skipped rows',
+      () async {
+        final repository = FakeCohortRepository(
+          cohorts: [sampleCohort(id: 1)],
+          skipped: const [SkippedCohort(id: 2, reason: teacher)],
+        );
+        final controller = controllerFor(repository);
+        await controller.load();
+
+        repository.failure = const ApiFailure(ApiFailureKind.network);
+        await controller.load();
+
+        expect(controller.errorMessage, isNotNull);
+        expect(controller.mayHideAny(const [2]), isFalse);
+      },
+    );
+  });
+
   group('course filter', () {
     test('keeps only cohorts matching courseId when one is given', () async {
       final cohorts = [
@@ -265,5 +350,5 @@ void main() {
 /// catch-all branch — not the typed one — is what has to handle it.
 class _ThrowsNonApiFailure implements CohortRepository {
   @override
-  Future<List<Cohort>> getCohorts() => throw StateError('boom');
+  Future<CohortListing> getCohorts() => throw StateError('boom');
 }

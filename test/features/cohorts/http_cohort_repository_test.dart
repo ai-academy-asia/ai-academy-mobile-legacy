@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:aia_mobile/core/api/api_config.dart';
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/features/cohorts/data/http_cohort_repository.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort_listing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -99,7 +100,7 @@ void main() {
         (_) async => jsonResponse(confirmedResponseBody, 200),
       );
 
-      final cohorts = await repository.getCohorts();
+      final cohorts = (await repository.getCohorts()).cohorts;
 
       expect(cohorts, hasLength(1));
       final cohort = cohorts.single;
@@ -123,7 +124,7 @@ void main() {
         (_) async => jsonResponse(confirmedResponseBody, 200),
       );
 
-      final course = (await repository.getCohorts()).single.course;
+      final course = (await repository.getCohorts()).cohorts.single.course;
 
       expect(course.id, 6);
       expect(course.slug, 'summer-bootcamp-2027');
@@ -136,7 +137,8 @@ void main() {
         (_) async => jsonResponse(confirmedResponseBody, 200),
       );
 
-      final classroom = (await repository.getCohorts()).single.classroom!;
+      final classroom =
+          (await repository.getCohorts()).cohorts.single.classroom!;
 
       expect(classroom.id, 1);
       expect(classroom.name, 'Room 301');
@@ -148,7 +150,7 @@ void main() {
         (_) async => jsonResponse(confirmedResponseBody, 200),
       );
 
-      final teacher = (await repository.getCohorts()).single.teacher;
+      final teacher = (await repository.getCohorts()).cohorts.single.teacher;
 
       expect(teacher.id, 2);
       expect(teacher.name, 'Сараа Ганбат');
@@ -159,7 +161,7 @@ void main() {
         (_) async => jsonResponse(confirmedResponseBody, 200),
       );
 
-      final cohort = (await repository.getCohorts()).single;
+      final cohort = (await repository.getCohorts()).cohorts.single;
 
       expect(cohort.parentCohortId, isNull);
       expect(cohort.scheduleNote, isNull);
@@ -175,7 +177,7 @@ void main() {
       });
       final repository = repositoryReturning((_) async => jsonResponse(body, 200));
 
-      final cohort = (await repository.getCohorts()).single;
+      final cohort = (await repository.getCohorts()).cohorts.single;
 
       expect(cohort.parentCohortId, 7);
       expect(cohort.scheduleNote, 'Moved from Room 202');
@@ -186,7 +188,7 @@ void main() {
         (_) async => jsonResponse(jsonEncode({'cohorts': []}), 200),
       );
 
-      expect(await repository.getCohorts(), isEmpty);
+      expect((await repository.getCohorts()).cohorts, isEmpty);
     });
 
     test('parses every cohort in a multi-cohort response, in order', () async {
@@ -199,7 +201,7 @@ void main() {
       });
       final repository = repositoryReturning((_) async => jsonResponse(body, 200));
 
-      final cohorts = await repository.getCohorts();
+      final cohorts = (await repository.getCohorts()).cohorts;
 
       expect(cohorts.map((c) => c.id), [1, 2, 3]);
       expect(cohorts.map((c) => c.name), ['A', 'B', 'C']);
@@ -238,128 +240,177 @@ void main() {
       expect(failure.kind, ApiFailureKind.server);
       expect(failure.detail, contains('cohorts'));
     });
+  });
 
-    test('a cohort entry that is not an object is a server fault', () async {
-      final failure = await failureFrom(
-        repositoryReturning(
-          (_) async => jsonResponse(
-            jsonEncode({
-              'cohorts': ['not-an-object'],
-            }),
-            200,
-          ),
-        ),
-      );
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort entry'));
-    });
+  // Issue #445: a row the parser rejects is skipped and reported, not a
+  // failure of the whole list. Each case below is one bad row on its own, so
+  // the listing is empty and its report names the failing field.
+  group('malformed rows', () {
+    Future<CohortListing> listingOf(List<Object?> rows) => repositoryReturning(
+      (_) async => jsonResponse(jsonEncode({'cohorts': rows}), 200),
+    ).getCohorts();
+
+    Future<SkippedCohort> skippedRow(Object? row) async {
+      final listing = await listingOf([row]);
+      expect(listing.cohorts, isEmpty);
+      return listing.skipped.single;
+    }
+
+    test(
+      'a cohort entry that is not an object is skipped, with no id',
+      () async {
+        final skipped = await skippedRow('not-an-object');
+        expect(skipped.id, isNull);
+        expect(skipped.reason, contains('cohort entry'));
+      },
+    );
 
     test('a cohort entry missing a required field names that field', () async {
-      final json = _cohortJson()..remove('name');
-      final body = jsonEncode({
-        'cohorts': [json],
-      });
-
-      final failure = await failureFrom(
-        repositoryReturning((_) async => jsonResponse(body, 200)),
-      );
-
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.name'));
+      final skipped = await skippedRow(_cohortJson()..remove('name'));
+      expect(skipped.id, 1);
+      expect(skipped.reason, contains('cohort.name'));
     });
 
     test('a required field with the wrong type names that field', () async {
-      final body = jsonEncode({
-        'cohorts': [
-          _cohortJson(overrides: {'capacity': 'twenty'}),
-        ],
-      });
-
-      final failure = await failureFrom(
-        repositoryReturning((_) async => jsonResponse(body, 200)),
+      final skipped = await skippedRow(
+        _cohortJson(overrides: {'capacity': 'twenty'}),
       );
-
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.capacity'));
+      expect(skipped.reason, contains('cohort.capacity'));
     });
 
     test('a missing nested object names the field', () async {
       // `teacher` — still required. `classroom` may be absent or null: see
       // the "nullable classroom" group.
-      final json = _cohortJson()..remove('teacher');
-      final body = jsonEncode({
-        'cohorts': [json],
-      });
-
-      final failure = await failureFrom(
-        repositoryReturning((_) async => jsonResponse(body, 200)),
-      );
-
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.teacher'));
+      final skipped = await skippedRow(_cohortJson()..remove('teacher'));
+      expect(skipped.reason, contains('cohort.teacher'));
     });
 
+    test(
+      'a null teacher — what a deleted teacher leaves — names the field',
+      () async {
+        final skipped = await skippedRow(
+          _cohortJson(overrides: {'teacher': null}),
+        );
+        expect(skipped.id, 1);
+        expect(skipped.reason, contains('cohort.teacher'));
+      },
+    );
+
     test('a non-object nested field names the field', () async {
-      final body = jsonEncode({
-        'cohorts': [
-          _cohortJson(overrides: {'teacher': 'Bat'}),
-        ],
-      });
-
-      final failure = await failureFrom(
-        repositoryReturning((_) async => jsonResponse(body, 200)),
+      final skipped = await skippedRow(
+        _cohortJson(overrides: {'teacher': 'Bat'}),
       );
-
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.teacher'));
+      expect(skipped.reason, contains('cohort.teacher'));
     });
 
     test('meeting_days not being a list names the field', () async {
-      final body = jsonEncode({
-        'cohorts': [
-          _cohortJson(overrides: {'meeting_days': 'mon'}),
-        ],
-      });
-
-      final failure = await failureFrom(
-        repositoryReturning((_) async => jsonResponse(body, 200)),
+      final skipped = await skippedRow(
+        _cohortJson(overrides: {'meeting_days': 'mon'}),
       );
-
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.meeting_days'));
+      expect(skipped.reason, contains('cohort.meeting_days'));
     });
 
     test('a non-string item inside meeting_days names the field', () async {
-      final body = jsonEncode({
-        'cohorts': [
-          _cohortJson(
-            overrides: {
-              'meeting_days': ['mon', 3],
-            },
-          ),
-        ],
-      });
-
-      final failure = await failureFrom(
-        repositoryReturning((_) async => jsonResponse(body, 200)),
+      final skipped = await skippedRow(
+        _cohortJson(
+          overrides: {
+            'meeting_days': ['mon', 3],
+          },
+        ),
       );
+      expect(skipped.reason, contains('cohort.meeting_days'));
+    });
 
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('cohort.meeting_days'));
+    test('a malformed id is skipped with no id, so it is never mistaken '
+        'for another cohort', () async {
+      for (final id in <Object?>[null, '7', true]) {
+        final skipped = await skippedRow(_cohortJson(overrides: {'id': id}));
+        expect(skipped.id, isNull, reason: '$id');
+        expect(skipped.reason, contains('cohort.id'), reason: '$id');
+      }
+    });
+
+    test('a malformed row sharing its id with a valid row is still '
+        'reported under that id, so the id stays suspect', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 5, 'name': 'Valid'}),
+        _cohortJson(overrides: {'id': 5, 'teacher': null}),
+      ]);
+
+      expect(listing.cohorts.single.id, 5);
+      expect(listing.skipped.single.id, 5);
+      expect(listing.mayHideAny(const [5]), isTrue);
+    });
+
+    test('a non-whole-number id on a malformed row is reported with no id '
+        '(never truncated to another cohort\'s)', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 7}),
+        _cohortJson(overrides: {'id': 7.5, 'teacher': null}),
+      ]);
+
+      expect(listing.cohorts.single.id, 7);
+      expect(listing.skipped.single.id, isNull);
+      expect(listing.skipped.single.reason, contains('cohort.teacher'));
+      // Unreadable id: suspect for any id the valid rows do not carry.
+      expect(listing.mayHideAny(const [7]), isFalse);
+      expect(listing.mayHideAny(const [8]), isTrue);
+    });
+
+    test('one malformed row among valid ones: the valid rows are returned, '
+        'in order, and the malformed one is reported', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 1, 'name': 'A'}),
+        _cohortJson(overrides: {'id': 2, 'teacher': null}),
+        _cohortJson(overrides: {'id': 3, 'name': 'C'}),
+      ]);
+
+      expect(listing.cohorts.map((c) => c.id), [1, 3]);
+      expect(listing.cohorts.map((c) => c.name), ['A', 'C']);
+      expect(listing.skipped.single.id, 2);
+      expect(listing.skipped.single.reason, contains('cohort.teacher'));
+    });
+
+    test('every row malformed: no cohorts, every row reported', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 1, 'teacher': null}),
+        _cohortJson(overrides: {'id': 2})..remove('start_date'),
+        'not-an-object',
+      ]);
+
+      expect(listing.cohorts, isEmpty);
+      expect(listing.skipped.map((s) => s.id), [1, 2, null]);
+    });
+
+    test('the report names fields and types, never a response value', () async {
+      final listing = await listingOf([
+        _cohortJson(
+          overrides: {
+            'id': 9,
+            'teacher': 'Сараа Ганбат',
+            'capacity': 'secret-value',
+          },
+        ),
+      ]);
+
+      final reason = listing.skipped.single.reason;
+      expect(reason, isNot(contains('Сараа')));
+      expect(reason, isNot(contains('secret-value')));
+      expect(listing.describeSkipped(), isNot(contains('Сараа')));
     });
   });
 
   group('nullable classroom (production GET /cohorts)', () {
-    Future<ApiFailure> rejection(Map<String, dynamic> cohort) async {
+    /// The row is rejected — skipped and reported since Issue #445.
+    Future<SkippedCohort> rejection(Map<String, dynamic> cohort) async {
       final body = jsonEncode({
         'cohorts': [cohort],
       });
-      try {
-        await repositoryReturning((_) async => jsonResponse(body, 200)).getCohorts();
-      } on ApiFailure catch (failure) {
-        return failure;
-      }
-      fail('expected an ApiFailure');
+      final listing = await repositoryReturning(
+        (_) async => jsonResponse(body, 200),
+      ).getCohorts();
+      expect(listing.cohorts, isEmpty);
+      return listing.skipped.single;
     }
 
     test('classroom: null is accepted as no classroom', () async {
@@ -371,47 +422,52 @@ void main() {
 
       final cohort = (await repositoryReturning(
         (_) async => jsonResponse(body, 200),
-      ).getCohorts()).single;
+      ).getCohorts()).cohorts.single;
 
       expect(cohort.classroom, isNull);
       expect(cohort.id, 1);
       expect(cohort.teacher.name, 'Сараа Ганбат');
     });
 
-    test('the production online cohort no longer fails the whole list', () async {
-      // Cohort 4 as the live response sends it, between two that have a
-      // classroom — the list used to be rejected all-or-nothing over it.
-      final online = _cohortJson(overrides: {
-        'id': 4,
-        'name': 'AI Applied — Online',
-        'status': 'closed',
-        'classroom': null,
-        'course': {
-          'id': 10,
-          'slug': 'ai-applied-online',
-          'title_en': 'AI Applied (Online)',
-          'title_mn': 'AI Applied (Онлайн)',
-        },
-        'course_id': 10,
-      });
-      final body = jsonEncode({
-        'cohorts': [
-          _cohortJson(overrides: {'id': 2}),
-          online,
-          _cohortJson(overrides: {'id': 3}),
-        ],
-      });
+    test(
+      'the production online cohort no longer fails the whole list',
+      () async {
+        // Cohort 4 as the live response sends it, between two that have a
+        // classroom — the list used to be rejected all-or-nothing over it.
+        final online = _cohortJson(
+          overrides: {
+            'id': 4,
+            'name': 'AI Applied — Online',
+            'status': 'closed',
+            'classroom': null,
+            'course': {
+              'id': 10,
+              'slug': 'ai-applied-online',
+              'title_en': 'AI Applied (Online)',
+              'title_mn': 'AI Applied (Онлайн)',
+            },
+            'course_id': 10,
+          },
+        );
+        final body = jsonEncode({
+          'cohorts': [
+            _cohortJson(overrides: {'id': 2}),
+            online,
+            _cohortJson(overrides: {'id': 3}),
+          ],
+        });
 
-      final cohorts = await repositoryReturning(
-        (_) async => jsonResponse(body, 200),
-      ).getCohorts();
+        final cohorts = (await repositoryReturning(
+          (_) async => jsonResponse(body, 200),
+        ).getCohorts()).cohorts;
 
-      expect(cohorts.map((c) => c.id), [2, 4, 3]);
-      expect(cohorts[1].classroom, isNull);
-      expect(cohorts[1].course.slug, 'ai-applied-online');
-      expect(cohorts[0].classroom!.name, 'Room 301');
-      expect(cohorts[2].classroom!.name, 'Room 301');
-    });
+        expect(cohorts.map((c) => c.id), [2, 4, 3]);
+        expect(cohorts[1].classroom, isNull);
+        expect(cohorts[1].course.slug, 'ai-applied-online');
+        expect(cohorts[0].classroom!.name, 'Room 301');
+        expect(cohorts[2].classroom!.name, 'Room 301');
+      },
+    );
 
     test('an absent classroom key reads as no classroom too', () async {
       final body = jsonEncode({
@@ -420,7 +476,7 @@ void main() {
 
       final cohort = (await repositoryReturning(
         (_) async => jsonResponse(body, 200),
-      ).getCohorts()).single;
+      ).getCohorts()).cohorts.single;
 
       expect(cohort.classroom, isNull);
     });
@@ -431,8 +487,11 @@ void main() {
           _cohortJson(overrides: {'classroom': malformed}),
         );
 
-        expect(failure.kind, ApiFailureKind.server, reason: '$malformed');
-        expect(failure.detail, contains('cohort.classroom'), reason: '$malformed');
+        expect(
+          failure.reason,
+          contains('cohort.classroom'),
+          reason: '$malformed',
+        );
       }
     });
 
@@ -443,9 +502,9 @@ void main() {
         }),
       );
 
-      expect(failure.kind, ApiFailureKind.server);
-      expect(failure.detail, contains('center_name'));
-    });
+        expect(failure.reason, contains('center_name'));
+      },
+    );
   });
 
   group('HTTP failures', () {
