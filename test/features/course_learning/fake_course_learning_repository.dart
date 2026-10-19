@@ -869,6 +869,10 @@ CourseExercise sampleExercise({
   CourseAssignment? assignment,
   CourseQuiz? quiz,
   bool hasVideo = true,
+  // The URL the play button opens (Issue #447). None by default, as the
+  // sample's exercises have none, so every existing test and golden keeps
+  // its inert play button.
+  Uri? videoUrl,
   bool completed = false,
   // The sample's local simulations — what every existing screen test and
   // golden was written against.
@@ -883,6 +887,7 @@ CourseExercise sampleExercise({
   recordingBadgeLabel: recordingBadgeLabel,
   summary: summary,
   hasVideo: hasVideo,
+  videoUrl: videoUrl,
   extraSections: extraSections,
   materials:
       materials ??
