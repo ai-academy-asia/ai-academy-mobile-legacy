@@ -205,6 +205,75 @@ void main() {
 
       expect((await repository.getClasses()).single.track, isNull);
     });
+
+    // Issue #445: every row is the teacher's own class, so a malformed one
+    // fails the whole list closed — never a list with that class missing.
+    test('a malformed class fails closed, never hiding it among the valid '
+        'ones', () async {
+      final valid =
+          (jsonDecode(scheduleBody()) as Map<String, dynamic>)['cohorts'][0]
+              as Map<String, dynamic>;
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(
+          scheduleBody(
+            cohorts: [
+              {...valid, 'id': 2},
+              {...valid, 'id': 3, 'teacher': null},
+              {...valid, 'id': 5},
+            ],
+          ),
+          200,
+        ),
+      );
+
+      final failure = await failureFrom(repository);
+
+      expect(failure.kind, TeacherFailureKind.server);
+      expect(failure.detail, contains('3: cohort.teacher'));
+    });
+
+    test(
+      'every class malformed is a server failure, never "no classes"',
+      () async {
+        final repository = repositoryReturning(
+          (_) async => jsonResponse(
+            scheduleBody(
+              cohorts: [
+                {'id': 2},
+                'not-an-object',
+              ],
+            ),
+            200,
+          ),
+        );
+
+        expect((await failureFrom(repository)).kind, TeacherFailureKind.server);
+      },
+    );
+
+    test('the failure detail names rows and fields, never a value', () async {
+      final valid =
+          (jsonDecode(scheduleBody()) as Map<String, dynamic>)['cohorts'][0]
+              as Map<String, dynamic>;
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(
+          scheduleBody(
+            cohorts: [
+              {...valid, 'id': 2, 'teacher': 'Private Teacher'},
+              {...valid, 'id': 3, 'capacity': 'secret-capacity'},
+            ],
+          ),
+          200,
+        ),
+      );
+
+      final detail = (await failureFrom(repository)).detail!;
+
+      expect(detail, contains('2: cohort.teacher'));
+      expect(detail, contains('3: cohort.capacity'));
+      expect(detail, isNot(contains('Private Teacher')));
+      expect(detail, isNot(contains('secret-capacity')));
+    });
   });
 
   group('a failed response', () {
@@ -256,7 +325,7 @@ void main() {
         'not json',
         '[]',
         '{"teacher_id": 7}',
-        '{"teacher_id": 7, "cohorts": [{"id": 2}]}',
+        '{"teacher_id": 7, "cohorts": "Cohort 01"}',
       ]) {
         final repository = repositoryReturning(
           (_) async => jsonResponse(body, 200),

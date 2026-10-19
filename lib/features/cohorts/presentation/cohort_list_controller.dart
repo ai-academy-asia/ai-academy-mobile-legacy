@@ -6,6 +6,7 @@ import '../../courses/domain/course.dart';
 import '../../courses/domain/course_repository.dart';
 import '../domain/cohort.dart';
 import '../domain/cohort_course_resolver.dart';
+import '../domain/cohort_listing.dart';
 import '../domain/cohort_repository.dart';
 import 'cohort_list_strings.dart';
 
@@ -41,11 +42,19 @@ class CohortListController extends ChangeNotifier {
   bool _loading = false;
   bool _hasLoadedOnce = false;
   List<Cohort> _cohorts = const [];
+  CohortListing _listing = const CohortListing();
   List<Course> _courses = const [];
   String? _errorMessage;
 
   bool get loading => _loading;
   List<Cohort> get cohorts => _cohorts;
+
+  /// Whether a cohort with any of [ids] may be among the rows the last
+  /// fetch skipped as malformed (Issue #445) — see
+  /// [CohortListing.mayHideAny]. The student's own list asks it with the
+  /// `GET /me/cohorts` ids and fails closed when it is true, rather than
+  /// reading a missing cohort as "not enrolled".
+  bool mayHideAny(Iterable<int> ids) => _listing.mayHideAny(ids);
 
   /// Set only when the most recent fetch failed. Cleared as soon as another
   /// fetch starts.
@@ -64,7 +73,16 @@ class CohortListController extends ChangeNotifier {
     _notify();
 
     try {
-      final fetched = await _repository.getCohorts();
+      // A malformed row is left out of the list (Issue #445): the browse
+      // list shows every cohort that parsed. When every row fails there is
+      // nothing to show, and "no classes" would be untrue — the server
+      // error, with its retry, instead.
+      final listing = await _repository.getCohorts();
+      if (listing.cohorts.isEmpty && listing.skipped.isNotEmpty) {
+        throw const ApiFailure(ApiFailureKind.server);
+      }
+      _listing = listing;
+      final fetched = listing.cohorts;
       _cohorts = courseId == null
           ? fetched
           : fetched.where((cohort) => cohort.courseId == courseId).toList();
@@ -74,9 +92,11 @@ class CohortListController extends ChangeNotifier {
       _courses = await _fetchCourses();
     } on ApiFailure catch (failure) {
       _cohorts = const [];
+      _listing = const CohortListing();
       _errorMessage = _messageFor(failure.kind);
     } catch (_) {
       _cohorts = const [];
+      _listing = const CohortListing();
       _errorMessage = CohortListStrings.unexpectedError;
     } finally {
       _loading = false;

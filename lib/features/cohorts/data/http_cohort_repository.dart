@@ -7,6 +7,7 @@ import '../../../core/api/api_config.dart';
 import '../../../core/api/api_failure.dart';
 import '../../../core/models/localized_text.dart';
 import '../domain/cohort.dart';
+import '../domain/cohort_listing.dart';
 import '../domain/cohort_repository.dart';
 
 /// Reads the public cohort list against the AI Academy API.
@@ -30,7 +31,7 @@ class HttpCohortRepository implements CohortRepository {
   final Duration timeout;
 
   @override
-  Future<List<Cohort>> getCohorts() async {
+  Future<CohortListing> getCohorts() async {
     final response = await getJson(
       client: _client,
       url: _baseUrl.resolve('/cohorts'),
@@ -59,8 +60,40 @@ class HttpCohortRepository implements CohortRepository {
       );
     }
 
-    return [for (final entry in cohorts) cohortFromJson(entry)];
+    return cohortListingFromJson(cohorts);
   }
+}
+
+/// A list of cohort objects, read row by row (Issue #445): each row through
+/// [cohortFromJson], and a row it rejects is skipped and reported in
+/// [CohortListing.skipped] — with its `id` when that is readable, and the
+/// failure detail, which names a field and a type, never a value — instead
+/// of failing the whole list. Shared by `GET /cohorts` and the teacher's
+/// schedule, whose cohorts have the same shape.
+CohortListing cohortListingFromJson(List<Object?> rows) {
+  final cohorts = <Cohort>[];
+  final skipped = <SkippedCohort>[];
+  for (final row in rows) {
+    try {
+      cohorts.add(cohortFromJson(row));
+    } on ApiFailure catch (failure) {
+      skipped.add(
+        SkippedCohort(
+          id: _readableId(row),
+          reason: failure.detail ?? 'malformed cohort',
+        ),
+      );
+    }
+  }
+  return CohortListing(cohorts: cohorts, skipped: skipped);
+}
+
+/// A rejected row's `id`, when it is a whole number — what [cohortFromJson]
+/// would have read. Null otherwise, so the row cannot be mistaken for another.
+int? _readableId(Object? row) {
+  if (row is! Map<String, dynamic>) return null;
+  final id = row['id'];
+  return id is num && id == id.toInt() ? id.toInt() : null;
 }
 
 /// One cohort object, in the shape `GET /cohorts` returns. Public because

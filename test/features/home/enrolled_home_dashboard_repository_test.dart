@@ -5,6 +5,7 @@ import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
 import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort_listing.dart';
 import 'package:aia_mobile/features/contracts/domain/contract_failure.dart';
 import 'package:aia_mobile/features/contracts/domain/student_contract.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
@@ -55,6 +56,7 @@ void main() {
   EnrolledHomeDashboardRepository repository({
     required List<EnrolledCohortSummary> enrolled,
     required List<Cohort> cohorts,
+    List<SkippedCohort> skipped = const [],
     List<Course> courses = const [],
     FakeCurrentUserRepository? currentUser,
     FakeCourseLearningRepository? courseLearning,
@@ -64,7 +66,7 @@ void main() {
     DateTime? now,
   }) => EnrolledHomeDashboardRepository(
     enrolledCohorts: FakeEnrolledCohortsRepository(enrolledCohorts: enrolled),
-    cohorts: FakeCohortRepository(cohorts: cohorts),
+    cohorts: FakeCohortRepository(cohorts: cohorts, skipped: skipped),
     courses: FakeCourseRepository(courses: courses),
     currentUser: currentUser ?? FakeCurrentUserRepository(),
     // Unavailable unless a test says otherwise, so every test written before
@@ -1015,5 +1017,86 @@ void main() {
         );
       },
     );
+  });
+
+  // Issue #445: `GET /cohorts` reads row by row. An unrelated malformed
+  // cohort is not listed; one that may be the student's own fails closed.
+  group('malformed cohort rows', () {
+    const unreadableTeacher = 'cohort.teacher: expected an object, got Null';
+
+    Matcher serverFailure() => throwsA(
+      isA<HomeFailure>().having((f) => f.kind, 'kind', HomeFailureKind.server),
+    );
+
+    test('an unrelated malformed cohort still loads the dashboard', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1, progressPct: 40)],
+        cohorts: [sampleCohort(id: 1)],
+        skipped: const [SkippedCohort(id: 2, reason: unreadableTeacher)],
+      ).getDashboard();
+
+      expect(dashboard.program!.cohortId, 1);
+      expect(dashboard.program!.progress!.percent, 40);
+    });
+
+    test('the student\'s own malformed cohort is a server failure, not the '
+        'empty dashboard', () async {
+      await expectLater(
+        repository(
+          enrolled: const [EnrolledCohortSummary(cohortId: 2)],
+          cohorts: [sampleCohort(id: 1)],
+          skipped: const [SkippedCohort(id: 2, reason: unreadableTeacher)],
+        ).getDashboard(),
+        serverFailure(),
+      );
+    });
+
+    test('one of two enrolled cohorts malformed still fails closed', () async {
+      await expectLater(
+        repository(
+          enrolled: const [
+            EnrolledCohortSummary(cohortId: 1),
+            EnrolledCohortSummary(cohortId: 2),
+          ],
+          cohorts: [sampleCohort(id: 1)],
+          skipped: const [SkippedCohort(id: 2, reason: unreadableTeacher)],
+        ).getDashboard(),
+        serverFailure(),
+      );
+    });
+
+    test('a row with an unreadable id fails closed while the student\'s '
+        'cohort is not among the valid rows — it might be that row', () async {
+      await expectLater(
+        repository(
+          enrolled: const [EnrolledCohortSummary(cohortId: 2)],
+          cohorts: [sampleCohort(id: 1)],
+          skipped: const [SkippedCohort(id: null, reason: 'cohort.id')],
+        ).getDashboard(),
+        serverFailure(),
+      );
+    });
+
+    test('a row with an unreadable id is harmless once the student\'s '
+        'cohort is listed', () async {
+      final dashboard = await repository(
+        enrolled: const [EnrolledCohortSummary(cohortId: 1)],
+        cohorts: [sampleCohort(id: 1)],
+        skipped: const [SkippedCohort(id: null, reason: 'cohort.id')],
+      ).getDashboard();
+
+      expect(dashboard.program!.cohortId, 1);
+    });
+
+    test('enrolled nowhere: a malformed cohort still gives the empty '
+        'dashboard', () async {
+      final dashboard = await repository(
+        enrolled: const [],
+        cohorts: const [],
+        skipped: const [SkippedCohort(id: null, reason: 'cohort.id')],
+      ).getDashboard();
+
+      expect(dashboard.isEmpty, isTrue);
+    });
   });
 }

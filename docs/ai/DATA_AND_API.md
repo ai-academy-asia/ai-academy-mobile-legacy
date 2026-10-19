@@ -336,6 +336,22 @@ Facts that constrain any auth-adjacent work:
 
   Because both lists parse all-or-nothing, one such field used to reject the whole response as a `server` failure ("Серверт алдаа гарлаа") — breaking every `/cohorts`-backed screen, including both Home dashboards (Issue #136).
 
+- **Cohort lists read row by row** (Issue #445). The backend allows `null` in fields `Cohort` requires (`teacher`, `capacity`, dates, times, `meeting_days`). For example, deleting a teacher clears `teacher` on their cohorts. So `GET /cohorts` and the teacher's `GET /teachers/{teacher_id}/schedule` no longer parse all-or-nothing:
+  - `cohortListingFromJson` (`http_cohort_repository.dart`) reads each row with the unchanged, strict `cohortFromJson`. A row it rejects is left out and reported in `CohortListing.skipped`: the row's `id` when that is a whole number (a `7.5` or `"7"` is reported with no id, never truncated to another cohort's), and the failure detail, which names a field and a type, never a value. Nothing is logged.
+  - The envelope still fails as `server`: malformed JSON, not an object, no `cohorts` list.
+  - **Fail closed for a cohort that may be the user's own** (`CohortListing.mayHideAny`). A skipped row may be one of a set of ids when it carries one of them, or when its id is unreadable and one of them is missing from the valid rows.
+  - What each screen does with a skipped row:
+
+    | Screen | Reads | A skipped row that may be the user's own | An unrelated skipped row | Every row skipped |
+    |---|---|---|---|---|
+    | Adult Home and Junior Home (`EnrolledHomeDashboardRepository`) | `GET /cohorts` against the `/me/cohorts` ids | Server failure, never the "not enrolled" dashboard | Not listed; the dashboard loads | Server failure if the student is enrolled; the empty dashboard if not |
+    | Certificates (`EnrolledCertificateListRepository`) | same | Server failure, never an empty list or a missing card | Not listed; the cards draw | as Home |
+    | Adult Progress tab (`CohortListScreen(enrolledOnly: true)`) | same, through `CohortListController.mayHideAny` | The server error with retry, never `emptyMine` or a list with that cohort missing (one of two enrolled cohorts malformed fails the tab) | Not listed; the student's cards draw | The server error with retry |
+    | Cohort browse list (`CohortListScreen`, with or without a course filter) | `GET /cohorts` | — (not the student's own list) | Not listed; the valid rows draw | The server error with retry, never "no classes" |
+    | Teacher Schedule, Teacher Programs, Teacher Home (`HttpTeacherHomeRepository`, shared by the schedule and gradebook repositories) | the teacher's schedule | Every row is the teacher's own class: **any** skipped row is a `server` failure, and each screen shows its existing error with retry — never a class list with that class missing | — | Server failure |
+
+  - `Cohort`'s required fields are unchanged. A skipped row is still the *loosen the model* signal above, now without silently taking down — or silently dropping — anything it should not.
+
 ## 7. Course Learning integration and the sample boundary
 
 **`lib/features/course_learning/` runs on the real API.** `CourseLearningRepository` declares twelve methods — the learning path, a module's lessons, a lesson's detail, the note save, the lesson completion, a material's download link, the assignment submission, the student file upload, and the four quiz-attempt calls — and `HttpCourseLearningRepository` implements every one against `course_learning_api_contract_v1.md` §2.1–§2.8. Each method documents its endpoint and the shape it reads; the screens default to it. See [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) §2 for the endpoint list and what is deliberately not integrated.

@@ -5,10 +5,17 @@ import '../../../core/models/localized_text.dart';
 /// Nullability mirrors `Course`'s policy: a field is modelled nullable only
 /// where a confirmed response showed it as `null` ([parentCohortId],
 /// [scheduleNote], and [classroom] — `null` on an online cohort in the
-/// production response, see its doc). Everything else is required, and
-/// `HttpCohortRepository` fails loudly if a required field is missing on a
-/// real response — treat that as a sign this model needs to loosen, not as a
-/// bug in the cohort.
+/// production response, see its doc). Everything else is required, and a
+/// row missing one is rejected loudly — treat that as a sign this model needs
+/// to loosen, not as a bug in the cohort.
+///
+/// A rejected row is rejected alone (Issue #445): `HttpCohortRepository`
+/// reads the list row by row, leaves that cohort out and reports it in
+/// `CohortListing.skipped`, and the other cohorts still load. Home,
+/// Certificates and the Adult Progress tab fail closed when the skipped row
+/// may be the student's own cohort — see `CohortListing.mayHideAny` — and
+/// the teacher's screens fail on any skipped row, since every class there is
+/// the teacher's own (`docs/ai/DATA_AND_API.md` §6).
 ///
 /// [status] stays `String` rather than an enum, same reasoning as
 /// `Course.status`: one confirmed value ("open") is not enough to say what
