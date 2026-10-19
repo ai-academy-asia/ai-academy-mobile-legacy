@@ -112,7 +112,8 @@ void main() {
             RegExp(r'/data/http_\w+_repository\.dart$').hasMatch(entity.path))
           entity,
     ];
-    expect(repositories, hasLength(16));
+    // 17 since `HttpScheduleChangeRepository` (Issue #449).
+    expect(repositories, hasLength(17));
     for (final file in repositories) {
       final source = file.readAsStringSync();
       expect(source, contains('ApiConfig.baseUrl'), reason: file.path);

@@ -12,13 +12,11 @@ import 'teacher_pill_button.dart';
 // The schedule-change request's UI (Issue #372), measured off the Teacher
 // redesign's 3x exports.
 //
-// **UI only — blocked by a BACKEND GAP.** No verified endpoint lists the
-// teachers a session can be handed to, creates, lists, accepts or rejects a
-// request, or notifies another teacher (`DATA_AND_API.md`). So nothing in the
-// app opens [TeacherIncomingRequestSheet], or a [TeacherConfirmationCard]
-// titled "Хүсэлт илгээгдлээ": they are built and tested, ready for real
-// request data, and every action is a nullable callback — inert without
-// one, never a faked success.
+// Phase 1 (Issue #449) wires listing and sending: "Багш нар" shows a
+// [TeacherConfirmationCard] titled "Хүсэлт илгээгдлээ" once the server has
+// confirmed a send. Incoming requests are a later phase, so nothing opens
+// [TeacherIncomingRequestSheet] yet: it is built and tested, and its actions
+// are nullable callbacks — inert without one, never a faked answer.
 
 /// Two pills side by side under a sheet's card — "Цаг солих" / "Ирц
 /// бүртгэх", "Татгалзах" / "Зөвшөөрөх": 44 tall, sharing the width with 8
@@ -88,8 +86,9 @@ class TeacherPillPair extends StatelessWidget {
 const double _pairGap = 8;
 
 /// A teacher's placeholder avatar, name and "Teacher" — the "Багш нар" rows'
-/// leading part and the incoming-request sheet's sender. No photo field is
-/// known (BACKEND GAP), so the avatar is a neutral placeholder.
+/// leading part and the incoming-request sheet's sender. The contract's
+/// `photo_url` is always null (Issue #449), so the avatar is a neutral
+/// placeholder.
 class TeacherIdentity extends StatelessWidget {
   const TeacherIdentity({required this.name, super.key});
 

@@ -9,7 +9,7 @@ import 'teacher_pill_button.dart';
 
 /// A confirmed success: the success disc, the [title], and the full-width
 /// "Ойлголоо" that dismisses it — the Teacher redesign's one success card,
-/// for "Хүсэлт илгээгдлээ" (Issue #372, not shown yet) and "Амжилттай
+/// for "Хүсэлт илгээгдлээ" (Issue #372, shown since #449) and "Амжилттай
 /// баталгаажлаа" (attendance, Issue #374).
 ///
 /// A post-write state: show it only once the server has confirmed every

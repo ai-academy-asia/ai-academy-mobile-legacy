@@ -4,6 +4,7 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../domain/schedule_change.dart';
 import '../../domain/teacher_attendance.dart';
 import '../../domain/teacher_failure.dart';
 import '../../domain/teacher_schedule_repository.dart';
@@ -36,6 +37,7 @@ Future<void> showTeacherSessionSheet(
   required TeacherScheduleRepository repository,
   bool attendanceOpen = false,
   TeacherAttendanceRepository? attendanceRepository,
+  ScheduleChangeRepository? scheduleChangeRepository,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
@@ -54,6 +56,7 @@ Future<void> showTeacherSessionSheet(
     repository: repository,
     attendanceOpen: attendanceOpen,
     attendanceRepository: attendanceRepository,
+    scheduleChangeRepository: scheduleChangeRepository,
   ),
 );
 
@@ -72,6 +75,7 @@ class TeacherSessionSheet extends StatefulWidget {
     super.key,
     this.attendanceOpen = false,
     this.attendanceRepository,
+    this.scheduleChangeRepository,
   });
 
   final ScheduledSession entry;
@@ -87,6 +91,10 @@ class TeacherSessionSheet extends StatefulWidget {
 
   /// For the attendance screens; defaults to the HTTP repository.
   final TeacherAttendanceRepository? attendanceRepository;
+
+  /// For "Цаг солих"'s "Багш нар" (Issue #449); defaults to the HTTP
+  /// repository.
+  final ScheduleChangeRepository? scheduleChangeRepository;
 
   @override
   State<TeacherSessionSheet> createState() => _TeacherSessionSheetState();
@@ -160,7 +168,10 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
                   wrapLabel: true,
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const TeacherRequestScreen(),
+                      builder: (_) => TeacherScheduleChangeScreen(
+                        sessionId: entry.session.id,
+                        repository: widget.scheduleChangeRepository,
+                      ),
                     ),
                   ),
                 ),
