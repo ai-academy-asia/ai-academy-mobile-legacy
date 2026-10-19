@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
+import 'fake_schedule_change_repository.dart';
 import 'fake_teacher_gradebook_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_gradebook_screen_test.dart' show classRepository;
@@ -65,6 +66,8 @@ void main() {
               repository: schedule,
               clock: tuesday,
               showBottomNav: false,
+              // Never the real API (Issue #449).
+              scheduleChangeRepository: FakeScheduleChangeRepository(),
             ),
             grades: TeacherGradebookScreen(
               repository: grades,

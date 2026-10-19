@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../profile/fake_current_user_repository.dart';
+import 'fake_schedule_change_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
 
@@ -51,12 +52,18 @@ void main() {
     WidgetTester tester,
     FakeTeacherScheduleRepository repository, {
     bool settle = true,
+    FakeScheduleChangeRepository? scheduleChangeRepository,
   }) async {
     tallView(tester);
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: TeacherScheduleScreen(repository: repository, clock: tuesday),
+        home: TeacherScheduleScreen(
+          repository: repository,
+          clock: tuesday,
+          scheduleChangeRepository:
+              scheduleChangeRepository ?? FakeScheduleChangeRepository(),
+        ),
       ),
     );
     if (settle) await tester.pumpAndSettle();
@@ -174,10 +181,16 @@ void main() {
     expect(find.text('Room 204'), findsNothing);
   });
 
-  testWidgets('"Цаг солих" opens "Багш нар", which sends and invents nothing', (
-    tester,
-  ) async {
-    await pumpScreen(tester, weekRepository());
+  testWidgets('"Цаг солих" opens "Багш нар" with the server\'s eligible '
+      'teachers, and sends nothing on its own (Issue #449)', (tester) async {
+    final requests = FakeScheduleChangeRepository(
+      teachers: sampleEligibleTeachers,
+    );
+    await pumpScreen(
+      tester,
+      weekRepository(),
+      scheduleChangeRepository: requests,
+    );
 
     await tester.tap(find.bySemanticsLabel(upcomingLabel));
     await tester.pumpAndSettle();
@@ -186,11 +199,10 @@ void main() {
 
     expect(find.byType(TeacherRequestScreen), findsOneWidget);
     expect(find.text(TeacherScheduleStrings.teachersTitle), findsOneWidget);
-    expect(
-      find.text(TeacherScheduleStrings.requestsUnavailable),
-      findsOneWidget,
-    );
-    expect(find.byType(TeacherRequestRow), findsNothing);
+    expect(requests.loadCalls, hasLength(1));
+    expect(find.text('Болд Бат'), findsOneWidget);
+    expect(find.text('Сараа Ганбат'), findsOneWidget);
+    expect(requests.sendCalls, isEmpty);
   });
 
   testWidgets('a held session opens its sheet with the attendance summary', (

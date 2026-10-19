@@ -15,6 +15,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'fake_schedule_change_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass;
 
@@ -148,25 +149,27 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('"Цаг солих" still opens "Багш нар", which keeps its '
-        'unavailable state and sends nothing', (tester) async {
+    testWidgets('"Цаг солих" opens "Багш нар" for this session, listing '
+        'who it can go to and sending nothing (Issue #449)', (tester) async {
+      final requests = FakeScheduleChangeRepository(
+        teachers: sampleEligibleTeachers,
+      );
       await pumpSheet(
         tester,
         TeacherSessionSheet(
           entry: entry,
           held: false,
           repository: FakeTeacherScheduleRepository(),
+          scheduleChangeRepository: requests,
         ),
       );
 
       await tester.tap(pill(TeacherScheduleStrings.changeTime));
       await tester.pumpAndSettle();
       expect(find.byType(TeacherRequestScreen), findsOneWidget);
-      expect(
-        find.text(TeacherScheduleStrings.requestsUnavailable),
-        findsOneWidget,
-      );
-      expect(find.byType(TeacherRequestRow), findsNothing);
+      expect(requests.loadCalls, [entry.session.id]);
+      expect(find.byType(TeacherRequestRow), findsNWidgets(2));
+      expect(requests.sendCalls, isEmpty);
     });
 
     testWidgets('a held session keeps its attendance summary and draws no '
@@ -411,22 +414,25 @@ void main() {
     expect(row.top - header.bottom, 40);
   });
 
-  test('nothing in the app opens the request sheets yet: no request data '
-      'or endpoint exists to open them with', () {
+  // Issue #449 (phase 1) opens the request-sent acknowledgement, from
+  // "Багш нар" once a send is confirmed, and only there. Incoming requests
+  // are a later phase, so nothing opens their sheet yet.
+  test('only "Багш нар" opens the request-sent card, and nothing opens the '
+      'incoming-request sheet yet', () {
     final opened = <String>[];
     for (final file in Directory('lib').listSync(recursive: true)) {
       if (file is! File || !file.path.endsWith('.dart')) continue;
       if (file.path.endsWith('teacher_request_parts.dart')) continue;
       // The strings file defines the title; the confirmation card itself is
-      // shared with attendance (Issue #374), so it is its title that must
-      // not be shown.
+      // shared with attendance (Issue #374), so it is its title that counts.
       if (file.path.endsWith('teacher_schedule_strings.dart')) continue;
       final source = file.readAsStringSync();
-      for (final name in [
-        'TeacherScheduleStrings.requestSentTitle',
-        'TeacherIncomingRequestSheet(',
-      ]) {
-        if (source.contains(name)) opened.add('${file.path}: $name');
+      if (source.contains('TeacherIncomingRequestSheet(')) {
+        opened.add('${file.path}: TeacherIncomingRequestSheet(');
+      }
+      if (source.contains('TeacherScheduleStrings.requestSentTitle') &&
+          !file.path.endsWith('teacher_request_screen.dart')) {
+        opened.add('${file.path}: TeacherScheduleStrings.requestSentTitle');
       }
     }
     expect(opened, isEmpty);

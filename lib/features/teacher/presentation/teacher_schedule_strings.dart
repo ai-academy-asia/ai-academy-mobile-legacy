@@ -1,4 +1,5 @@
 import '../../home/presentation/home_strings.dart';
+import '../domain/teacher_failure.dart';
 import 'teacher_home_strings.dart';
 
 /// Every word on Teacher Schedule, its session sheets and the "Багш нар"
@@ -79,9 +80,58 @@ abstract final class TeacherScheduleStrings {
   static const String requestDecline = 'Татгалзах';
   static const String requestAccept = 'Зөвшөөрөх';
 
-  /// What "Багш нар" shows in place of its rows: no verified endpoint lists
-  /// the teachers or carries a request (BACKEND GAP, Issue #231). Not drawn
-  /// by the reference — PRODUCT DECISION on the final wording.
+  /// What "Багш нар" shows when the backend does not serve the request
+  /// endpoints (Issue #449): a refusal with no documented error code — what a
+  /// backend without these routes answers. Not drawn by the reference —
+  /// PRODUCT DECISION on the final wording.
   static const String requestsUnavailable =
-      'Багшид цаг солих хүсэлт илгээх боломж удахгүй нэмэгдэнэ';
+      'Одоогоор цаг солих хүсэлт илгээх боломжгүй байна. Дараа дахин оролдоно уу.';
+
+  // --- Sending a request (Issue #449) ---------------------------------------
+  //
+  // The app's own copy — no frame draws these — for the backend's documented
+  // codes (`docs/schedule_change_api_v1.md`). PRODUCT DECISION on the final
+  // wording; each says only what its code documents.
+
+  /// "Багш нар" with no row: no other teacher is free at the session's time
+  /// (the contract's eligible list: active teachers not teaching then).
+  static const String requestsEmpty = 'Энэ цагт орлон заах боломжтой багш алга';
+
+  /// `409 recipient_busy`: the teacher teaches at that time.
+  static const String requestRecipientBusy =
+      'Энэ багш тухайн цагт өөр хичээлтэй байна';
+
+  /// `409 request_pending`: the session already has a pending request.
+  static const String requestAlreadyPending =
+      'Энэ хичээлд илгээсэн хүсэлт хүлээгдэж байна';
+
+  /// `409 session_already_covered`: another teacher has accepted it.
+  static const String requestSessionCovered =
+      'Энэ хичээлийг өөр багш орлон заахаар болсон байна';
+
+  /// `409 session_started`: the session's start time has passed.
+  static const String requestSessionStarted =
+      'Хичээл эхэлсэн тул цаг солих боломжгүй';
+
+  /// `404 session_not_found`.
+  static const String requestSessionNotFound = 'Хичээл олдсонгүй';
+
+  /// `404 recipient_not_found`: unknown or deactivated teacher.
+  static const String requestRecipientNotFound = 'Багш олдсонгүй';
+
+  /// The line for a failed read or send: the documented code's own copy;
+  /// [requestsUnavailable] for a refusal carrying no code (a backend without
+  /// these routes); otherwise the shared line for the failure's kind.
+  static String requestFailure(TeacherFailure failure) =>
+      switch (failure.code) {
+        'recipient_busy' => requestRecipientBusy,
+        'request_pending' => requestAlreadyPending,
+        'session_already_covered' => requestSessionCovered,
+        'session_started' => requestSessionStarted,
+        'session_not_found' => requestSessionNotFound,
+        'recipient_not_found' => requestRecipientNotFound,
+        null when failure.kind == TeacherFailureKind.rejected =>
+          requestsUnavailable,
+        _ => TeacherHomeStrings.messageFor(failure.kind),
+      };
 }
