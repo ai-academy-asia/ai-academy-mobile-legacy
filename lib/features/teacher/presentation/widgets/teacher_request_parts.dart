@@ -14,9 +14,10 @@ import 'teacher_pill_button.dart';
 //
 // Phase 1 (Issue #449) wires listing and sending: "Багш нар" shows a
 // [TeacherConfirmationCard] titled "Хүсэлт илгээгдлээ" once the server has
-// confirmed a send. Incoming requests are a later phase, so nothing opens
-// [TeacherIncomingRequestSheet] yet: it is built and tested, and its actions
-// are nullable callbacks — inert without one, never a faked answer.
+// confirmed a send. Phase 2 (Issue #453) opens [TeacherIncomingRequestSheet]
+// from a `schedule_change_request` notification, filled from the request's
+// own brief; its actions are nullable callbacks — inert without one, never a
+// faked answer.
 
 /// Two pills side by side under a sheet's card — "Цаг солих" / "Ирц
 /// бүртгэх", "Татгалзах" / "Зөвшөөрөх": 44 tall, sharing the width with 8
@@ -150,24 +151,60 @@ const double _avatarToName = 17;
 /// the requesting teacher, the class and its session — the date and times
 /// it would hand over — then "Татгалзах" and "Зөвшөөрөх".
 ///
-/// UI only: no notification kind or request data exists to open it from, and
-/// no endpoint accepts or rejects a request. [onDecline] and [onAccept] are
-/// null until one does — inert, never a faked answer.
+/// [onDecline] and [onAccept] are null while an answer cannot be sent —
+/// inert, never a faked answer. Phase 2 (Issue #453) fills it through
+/// [TeacherIncomingRequestSheet.brief] from the request itself, with a
+/// [message] — where the request stands, or why an answer failed — and no
+/// pills once it is no longer `pending` ([showActions]).
 class TeacherIncomingRequestSheet extends StatelessWidget {
   const TeacherIncomingRequestSheet({
     required this.senderName,
-    required this.teacherClass,
+    required TeacherClass this.teacherClass,
     required this.sessionLabel,
     required this.onDecline,
     required this.onAccept,
     super.key,
-  });
+  }) : courseTitle = null,
+       cohortName = null,
+       room = null,
+       message = null,
+       showActions = true;
+
+  /// The same sheet for a request known only by its own brief (Issue
+  /// #453): the card shows [courseTitle], [cohortName] and [room] — no
+  /// track or student count, which the request does not carry.
+  const TeacherIncomingRequestSheet.brief({
+    required this.senderName,
+    required String this.courseTitle,
+    required this.sessionLabel,
+    required this.onDecline,
+    required this.onAccept,
+    super.key,
+    this.cohortName,
+    this.room,
+    this.message,
+    this.showActions = true,
+  }) : teacherClass = null;
 
   /// The requesting teacher's name.
   final String senderName;
 
-  /// The class the session belongs to.
-  final TeacherClass teacherClass;
+  /// The class the session belongs to — the default sheet's card. Null for
+  /// [TeacherIncomingRequestSheet.brief].
+  final TeacherClass? teacherClass;
+
+  /// [TeacherIncomingRequestSheet.brief]'s card parts.
+  final String? courseTitle;
+  final String? cohortName;
+  final String? room;
+
+  /// A line under the card: where the request stands, or why an answer
+  /// failed. Null draws none.
+  final String? message;
+
+  /// Whether to draw "Татгалзах" / "Зөвшөөрөх" — only while the request is
+  /// `pending`.
+  final bool showActions;
 
   /// The session's date and times, e.g. "11-р сарын 17 • 14:00-17:00".
   final String sessionLabel;
@@ -194,26 +231,47 @@ class TeacherIncomingRequestSheet extends StatelessWidget {
             const SizedBox(height: 20),
             TeacherIdentity(name: senderName),
             const SizedBox(height: 20),
-            TeacherClassCard(
-              teacherClass: teacherClass,
-              timeLabel: sessionLabel,
-              compactDetails: true,
-            ),
-            const SizedBox(height: 24),
-            TeacherPillPair(
-              first: TeacherPillButton(
-                label: TeacherScheduleStrings.requestDecline,
-                wrapLabel: true,
-                variant: TeacherPillVariant.danger,
-                onPressed: onDecline,
+            if (teacherClass case final teacherClass?)
+              TeacherClassCard(
+                teacherClass: teacherClass,
+                timeLabel: sessionLabel,
+                compactDetails: true,
+              )
+            else
+              TeacherClassCard.brief(
+                title: courseTitle!,
+                caption: cohortName,
+                room: room,
+                timeLabel: sessionLabel,
+                compactDetails: true,
               ),
-              second: TeacherPillButton(
-                label: TeacherScheduleStrings.requestAccept,
-                wrapLabel: true,
-                variant: TeacherPillVariant.filled,
-                onPressed: onAccept,
+            if (message case final message?) ...[
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: AppTypography.supporting.copyWith(
+                  color: context.palette.textSecondary,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
+            ],
+            if (showActions) ...[
+              const SizedBox(height: 24),
+              TeacherPillPair(
+                first: TeacherPillButton(
+                  label: TeacherScheduleStrings.requestDecline,
+                  wrapLabel: true,
+                  variant: TeacherPillVariant.danger,
+                  onPressed: onDecline,
+                ),
+                second: TeacherPillButton(
+                  label: TeacherScheduleStrings.requestAccept,
+                  wrapLabel: true,
+                  variant: TeacherPillVariant.filled,
+                  onPressed: onAccept,
+                ),
+              ),
+            ],
           ],
         ),
       ),

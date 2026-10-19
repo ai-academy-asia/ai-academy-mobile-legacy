@@ -415,10 +415,11 @@ void main() {
   });
 
   // Issue #449 (phase 1) opens the request-sent acknowledgement, from
-  // "Багш нар" once a send is confirmed, and only there. Incoming requests
-  // are a later phase, so nothing opens their sheet yet.
-  test('only "Багш нар" opens the request-sent card, and nothing opens the '
-      'incoming-request sheet yet', () {
+  // "Багш нар" once a send is confirmed, and only there. Issue #453 (phase 2)
+  // opens the incoming-request sheet — in either form — from its own host,
+  // and only there.
+  test('only "Багш нар" opens the request-sent card, and only the '
+      'incoming-request host opens the incoming-request sheet', () {
     final opened = <String>[];
     for (final file in Directory('lib').listSync(recursive: true)) {
       if (file is! File || !file.path.endsWith('.dart')) continue;
@@ -427,8 +428,9 @@ void main() {
       // shared with attendance (Issue #374), so it is its title that counts.
       if (file.path.endsWith('teacher_schedule_strings.dart')) continue;
       final source = file.readAsStringSync();
-      if (source.contains('TeacherIncomingRequestSheet(')) {
-        opened.add('${file.path}: TeacherIncomingRequestSheet(');
+      if (RegExp(r'TeacherIncomingRequestSheet(\.\w+)?\(').hasMatch(source) &&
+          !file.path.endsWith('incoming_request_sheet.dart')) {
+        opened.add('${file.path}: TeacherIncomingRequestSheet');
       }
       if (source.contains('TeacherScheduleStrings.requestSentTitle') &&
           !file.path.endsWith('teacher_request_screen.dart')) {

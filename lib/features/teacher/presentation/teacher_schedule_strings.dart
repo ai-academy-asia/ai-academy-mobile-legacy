@@ -119,9 +119,49 @@ abstract final class TeacherScheduleStrings {
   /// `404 recipient_not_found`: unknown or deactivated teacher.
   static const String requestRecipientNotFound = 'Багш олдсонгүй';
 
-  /// The line for a failed read or send: the documented code's own copy;
-  /// [requestsUnavailable] for a refusal carrying no code (a backend without
-  /// these routes); otherwise the shared line for the failure's kind.
+  // --- Answering a request (Issue #453) -------------------------------------
+  //
+  // The app's own copy — no frame draws these — PRODUCT DECISION on the final
+  // wording; each says only what its status or code documents.
+
+  /// The card's title when the request's session names neither its course
+  /// nor its cohort.
+  static const String incomingUntitled = 'Хичээл';
+
+  /// Where an incoming request stands once it is no longer `pending`.
+  static const String incomingAccepted = 'Хүсэлтийг зөвшөөрсөн';
+  static const String incomingRejected = 'Хүсэлтээс татгалзсан';
+  static const String incomingCancelled = 'Хүсэлт цуцлагдсан';
+  static const String incomingExpired = 'Хүсэлтийн хугацаа дууссан';
+
+  /// The line for a resolved request's [status]; null while it is pending.
+  static String? incomingStatus(String status) => switch (status) {
+    'accepted' => incomingAccepted,
+    'rejected' => incomingRejected,
+    'cancelled' => incomingCancelled,
+    'expired' => incomingExpired,
+    _ => null,
+  };
+
+  /// `409 schedule_conflict`: the recipient teaches at that time.
+  static const String requestScheduleConflict =
+      'Тухайн цагт танд өөр хичээл байгаа тул зөвшөөрөх боломжгүй';
+
+  /// `409 request_already_resolved`.
+  static const String requestAlreadyResolved =
+      'Хүсэлт аль хэдийн шийдвэрлэгдсэн байна';
+
+  /// `404 request_not_found`: unknown, or the caller is not a party.
+  static const String requestNotFound = 'Хүсэлт олдсонгүй';
+
+  /// `403 not_recipient`: only the recipient can answer.
+  static const String requestNotRecipient =
+      'Энэ хүсэлтэд хариулах эрх танд алга';
+
+  /// The line for a failed read, send or answer: the documented code's own
+  /// copy; [requestsUnavailable] for a refusal carrying no code (a backend
+  /// without these routes); otherwise the shared line for the failure's
+  /// kind.
   static String requestFailure(TeacherFailure failure) =>
       switch (failure.code) {
         'recipient_busy' => requestRecipientBusy,
@@ -130,6 +170,10 @@ abstract final class TeacherScheduleStrings {
         'session_started' => requestSessionStarted,
         'session_not_found' => requestSessionNotFound,
         'recipient_not_found' => requestRecipientNotFound,
+        'schedule_conflict' => requestScheduleConflict,
+        'request_already_resolved' => requestAlreadyResolved,
+        'request_not_found' => requestNotFound,
+        'not_recipient' => requestNotRecipient,
         null when failure.kind == TeacherFailureKind.rejected =>
           requestsUnavailable,
         _ => TeacherHomeStrings.messageFor(failure.kind),
