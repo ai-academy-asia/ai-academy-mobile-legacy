@@ -166,6 +166,20 @@ class _CourseExerciseDetailScreenState
     await _controller.refreshQuiz();
   }
 
+  /// Opens the lesson's video outside the app (Issue #447). A launch the OS
+  /// refuses shows the controller's copy as a SnackBar, as Contracts and
+  /// Certificates do for a link that would not open. A tap while an open is
+  /// in flight is ignored by the controller and shows nothing.
+  Future<void> _playVideo() async {
+    final opened = await _controller.openVideo();
+    if (opened || !mounted) return;
+    final message = _controller.videoOpenErrorMessage;
+    if (message == null) return;
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -229,6 +243,8 @@ class _CourseExerciseDetailScreenState
           setState(() => _descriptionExpanded = !_descriptionExpanded),
       selectedTab: _selectedTab,
       onSelectTab: (tab) => setState(() => _selectedTab = tab),
+      // Only a lesson with a URL to open has a live play button (Issue #447).
+      onPlayVideo: exercise.videoUrl == null ? null : _playVideo,
       // Held on the controller's exercise, not in `NoteTab`, so a saved
       // note survives switching to another tab and back.
       note: exercise.note,
@@ -263,6 +279,7 @@ class _ExerciseDetailBody extends StatelessWidget {
     required this.exercise,
     required this.descriptionExpanded,
     required this.onToggleDescription,
+    required this.onPlayVideo,
     required this.selectedTab,
     required this.onSelectTab,
     required this.note,
@@ -289,6 +306,9 @@ class _ExerciseDetailBody extends StatelessWidget {
   final CourseExercise exercise;
   final bool descriptionExpanded;
   final VoidCallback onToggleDescription;
+
+  /// Opens the lesson's video, or null when it has no URL to open.
+  final VoidCallback? onPlayVideo;
 
   final ExerciseTab selectedTab;
   final ValueChanged<ExerciseTab> onSelectTab;
@@ -330,6 +350,7 @@ class _ExerciseDetailBody extends StatelessWidget {
                 durationLabel: exercise.durationLabel,
                 recordingBadgeLabel: exercise.recordingBadgeLabel,
                 hasVideo: exercise.hasVideo,
+                onPlay: onPlayVideo,
               ),
               Padding(
                 // The page's bottom above the home indicator: this body runs

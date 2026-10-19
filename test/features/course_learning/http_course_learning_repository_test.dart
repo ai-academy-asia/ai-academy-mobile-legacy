@@ -1250,6 +1250,54 @@ void main() {
         expect((await exerciseFrom(lessonBody(video: null))).hasVideo, isFalse);
       });
 
+      // Issue #447: `video.embed_url` is the URL the play button opens.
+      group('video.embed_url', () {
+        test('an https or http URL is read exactly as sent', () async {
+          for (final url in [
+            'https://www.youtube.com/embed/x',
+            'https://drive.google.com/file/d/abc/preview?usp=sharing',
+            'http://example.com/path/video?t=1&list=a%20b#frag',
+          ]) {
+            final exercise = await exerciseFrom(
+              lessonBody(video: {'embed_url': url}),
+            );
+            expect(exercise.hasVideo, isTrue, reason: url);
+            expect(exercise.videoUrl.toString(), url, reason: url);
+          }
+        });
+
+        test('video: null has no URL', () async {
+          final exercise = await exerciseFrom(lessonBody(video: null));
+          expect(exercise.videoUrl, isNull);
+          expect(exercise.hasVideo, isFalse);
+        });
+
+        test('an unusable embed_url is no playable video, and the lesson '
+            'still loads (decision D1)', () async {
+          final unusable = <String, Map<String, Object?>>{
+            'missing': const {},
+            'null': const {'embed_url': null},
+            'a number': const {'embed_url': 42},
+            'empty': const {'embed_url': ''},
+            'relative': const {'embed_url': '/embed/x'},
+            'ftp': const {'embed_url': 'ftp://example.com/video.mp4'},
+            'javascript': const {'embed_url': 'javascript:alert(1)'},
+            'no host': const {'embed_url': 'https://'},
+            'leading space (not trimmed)': const {
+              'embed_url': ' https://www.youtube.com/embed/x',
+            },
+          };
+          for (final entry in unusable.entries) {
+            final exercise = await exerciseFrom(lessonBody(video: entry.value));
+            expect(exercise.videoUrl, isNull, reason: entry.key);
+            expect(exercise.hasVideo, isFalse, reason: entry.key);
+            // The rest of the lesson is still there.
+            expect(exercise.lessonId, 204, reason: entry.key);
+            expect(exercise.materials, isNotEmpty, reason: entry.key);
+          }
+        });
+      });
+
       test('reads completed from the server', () async {
         expect((await exerciseFrom(lessonBody())).completed, isFalse);
         expect(

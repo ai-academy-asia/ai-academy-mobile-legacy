@@ -9,12 +9,13 @@ import '../domain/lesson_completion.dart';
 import '../domain/uploaded_file.dart';
 import 'course_learning_strings.dart';
 
-/// Loads one lesson's content, saves the student's note on it, marks it
-/// complete, opens its materials' downloads, uploads the file its assignment
-/// submission carries, and submits that assignment.
+/// Loads one lesson's content, opens its video outside the app, saves the
+/// student's note on it, marks it complete, opens its materials' downloads,
+/// uploads the file its assignment submission carries, and submits that
+/// assignment.
 ///
 /// [completeLesson] is wired to the backend but no control calls it yet: the
-/// lesson screen has no "done" control and no video player, and which
+/// lesson screen has no "done" control and no in-app video player, and which
 /// interaction completes a lesson is a product decision (Issue #209).
 ///
 /// The file half is complete here but reached only from the Assignment
@@ -36,8 +37,9 @@ class CourseExerciseDetailController extends ChangeNotifier {
 
   final CourseLearningRepository _repository;
 
-  /// Hands a material's download link to the OS — [openExternalUrl] unless a
-  /// test injects its own. Answers whether the link was opened.
+  /// Hands a material's download link, or the lesson's video, to the OS —
+  /// [openExternalUrl] unless a test injects its own. Answers whether the
+  /// link was opened.
   final Future<bool> Function(Uri url) _openUrl;
 
   /// Asks the student for a file — [pickLocalFile] unless a test injects its
@@ -58,6 +60,8 @@ class CourseExerciseDetailController extends ChangeNotifier {
   bool _completingLesson = false;
   String? _lessonCompleteErrorMessage;
   LessonCompletion? _lessonCompletion;
+  bool _openingVideo = false;
+  String? _videoOpenErrorMessage;
   final Set<int> _downloadingMaterialIds = {};
   final Set<int> _openedMaterialIds = {};
   final Map<int, String> _materialDownloadErrors = {};
@@ -116,6 +120,14 @@ class CourseExerciseDetailController extends ChangeNotifier {
   /// null. Its own line, so it shows under the file area rather than under
   /// the form's Submit.
   String? get assignmentFileErrorMessage => _assignmentFileErrorMessage;
+
+  /// True while [openVideo] is handing the lesson's video to the OS.
+  bool get openingVideo => _openingVideo;
+
+  /// User-facing copy for the last failed [openVideo], or null. Cleared when
+  /// another attempt starts. The screen shows it as a SnackBar, as Contracts
+  /// and Certificates do for a link the OS would not open.
+  String? get videoOpenErrorMessage => _videoOpenErrorMessage;
 
   /// True while [downloadMaterial] is fetching or opening [materialId]'s
   /// link.
@@ -388,6 +400,38 @@ class CourseExerciseDetailController extends ChangeNotifier {
       return false;
     } finally {
       _submittingAssignment = false;
+      _notify();
+    }
+  }
+
+  /// Opens the lesson's video outside the app (Issue #447) and answers true
+  /// once the OS has taken it.
+  ///
+  /// The URL is the lesson's `CourseExercise.videoUrl`, exactly as the
+  /// server sent it; the provider is never assumed. Opening it does not
+  /// complete the lesson — what does is a separate product decision
+  /// (Issue #209). Ignored (false, nothing launched, no copy) when the lesson
+  /// has no URL or an open is already in flight. A launch the OS refuses
+  /// puts [CourseLearningStrings.unexpectedError] in [videoOpenErrorMessage].
+  Future<bool> openVideo() async {
+    final url = _exercise?.videoUrl;
+    if (url == null || _openingVideo) return false;
+
+    _openingVideo = true;
+    _videoOpenErrorMessage = null;
+    _notify();
+
+    try {
+      final opened = await _openUrl(url);
+      if (!opened) {
+        _videoOpenErrorMessage = CourseLearningStrings.unexpectedError;
+      }
+      return opened;
+    } catch (_) {
+      _videoOpenErrorMessage = CourseLearningStrings.unexpectedError;
+      return false;
+    } finally {
+      _openingVideo = false;
       _notify();
     }
   }

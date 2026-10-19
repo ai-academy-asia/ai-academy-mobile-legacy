@@ -3,12 +3,12 @@ part of '../http_course_learning_repository.dart';
 /// §2.3's body into a [CourseExercise].
 ///
 /// Read: `id`, `module.id`/`module.order`, `title`, `type`,
-/// `duration_seconds`, `video`, `summary`, `sections`, `completed`,
-/// `materials`, `note`, `assignment` (see [_assignmentFrom]) and `quiz` (see
-/// [_quizFrom], which also reads `module.title`). Not read, because nothing
-/// here is integrated with them: `order` (the screen shows no lesson number)
-/// and the video's `embed_url` (no player yet — only whether a video
-/// exists). Every list keeps the server's order.
+/// `duration_seconds`, `video` and its `embed_url` (see [_videoUrl]),
+/// `summary`, `sections`, `completed`, `materials`, `note`, `assignment` (see
+/// [_assignmentFrom]) and `quiz` (see [_quizFrom], which also reads
+/// `module.title`). Not read, because nothing here is integrated with it:
+/// `order` (the screen shows no lesson number). Every list keeps the
+/// server's order.
 CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
   final Object? decoded;
   try {
@@ -29,6 +29,7 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
 
   final module = _requireObject(decoded, 'module');
   final type = LessonType.fromApi(_requireString(decoded, 'lesson.type'));
+  final videoUrl = _videoUrl(decoded);
 
   return CourseExercise(
     lessonId: _requireInt(decoded, 'lesson.id'),
@@ -44,7 +45,10 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
     recordingBadgeLabel: type == LessonType.recording
         ? _recordingBadgeLabel
         : '',
-    hasVideo: _hasVideo(decoded),
+    // A video counts only with a URL the play button can open (Issue #447,
+    // decision D1): without one, the header draws the no-video state.
+    hasVideo: videoUrl != null,
+    videoUrl: videoUrl,
     // Required, but an empty summary is a content gap the screen renders
     // around rather than a response it cannot draw.
     summary: _localizedOrEmpty(decoded, 'lesson.summary'),
@@ -66,8 +70,17 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
   );
 }
 
-/// `video` is `{embed_url}` or `null`; only its presence is read.
-bool _hasVideo(Map<String, dynamic> json) {
+/// `video` is `{embed_url}` or `null` (Issue #447). Answers the URL the play
+/// button opens, exactly as sent, or null when there is none to open.
+///
+/// A missing `video` key, or one that is neither an object nor `null`, is
+/// still a `server` failure. A `video` object whose `embed_url` is missing,
+/// not a string, or not an absolute `http`/`https` URL with a host — the
+/// rule the backend applies when it stores the URL — has no URL to open:
+/// the lesson still loads and the header draws the no-video state, rather
+/// than one bad link failing the whole lesson (decision D1). The provider
+/// (YouTube, Drive, Classroom, …) is never assumed.
+Uri? _videoUrl(Map<String, dynamic> json) {
   if (!json.containsKey('video')) {
     throw const CourseLearningFailure(
       CourseLearningFailureKind.server,
@@ -75,13 +88,26 @@ bool _hasVideo(Map<String, dynamic> json) {
     );
   }
   final video = json['video'];
-  if (video == null) return false;
-  if (video is Map<String, dynamic>) return true;
-  throw CourseLearningFailure(
-    CourseLearningFailureKind.server,
-    detail:
-        'lesson.video: expected an object or null, got ${video.runtimeType}',
-  );
+  if (video == null) return null;
+  if (video is! Map<String, dynamic>) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail:
+          'lesson.video: expected an object or null, got ${video.runtimeType}',
+    );
+  }
+  final embedUrl = video['embed_url'];
+  if (embedUrl is! String) return null;
+  final url = Uri.tryParse(embedUrl);
+  // `hasScheme`, not `isAbsolute`: Dart's `isAbsolute` is false for any URL
+  // with a `#fragment`, which a valid video link (`…#t=30`) may carry.
+  if (url == null ||
+      !url.hasScheme ||
+      (url.scheme != 'http' && url.scheme != 'https') ||
+      url.host.isEmpty) {
+    return null;
+  }
+  return url;
 }
 
 CourseExerciseSection _sectionFrom(Object? entry) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/utils/pick_local_file.dart';
@@ -2504,6 +2506,119 @@ void main() {
 
       expect(find.text(CourseLearningStrings.sessionExpired), findsOneWidget);
       expect(find.text('Nesting loops'), findsNothing);
+    });
+  });
+
+  // Issue #447: the play button opens the lesson's video outside the app.
+  // Every test injects `openUrl`, so nothing reaches the platform channel.
+  group('lesson video', () {
+    final videoUrl = Uri.parse('https://drive.google.com/file/d/abc/preview');
+
+    FakeCourseLearningRepository withVideo({Uri? url, bool hasVideo = true}) =>
+        FakeCourseLearningRepository(
+          exercise: sampleExercise(
+            simulatesWrites: false,
+            hasVideo: hasVideo,
+            videoUrl: url,
+          ),
+        );
+
+    testWidgets('tapping Play opens exactly the lesson\'s URL', (tester) async {
+      final opened = <Uri>[];
+      await pumpScreen(
+        tester,
+        withVideo(url: videoUrl),
+        openUrl: (url) async {
+          opened.add(url);
+          return true;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.pumpAndSettle();
+
+      expect(opened, [videoUrl]);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('a launch the OS refuses shows the generic error SnackBar', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        withVideo(url: videoUrl),
+        openUrl: (_) async => false,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text(CourseLearningStrings.unexpectedError), findsOneWidget);
+    });
+
+    testWidgets('a second tap while opening launches once', (tester) async {
+      var launches = 0;
+      final gate = Completer<bool>();
+      await pumpScreen(
+        tester,
+        withVideo(url: videoUrl),
+        openUrl: (_) {
+          launches++;
+          return gate.future;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.pump();
+      gate.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(launches, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('no usable URL draws the existing no-video state, with no '
+        'Play control', (tester) async {
+      var launches = 0;
+      await pumpScreen(
+        tester,
+        withVideo(hasVideo: false),
+        openUrl: (_) async {
+          launches++;
+          return true;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.videoUnavailable), findsOneWidget);
+      expect(find.bySemanticsLabel('Play'), findsNothing);
+      expect(launches, 0);
+    });
+
+    testWidgets('a lesson with no URL keeps the inert Play of the sample '
+        'and launches nothing', (tester) async {
+      var launches = 0;
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(),
+        openUrl: (_) async {
+          launches++;
+          return true;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.pumpAndSettle();
+
+      expect(launches, 0);
+      expect(find.byType(SnackBar), findsNothing);
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aia_mobile/core/utils/pick_local_file.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
@@ -1535,6 +1537,141 @@ void main() {
 
       expect(controller.exercise!.quiz?.id, 9);
       expect(controller.errorMessage, isNull);
+    });
+  });
+
+  // Issue #447: the play button opens the lesson's video outside the app.
+  group('openVideo', () {
+    final videoUrl = Uri.parse('https://www.youtube.com/embed/x?t=1#frag');
+
+    Future<CourseExerciseDetailController> loaded({
+      Uri? url,
+      required Future<bool> Function(Uri url) openUrl,
+    }) async {
+      final controller = CourseExerciseDetailController(
+        repository: FakeCourseLearningRepository(
+          exercise: sampleExercise(simulatesWrites: false, videoUrl: url),
+        ),
+        lessonId: 204,
+        openUrl: openUrl,
+      );
+      await controller.load();
+      return controller;
+    }
+
+    test('opens exactly the lesson\'s URL, once', () async {
+      final opened = <Uri>[];
+      final controller = await loaded(
+        url: videoUrl,
+        openUrl: (url) async {
+          opened.add(url);
+          return true;
+        },
+      );
+
+      expect(await controller.openVideo(), isTrue);
+
+      expect(opened, [videoUrl]);
+      expect(opened.single.toString(), videoUrl.toString());
+      expect(controller.videoOpenErrorMessage, isNull);
+      expect(controller.openingVideo, isFalse);
+    });
+
+    test('a launch the OS refuses gives the generic failure copy', () async {
+      final controller = await loaded(
+        url: videoUrl,
+        openUrl: (_) async => false,
+      );
+
+      expect(await controller.openVideo(), isFalse);
+
+      expect(
+        controller.videoOpenErrorMessage,
+        CourseLearningStrings.unexpectedError,
+      );
+    });
+
+    test(
+      'a launch that throws gives the same copy, not an exception',
+      () async {
+        final controller = await loaded(
+          url: videoUrl,
+          openUrl: (_) async => throw StateError('channel'),
+        );
+
+        expect(await controller.openVideo(), isFalse);
+        expect(
+          controller.videoOpenErrorMessage,
+          CourseLearningStrings.unexpectedError,
+        );
+      },
+    );
+
+    test('a second tap while one is in flight does not launch twice', () async {
+      var launches = 0;
+      final gate = Completer<bool>();
+      final controller = await loaded(
+        url: videoUrl,
+        openUrl: (_) {
+          launches++;
+          return gate.future;
+        },
+      );
+
+      final first = controller.openVideo();
+      expect(controller.openingVideo, isTrue);
+      expect(await controller.openVideo(), isFalse);
+      expect(controller.videoOpenErrorMessage, isNull);
+
+      gate.complete(true);
+      expect(await first, isTrue);
+      expect(launches, 1);
+      expect(controller.openingVideo, isFalse);
+    });
+
+    test('a new attempt clears the last failure', () async {
+      var answer = false;
+      final controller = await loaded(
+        url: videoUrl,
+        openUrl: (_) async => answer,
+      );
+      await controller.openVideo();
+      expect(controller.videoOpenErrorMessage, isNotNull);
+
+      answer = true;
+      expect(await controller.openVideo(), isTrue);
+      expect(controller.videoOpenErrorMessage, isNull);
+    });
+
+    test('no URL launches nothing', () async {
+      var launches = 0;
+      final controller = await loaded(
+        openUrl: (_) async {
+          launches++;
+          return true;
+        },
+      );
+
+      expect(await controller.openVideo(), isFalse);
+      expect(launches, 0);
+      expect(controller.videoOpenErrorMessage, isNull);
+    });
+
+    test('opening the video does not complete the lesson', () async {
+      final repository = FakeCourseLearningRepository(
+        exercise: sampleExercise(simulatesWrites: false, videoUrl: videoUrl),
+      );
+      final controller = CourseExerciseDetailController(
+        repository: repository,
+        lessonId: 204,
+        openUrl: (_) async => true,
+      );
+      await controller.load();
+
+      await controller.openVideo();
+
+      expect(repository.completeCalls, isEmpty);
+      expect(controller.exercise!.completed, isFalse);
     });
   });
 }

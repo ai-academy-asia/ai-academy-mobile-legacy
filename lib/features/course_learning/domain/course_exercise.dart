@@ -7,9 +7,10 @@ import 'lesson.dart';
 /// (`course_learning_api_contract_v1.md` §2.3), or by the sample repository.
 ///
 /// From the backend, the content is real: [lessonId], [moduleId],
-/// [moduleCaption], [title], [type], [durationLabel], [hasVideo], [summary],
-/// [extraSections], [completed], the [materials], the [note] — which is also
-/// saved back, through `CourseLearningRepository.saveNote` — the
+/// [moduleCaption], [title], [type], [durationLabel], [hasVideo] and
+/// [videoUrl], [summary], [extraSections], [completed], the [materials], the
+/// [note] — which is also saved back, through
+/// `CourseLearningRepository.saveNote` — the
 /// [assignment], with its latest submission and its teacher-provided
 /// attachment, and the [quiz] summary. [allMaterials] is what the Course
 /// materials tab lists: the lesson's materials and the assignment's
@@ -26,6 +27,7 @@ class CourseExercise {
     required this.recordingBadgeLabel,
     required this.summary,
     this.hasVideo = true,
+    this.videoUrl,
     required this.extraSections,
     required this.materials,
     required this.completed,
@@ -65,6 +67,14 @@ class CourseExercise {
   /// single centred "not uploaded yet" pill and drops the play control, the
   /// duration and the recording badge.
   final bool hasVideo;
+
+  /// Where the lesson's video plays — `video.embed_url`, exactly as sent,
+  /// when it is an absolute `http`/`https` URL with a host (Issue #447).
+  /// The play button opens it outside the app. Null when the lesson has no
+  /// usable URL: from the backend, [hasVideo] is then false and the header
+  /// draws the no-video state (decision D1). The sample's exercises carry
+  /// none, so their play button stays inert.
+  final Uri? videoUrl;
 
   /// The paragraph shown in both the collapsed and expanded states — the
   /// collapsed view simply clips it to a few lines rather than holding a
@@ -197,6 +207,7 @@ class CourseExercise {
     recordingBadgeLabel: recordingBadgeLabel,
     summary: summary,
     hasVideo: hasVideo,
+    videoUrl: videoUrl,
     extraSections: extraSections,
     materials: materials,
     completed: completed ?? this.completed,

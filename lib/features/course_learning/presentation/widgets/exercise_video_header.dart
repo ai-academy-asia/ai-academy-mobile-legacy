@@ -9,9 +9,9 @@ import '../course_learning_strings.dart';
 
 /// The reference's dark navy video placeholder (`AppPalette.videoSurface`)
 /// — no thumbnail, no player, just the badge/play/duration chrome around it.
-/// There is no video asset or playback to wire up yet, so the play button is
-/// inert, same reasoning as `CourseModuleListScreen`'s own not-yet-wired
-/// actions.
+/// The play button calls [ExerciseVideoHeader.onPlay], which opens the
+/// lesson's video outside the app (Issue #447); without one — the sample's
+/// exercises carry no URL — it stays inert, as before.
 ///
 /// Everything on it reads the media roles, not the page's: the video stays
 /// dark in every theme, so its discs (`mediaControl`), the back disc's ring
@@ -51,6 +51,7 @@ class ExerciseVideoHeader extends StatelessWidget {
     required this.recordingBadgeLabel,
     super.key,
     this.hasVideo = true,
+    this.onPlay,
   });
 
   final String durationLabel;
@@ -60,6 +61,10 @@ class ExerciseVideoHeader extends StatelessWidget {
   /// area and back button, but one centred pill instead of the badge, the
   /// play control and the duration.
   final bool hasVideo;
+
+  /// Called when the play button is tapped. Null leaves it inert. Drawn only
+  /// while [hasVideo], like the button itself.
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +86,7 @@ class ExerciseVideoHeader extends StatelessWidget {
                   left: AppDimens.screenPadding,
                   child: _RecordingBadge(label: recordingBadgeLabel),
                 ),
-              const Center(child: _PlayButton()),
+              Center(child: _PlayButton(onTap: onPlay)),
               Positioned(
                 right: AppDimens.screenPadding,
                 bottom: 16,
@@ -168,7 +173,9 @@ class _VideoBackButton extends StatelessWidget {
 }
 
 class _PlayButton extends StatelessWidget {
-  const _PlayButton();
+  const _PlayButton({required this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -182,8 +189,8 @@ class _PlayButton extends StatelessWidget {
         shadowColor: context.palette.shadow.withValues(alpha: 0.3),
         elevation: 4,
         child: InkWell(
-          // Playback is not implemented — see the class doc above.
-          onTap: () {},
+          // No callback keeps the earlier inert tap — see the class doc.
+          onTap: onTap ?? () {},
           customBorder: const CircleBorder(),
           child: const SizedBox(
             width: 56,
