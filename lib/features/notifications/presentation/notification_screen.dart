@@ -235,17 +235,21 @@ class NotificationTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: _titleToBody),
-                      Text(
-                        notification.body,
-                        style: _bodyStyle.copyWith(
-                          color: unread
-                              ? palette.textSecondary
-                              : palette.textInactive,
+                      // A title-only notification (Issue #451) draws no body
+                      // line; the row keeps its minimum height.
+                      if (notification.body case final body?) ...[
+                        const SizedBox(height: _titleToBody),
+                        Text(
+                          body,
+                          style: _bodyStyle.copyWith(
+                            color: unread
+                                ? palette.textSecondary
+                                : palette.textInactive,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -288,7 +292,8 @@ class NotificationTile extends StatelessWidget {
       label: [
         if (unread) _unreadLabel,
         notification.title,
-        notification.body,
+        // No body, no part — never "null" (Issue #451).
+        ?notification.body,
         age,
       ].join(', '),
       // `excludeSemantics` also drops the [InkWell]'s tap action, so the row

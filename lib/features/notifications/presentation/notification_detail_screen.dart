@@ -115,26 +115,30 @@ class NotificationDetailScreen extends StatelessWidget {
                           height: AppDimens.borderWidth,
                           child: ColoredBox(color: palette.divider),
                         ),
-                        const SizedBox(height: _ruleToBody),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: palette.pageBackground,
-                            borderRadius: BorderRadius.circular(
-                              AppDimens.cardRadius,
+                        // A title-only notification (Issue #451) has no body
+                        // container at all — not an empty one.
+                        if (notification.body case final body?) ...[
+                          const SizedBox(height: _ruleToBody),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: palette.pageBackground,
+                              borderRadius: BorderRadius.circular(
+                                AppDimens.cardRadius,
+                              ),
                             ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              AppDimens.cardPadding,
-                            ),
-                            child: Text(
-                              bindShortLastWords(notification.body),
-                              style: _bodyStyle.copyWith(
-                                color: palette.textPrimary,
+                            child: Padding(
+                              padding: const EdgeInsets.all(
+                                AppDimens.cardPadding,
+                              ),
+                              child: Text(
+                                bindShortLastWords(body),
+                                style: _bodyStyle.copyWith(
+                                  color: palette.textPrimary,
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
