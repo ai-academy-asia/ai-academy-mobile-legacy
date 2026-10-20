@@ -8,7 +8,8 @@ import 'fake_course_learning_repository.dart';
 
 /// The lesson's description, expanded: a section with no title (the backend
 /// allows `title: null`, Issue #481) draws its body and bullets with no
-/// empty heading; a titled section draws its heading as before.
+/// empty heading; a titled section draws its heading as before. A blank
+/// bullet (Issue #483) draws no empty bullet line; the others keep order.
 void main() {
   Future<void> pumpExpanded(
     WidgetTester tester,
@@ -50,6 +51,29 @@ void main() {
     expect(find.text('•  Нэг'), findsOneWidget);
     expect(find.text('Хоёр дахь'), findsOneWidget);
     expect(find.text('Бие'), findsOneWidget);
+    expect(emptyText(), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a blank bullet draws no empty bullet line, and the others '
+      'keep their order', (tester) async {
+    await pumpExpanded(tester, const [
+      CourseExerciseSection(
+        title: 'Гарчиг',
+        body: 'Бие',
+        bullets: ['', 'Нэг', '', 'Хоёр'],
+      ),
+    ]);
+
+    final bullets = tester
+        .widgetList<Text>(
+          find.byWidgetPredicate(
+            (w) => w is Text && (w.data ?? '').startsWith('•'),
+          ),
+        )
+        .map((t) => t.data)
+        .toList();
+    expect(bullets, ['•  Нэг', '•  Хоёр']);
     expect(emptyText(), findsNothing);
     expect(tester.takeException(), isNull);
   });

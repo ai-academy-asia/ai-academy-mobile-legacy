@@ -68,10 +68,12 @@ class ExerciseInfoSection extends StatelessWidget {
               const SizedBox(height: 8),
             ],
             Text(section.body, style: bodyStyle),
-            for (final bullet in section.bullets) ...[
-              const SizedBox(height: 12),
-              Text('•  $bullet', style: bodyStyle),
-            ],
+            // A blank bullet draws no empty bullet line (Issue #483).
+            for (final bullet in section.bullets)
+              if (bullet.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('•  $bullet', style: bodyStyle),
+              ],
           ],
         _ReadMoreRow(expanded: expanded, onTap: onToggle),
       ],
