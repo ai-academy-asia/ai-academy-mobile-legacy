@@ -7,6 +7,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/keyboard_reveal.dart';
 import '../../../../shared/widgets/pill_button.dart';
 import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/teacher_class.dart';
@@ -495,42 +496,53 @@ class _AnnouncementSheetState extends State<AnnouncementSheet> {
                 ],
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _text,
-                maxLength: max,
-                minLines: 3,
-                maxLines: 5,
-                style: AppTypography.fieldText.copyWith(
-                  color: palette.textPrimary,
+              // The field down to its (disabled) Submit: revealed together
+              // above the keyboard when the sheet must scroll (Issue #463).
+              KeyboardRevealArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    KeyboardRevealField(
+                      child: TextField(
+                        controller: _text,
+                        maxLength: max,
+                        minLines: 3,
+                        maxLines: 5,
+                        style: AppTypography.fieldText.copyWith(
+                          color: palette.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: TeacherGradebookStrings.announcePlaceholder,
+                          hintStyle: AppTypography.fieldText.copyWith(
+                            color: palette.textMuted,
+                          ),
+                          counterText: '',
+                          contentPadding: const EdgeInsets.all(16),
+                          enabledBorder: _fieldBorder(palette.outline),
+                          focusedBorder: _fieldBorder(palette.borderFocused),
+                          border: _fieldBorder(palette.outline),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        TeacherGradebookStrings.announceUnavailable,
+                        style: AppTypography.supporting.copyWith(
+                          color: palette.errorInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Off whatever is typed: no endpoint will take it.
+                    const PillButton(
+                      label: TeacherGradebookStrings.submit,
+                      height: 44,
+                      onPressed: null,
+                    ),
+                  ],
                 ),
-                decoration: InputDecoration(
-                  hintText: TeacherGradebookStrings.announcePlaceholder,
-                  hintStyle: AppTypography.fieldText.copyWith(
-                    color: palette.textMuted,
-                  ),
-                  counterText: '',
-                  contentPadding: const EdgeInsets.all(16),
-                  enabledBorder: _fieldBorder(palette.outline),
-                  focusedBorder: _fieldBorder(palette.borderFocused),
-                  border: _fieldBorder(palette.outline),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Semantics(
-                liveRegion: true,
-                child: Text(
-                  TeacherGradebookStrings.announceUnavailable,
-                  style: AppTypography.supporting.copyWith(
-                    color: palette.errorInk,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Off whatever is typed: no endpoint will take it.
-              const PillButton(
-                label: TeacherGradebookStrings.submit,
-                height: 44,
-                onPressed: null,
               ),
             ],
           ),

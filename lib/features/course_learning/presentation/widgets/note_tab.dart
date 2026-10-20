@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/keyboard_reveal.dart';
 import '../../domain/course_exercise.dart';
 import '../course_learning_strings.dart';
 import 'exercise_submit_button.dart';
@@ -129,7 +130,7 @@ class _NoteTabState extends State<NoteTab> {
       child: _editing
           // The textarea down to its Submit: revealed together above the
           // keyboard (Issue #461).
-          ? ExerciseSubmitArea(
+          ? KeyboardRevealArea(
               child: Column(
                 children: [
                   ExerciseTextField(

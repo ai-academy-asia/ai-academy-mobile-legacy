@@ -5,6 +5,7 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/keyboard_reveal.dart';
 import '../../domain/course_exercise.dart';
 import '../../domain/file_size_label.dart';
 import '../../domain/uploaded_file.dart';
@@ -410,7 +411,7 @@ class _AssignmentTabState extends State<AssignmentTab> {
           else
             // The form down to its Submit: a focused field and the Submit
             // are revealed together above the keyboard (Issue #461).
-            ExerciseSubmitArea(
+            KeyboardRevealArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
