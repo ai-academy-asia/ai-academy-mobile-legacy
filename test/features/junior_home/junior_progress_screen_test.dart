@@ -315,16 +315,18 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the junior test student: October has no marks; June and '
-        'July show their attended sessions', (tester) async {
+    testWidgets('the junior test student: their ended course opens on its '
+        'last month, July; June and July show their attended sessions', (
+      tester,
+    ) async {
       await pumpScreen(tester, progress: juniorTestStudentInOctober());
 
-      expect(find.text('Аравдугаар сар, 2026'), findsOneWidget);
-      expect(marks(JuniorDayStatus.attended), findsNothing);
+      // Seen in October, after the course ended in July (Issue #457).
+      expect(find.text('Аравдугаар сар, 2026'), findsNothing);
+      expect(find.text('Долоодугаар сар, 2026'), findsOneWidget);
+      expect(marks(JuniorDayStatus.attended), findsNWidgets(4));
 
-      for (var i = 0; i < 4; i++) {
-        await tapArrow(tester, JuniorProgressStrings.previousMonth);
-      }
+      await tapArrow(tester, JuniorProgressStrings.previousMonth);
       expect(find.text('Зургаадугаар сар, 2026'), findsOneWidget);
       expect(marks(JuniorDayStatus.attended), findsNWidgets(7));
       expect(marks(JuniorDayStatus.missed), findsNothing);
@@ -399,7 +401,26 @@ void main() {
     });
 
     testWidgets('only today\'s own month selects a day', (tester) async {
-      await pumpScreen(tester, progress: juniorTestStudentInOctober());
+      // A course running June – December 2026, seen on 1 October 2026.
+      final source = JuniorCalendarSource(
+        schedule: LessonSchedule(
+          weekdays: const {DateTime.tuesday},
+          start: (9, 0),
+          end: (11, 0),
+          firstDay: DateTime(2026, 6, 16),
+          lastDay: DateTime(2026, 12, 18),
+        ),
+      );
+      final october = DateTime(2026, 10);
+      await pumpScreen(
+        tester,
+        progress: JuniorProgress(
+          month: october,
+          selectedDay: 1,
+          days: source.marksIn(october),
+          calendar: source,
+        ),
+      );
       JuniorProgressCalendar calendar() =>
           tester.widget(find.byType(JuniorProgressCalendar));
       int blueWeekdayLetters() => tester
@@ -781,6 +802,60 @@ void main() {
       await tester.tap(find.bySemanticsLabel(JuniorProgressStrings.nextMonth));
       await tester.pumpAndSettle();
       expect(find.text('Есдүгээр сар, 2023'), findsOneWidget);
+      expect(caret(), AppColors.textPrimary);
+    });
+  });
+
+  group('last month (Issue #457)', () {
+    testWidgets('">" stops at the cohort end month, across a year, and is '
+        'drawn disabled there', (tester) async {
+      // August 2023 through January 2024, seen on 5 October 2023.
+      final calendar = JuniorCalendarSource(
+        schedule: LessonSchedule(
+          weekdays: const {DateTime.monday},
+          start: (9, 0),
+          end: (11, 0),
+          firstDay: DateTime(2023, 8, 14),
+          lastDay: DateTime(2024, 1, 29),
+        ),
+      );
+      final october = DateTime(2023, 10);
+      await pumpScreen(
+        tester,
+        progress: JuniorProgress(
+          month: october,
+          selectedDay: 5,
+          days: calendar.marksIn(october),
+          calendar: calendar,
+        ),
+      );
+      final next = find.bySemanticsLabel(JuniorProgressStrings.nextMonth);
+      Color? caret() =>
+          tester.widget<Icon>(find.byIcon(AppIcons.caretRight)).color;
+
+      expect(caret(), AppColors.textPrimary);
+      for (var i = 0; i < 4; i++) {
+        await tester.ensureVisible(next);
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+
+      final january = JuniorProgressStrings.monthLabel(DateTime(2024, 1));
+      expect(find.text(january), findsOneWidget);
+      expect(
+        find.text(JuniorProgressStrings.monthLabel(DateTime(2024, 2))),
+        findsNothing,
+      );
+      expect(caret(), HomePalette.mutedInk);
+
+      await tester.tap(
+        find.bySemanticsLabel(JuniorProgressStrings.previousMonth),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text(JuniorProgressStrings.monthLabel(DateTime(2023, 12))),
+        findsOneWidget,
+      );
       expect(caret(), AppColors.textPrimary);
     });
   });

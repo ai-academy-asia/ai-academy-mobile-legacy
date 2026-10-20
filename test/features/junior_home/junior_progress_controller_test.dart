@@ -97,19 +97,31 @@ void main() {
     }
 
     test('opens on the progress\'s own month, today selected', () async {
-      final controller = await loaded(juniorTestStudentInOctober());
+      final controller = await loaded(
+        JuniorProgress(month: DateTime(2026, 10), selectedDay: 1),
+      );
 
       expect(controller.displayedMonth, DateTime(2026, 10));
       expect(controller.displayedSelectedDay, 1);
       expect(controller.displayedDays, isEmpty);
     });
 
+    test('an ended course opens on its last month: July, its attended '
+        'days, no selected day (Issue #457)', () async {
+      final controller = await loaded(juniorTestStudentInOctober());
+
+      expect(controller.displayedMonth, DateTime(2026, 7));
+      expect(controller.displayedSelectedDay, isNull);
+      expect(controller.displayedDays, {
+        for (final d in [2, 4, 7, 9]) d: JuniorDayStatus.attended,
+      });
+      expect(controller.canShowNextMonth, isFalse);
+    });
+
     test('pages back to June: its attended days, no selected day', () async {
       final controller = await loaded(juniorTestStudentInOctober());
 
-      for (var i = 0; i < 4; i++) {
-        controller.showPreviousMonth();
-      }
+      controller.showPreviousMonth();
 
       expect(controller.displayedMonth, DateTime(2026, 6));
       expect(controller.displayedSelectedDay, isNull);
@@ -119,23 +131,17 @@ void main() {
       });
     });
 
-    test('July shows the rest; back to October shows none again', () async {
+    test('back from June, July shows the rest again', () async {
       final controller = await loaded(juniorTestStudentInOctober());
-      for (var i = 0; i < 3; i++) {
-        controller.showPreviousMonth();
-      }
+      controller.showPreviousMonth();
+      expect(controller.displayedMonth, DateTime(2026, 6));
 
+      controller.showNextMonth();
       expect(controller.displayedMonth, DateTime(2026, 7));
       expect(controller.displayedDays, {
         for (final d in [2, 4, 7, 9]) d: JuniorDayStatus.attended,
       });
-
-      for (var i = 0; i < 3; i++) {
-        controller.showNextMonth();
-      }
-      expect(controller.displayedMonth, DateTime(2026, 10));
-      expect(controller.displayedDays, isEmpty);
-      expect(controller.displayedSelectedDay, 1);
+      expect(controller.displayedSelectedDay, isNull);
     });
 
     test('pages across a year boundary both ways', () async {
@@ -180,11 +186,12 @@ void main() {
     test('a reload opens on its own month again', () async {
       final controller = await loaded(juniorTestStudentInOctober());
       controller.showPreviousMonth();
-      expect(controller.displayedMonth, DateTime(2026, 9));
+      expect(controller.displayedMonth, DateTime(2026, 6));
 
       await controller.load();
 
-      expect(controller.displayedMonth, DateTime(2026, 10));
+      // July: the ended course's last month (Issue #457).
+      expect(controller.displayedMonth, DateTime(2026, 7));
     });
 
     test('nothing to page before a load', () {
@@ -274,13 +281,15 @@ void main() {
       expect(notified, 0);
     });
 
-    test('a cohort that has not started yet: "<" is already blocked', () async {
+    test('a cohort that has not started yet opens on its start month, '
+        '"<" blocked (Issue #457)', () async {
       final controller = await startingOn(
         DateTime(2026, 12, 1),
         DateTime(2026, 10, 6),
       );
 
-      expect(controller.displayedMonth, DateTime(2026, 10));
+      expect(controller.displayedMonth, DateTime(2026, 12));
+      expect(controller.displayedSelectedDay, isNull);
       expect(controller.canShowPreviousMonth, isFalse);
     });
 
@@ -289,6 +298,139 @@ void main() {
         repository: FakeJuniorProgressRepository(),
       );
       expect(controller.canShowPreviousMonth, isFalse);
+    });
+  });
+
+  group('last month (Issue #457)', () {
+    Future<JuniorProgressController> running(
+      DateTime? firstDay,
+      DateTime? lastDay,
+      DateTime today,
+    ) async {
+      final controller = JuniorProgressController(
+        repository: FakeJuniorProgressRepository(
+          progress: JuniorProgress(
+            month: DateTime(today.year, today.month),
+            selectedDay: today.day,
+            calendar: JuniorCalendarSource(
+              schedule: LessonSchedule(
+                weekdays: const {DateTime.tuesday},
+                start: (9, 0),
+                end: (11, 0),
+                firstDay: firstDay,
+                lastDay: lastDay,
+              ),
+            ),
+          ),
+        ),
+      );
+      await controller.load();
+      return controller;
+    }
+
+    test('pages within the course, start through end, across a year', () async {
+      final controller = await running(
+        DateTime(2025, 11, 3),
+        DateTime(2026, 2, 27),
+        DateTime(2025, 12, 10),
+      );
+
+      expect(controller.displayedMonth, DateTime(2025, 12));
+      expect(controller.canShowNextMonth, isTrue);
+      controller.showNextMonth();
+      expect(controller.displayedMonth, DateTime(2026, 1));
+      controller.showNextMonth();
+      expect(controller.displayedMonth, DateTime(2026, 2));
+      expect(controller.canShowNextMonth, isFalse);
+
+      controller.showNextMonth();
+      expect(controller.displayedMonth, DateTime(2026, 2));
+
+      for (var i = 0; i < 3; i++) {
+        controller.showPreviousMonth();
+      }
+      expect(controller.displayedMonth, DateTime(2025, 11));
+      expect(controller.canShowPreviousMonth, isFalse);
+      expect(controller.canShowNextMonth, isTrue);
+    });
+
+    test('a blocked ">" does not notify', () async {
+      final controller = await running(
+        DateTime(2026, 9, 1),
+        DateTime(2026, 10, 31),
+        DateTime(2026, 10, 6),
+      );
+      var notified = 0;
+      controller.addListener(() => notified++);
+
+      controller.showNextMonth();
+
+      expect(notified, 0);
+      expect(controller.displayedMonth, DateTime(2026, 10));
+    });
+
+    test('a course ending this month opens here, ">" blocked', () async {
+      final controller = await running(
+        DateTime(2026, 6, 1),
+        DateTime(2026, 10, 20),
+        DateTime(2026, 10, 6),
+      );
+
+      expect(controller.displayedMonth, DateTime(2026, 10));
+      expect(controller.displayedSelectedDay, 6);
+      expect(controller.canShowNextMonth, isFalse);
+      expect(controller.canShowPreviousMonth, isTrue);
+    });
+
+    test('a course starting this month opens here, "<" blocked', () async {
+      final controller = await running(
+        DateTime(2026, 10, 5),
+        DateTime(2027, 3, 31),
+        DateTime(2026, 10, 6),
+      );
+
+      expect(controller.displayedMonth, DateTime(2026, 10));
+      expect(controller.canShowPreviousMonth, isFalse);
+      expect(controller.canShowNextMonth, isTrue);
+    });
+
+    test(
+      'a course that has ended opens on its end month; only "<" pages',
+      () async {
+        final controller = await running(
+          DateTime(2026, 1, 5),
+          DateTime(2026, 6, 30),
+          DateTime(2026, 10, 6),
+        );
+
+        expect(controller.displayedMonth, DateTime(2026, 6));
+        expect(controller.displayedSelectedDay, isNull);
+        expect(controller.canShowNextMonth, isFalse);
+        expect(controller.canShowPreviousMonth, isTrue);
+      },
+    );
+
+    test('no end date leaves ">" unbounded', () async {
+      final controller = await running(
+        DateTime(2026, 1, 5),
+        null,
+        DateTime(2026, 10, 6),
+      );
+
+      for (var i = 0; i < 24; i++) {
+        controller.showNextMonth();
+      }
+      expect(controller.displayedMonth, DateTime(2028, 10));
+      expect(controller.canShowNextMonth, isTrue);
+    });
+
+    test('nothing to page before a load', () {
+      final controller = JuniorProgressController(
+        repository: FakeJuniorProgressRepository(),
+      );
+      expect(controller.canShowNextMonth, isFalse);
+      controller.showNextMonth();
+      expect(controller.displayedMonth, isNull);
     });
   });
 }

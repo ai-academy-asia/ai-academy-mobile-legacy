@@ -53,9 +53,10 @@ const double _panelBottom = 16;
 /// it ([HomeStrings.attendanceMissed]). The back control is
 /// [AppBackButton] with the frame's arrow.
 ///
-/// The calendar opens on today's month with today selected, and its arrows
-/// page locally — back no further than the cohort's start month, forward
-/// without limit — the same behaviour as the Junior one.
+/// The calendar opens on today's month with today selected — or, outside
+/// the course, on its nearest month — and its arrows page locally — back no
+/// further than the cohort's start month, forward no further than its end
+/// month — the same behaviour as the Junior one.
 class AttendanceDetailScreen extends StatefulWidget {
   const AttendanceDetailScreen({
     required this.attendance,
@@ -82,7 +83,9 @@ class AttendanceDetailScreen extends StatefulWidget {
 
 class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
   late final DateTime _today = (widget.clock ?? DateTime.now)();
-  late DateTime _month = DateTime(_today.year, _today.month);
+  // Today's month, or the nearest course month outside the course
+  // (Issue #457).
+  late DateTime _month = _calendar.openingMonth(_today);
 
   late final JuniorCalendarSource _calendar = JuniorCalendarSource(
     schedule: widget.schedule,
@@ -146,7 +149,10 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
                           onPreviousMonth: _calendar.hasMonthBefore(_month)
                               ? () => _page(-1)
                               : null,
-                          onNextMonth: () => _page(1),
+                          // Not after its end month (Issue #457).
+                          onNextMonth: _calendar.hasMonthAfter(_month)
+                              ? () => _page(1)
+                              : null,
                         ),
                       ],
                     ),
@@ -185,7 +191,9 @@ class _Panel extends StatelessWidget {
 
   /// Null at the student's cohort start month: "<" is drawn disabled.
   final VoidCallback? onPreviousMonth;
-  final VoidCallback onNextMonth;
+
+  /// Null at the student's cohort end month: ">" is drawn disabled.
+  final VoidCallback? onNextMonth;
 
   @override
   Widget build(BuildContext context) {
