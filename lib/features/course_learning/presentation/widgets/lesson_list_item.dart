@@ -128,13 +128,16 @@ class LessonListItem extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            lesson.durationLabel,
-                            style: AppTypography.supporting.copyWith(
-                              color: palette.textSupporting,
+                          // No duration sent, none drawn (Issue #477).
+                          if (lesson.durationLabel.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              lesson.durationLabel,
+                              style: AppTypography.supporting.copyWith(
+                                color: palette.textSupporting,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

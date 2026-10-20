@@ -87,16 +87,18 @@ class ExerciseVideoHeader extends StatelessWidget {
                   child: _RecordingBadge(label: recordingBadgeLabel),
                 ),
               Center(child: _PlayButton(onTap: onPlay)),
-              Positioned(
-                right: AppDimens.screenPadding,
-                bottom: 16,
-                child: Text(
-                  durationLabel,
-                  style: AppTypography.dateTime.copyWith(
-                    color: palette.onMedia,
+              // No duration sent, none drawn (Issue #477).
+              if (durationLabel.isNotEmpty)
+                Positioned(
+                  right: AppDimens.screenPadding,
+                  bottom: 16,
+                  child: Text(
+                    durationLabel,
+                    style: AppTypography.dateTime.copyWith(
+                      color: palette.onMedia,
+                    ),
                   ),
                 ),
-              ),
             ] else
               const Center(
                 child: _RecordingBadge(

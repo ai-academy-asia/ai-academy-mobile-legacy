@@ -815,6 +815,20 @@ void main() {
         },
       );
 
+      test('a lesson with no duration (null) has an empty label, and the rest '
+          'of the module still loads (Issue #477)', () async {
+        final lessons = await lessonsFrom(
+          lessonsBody(
+            lessons: [
+              lesson(id: 1, durationSeconds: null),
+              lesson(id: 2, durationSeconds: 1455),
+            ],
+          ),
+        );
+
+        expect(lessons.map((l) => l.durationLabel), ['', '24:15']);
+      });
+
       test('takes completed and locked from the server', () async {
         final lessons = await lessonsFrom(lessonsBody());
 
@@ -1225,6 +1239,32 @@ void main() {
           expect(labels, ['0:00', '24:15', '1:02:05']);
         },
       );
+
+      test('a lesson with no duration (null) opens, with an empty label '
+          '(Issue #477)', () async {
+        final exercise = await exerciseFrom(lessonBody(durationSeconds: null));
+
+        expect(exercise.durationLabel, isEmpty);
+      });
+
+      test('duration_seconds that is not a number, or negative, is still a '
+          'fault', () async {
+        for (final value in ['24:15', -1]) {
+          final failure = await failureForExerciseBody(
+            lessonBody(durationSeconds: value),
+          );
+          expect(
+            failure.kind,
+            CourseLearningFailureKind.server,
+            reason: '$value',
+          );
+          expect(
+            failure.detail,
+            contains('lesson.duration_seconds'),
+            reason: '$value',
+          );
+        }
+      });
 
       test('maps type, with a badge only for a recording', () async {
         final expected = {

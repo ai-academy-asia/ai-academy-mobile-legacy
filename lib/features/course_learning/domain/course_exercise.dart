@@ -55,7 +55,8 @@ class CourseExercise {
   /// The lesson's `type`.
   final LessonType type;
 
-  /// The video's running time, e.g. "24:15".
+  /// The video's running time, e.g. "24:15". Empty when the lesson has no
+  /// duration (`duration_seconds: null`, Issue #477): nothing is drawn.
   final String durationLabel;
 
   /// The badge drawn over the video, e.g. "Live Classroom Recording". Empty

@@ -33,6 +33,22 @@ String _timestampLabel(DateTime local, {required DateTime now}) {
       : '${two(local.month)}/${two(local.day)}, $time';
 }
 
+/// A lesson's `duration_seconds` as its label (Issue #477): the key is
+/// always sent, and `null` when the lesson was authored without one — the
+/// backend's `create_lesson` sets none — which is no label at all, `''`,
+/// rather than an invented `0:00`. Otherwise [_durationLabel]. A missing key
+/// or a non-integer is a server fault, as before.
+String _durationLabelOf(Map<String, dynamic> json) {
+  if (!json.containsKey('duration_seconds')) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'lesson.duration_seconds: missing',
+    );
+  }
+  if (json['duration_seconds'] == null) return '';
+  return _durationLabel(_requireInt(json, 'lesson.duration_seconds'));
+}
+
 /// `duration_seconds` as the lesson row draws it: `M:SS` under an hour,
 /// `H:MM:SS` from one up — `0` is `"0:00"`, `1455` is `"24:15"`, `3725` is
 /// `"1:02:05"`. The contract sends integers and no pre-formatted label, so
