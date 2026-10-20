@@ -115,11 +115,15 @@ void main() {
   Future<FakeTeacherGradebookRepository> openOverview(
     WidgetTester tester, {
     FakeTeacherGradebookRepository? repository,
+    double width = 393,
+    double height = 1000,
   }) async {
     final repo = repository ?? classRepository();
     await pump(
       tester,
       TeacherGradebookScreen(repository: repo, showBottomNav: false),
+      width: width,
+      height: height,
     );
     return repo;
   }
@@ -135,8 +139,15 @@ void main() {
     WidgetTester tester,
     String name, {
     FakeTeacherGradebookRepository? repository,
+    double width = 393,
+    double height = 1000,
   }) async {
-    final repo = await openOverview(tester, repository: repository);
+    final repo = await openOverview(
+      tester,
+      repository: repository,
+      width: width,
+      height: height,
+    );
     await openStudents(tester);
     await tester.tap(find.text(name));
     await tester.pumpAndSettle();
@@ -591,6 +602,358 @@ void main() {
       await openStudent(tester, 'Student C');
       expect(find.text(TeacherGradebookStrings.notSubmitted), findsOneWidget);
       expect(replyField(), findsNothing);
+    });
+  });
+
+  group('keyboard (Issue #463)', () {
+    // An iPhone keyboard over a 393 x 852 screen: the page above it ends
+    // at 516.
+    const keyboard = 336.0;
+    const visibleBottom = 852 - keyboard;
+    // `TextField`'s default `scrollPadding`, kept clear around the field.
+    const margin = 20.0;
+
+    Finder submit() => pill(TeacherGradebookStrings.submit);
+    Finder scoreField() => find.byWidgetPredicate(
+      (w) =>
+          w is TextField &&
+          w.decoration?.labelText == TeacherGradebookStrings.scoreLabel(100),
+    );
+
+    FakeTeacherGradebookRepository scoredRepository() =>
+        classRepository()
+          ..assignments = {
+            2: const [
+              TeacherAssignment(
+                id: 2,
+                title: LocalizedText(mn: 'Даалгавар 2'),
+                maxScore: 100,
+              ),
+              TeacherAssignment(
+                id: 3,
+                title: LocalizedText(en: 'Assignment 3'),
+                maxScore: 100,
+              ),
+            ],
+          };
+
+    Future<void> openKeyboard(
+      WidgetTester tester, [
+      double height = keyboard,
+    ]) async {
+      tester.view.viewInsets = FakeViewPadding(bottom: height);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> closeKeyboard(WidgetTester tester) async {
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> focus(WidgetTester tester, Finder field) async {
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pump();
+    }
+
+    void expectAbove(
+      WidgetTester tester,
+      Finder finder, {
+      double bottom = visibleBottom,
+      double clear = margin,
+    }) {
+      final rect = tester.getRect(finder);
+      expect(rect.top, greaterThanOrEqualTo(0));
+      expect(rect.bottom, lessThanOrEqualTo(bottom - clear));
+    }
+
+    ScrollPosition thread(WidgetTester tester) => tester
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byType(GradebookStudentScreen),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position;
+
+    Future<void> openOnPhone(
+      WidgetTester tester, {
+      FakeTeacherGradebookRepository? repository,
+      Size size = const Size(393, 852),
+    }) => openStudent(
+      tester,
+      'Student A',
+      repository: repository,
+      width: size.width,
+      height: size.height,
+    );
+
+    testWidgets('the reply field and Submit land together above the '
+        'keyboard', (tester) async {
+      await openOnPhone(tester);
+      await focus(tester, replyField());
+
+      await openKeyboard(tester);
+
+      expectAbove(tester, replyField());
+      expectAbove(tester, submit());
+    });
+
+    testWidgets('typing within the reply\'s first lines moves nothing; '
+        'growing it keeps it and Submit above the keyboard', (tester) async {
+      await openOnPhone(tester);
+      await focus(tester, replyField());
+      await openKeyboard(tester);
+      final field = tester.getRect(replyField());
+      final button = tester.getRect(submit());
+
+      // Within its four-line minimum: the field does not grow.
+      await tester.enterText(replyField(), 'Сайн\nажил\nбайна');
+      await tester.pumpAndSettle();
+      expect(tester.getRect(replyField()), field);
+      expect(tester.getRect(submit()), button);
+
+      // Past it the field grows, to eight lines; both stay revealed.
+      await tester.enterText(
+        replyField(),
+        [for (var i = 1; i <= 8; i++) 'Мөр $i'].join('\n'),
+      );
+      await tester.pumpAndSettle();
+      expectAbove(tester, replyField());
+      expectAbove(tester, submit());
+    });
+
+    testWidgets('no doubled keyboard padding: open, the thread scrolls no '
+        'further than its content; closed, the page is as it was', (
+      tester,
+    ) async {
+      await openOnPhone(tester);
+      final viewport = thread(tester).viewportDimension;
+      final extent = thread(tester).maxScrollExtent;
+      await focus(tester, replyField());
+
+      await openKeyboard(tester);
+      final shrunk = viewport - thread(tester).viewportDimension;
+      expect(shrunk, keyboard);
+      // The content is the same; only the view of it shrank — and the home
+      // indicator's inset, under the keyboard now, is no longer padded.
+      expect(
+        thread(tester).maxScrollExtent,
+        lessThanOrEqualTo(extent + shrunk),
+      );
+
+      await closeKeyboard(tester);
+      expect(thread(tester).viewportDimension, viewport);
+      expect(thread(tester).maxScrollExtent, extent);
+      expect(
+        thread(tester).pixels,
+        inInclusiveRange(0, thread(tester).maxScrollExtent),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a score: the score field, its error and Submit stay above '
+        'the keyboard, and the review sends', (tester) async {
+      final repo = scoredRepository();
+      await openOnPhone(tester, repository: repo);
+      await tester.enterText(replyField(), 'Сайн');
+      await focus(tester, scoreField());
+      await openKeyboard(tester);
+      expectAbove(tester, scoreField());
+      expectAbove(tester, submit());
+
+      await tester.enterText(scoreField(), '150');
+      await tester.pumpAndSettle();
+      final error = find.text(TeacherGradebookStrings.scoreInvalid(100));
+      expectAbove(tester, error, clear: 0);
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+
+      await tester.enterText(scoreField(), '85');
+      await tester.pumpAndSettle();
+      expectAbove(tester, submit());
+      await tester.tap(submit());
+      await tester.pumpAndSettle();
+      expect(repo.reviewCalls, [(30, 'Сайн', 85)]);
+    });
+
+    testWidgets('focus moves from the reply to the score: each lands with '
+        'Submit', (tester) async {
+      await openOnPhone(tester, repository: scoredRepository());
+      await focus(tester, replyField());
+      await openKeyboard(tester);
+      expectAbove(tester, replyField());
+
+      await tester.showKeyboard(scoreField());
+      await tester.pumpAndSettle();
+      expectAbove(tester, scoreField());
+      expectAbove(tester, submit());
+    });
+
+    testWidgets('saving: Submit waits, the spinner shows below it, and the '
+        'confirmed reply replaces the text', (tester) async {
+      final repo = classRepository()..reviewGate = Completer<void>();
+      await openOnPhone(tester, repository: repo);
+      await focus(tester, replyField());
+      await openKeyboard(tester);
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+
+      await tester.enterText(replyField(), 'Сайн ажил.');
+      await tester.pump();
+      await tester.tap(submit());
+      await tester.pump();
+      final spinner = find.descendant(
+        of: find.byType(GradebookStudentScreen),
+        matching: find.byType(CircularProgressIndicator),
+      );
+      expect(spinner, findsOneWidget);
+      expect(
+        tester.getRect(spinner).top,
+        greaterThan(tester.getRect(submit()).bottom),
+      );
+      expect(tester.widget<PillButton>(submit()).onPressed, isNull);
+
+      repo.reviewGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Сайн ажил.'), findsOneWidget);
+      expect(tester.widget<TextField>(replyField()).controller!.text, isEmpty);
+    });
+
+    /// The thread list's visible window — under the page header, above the
+    /// keyboard.
+    Rect threadWindow(WidgetTester tester) => tester.getRect(
+      find
+          .descendant(
+            of: find.byType(GradebookStudentScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+
+    /// [finder] wholly inside [window].
+    void expectInside(WidgetTester tester, Finder finder, Rect window) {
+      final rect = tester.getRect(finder);
+      expect(rect.top, greaterThanOrEqualTo(window.top));
+      expect(rect.bottom, lessThanOrEqualTo(window.bottom));
+    }
+
+    /// A field's first line, where the caret starts: its text's top, one
+    /// line tall.
+    Rect caretLine(WidgetTester tester, Finder field) {
+      final text = find.descendant(
+        of: field,
+        matching: find.byType(EditableText),
+      );
+      final top = tester.getRect(text);
+      final line = tester
+          .state<EditableTextState>(text)
+          .renderEditable
+          .preferredLineHeight;
+      return Rect.fromLTWH(top.left, top.top, top.width, line);
+    }
+
+    testWidgets('an SE-size phone with the predictive bar: the reply and '
+        'Submit still land together', (tester) async {
+      await openOnPhone(tester, size: const Size(375, 667));
+      await focus(tester, replyField());
+
+      await openKeyboard(tester, 260);
+
+      final window = threadWindow(tester);
+      expectInside(tester, replyField(), window);
+      expectInside(tester, submit(), window);
+    });
+
+    testWidgets('too short for the whole reply and Submit: the caret line '
+        'and Submit, tight', (tester) async {
+      // A 200pt thread window: the reply with its padding and Submit need
+      // more; its caret line down to Submit fits.
+      await openOnPhone(tester, size: const Size(393, 600));
+      await focus(tester, replyField());
+
+      await openKeyboard(tester, 292);
+
+      final window = threadWindow(tester);
+      expect(window.height, 200);
+      expectInside(tester, submit(), window);
+      final line = caretLine(tester, replyField());
+      expect(line.top, greaterThanOrEqualTo(window.top));
+      expect(line.bottom, lessThanOrEqualTo(window.bottom));
+    });
+
+    testWidgets('landscape, too short even for that: the caret line stays '
+        'visible', (tester) async {
+      // A 105pt thread window under the header: no room for Submit too.
+      await openOnPhone(tester, size: const Size(852, 393));
+      await focus(tester, replyField());
+
+      await openKeyboard(tester, 180);
+
+      final window = threadWindow(tester);
+      final line = caretLine(tester, replyField());
+      expect(line.top, greaterThanOrEqualTo(window.top));
+      expect(line.bottom, lessThanOrEqualTo(window.bottom));
+    });
+
+    testWidgets('the announcement field lifts above the keyboard; its '
+        'Submit stays off', (tester) async {
+      await openOverview(tester, height: 852);
+      await tester.tap(pill(TeacherGradebookStrings.details));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(TeacherGradebookStrings.announce));
+      await tester.pumpAndSettle();
+      final field = find.descendant(
+        of: find.byType(AnnouncementSheet),
+        matching: find.byType(TextField),
+      );
+      final announceSubmit = find.descendant(
+        of: find.byType(AnnouncementSheet),
+        matching: submit(),
+      );
+      await tester.tap(field);
+      await tester.pump();
+
+      await openKeyboard(tester);
+      expectAbove(tester, field, clear: 0);
+      expectAbove(tester, announceSubmit, clear: 0);
+
+      await tester.enterText(field, 'Маргааш хичээл 19:00');
+      await tester.pumpAndSettle();
+      expect(tester.widget<PillButton>(announceSubmit).onPressed, isNull);
+    });
+
+    testWidgets('landscape: the announcement\'s caret line stays visible '
+        'in the sheet', (tester) async {
+      await openOverview(tester, width: 852, height: 393);
+      await tester.tap(pill(TeacherGradebookStrings.details));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(TeacherGradebookStrings.announce));
+      await tester.pumpAndSettle();
+      final field = find.descendant(
+        of: find.byType(AnnouncementSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.tap(field);
+      await tester.pump();
+
+      await openKeyboard(tester, 180);
+
+      // The sheet's own scroll window, above the keyboard. The field, its
+      // note and Submit need more than it has: the caret line wins.
+      final window = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(AnnouncementSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(window.bottom, lessThanOrEqualTo(213));
+      final line = caretLine(tester, field);
+      expect(line.top, greaterThanOrEqualTo(window.top));
+      expect(line.bottom, lessThanOrEqualTo(window.bottom));
     });
   });
 

@@ -6,6 +6,7 @@ import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/content_column.dart';
+import '../../../shared/widgets/keyboard_reveal.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../domain/teacher_failure.dart';
 import '../domain/teacher_gradebook_repository.dart';
@@ -227,12 +228,15 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
                   child: ListView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
+                    // No keyboard inset here: the `Scaffold` already shrinks
+                    // the page by it, and this `context` — above the
+                    // `Scaffold` — would add it a second time, a keyboard's
+                    // height of blank space under Submit (Issue #463).
                     padding: EdgeInsets.only(
                       top: AppDimens.cardGap,
                       bottom:
                           AppDimens.pageBottom +
-                          MediaQuery.paddingOf(context).bottom +
-                          MediaQuery.viewInsetsOf(context).bottom,
+                          MediaQuery.paddingOf(context).bottom,
                     ),
                     children: [
                       const Padding(
@@ -366,66 +370,86 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: _reply,
-                  focusNode: _replyFocus,
-                  enabled: !_saving,
-                  minLines: 4,
-                  maxLines: 8,
-                  maxLength: _maxFeedback,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: AppTypography.fieldText.copyWith(
-                    color: palette.textPrimary,
-                  ),
-                  decoration: _outlined(
-                    palette,
-                    label: TeacherGradebookStrings.replyLabel,
-                  ).copyWith(counterText: ''),
-                ),
-                if (max != null) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _score,
-                    enabled: !_saving,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                    ],
-                    style: AppTypography.fieldText.copyWith(
-                      color: palette.textPrimary,
-                    ),
-                    decoration:
-                        _outlined(
-                          palette,
-                          label: TeacherGradebookStrings.scoreLabel(max),
-                        ).copyWith(
-                          errorText: scoreInvalid
-                              ? TeacherGradebookStrings.scoreInvalid(max)
-                              : null,
+                // The composer down to its Submit: a focused field and the
+                // Submit land above the keyboard together (Issue #463). The
+                // saving spinner stays below, outside it.
+                KeyboardRevealArea(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      KeyboardRevealField(
+                        child: TextField(
+                          controller: _reply,
+                          focusNode: _replyFocus,
+                          enabled: !_saving,
+                          minLines: 4,
+                          maxLines: 8,
+                          maxLength: _maxFeedback,
+                          textCapitalization: TextCapitalization.sentences,
+                          style: AppTypography.fieldText.copyWith(
+                            color: palette.textPrimary,
+                          ),
+                          decoration: _outlined(
+                            palette,
+                            label: TeacherGradebookStrings.replyLabel,
+                          ).copyWith(counterText: ''),
                         ),
-                  ),
-                ],
-                if (_error case final error?) ...[
-                  const SizedBox(height: 8),
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      error,
-                      style: AppTypography.supporting.copyWith(
-                        color: palette.errorInk,
                       ),
-                    ),
+                      if (max != null) ...[
+                        const SizedBox(height: 12),
+                        KeyboardRevealField(
+                          child: TextField(
+                            controller: _score,
+                            enabled: !_saving,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
+                            ],
+                            style: AppTypography.fieldText.copyWith(
+                              color: palette.textPrimary,
+                            ),
+                            decoration:
+                                _outlined(
+                                  palette,
+                                  label: TeacherGradebookStrings.scoreLabel(
+                                    max,
+                                  ),
+                                ).copyWith(
+                                  errorText: scoreInvalid
+                                      ? TeacherGradebookStrings.scoreInvalid(
+                                          max,
+                                        )
+                                      : null,
+                                ),
+                          ),
+                        ),
+                      ],
+                      if (_error case final error?) ...[
+                        const SizedBox(height: 8),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            error,
+                            style: AppTypography.supporting.copyWith(
+                              color: palette.errorInk,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      PillButton(
+                        label: TeacherGradebookStrings.submit,
+                        height: 44,
+                        onPressed: _canSubmit(assignment)
+                            ? () => _submit(assignment, submission)
+                            : null,
+                      ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: 16),
-                PillButton(
-                  label: TeacherGradebookStrings.submit,
-                  height: 44,
-                  onPressed: _canSubmit(assignment)
-                      ? () => _submit(assignment, submission)
-                      : null,
                 ),
                 if (_saving) ...[
                   const SizedBox(height: 12),
