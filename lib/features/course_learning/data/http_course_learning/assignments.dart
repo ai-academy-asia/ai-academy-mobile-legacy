@@ -101,12 +101,30 @@ AssignmentMentorFeedback? _feedbackFrom(
           '${feedback.runtimeType}',
     );
   }
-  final mentor = _requireObject(feedback, 'mentor');
-  final role = _requireString(mentor, 'feedback.mentor.role');
+  // `mentor` is always sent, and null when staff — not a teacher — wrote
+  // the review (Issue #473): the review stands, with no mentor to show.
+  if (!feedback.containsKey('mentor')) {
+    throw const CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: 'assignment.submission.feedback.mentor: missing',
+    );
+  }
+  final mentor = feedback['mentor'] == null
+      ? null
+      : _requireObject(feedback, 'mentor');
+  final role = mentor == null
+      ? null
+      : _requireString(mentor, 'feedback.mentor.role');
   return AssignmentMentorFeedback(
-    mentorInitials: _requireString(mentor, 'feedback.mentor.initials'),
-    mentorName: _requireString(mentor, 'feedback.mentor.name'),
-    mentorRole: role == 'teacher' ? _teacherRoleLabel : '',
+    mentorInitials: mentor == null
+        ? null
+        : _requireString(mentor, 'feedback.mentor.initials'),
+    mentorName: mentor == null
+        ? null
+        : _requireString(mentor, 'feedback.mentor.name'),
+    mentorRole: role == null
+        ? null
+        : (role == 'teacher' ? _teacherRoleLabel : ''),
     message: _requireString(feedback, 'feedback.message'),
     timestampLabel: _timestampLabel(
       _requireTimestamp(feedback, 'feedback.created_at').toLocal(),

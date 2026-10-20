@@ -17,6 +17,7 @@ import 'package:aia_mobile/features/course_learning/presentation/widgets/assignm
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_submit_button.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_text_field.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/mentor_feedback_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1765,6 +1766,47 @@ void main() {
         expect(find.textContaining('Сайн ажил.'), findsOneWidget);
         expect(find.text('Today, 14:20'), findsOneWidget);
         expect(find.text(CourseLearningStrings.noFeedbackYet), findsNothing);
+      });
+
+      testWidgets('a staff review shows its feedback with no author row — '
+          'no invented name or role (Issue #473)', (tester) async {
+        const staffReview = AssignmentMentorFeedback(
+          message: 'Сайн ажил.',
+          timestampLabel: 'Today, 14:20',
+        );
+        await pumpScreen(
+          tester,
+          withAssignment(
+            CourseAssignment(
+              id: 17,
+              submission: submission(feedback: staffReview),
+            ),
+          ),
+          lessonId: 204,
+        );
+        await tester.pumpAndSettle();
+        await openAssignmentTab(tester);
+
+        final card = find.byType(MentorFeedbackCard);
+        expect(card, findsOneWidget);
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.textContaining('Сайн ажил.'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.text('Today, 14:20')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.byType(CircleAvatar)),
+          findsNothing,
+        );
+        expect(find.text('Lead Mentor'), findsNothing);
+        expect(find.text(CourseLearningStrings.noFeedbackYet), findsNothing);
+        expect(tester.takeException(), isNull);
       });
     });
 

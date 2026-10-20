@@ -297,21 +297,28 @@ class CourseExerciseNote {
 /// `AssignmentTab`'s own doc comment.
 class AssignmentMentorFeedback {
   const AssignmentMentorFeedback({
-    required this.mentorInitials,
-    required this.mentorName,
-    required this.mentorRole,
     required this.message,
     required this.timestampLabel,
+    this.mentorInitials,
+    this.mentorName,
+    this.mentorRole,
   });
 
   /// e.g. "БП", drawn inside the avatar circle — same treatment as
   /// `CourseExerciseNote.authorInitials`.
-  final String mentorInitials;
+  ///
+  /// The three mentor fields are all null when the review has no mentor:
+  /// staff, not a teacher, reviewed it, and §2.6 then sends
+  /// `feedback.mentor: null` (Issue #473).
+  final String? mentorInitials;
 
-  final String mentorName;
+  final String? mentorName;
 
   /// e.g. "Lead Mentor", shown under [mentorName].
-  final String mentorRole;
+  final String? mentorRole;
+
+  /// Whether a mentor is known — false for a staff review.
+  bool get hasMentor => mentorName != null;
 
   final String message;
 
