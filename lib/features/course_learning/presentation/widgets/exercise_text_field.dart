@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -27,13 +29,15 @@ import '../../../../core/theme/app_typography.dart';
 /// Its type is `AppTextField`'s: [AppTypography.fieldText] typed and resting,
 /// [AppTypography.fieldLabel] floated.
 ///
-/// **The whole box scrolls into view with the keyboard (Issue #459).** On
-/// focus, and as the keyboard opens, `EditableText` asks the page's scroll
-/// view to show only its caret plus `scrollPadding` — in a textarea, the
-/// first line — which left the rest of the box, and the Submit under it,
-/// behind the keyboard. [_RevealWholeField] widens that request to the box
-/// itself, keeping the same margin, so the field lands fully above the
-/// keyboard and typing inside it never scrolls the page again.
+/// **The whole box scrolls into view with the keyboard (Issue #459), and
+/// the Submit under it too (Issue #461).** On focus, and as the keyboard
+/// opens, `EditableText` asks the page's scroll view to show only its caret
+/// plus `scrollPadding` — in a textarea, the first line — which left the
+/// rest of the box, and the Submit under it, behind the keyboard.
+/// [_RevealWholeField] widens that request: through the end of the
+/// enclosing [ExerciseSubmitArea] when there is one, so the field and its
+/// Submit land above the keyboard together. Once they are on screen, typing
+/// inside the field does not scroll the page again.
 
 class ExerciseTextField extends StatelessWidget {
   const ExerciseTextField({
@@ -120,9 +124,37 @@ class ExerciseTextField extends StatelessWidget {
   );
 }
 
-/// Makes any request to show part of [child] on screen — the caret, as the
-/// field is focused or the keyboard opens — a request to show all of it,
-/// [_margin] clear on every side: `TextField`'s default `scrollPadding`.
+/// The block of a tab's form that ends with its Submit button — the Note
+/// textarea down to "Submit", the Assignment fields down to theirs
+/// (Issue #461).
+///
+/// Draws nothing and changes no layout. A focused [ExerciseTextField] inside
+/// it reveals itself down to this block's end, so the Submit under the field
+/// is not left behind the keyboard. **Its last child must be the Submit
+/// button**: its bottom edge is what the reveal reaches.
+class ExerciseSubmitArea extends SingleChildRenderObjectWidget {
+  const ExerciseSubmitArea({required super.child, super.key});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderSubmitArea();
+}
+
+class _RenderSubmitArea extends RenderProxyBox {}
+
+/// Turns any request to show part of [child] on screen — the caret, as the
+/// field is focused or the keyboard opens — into the largest of these that
+/// fits the page's viewport, [_margin] clear (`TextField`'s default
+/// `scrollPadding`):
+///
+///  1. the whole field, down through the enclosing [ExerciseSubmitArea]'s
+///     Submit — or the whole field alone outside one;
+///  2. tight, with no margin: the caret line down to that Submit's bottom
+///     edge — the field's own text scrolls inside the box above it;
+///  3. the part asked for (the caret and its `scrollPadding`) alone — so
+///     typing is never hidden.
+///
+/// Whichever it is, `showOnScreen` scrolls the least it can to show it, so a
+/// rect already on screen — while typing — moves nothing.
 class _RevealWholeField extends SingleChildRenderObjectWidget {
   const _RevealWholeField({required super.child});
 
@@ -141,10 +173,48 @@ class _RenderRevealWholeField extends RenderProxyBox {
     Duration duration = Duration.zero,
     Curve curve = Curves.ease,
   }) {
-    super.showOnScreen(
-      rect: (Offset.zero & size).inflate(_RevealWholeField._margin),
-      duration: duration,
-      curve: curve,
+    const margin = _RevealWholeField._margin;
+    final viewport = RenderAbstractViewport.maybeOf(this);
+    final area = _submitAreaBelow(viewport);
+    // Every rect in [target]'s own coordinates, margin included.
+    final RenderBox target = area ?? this;
+    final field = MatrixUtils.transformRect(
+      getTransformTo(target),
+      (Offset.zero & size).inflate(margin),
     );
+    final asked = rect == null
+        ? field
+        : MatrixUtils.transformRect(
+            (descendant ?? this).getTransformTo(target),
+            rect,
+          );
+    // Submit's bottom edge, or the field's own outside an area.
+    final end = area?.size.height ?? field.bottom - margin;
+    final extent = viewport?.paintBounds.height ?? double.infinity;
+
+    Rect span(double top, double bottom) =>
+        Rect.fromLTRB(field.left, top, field.right, bottom);
+    final reveal = [
+      span(field.top, math.max(field.bottom, end + margin)),
+      // [asked] is the caret inflated by `scrollPadding`, which this field
+      // leaves at `TextField`'s default — [margin] on every side.
+      span(asked.top + margin, end),
+    ].firstWhere((r) => r.height <= extent, orElse: () => asked);
+
+    if (area == null) {
+      super.showOnScreen(rect: reveal, duration: duration, curve: curve);
+    } else {
+      area.showOnScreen(rect: reveal, duration: duration, curve: curve);
+    }
+  }
+
+  /// The nearest [ExerciseSubmitArea] holding this field, short of the
+  /// page's scroll view; null outside one.
+  _RenderSubmitArea? _submitAreaBelow(RenderAbstractViewport? viewport) {
+    for (var node = parent; node != null && node != viewport;) {
+      if (node is _RenderSubmitArea) return node;
+      node = node.parent;
+    }
+    return null;
   }
 }
