@@ -136,14 +136,17 @@ TeacherSession _session(Object? entry) {
   final start = entry['start_time'];
   final end = entry['end_time'];
   if (id is! int || cohortId is! int) throw _shape('session: id/cohort_id');
-  if (date is! String || start is! String || end is! String) {
+  // `end_time` may be null — a session with no end time (Issue #479).
+  if (date is! String || start is! String || (end != null && end is! String)) {
     throw _shape('session $id: session_date/start_time/end_time');
   }
 
   final parsedDate = DateTime.tryParse(date);
   final startTime = parseClockTime(start);
-  final endTime = parseClockTime(end);
-  if (parsedDate == null || startTime == null || endTime == null) {
+  final endTime = end is String ? parseClockTime(end) : null;
+  if (parsedDate == null ||
+      startTime == null ||
+      (end != null && endTime == null)) {
     throw _shape('session $id: unreadable date or time');
   }
 
@@ -197,7 +200,10 @@ AssignedSession _assignedSession(Object? item) {
       final parsedDate = date is String ? DateTime.tryParse(date) : null;
       final startTime = start is String ? parseClockTime(start) : null;
       final endTime = end is String ? parseClockTime(end) : null;
-      if (parsedDate == null || startTime == null || endTime == null) {
+      // `end_time` may be null (Issue #479); anything else must read.
+      if (parsedDate == null ||
+          startTime == null ||
+          (end != null && endTime == null)) {
         throw _shape('item $id: unreadable date or time');
       }
       if (requestId is! int) throw _shape('item $id: request_id');

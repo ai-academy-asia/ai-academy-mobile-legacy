@@ -23,25 +23,45 @@ class TeacherSession {
   /// `session_date`, as that local midnight.
   final DateTime date;
 
-  /// Hour and minute the session starts and ends.
+  /// Hour and minute the session starts and ends. [end] is null when the
+  /// session has no end time — the backend allows it (`end_time` is
+  /// optional when a session is created, and generated sessions copy the
+  /// cohort's, which may be unset), and sends `end_time: null`
+  /// (Issue #479). No end is ever made up for it.
   final (int, int) start;
-  final (int, int) end;
+  final (int, int)? end;
 
   DateTime get startsAt =>
       DateTime(date.year, date.month, date.day, start.$1, start.$2);
 
-  DateTime get endsAt =>
-      DateTime(date.year, date.month, date.day, end.$1, end.$2);
+  /// Null when [end] is.
+  DateTime? get endsAt => switch (end) {
+    final end? => DateTime(date.year, date.month, date.day, end.$1, end.$2),
+    null => null,
+  };
 
-  /// True once the session's end time has passed — the calendar's "already
-  /// held" state. This is the clock, not attendance: no endpoint reports
-  /// whether a session was "entered", and reading every past session's
-  /// attendance to find out would be one request per block.
-  bool isOverAt(DateTime now) => !now.isBefore(endsAt);
+  /// True once the session is over — the calendar's "already held" state:
+  /// once its end time has passed, or, with no end time, only once its day
+  /// is over (Issue #479), never before. This is the clock, not attendance:
+  /// no endpoint reports whether a session was "entered", and reading every
+  /// past session's attendance to find out would be one request per block.
+  bool isOverAt(DateTime now) =>
+      !now.isBefore(endsAt ?? DateTime(date.year, date.month, date.day + 1));
 
   /// `HH:mm`.
   String get startLabel => _clock(start);
-  String get endLabel => _clock(end);
+
+  /// `HH:mm`, or null with no end time.
+  String? get endLabel => switch (end) {
+    final end? => _clock(end),
+    null => null,
+  };
+
+  /// `09:00-12:00`, or the start alone — `09:00` — with no end time.
+  String get timeLabel => switch (endLabel) {
+    final end? => '$startLabel-$end',
+    null => startLabel,
+  };
 }
 
 String _clock((int, int) time) =>

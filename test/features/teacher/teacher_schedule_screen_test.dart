@@ -83,6 +83,37 @@ void main() {
     expect(find.byType(SessionBlock), findsNWidgets(2));
   });
 
+  testWidgets('a session with no end time no longer fails the week: it is '
+      'drawn, announced by its start alone, and not held yet (Issue #479)', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      FakeTeacherScheduleRepository(
+        classes: [sampleClass()],
+        sessions: {
+          2: [
+            sampleSession(id: 41, start: (18, 30), end: null),
+            sampleSession(
+              id: 40,
+              date: '2026-10-05',
+              start: (9, 0),
+              end: (12, 0),
+            ),
+          ],
+        },
+      ),
+    );
+
+    expect(find.text(TeacherHomeStrings.retry), findsNothing);
+    expect(find.byType(SessionBlock), findsNWidgets(2));
+    expect(find.bySemanticsLabel('AI Engineer, 18:30'), findsOneWidget);
+    final noEnd = tester
+        .widgetList<SessionBlock>(find.byType(SessionBlock))
+        .firstWhere((b) => b.entry.session.id == 41);
+    expect(noEnd.held, isFalse);
+  });
+
   testWidgets('the header names today and the strip draws its week', (
     tester,
   ) async {
