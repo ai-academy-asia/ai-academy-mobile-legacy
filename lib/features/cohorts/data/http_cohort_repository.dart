@@ -115,15 +115,19 @@ Cohort cohortFromJson(Object? entry) {
     course: _requireCohortCourse(entry, 'course'),
     classroom: _optionalClassroom(entry, 'classroom'),
     teacher: _requireTeacher(entry, 'teacher'),
-    capacity: _requireInt(entry, 'capacity'),
+    // Always sent, `null` when the cohort has no capacity — and then so is
+    // `seats_available` (Issue #489). Nothing draws either.
+    capacity: _sentInt(entry, 'capacity'),
     enrolledCount: _requireInt(entry, 'enrolled_count'),
-    seatsAvailable: _requireInt(entry, 'seats_available'),
+    seatsAvailable: _sentInt(entry, 'seats_available'),
     status: _requireString(entry, 'status'),
     startDate: _requireString(entry, 'start_date'),
     endDate: _requireString(entry, 'end_date'),
     startTime: _requireString(entry, 'start_time'),
     endTime: _requireString(entry, 'end_time'),
-    graduationDate: _requireString(entry, 'graduation_date'),
+    // Always sent, and `null` when the cohort has none: the backend never
+    // requires it (Issue #489). Nothing draws it.
+    graduationDate: _sentString(entry, 'graduation_date'),
     meetingDays: _requireStringList(entry, 'meeting_days'),
     parentCohortId: _optionalInt(entry, 'parent_cohort_id'),
     scheduleNote: _optionalString(entry, 'schedule_note'),
@@ -209,6 +213,26 @@ String? _optionalString(Map<String, dynamic> json, String key) {
     ApiFailureKind.server,
     detail: 'cohort.$key: expected a string or null, got ${value.runtimeType}',
   );
+}
+
+// Like `_optionalInt`/`_optionalString`, but the key itself is required:
+// `Cohort.to_dict` always writes it, so only its *value* may be `null`
+// (Issue #489).
+
+void _requireKey(Map<String, dynamic> json, String key) {
+  if (!json.containsKey(key)) {
+    throw ApiFailure(ApiFailureKind.server, detail: 'cohort.$key: missing');
+  }
+}
+
+int? _sentInt(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  return _optionalInt(json, key);
+}
+
+String? _sentString(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  return _optionalString(json, key);
 }
 
 List<String> _requireStringList(Map<String, dynamic> json, String key) {

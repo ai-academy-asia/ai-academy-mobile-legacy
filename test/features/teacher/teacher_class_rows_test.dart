@@ -124,6 +124,27 @@ void main() {
     });
 
     test(
+      'a class with no graduation date or capacity loads (Issue #489)',
+      () async {
+        final controller = controllerFor([
+          cohort(2),
+          cohort(
+            3,
+            overrides: {
+              'graduation_date': null,
+              'capacity': null,
+              'seats_available': null,
+            },
+          ),
+        ]);
+
+        await controller.load();
+
+        expect(controller.errorMessage, isNull);
+      },
+    );
+
+    test(
       'control: the same schedule without the malformed class loads',
       () async {
         final controller = controllerFor([cohort(2)]);
