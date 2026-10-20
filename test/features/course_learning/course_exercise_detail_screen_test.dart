@@ -572,6 +572,129 @@ void main() {
     });
   });
 
+  group('keyboard (Issue #459)', () {
+    // An iPhone keyboard over `pumpScreen`'s 393 x 852 screen: the page
+    // above it ends at 516.
+    const keyboard = 336.0;
+    const visibleBottom = 852 - keyboard;
+    // `TextField`'s default `scrollPadding`, kept clear around the field.
+    const margin = 20.0;
+
+    Finder noteField() => find.byType(ExerciseTextField);
+
+    Future<void> openKeyboard(WidgetTester tester) async {
+      tester.view.viewInsets = FakeViewPadding(
+        bottom: keyboard * tester.view.devicePixelRatio,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> focus(WidgetTester tester, Finder field) async {
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pump();
+    }
+
+    void expectWhollyAboveKeyboard(WidgetTester tester, Finder field) {
+      final rect = tester.getRect(field);
+      expect(rect.bottom, lessThanOrEqualTo(visibleBottom - margin));
+      expect(rect.top, greaterThanOrEqualTo(0));
+    }
+
+    Future<void> pumpEmptyNote(WidgetTester tester) async {
+      await pumpScreen(
+        tester,
+        FakeCourseLearningRepository(exercise: sampleExercise(note: null)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the Note textarea scrolls wholly above the keyboard, not '
+        'just its first line', (tester) async {
+      await pumpEmptyNote(tester);
+      await focus(tester, noteField());
+
+      await openKeyboard(tester);
+
+      expectWhollyAboveKeyboard(tester, noteField());
+    });
+
+    testWidgets('typing in the revealed field does not scroll the page', (
+      tester,
+    ) async {
+      await pumpEmptyNote(tester);
+      await focus(tester, noteField());
+      await openKeyboard(tester);
+      final revealed = tester.getRect(noteField());
+
+      // Down to the textarea's last visible line, caret and all.
+      await tester.enterText(find.byType(TextField), 'one\ntwo\nthree\nfour');
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(noteField()), revealed);
+    });
+
+    testWidgets('with the keyboard closed, focusing moves nothing', (
+      tester,
+    ) async {
+      await pumpEmptyNote(tester);
+      final before = tester.getRect(noteField());
+
+      await tester.tap(noteField());
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(noteField()), before);
+    });
+
+    testWidgets('Submit is reachable above the keyboard and still saves', (
+      tester,
+    ) async {
+      await pumpEmptyNote(tester);
+      await focus(tester, noteField());
+      await openKeyboard(tester);
+      await tester.enterText(find.byType(TextField), 'This part is unclear.');
+      await tester.pump();
+
+      await tester.drag(
+        find.byType(SingleChildScrollView).first,
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+      final submit = find.byType(ExerciseSubmitButton);
+      expect(tester.getRect(submit).bottom, lessThanOrEqualTo(visibleBottom));
+
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(find.text('This part is unclear.'), findsOneWidget);
+      expect(find.text('Засах'), findsOneWidget);
+    });
+
+    testWidgets('the Assignment link and description fields each scroll '
+        'wholly above the keyboard, as focus moves between them', (
+      tester,
+    ) async {
+      await pumpScreen(tester, FakeCourseLearningRepository());
+      await tester.pumpAndSettle();
+      await openAssignmentTab(tester);
+      final link = find.byType(ExerciseTextField).at(0);
+      final description = find.byType(ExerciseTextField).at(1);
+
+      await focus(tester, link);
+      await openKeyboard(tester);
+      expectWhollyAboveKeyboard(tester, link);
+
+      // The keyboard stays up; focus moves to the field below, which may
+      // sit behind it — focused directly, as "next" on the keyboard would.
+      await tester.showKeyboard(
+        find.descendant(of: description, matching: find.byType(TextField)),
+      );
+      await tester.pumpAndSettle();
+      expectWhollyAboveKeyboard(tester, description);
+    });
+  });
+
   group('note tab', () {
     testWidgets('empty state shows the textarea and submit, no note card', (
       tester,

@@ -55,7 +55,7 @@ Equally: **do not widen a shared widget's contract for one screen.** That reason
 
 **A form of many fields** (the E-Contract form, Issue #314) puts each field's reason in a `fieldError` line in `error`, 4 under the box and 16 in, since `AppTextField` draws none and Login's one-line message band cannot say which of twelve fields is at fault.
 
-`ExerciseTextField` exists because `AppTextField` is single-line at a fixed 56 — a hard blocker for the 104/118pt textareas. It also deliberately avoids `expands: true`, which triggers a framework semantics assertion on dispose in this SDK; a generous fixed `maxLines` inside a tight `SizedBox` gives the same box through the ordinary code path. **Do not "simplify" that back to `expands`.**
+`ExerciseTextField` exists because `AppTextField` is single-line at a fixed 56 — a hard blocker for the 104/118pt textareas. It also deliberately avoids `expands: true`, which triggers a framework semantics assertion on dispose in this SDK; a generous fixed `maxLines` inside a tight `SizedBox` gives the same box through the ordinary code path. **Do not "simplify" that back to `expands`.** When focused with the keyboard up, it scrolls its whole box (plus a 20pt margin) into view rather than only its caret (Issue #459).
 
 
 **Signature input (Issue #304).** `ContractSignaturePad` (`contracts/presentation/widgets`) is the E-Contract signing screenshot's signature section:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_palette.dart';
@@ -25,6 +26,14 @@ import '../../../../core/theme/app_typography.dart';
 ///
 /// Its type is `AppTextField`'s: [AppTypography.fieldText] typed and resting,
 /// [AppTypography.fieldLabel] floated.
+///
+/// **The whole box scrolls into view with the keyboard (Issue #459).** On
+/// focus, and as the keyboard opens, `EditableText` asks the page's scroll
+/// view to show only its caret plus `scrollPadding` — in a textarea, the
+/// first line — which left the rest of the box, and the Submit under it,
+/// behind the keyboard. [_RevealWholeField] widens that request to the box
+/// itself, keeping the same margin, so the field lands fully above the
+/// keyboard and typing inside it never scrolls the page again.
 
 class ExerciseTextField extends StatelessWidget {
   const ExerciseTextField({
@@ -65,39 +74,41 @@ class ExerciseTextField extends StatelessWidget {
     // identical box height (the outer `SizedBox`'s tight constraint forces
     // it regardless of how many lines are actually typed) through the
     // ordinary bounded-`TextField` code path instead.
-    return SizedBox(
-      height: height,
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        maxLines: multiline ? 6 : 1,
-        textAlignVertical: TextAlignVertical.top,
-        style: AppTypography.fieldText.copyWith(color: palette.textPrimary),
-        cursorColor: palette.borderFocused,
-        decoration: InputDecoration(
-          hintText: placeholder,
-          hintStyle: AppTypography.fieldText.copyWith(
-            color: palette.textSecondary,
+    return _RevealWholeField(
+      child: SizedBox(
+        height: height,
+        child: TextField(
+          controller: controller,
+          enabled: enabled,
+          maxLines: multiline ? 6 : 1,
+          textAlignVertical: TextAlignVertical.top,
+          style: AppTypography.fieldText.copyWith(color: palette.textPrimary),
+          cursorColor: palette.borderFocused,
+          decoration: InputDecoration(
+            hintText: placeholder,
+            hintStyle: AppTypography.fieldText.copyWith(
+              color: palette.textSecondary,
+            ),
+            labelText: label,
+            labelStyle: AppTypography.fieldText.copyWith(
+              color: palette.textSecondary,
+            ),
+            floatingLabelStyle: AppTypography.fieldLabel.copyWith(
+              color: palette.textSecondary,
+            ),
+            floatingLabelBehavior: label == null
+                ? FloatingLabelBehavior.never
+                : FloatingLabelBehavior.always,
+            filled: true,
+            fillColor: palette.surface,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            border: _border(palette.outline),
+            enabledBorder: _border(palette.outline),
+            focusedBorder: _border(palette.borderFocused),
           ),
-          labelText: label,
-          labelStyle: AppTypography.fieldText.copyWith(
-            color: palette.textSecondary,
-          ),
-          floatingLabelStyle: AppTypography.fieldLabel.copyWith(
-            color: palette.textSecondary,
-          ),
-          floatingLabelBehavior: label == null
-              ? FloatingLabelBehavior.never
-              : FloatingLabelBehavior.always,
-          filled: true,
-          fillColor: palette.surface,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-          border: _border(palette.outline),
-          enabledBorder: _border(palette.outline),
-          focusedBorder: _border(palette.borderFocused),
         ),
       ),
     );
@@ -107,4 +118,33 @@ class ExerciseTextField extends StatelessWidget {
     borderRadius: BorderRadius.circular(AppDimens.fieldRadius),
     borderSide: BorderSide(color: color, width: AppDimens.borderWidth),
   );
+}
+
+/// Makes any request to show part of [child] on screen — the caret, as the
+/// field is focused or the keyboard opens — a request to show all of it,
+/// [_margin] clear on every side: `TextField`'s default `scrollPadding`.
+class _RevealWholeField extends SingleChildRenderObjectWidget {
+  const _RevealWholeField({required super.child});
+
+  static const double _margin = 20;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderRevealWholeField();
+}
+
+class _RenderRevealWholeField extends RenderProxyBox {
+  @override
+  void showOnScreen({
+    RenderObject? descendant,
+    Rect? rect,
+    Duration duration = Duration.zero,
+    Curve curve = Curves.ease,
+  }) {
+    super.showOnScreen(
+      rect: (Offset.zero & size).inflate(_RevealWholeField._margin),
+      duration: duration,
+      curve: curve,
+    );
+  }
 }
