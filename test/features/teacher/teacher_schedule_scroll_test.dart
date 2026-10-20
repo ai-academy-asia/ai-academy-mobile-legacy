@@ -10,18 +10,48 @@ import 'fake_schedule_change_repository.dart';
 import 'fake_teacher_schedule_repository.dart';
 import 'teacher_home_screen_test.dart' show sampleClass, tuesday;
 
-/// The week grid opens on the selected day's first session (Issue #465):
-/// Tuesday 6 October 2026 at 09:00, the week of Sunday 4 – Saturday 10,
-/// on a phone-sized screen.
+// The week grid opens on the selected day's target session (Issue #465):
+// by default Tuesday 6 October 2026 at 09:00 — the week of Sunday 4 –
+// Saturday 10 — on a phone-sized screen. Fakes only: no network.
+
 /// [session] as one of the teacher's own, in [sampleClass].
-ScheduledSession own(TeacherSession session) =>
-    ScheduledSession(session: session, teacherClass: sampleClass());
+ScheduledSession own(TeacherSession session, {String? coveredBy}) =>
+    ScheduledSession(
+      session: session,
+      teacherClass: sampleClass(),
+      coveredBy: coveredBy,
+    );
+
+/// A session this teacher covers for someone else, as
+/// `GET /teacher/sessions` reports it (`assignment_type: covering`).
+AssignedSession cover({
+  required int id,
+  required String date,
+  required (int, int) start,
+  required (int, int) end,
+}) => AssignedSession.covering(
+  sessionId: id,
+  session: sampleSession(
+    id: id,
+    cohortId: 9,
+    date: date,
+    start: start,
+    end: end,
+  ),
+  covering: const CoveringSession(requestId: 12, courseTitle: 'Covered class'),
+);
+
+/// Tuesday 6 October 2026 at [hour]:00.
+DateTime Function() tuesdayAt(int hour) =>
+    () => DateTime(2026, 10, 6, hour);
 
 void main() {
   Future<void> pumpScreen(
     WidgetTester tester,
-    List<TeacherSession> sessions,
-  ) async {
+    List<TeacherSession> sessions, {
+    DateTime Function() clock = tuesday,
+    List<AssignedSession> assigned = const [],
+  }) async {
     tester.view.physicalSize = const Size(393, 852);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -32,8 +62,9 @@ void main() {
           repository: FakeTeacherScheduleRepository(
             classes: [sampleClass()],
             sessions: {2: sessions},
+            assigned: assigned,
           ),
-          clock: tuesday,
+          clock: clock,
           scheduleChangeRepository: FakeScheduleChangeRepository(),
         ),
       ),
@@ -204,6 +235,207 @@ void main() {
     final kept = grid(tester).pixels;
     await selectDay(tester, 6); // the day already selected: no change
     expect(grid(tester).pixels, kept);
+  });
+
+  group('which session (Option B)', () {
+    testWidgets('today: a morning lesson already over is passed over for the '
+        'evening one', (tester) async {
+      await pumpScreen(tester, clock: tuesdayAt(13), [
+        sampleSession(id: 1, date: '2026-10-06', start: (9, 0), end: (11, 0)),
+        sampleSession(id: 2, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-06', (19, 0)));
+      expectShown(tester, find.text('18:00'));
+    });
+
+    testWidgets('today: a lesson under way is the one focused, not the '
+        'later one', (tester) async {
+      await pumpScreen(tester, clock: tuesdayAt(13), [
+        sampleSession(id: 1, date: '2026-10-06', start: (12, 0), end: (14, 0)),
+        sampleSession(id: 2, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+
+      // 12:00 with the hour above it is already in view at the top: the
+      // grid stays, rather than going on to 19:00.
+      expect(grid(tester).pixels, 0);
+      expectShown(tester, block('2026-10-06', (12, 0)));
+    });
+
+    testWidgets('today with every lesson over: the grid does not go to an '
+        'ended one', (tester) async {
+      await pumpScreen(tester, clock: tuesdayAt(22), [
+        sampleSession(id: 1, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+
+      expect(grid(tester).pixels, 0);
+    });
+
+    testWidgets('a future day: its earliest lesson', (tester) async {
+      await pumpScreen(tester, [
+        sampleSession(id: 1, date: '2026-10-08', start: (20, 0), end: (21, 0)),
+        sampleSession(id: 2, date: '2026-10-08', start: (18, 0), end: (19, 0)),
+      ]);
+      expect(grid(tester).pixels, 0); // Tuesday has none
+
+      await selectDay(tester, 8);
+
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-08', (18, 0)));
+      expectShown(tester, find.text('17:00'));
+    });
+
+    testWidgets('a past day: its earliest lesson, over or not', (tester) async {
+      await pumpScreen(tester, clock: tuesdayAt(13), [
+        sampleSession(id: 1, date: '2026-10-05', start: (20, 0), end: (21, 0)),
+        sampleSession(id: 2, date: '2026-10-05', start: (18, 0), end: (19, 0)),
+      ]);
+
+      await selectDay(tester, 5);
+
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-05', (18, 0)));
+      expectShown(tester, find.text('17:00'));
+    });
+
+    testWidgets('a lesson another teacher covers ("Орлон заагдсан") is '
+        'passed over', (tester) async {
+      await pumpScreen(
+        tester,
+        [
+          sampleSession(
+            id: 1,
+            date: '2026-10-06',
+            start: (13, 0),
+            end: (14, 0),
+          ),
+          sampleSession(
+            id: 2,
+            date: '2026-10-06',
+            start: (19, 0),
+            end: (21, 0),
+          ),
+        ],
+        assigned: const [
+          AssignedSession.regular(sessionId: 1, coveredBy: 'Болд Бат'),
+        ],
+      );
+
+      // 13:00 would already be in view; the grid goes on to 19:00.
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-06', (19, 0)));
+    });
+
+    testWidgets('a lesson the teacher covers for someone else is focused', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        const [],
+        assigned: [
+          cover(id: 77, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+        ],
+      );
+
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-06', (19, 0)));
+    });
+
+    testWidgets('no eligible lesson on the new day: the grid stays where '
+        'the teacher left it', (tester) async {
+      await pumpScreen(
+        tester,
+        [
+          sampleSession(
+            id: 1,
+            date: '2026-10-06',
+            start: (19, 0),
+            end: (21, 0),
+          ),
+          sampleSession(id: 2, date: '2026-10-07', start: (8, 0), end: (9, 0)),
+        ],
+        assigned: const [
+          AssignedSession.regular(sessionId: 2, coveredBy: 'Болд Бат'),
+        ],
+      );
+      await tester.drag(gridScrollable(), const Offset(0, 120));
+      await tester.pumpAndSettle();
+      final left = grid(tester).pixels;
+      expect(left, greaterThan(0));
+
+      // Wednesday's only lesson is covered by someone else.
+      await selectDay(tester, 7);
+
+      expect(grid(tester).pixels, left);
+    });
+  });
+
+  group('isScheduleFocusTarget', () {
+    final tuesdayOne = DateTime(2026, 10, 6, 13);
+    final today = DateTime(2026, 10, 6);
+    ScheduledSession at((int, int) start, (int, int) end, {String? by}) => own(
+      sampleSession(id: 1, date: '2026-10-06', start: start, end: end),
+      coveredBy: by,
+    );
+
+    test('today: not yet over — under way counts, ended does not', () {
+      expect(
+        isScheduleFocusTarget(
+          at((12, 0), (14, 0)),
+          day: today,
+          now: tuesdayOne,
+        ),
+        isTrue,
+      );
+      expect(
+        isScheduleFocusTarget(at((9, 0), (13, 0)), day: today, now: tuesdayOne),
+        isFalse,
+      );
+      expect(
+        isScheduleFocusTarget(
+          at((19, 0), (21, 0)),
+          day: today,
+          now: tuesdayOne,
+        ),
+        isTrue,
+      );
+    });
+
+    test('another day: any of its sessions, ended or not', () {
+      final monday = DateTime(2026, 10, 5);
+      final ended = own(
+        sampleSession(id: 1, date: '2026-10-05', start: (9, 0), end: (11, 0)),
+      );
+      expect(
+        isScheduleFocusTarget(ended, day: monday, now: tuesdayOne),
+        isTrue,
+      );
+    });
+
+    test('covered by someone else: never; covering for someone: yes', () {
+      expect(
+        isScheduleFocusTarget(
+          at((19, 0), (21, 0), by: 'Болд Бат'),
+          day: today,
+          now: tuesdayOne,
+        ),
+        isFalse,
+      );
+      final covering = ScheduledSession.covering(
+        session: sampleSession(
+          id: 77,
+          date: '2026-10-06',
+          start: (19, 0),
+          end: (21, 0),
+        ),
+        covering: const CoveringSession(requestId: 12),
+      );
+      expect(
+        isScheduleFocusTarget(covering, day: today, now: tuesdayOne),
+        isTrue,
+      );
+    });
   });
 
   group('firstSessionTop', () {

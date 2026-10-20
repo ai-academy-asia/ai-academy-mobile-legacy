@@ -169,12 +169,14 @@ List<SessionPlacement> placeSessions(
 /// The top edge, from the grid's own top, of [day]'s earliest session block
 /// on the grid [TeacherWeekGrid] draws for [sessions] — the same
 /// [hourSpan] and [placeSessions] geometry, so it is where that block
-/// really is. Null when [day] has no session in the week starting
-/// [weekStart] (Issue #465).
+/// really is. Only blocks [where] accepts are candidates; the geometry is
+/// still the whole grid's. Null when [day] has no such session in the week
+/// starting [weekStart] (Issue #465).
 double? firstSessionTop(
   List<ScheduledSession> sessions, {
   required DateTime weekStart,
   required DateTime day,
+  bool Function(ScheduledSession entry)? where,
 }) {
   final (first, _) = hourSpan(sessions);
   double? top;
@@ -184,6 +186,7 @@ double? firstSessionTop(
     firstHour: first,
   )) {
     if (!isSameDay(placement.entry.session.date, day)) continue;
+    if (where != null && !where(placement.entry)) continue;
     top = math.min(top ?? placement.top, placement.top);
   }
   return top;

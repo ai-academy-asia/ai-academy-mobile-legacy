@@ -24,6 +24,26 @@ import 'widgets/teacher_session_sheet.dart';
 import 'widgets/teacher_tabs.dart';
 import 'widgets/teacher_week_grid.dart';
 
+/// Whether the week grid focuses on [entry] for the selected [day]
+/// (Issue #465, product decision "Option B"): a session the signed-in
+/// teacher teaches — an own session nobody else covers
+/// ([ScheduledSession.coveredBy] is null: no `covered_by` on its
+/// `GET /teacher/sessions` item), or one they cover for someone else
+/// ([ScheduledSession.isCovering]: `assignment_type: covering`) — and, when
+/// [day] is today, one not yet over: a session under way still counts, one
+/// whose end has passed does not. Past and future days take their earliest
+/// such session. Times are the sessions' local wall-clock values against
+/// [now], as the grid's held state ([TeacherSession.isOverAt]) reads them.
+bool isScheduleFocusTarget(
+  ScheduledSession entry, {
+  required DateTime day,
+  required DateTime now,
+}) {
+  if (entry.coveredBy != null) return false;
+  if (isSameDay(day, now)) return !entry.session.isOverAt(now);
+  return true;
+}
+
 /// The teacher's Хуваарь tab (Issue #231), built against the `huvaari`
 /// reference: a blue header naming the selected date, a strip of the
 /// week's seven days, and an hourly grid with a block per real session.
@@ -105,21 +125,24 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   /// Once per selected day, once its week has loaded: makes sure the day's
-  /// earliest session block shows with an hour of the grid above it —
-  /// derived from where the grid places that block, never a fixed time, and
-  /// clamped to what the grid can scroll. Nothing moves when that is already
-  /// on screen (a 09:00 class on a grid opening at 07:00), nor for a day
-  /// with no session. The first time is a jump (the screen is just
-  /// opening); a later day eases there.
+  /// target session — its earliest [isScheduleFocusTarget] one: today, the
+  /// next the teacher teaches; another day, the first — shows with an hour
+  /// of the grid above it, derived from where the grid places that block,
+  /// never a fixed time, and clamped to what the grid can scroll. Nothing
+  /// moves when that is already on screen (a 09:00 class on a grid opening
+  /// at 07:00), nor for a day with no such session. The first time is a
+  /// jump (the screen is just opening); a later day eases there.
   void _positionOnFirstSession(List<ScheduledSession> sessions) {
     final day = _controller.selectedDay;
     if (_positionedDay == day) return;
     final first = _positionedDay == null;
     _positionedDay = day;
+    final now = _controller.now();
     final top = firstSessionTop(
       sessions,
       weekStart: _controller.weekStart,
       day: day,
+      where: (entry) => isScheduleFocusTarget(entry, day: day, now: now),
     );
     if (top == null) return;
 
