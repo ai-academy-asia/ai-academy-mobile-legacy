@@ -127,6 +127,11 @@ CourseExerciseSection _sectionFrom(Object? entry) {
   );
 }
 
+/// A bullet's text, or `''` for a blank one (Issue #483): the backend
+/// requires a bullet object whose `mn` is a string — which may be `""` — and
+/// whose `en` is a string or `null`. A text-less bullet of any other shape —
+/// `mn` missing or not a string, `en` neither a string nor `null` — is still
+/// a fault, as is a bullet that is not an object at all (`null` included).
 String _bulletText(Object? bullet) {
   if (bullet is! Map<String, dynamic>) {
     throw CourseLearningFailure(
@@ -135,6 +140,10 @@ String _bulletText(Object? bullet) {
           'section.bullets: expected {"mn", "en"} objects, got '
           '${bullet.runtimeType}',
     );
+  }
+  final en = bullet['en'];
+  if (bullet['mn'] is String && (en == null || en is String)) {
+    return _localizedOrEmpty({'bullet': bullet}, 'section.bullet');
   }
   return _requireLocalized({'bullet': bullet}, 'section.bullet');
 }

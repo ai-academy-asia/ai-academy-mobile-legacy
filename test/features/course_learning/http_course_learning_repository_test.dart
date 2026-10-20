@@ -1250,6 +1250,84 @@ void main() {
         expect(exercise.extraSections.last.bullets, ['Нэг']);
       });
 
+      test('a blank bullet — "mn" empty, "en" null or empty — reads as an '
+          'empty bullet in server order, and the lesson still opens '
+          '(Issue #483)', () async {
+        final exercise = await exerciseFrom(
+          lessonBody(
+            sections: [
+              {
+                'title': {'mn': 'Хэсэг', 'en': null},
+                'body': {'mn': 'Бие', 'en': null},
+                'bullets': [
+                  {'mn': '', 'en': null},
+                  {'mn': 'Нэг', 'en': null},
+                  {'mn': '', 'en': ''},
+                  {'mn': '', 'en': 'Two'},
+                ],
+              },
+            ],
+          ),
+        );
+
+        expect(exercise.extraSections.single.bullets, ['', 'Нэг', '', 'Two']);
+      });
+
+      test(
+        'a bullet that is null, not an object, or text-less with "mn" '
+        'missing or not a string, or "en" not a string, is still a fault',
+        () async {
+          for (final bullet in <Object?>[
+            null,
+            'Нэг',
+            <String, dynamic>{},
+            {'en': null},
+            {'mn': null, 'en': null},
+            {'mn': 1, 'en': null},
+            {'mn': '', 'en': 1},
+          ]) {
+            final failure = await failureForExerciseBody(
+              lessonBody(
+                sections: [
+                  {
+                    'title': {'mn': 'Хэсэг', 'en': null},
+                    'body': {'mn': 'Бие', 'en': null},
+                    'bullets': [bullet],
+                  },
+                ],
+              ),
+            );
+            expect(
+              failure.kind,
+              CourseLearningFailureKind.server,
+              reason: '$bullet',
+            );
+            expect(
+              failure.detail,
+              contains('section.bullet'),
+              reason: '$bullet',
+            );
+          }
+        },
+      );
+
+      test('bullets that are not a list are still a fault', () async {
+        final failure = await failureForExerciseBody(
+          lessonBody(
+            sections: [
+              {
+                'title': {'mn': 'Хэсэг', 'en': null},
+                'body': {'mn': 'Бие', 'en': null},
+                'bullets': {'mn': '', 'en': null},
+              },
+            ],
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
+        expect(failure.detail, contains('section.bullets'));
+      });
+
       test(
         'formats duration_seconds as M:SS, or H:MM:SS from an hour',
         () async {

@@ -235,6 +235,8 @@ class CourseExerciseSection {
   /// (Issue #481); no heading is drawn then.
   final String title;
   final String body;
+
+  /// In server order; a blank bullet is `''` (Issue #483) and draws nothing.
   final List<String> bullets;
 }
 
