@@ -73,7 +73,8 @@ class AttendanceNextLesson extends StatelessWidget {
 
 /// "Наймдугаар сар, 2026" with the previous/next arrows at the trailing
 /// edge, centred on the label's line. A null [onPrevious] — the student's
-/// cohort start month (Issue #200) — draws "<" muted and inert.
+/// cohort start month (Issue #200) — draws "<" muted and inert; a null
+/// [onNext] — its end month (Issue #457) — does the same for ">".
 class AttendanceMonthHeader extends StatelessWidget {
   const AttendanceMonthHeader({
     required this.month,
@@ -84,7 +85,7 @@ class AttendanceMonthHeader extends StatelessWidget {
 
   final DateTime month;
   final VoidCallback? onPrevious;
-  final VoidCallback onNext;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {

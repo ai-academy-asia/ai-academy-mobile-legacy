@@ -216,7 +216,9 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
               onPreviousMonth: _controller.canShowPreviousMonth
                   ? _controller.showPreviousMonth
                   : null,
-              onNextMonth: _controller.showNextMonth,
+              onNextMonth: _controller.canShowNextMonth
+                  ? _controller.showNextMonth
+                  : null,
             ),
           ],
         ),
@@ -387,7 +389,9 @@ class _ProgressPanel extends StatelessWidget {
 
   /// Null at the student's cohort start month: "<" is drawn disabled.
   final VoidCallback? onPreviousMonth;
-  final VoidCallback onNextMonth;
+
+  /// Null at the student's cohort end month: ">" is drawn disabled.
+  final VoidCallback? onNextMonth;
 
   @override
   Widget build(BuildContext context) {

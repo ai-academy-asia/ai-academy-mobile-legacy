@@ -51,12 +51,18 @@ class JuniorProgressController extends ChangeNotifier {
   // Paging is local: the progress already carries everything the marks are
   // worked out from ([JuniorProgress.calendar]), so no month asks the API
   // again. Backwards it stops at the student's cohort start month
-  // ([JuniorCalendarSource.firstMonth], Issue #200); forwards it is
-  // unbounded.
+  // ([JuniorCalendarSource.firstMonth], Issue #200); forwards at its end
+  // month ([JuniorCalendarSource.lastMonth], Issue #457).
 
   /// The month the calendar shows: [JuniorProgress.month] (today's) until the
   /// student pages away, and again after every load. Null before a load.
-  DateTime? get displayedMonth => _displayedMonth ?? _progress?.month;
+  /// Outside the course, the nearest course month instead
+  /// ([JuniorCalendarSource.openingMonth], Issue #457).
+  DateTime? get displayedMonth {
+    final progress = _progress;
+    if (_displayedMonth != null || progress == null) return _displayedMonth;
+    return progress.calendar?.openingMonth(progress.month) ?? progress.month;
+  }
 
   /// [displayedMonth]'s marks: the loaded [JuniorProgress.days] for its own
   /// month, otherwise worked out by [JuniorProgress.calendar] — empty when
@@ -92,7 +98,20 @@ class JuniorProgressController extends ChangeNotifier {
     _page(-1);
   }
 
-  void showNextMonth() => _page(1);
+  /// Whether ">" may page forward from [displayedMonth]: false at the
+  /// student's cohort end month and after it. True when no end month is
+  /// known — the calendar then stays unbounded, as it always was.
+  bool get canShowNextMonth {
+    final month = displayedMonth;
+    if (month == null) return false;
+    return _progress?.calendar?.hasMonthAfter(month) ?? true;
+  }
+
+  /// Does nothing at the end month — see [canShowNextMonth].
+  void showNextMonth() {
+    if (!canShowNextMonth) return;
+    _page(1);
+  }
 
   void _page(int delta) {
     final month = displayedMonth;

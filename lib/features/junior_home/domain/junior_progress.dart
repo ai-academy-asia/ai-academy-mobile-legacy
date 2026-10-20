@@ -126,6 +126,44 @@ class JuniorCalendarSource {
     return first == null || DateTime(month.year, month.month).isAfter(first);
   }
 
+  /// The latest month the calendar pages forward to: the month of the
+  /// student's cohort's last day ([LessonSchedule.lastDay], from
+  /// `GET /cohorts` `end_date`), so no one browses months after their course
+  /// ended (Issue #457). Per student, never a fixed date. Null — no bound —
+  /// when the cohort has no parseable schedule or end date, or when that
+  /// month falls before [firstMonth]: a range that cannot hold was not sent
+  /// on purpose, and locking both arrows would strand the student.
+  DateTime? get lastMonth {
+    final last = schedule?.lastDay;
+    if (last == null) return null;
+    final month = DateTime(last.year, last.month);
+    final first = firstMonth;
+    return first != null && month.isBefore(first) ? null : month;
+  }
+
+  /// Whether the calendar may page forward from [month]: false at
+  /// [lastMonth] and after it. Only [month]'s year and month are read. Both
+  /// the Adult attendance screen and the Junior "Сурлагын явц" calendar ask
+  /// this.
+  bool hasMonthAfter(DateTime month) {
+    final last = lastMonth;
+    return last == null || DateTime(month.year, month.month).isBefore(last);
+  }
+
+  /// The month the calendar opens on for [today]: [today]'s month while the
+  /// course runs, otherwise the nearest of [firstMonth] / [lastMonth] — so a
+  /// course not started yet opens on its first month, one already ended on
+  /// its last, and every month the arrows reach lies in the course
+  /// (Issue #457). An unknown bound clamps nothing on its side.
+  DateTime openingMonth(DateTime today) {
+    final month = DateTime(today.year, today.month);
+    final first = firstMonth;
+    if (first != null && month.isBefore(first)) return first;
+    final last = lastMonth;
+    if (last != null && month.isAfter(last)) return last;
+    return month;
+  }
+
   /// [month]'s marks: its scheduled lesson days, then the day of each missed
   /// session, then the day of each attended one — each later rule winning on
   /// its day, and on an unscheduled day too, since the server recorded the

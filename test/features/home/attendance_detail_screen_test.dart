@@ -290,4 +290,115 @@ void main() {
       expect(calendar(tester).month, DateTime(2025, 7));
     });
   });
+
+  group('last month (Issue #457)', () {
+    Finder next() => find.bySemanticsLabel(JuniorProgressStrings.nextMonth);
+    LessonSchedule running(DateTime firstDay, DateTime lastDay) =>
+        LessonSchedule(
+          weekdays: schedule.weekdays,
+          start: schedule.start,
+          end: schedule.end,
+          firstDay: firstDay,
+          lastDay: lastDay,
+        );
+
+    testWidgets('">" stops at the cohort end month, across a year, and is '
+        'drawn disabled there', (tester) async {
+      final semantics = tester.ensureSemantics();
+      // August 2026 through January 2027; today is 10 September 2026.
+      await pump(
+        tester,
+        lessonSchedule: running(DateTime(2026, 8, 6), DateTime(2027, 1, 15)),
+      );
+      Color? caret() =>
+          tester.widget<Icon>(find.byIcon(AppIcons.caretRight)).color;
+
+      // Opens on today's month, as before.
+      expect(calendar(tester).month, DateTime(2026, 9));
+      expect(caret(), AppColors.textPrimary);
+
+      for (var i = 0; i < 4; i++) {
+        await tester.tap(next());
+        await tester.pumpAndSettle();
+      }
+      expect(calendar(tester).month, DateTime(2027, 1));
+
+      // At January: muted, announced as disabled, and inert.
+      expect(caret(), HomePalette.mutedInk);
+      expect(
+        tester.getSemantics(next()),
+        matchesSemantics(
+          label: JuniorProgressStrings.nextMonth,
+          isButton: true,
+          hasEnabledState: true,
+        ),
+      );
+      await tester.tap(next());
+      await tester.pumpAndSettle();
+      expect(calendar(tester).month, DateTime(2027, 1));
+      expect(
+        find.text(JuniorProgressStrings.monthLabel(DateTime(2027, 1))),
+        findsOneWidget,
+      );
+
+      // Back through the year to the start month; ">" comes back.
+      for (var i = 0; i < 6; i++) {
+        await tester.tap(
+          find.bySemanticsLabel(JuniorProgressStrings.previousMonth),
+        );
+        await tester.pumpAndSettle();
+      }
+      expect(calendar(tester).month, DateTime(2026, 8));
+      expect(caret(), AppColors.textPrimary);
+      semantics.dispose();
+    });
+
+    testWidgets('a course ending this month: ">" is already disabled', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        lessonSchedule: running(DateTime(2026, 6, 1), DateTime(2026, 9, 30)),
+      );
+
+      expect(calendar(tester).month, DateTime(2026, 9));
+      expect(calendar(tester).selectedDay, 10);
+      expect(
+        tester.widget<Icon>(find.byIcon(AppIcons.caretRight)).color,
+        HomePalette.mutedInk,
+      );
+      await tester.tap(next());
+      await tester.pumpAndSettle();
+      expect(calendar(tester).month, DateTime(2026, 9));
+    });
+
+    testWidgets('an ended course opens on its end month, no day selected', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        lessonSchedule: running(DateTime(2026, 3, 2), DateTime(2026, 7, 31)),
+      );
+
+      expect(calendar(tester).month, DateTime(2026, 7));
+      expect(calendar(tester).selectedDay, isNull);
+      expect(
+        tester.widget<Icon>(find.byIcon(AppIcons.caretRight)).color,
+        HomePalette.mutedInk,
+      );
+    });
+
+    testWidgets('with no end date paging forward is unbounded, as before', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      for (var i = 0; i < 14; i++) {
+        await tester.tap(next());
+        await tester.pumpAndSettle();
+      }
+
+      expect(calendar(tester).month, DateTime(2027, 11));
+    });
+  });
 }
