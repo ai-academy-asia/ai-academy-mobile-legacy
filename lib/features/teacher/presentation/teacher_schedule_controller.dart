@@ -22,8 +22,13 @@ class TeacherScheduleController extends ChangeNotifier {
     required this._repository,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now {
-    _selectedDay = dateOnly(_clock());
+    _today = dateOnly(_clock());
+    _selectedDay = _today;
   }
+
+  /// The date this controller last treated as today — what [followToday]
+  /// compares the clock with (Issue #471).
+  late DateTime _today;
 
   final TeacherScheduleRepository _repository;
 
@@ -84,6 +89,19 @@ class TeacherScheduleController extends ChangeNotifier {
   Future<void> load() {
     _classesStale = true;
     return _loadWeek();
+  }
+
+  /// Follows the calendar to a new today (Issue #471): once the clock's date
+  /// has moved on — the app left open overnight — and the selected day was
+  /// the earlier today, the new today is selected, its week loading if it
+  /// is another, as a tap on the strip would. A day the teacher chose stays
+  /// selected; on the same date nothing happens.
+  void followToday() {
+    final today = dateOnly(_clock());
+    if (today == _today) return;
+    final wasToday = _selectedDay == _today;
+    _today = today;
+    if (wasToday) selectDay(today);
   }
 
   /// Makes [day] the selected day. A day in another week loads that week.

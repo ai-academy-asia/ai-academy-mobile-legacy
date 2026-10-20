@@ -116,7 +116,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
   /// Re-checks today's target when the app comes back to the foreground:
   /// the clock has moved on while it was away, and a kept-alive tab is not
-  /// rebuilt by itself (Issue #467).
+  /// rebuilt by itself (Issue #467). A new calendar date moves a selected
+  /// today to the new one first (Issue #471).
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -129,7 +130,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     )..load();
     _lifecycle = AppLifecycleListener(
       onResume: () {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        _controller.followToday();
+        setState(() {});
       },
     );
   }
