@@ -127,9 +127,7 @@ Lesson _lessonFrom(Object? entry, int moduleId) {
     // Required, but tolerant of its value: an unrecognised string is
     // `LessonType.unknown`, not a failure — see that enum.
     type: LessonType.fromApi(_requireString(entry, 'lesson.type')),
-    durationLabel: _durationLabel(
-      _requireInt(entry, 'lesson.duration_seconds'),
-    ),
+    durationLabel: _durationLabelOf(entry),
     // Server-sent, never derived — `locked` included, although the contract
     // says it follows the module's.
     completed: _requireBool(entry, 'lesson.completed'),

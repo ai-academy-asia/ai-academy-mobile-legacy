@@ -39,9 +39,7 @@ CourseExercise _exerciseFromBody(String body, {required DateTime now}) {
     moduleCaption: 'Modules ${_requireInt(module, 'module.order')}',
     title: _requireLocalized(decoded, 'lesson.title'),
     type: type,
-    durationLabel: _durationLabel(
-      _requireInt(decoded, 'lesson.duration_seconds'),
-    ),
+    durationLabel: _durationLabelOf(decoded),
     recordingBadgeLabel: type == LessonType.recording
         ? _recordingBadgeLabel
         : '',

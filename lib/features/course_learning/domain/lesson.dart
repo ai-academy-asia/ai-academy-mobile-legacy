@@ -36,7 +36,8 @@ class Lesson {
   /// e.g. `"24:15"` — `duration_seconds` as the row draws it, `M:SS` under an
   /// hour and `H:MM:SS` from one up. Kept pre-formatted, the same treatment
   /// `CourseExercise.durationLabel` and `CourseModule.scheduleLabel` get, so
-  /// `LessonListItem` stays exactly as it is.
+  /// `LessonListItem` stays exactly as it is. Empty when the lesson has no
+  /// duration (`duration_seconds: null`, Issue #477): nothing is drawn.
   final String durationLabel;
 
   /// As parsed, the server's `completed` (its progress record). The Lesson
