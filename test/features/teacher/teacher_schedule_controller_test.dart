@@ -50,7 +50,7 @@ void main() {
 
       expect(controller.errorMessage, isNull);
       expect([for (final e in controller.sessions!) e.session.id], [20, 10]);
-      expect(controller.sessions!.first.teacherClass.cohort.id, 3);
+      expect(controller.sessions!.first.teacherClass!.cohort.id, 3);
       // One request per class, for the week — `to` a day past it.
       expect(repository.sessionCalls, hasLength(2));
       for (final (_, from, to) in repository.sessionCalls) {

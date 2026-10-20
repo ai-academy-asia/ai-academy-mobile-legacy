@@ -117,12 +117,46 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
     if (mounted) setState(() => _summaryRead++);
   }
 
+  /// "Ирц бүртгэх": the QR attendance screen, live only on the session's
+  /// date (Issue #374) — the backend issues its QR on no other day. Any
+  /// other day it is drawn disabled and calls nothing.
+  TeacherPillButton _attendancePill(
+    ScheduledSession entry,
+    bool attendanceOpen,
+  ) => attendanceOpen
+      ? TeacherPillButton(
+          label: TeacherScheduleStrings.registerAttendance,
+          wrapLabel: true,
+          variant: TeacherPillVariant.filled,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AttendanceQrScreen(
+                sessionId: entry.session.id,
+                repository: widget.attendanceRepository,
+              ),
+            ),
+          ),
+        )
+      : const TeacherPillButton(
+          label: TeacherScheduleStrings.registerAttendance,
+          wrapLabel: true,
+          variant: TeacherPillVariant.disabled,
+          onPressed: null,
+        );
+
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
     final held = widget.held;
     final attendanceOpen = widget.attendanceOpen;
     final session = entry.session;
+    // Issue #455: a session this teacher covers offers no action at all —
+    // no handover, attendance, QR or manual marking (the covering teacher
+    // has no attendance access in v1). An own session another teacher
+    // covers keeps its attendance but not "Цаг солих": the backend answers
+    // `409 session_already_covered`.
+    final covering = entry.isCovering;
+    final covered = entry.coveredBy != null;
     return SafeArea(
       top: false,
       child: Padding(
@@ -138,10 +172,21 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
           children: [
             const TeacherSheetHandle(),
             const SizedBox(height: 16),
-            TeacherClassCard(
-              teacherClass: entry.teacherClass,
+            // A covered or covering session's label (Issue #455).
+            if (TeacherScheduleStrings.assignmentLabel(entry)
+                case final label?) ...[
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: AssignmentCapsule(label: label),
+              ),
+              const SizedBox(height: 8),
+            ],
+            scheduledSessionCard(
+              entry,
               timeLabel: '${session.startLabel}-${session.endLabel}',
-              footer: held
+              // A covering teacher has no attendance access (contract §1):
+              // no summary for a session they cover.
+              footer: held && !covering
                   ? SessionAttendanceSummary(
                       key: ValueKey(_summaryRead),
                       sessionId: session.id,
@@ -151,7 +196,7 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
             ),
             // Held, on its date: the summary stays, and the class can still
             // be marked by hand — the QR is for the class while it runs.
-            if (held && attendanceOpen) ...[
+            if (held && attendanceOpen && !covering) ...[
               const SizedBox(height: 24),
               TeacherPillButton(
                 label: TeacherAttendanceStrings.manualEntry,
@@ -160,7 +205,11 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
                 onPressed: _openManual,
               ),
             ],
-            if (!held) ...[
+            if (!held && !covering && covered) ...[
+              const SizedBox(height: 24),
+              _attendancePill(entry, attendanceOpen),
+            ],
+            if (!held && !covering && !covered) ...[
               const SizedBox(height: 24),
               TeacherPillPair(
                 first: TeacherPillButton(
@@ -175,29 +224,7 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
                     ),
                   ),
                 ),
-                // Live only on the session's date (Issue #374) — the backend
-                // issues its QR on no other day. Any other day it is drawn
-                // disabled and calls nothing.
-                second: attendanceOpen
-                    ? TeacherPillButton(
-                        label: TeacherScheduleStrings.registerAttendance,
-                        wrapLabel: true,
-                        variant: TeacherPillVariant.filled,
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => AttendanceQrScreen(
-                              sessionId: entry.session.id,
-                              repository: widget.attendanceRepository,
-                            ),
-                          ),
-                        ),
-                      )
-                    : const TeacherPillButton(
-                        label: TeacherScheduleStrings.registerAttendance,
-                        wrapLabel: true,
-                        variant: TeacherPillVariant.disabled,
-                        onPressed: null,
-                      ),
+                second: _attendancePill(entry, attendanceOpen),
               ),
             ],
           ],

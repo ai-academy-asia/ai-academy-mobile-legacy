@@ -145,24 +145,60 @@ class TeacherScheduleController extends ChangeNotifier {
         if (_runsDuring(teacherClass, week, lastDay)) teacherClass,
     ];
 
-    final perClass = await Future.wait([
-      for (final teacherClass in running)
-        _repository.getSessions(
-          cohortId: teacherClass.cohort.id,
-          from: week,
-          // Whether `to` is inclusive is not confirmed: ask one day past the
-          // week and keep only the week's own days below.
-          to: lastDay.add(const Duration(days: 1)),
-        ),
+    // Alongside the cohorts' reads, the week's own sessions and covers
+    // (Issue #455): who covers an own session, and the sessions this teacher
+    // covers; its range includes both days (contract §6). One wait for all,
+    // so any read's failure — the first, unchanged — fails the week: never a
+    // week missing its covers, and no read is left unhandled.
+    final results = await Future.wait<Object>([
+      Future.wait([
+        for (final teacherClass in running)
+          _repository.getSessions(
+            cohortId: teacherClass.cohort.id,
+            from: week,
+            // Whether `to` is inclusive is not confirmed: ask one day past
+            // the week and keep only the week's own days below.
+            to: lastDay.add(const Duration(days: 1)),
+          ),
+      ]),
+      _repository.getAssignedSessions(from: week, to: lastDay),
     ]);
+    final perClass = results[0] as List<List<TeacherSession>>;
+    final assigned = results[1] as List<AssignedSession>;
+
+    bool inWeek(TeacherSession session) =>
+        !session.date.isBefore(week) && !session.date.isAfter(lastDay);
+    final coveredBy = <int, String>{
+      for (final item in assigned)
+        if (!item.isCovering && item.coveredBy != null)
+          item.sessionId: item.coveredBy!,
+    };
 
     final sessions = <ScheduledSession>[
       for (final (index, list) in perClass.indexed)
         for (final session in list)
-          if (!session.date.isBefore(week) && !session.date.isAfter(lastDay))
-            ScheduledSession(session: session, teacherClass: running[index]),
+          if (inWeek(session))
+            ScheduledSession(
+              session: session,
+              teacherClass: running[index],
+              coveredBy: coveredBy[session.id],
+            ),
     ];
-    sessions.sort((a, b) => a.session.startsAt.compareTo(b.session.startsAt));
+    // A session is drawn once: a cover is never also the teacher's own.
+    final placed = {for (final entry in sessions) entry.session.id};
+    for (final item in assigned) {
+      final session = item.session;
+      final covering = item.covering;
+      if (session == null || covering == null) continue;
+      if (!inWeek(session) || !placed.add(session.id)) continue;
+      sessions.add(
+        ScheduledSession.covering(session: session, covering: covering),
+      );
+    }
+    sessions.sort((a, b) {
+      final byStart = a.session.startsAt.compareTo(b.session.startsAt);
+      return byStart != 0 ? byStart : a.session.id.compareTo(b.session.id);
+    });
     return sessions;
   }
 

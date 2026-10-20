@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/teacher_session.dart';
+import '../teacher_schedule_strings.dart';
 
 /// The `huvaari` reference's grid, in points at its 393pt width.
 abstract final class TeacherWeekGridMetrics {
@@ -280,8 +281,11 @@ class SessionBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final course = entry.teacherClass.cohort.course;
-    final title = course.title.preferred ?? course.slug;
+    // A covered or covering session (Issue #455) leads with its label —
+    // "Орлон заах" or "Орлон заагдсан · {name}" — above the title; an
+    // ordinary one draws exactly as before.
+    final label = TeacherScheduleStrings.assignmentLabel(entry);
+    final title = blockText(entry);
     final session = entry.session;
     final palette = context.palette;
     // A session block is the band's blue (`accent`) with `onPrimary` ink; a
@@ -291,7 +295,11 @@ class SessionBlock extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '$title, ${session.startLabel}-${session.endLabel}',
+      label: [
+        ?label,
+        TeacherScheduleStrings.sessionTitle(entry),
+        '${session.startLabel}-${session.endLabel}',
+      ].join(', '),
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
@@ -348,6 +356,14 @@ class SessionBlock extends StatelessWidget {
   }
 }
 
+/// What a [SessionBlock] writes above its time: the title, led by the
+/// session's assignment label on its own line when it has one (Issue #455).
+String blockText(ScheduledSession entry) {
+  final title = TeacherScheduleStrings.sessionTitle(entry);
+  final label = TeacherScheduleStrings.assignmentLabel(entry);
+  return label == null ? title : '$label\n$title';
+}
+
 /// Inside a session block, around its text.
 const EdgeInsets _blockPadding = EdgeInsets.fromLTRB(4, 5, 4, 6);
 
@@ -390,8 +406,7 @@ bool weekBlocksLegible(
       space: space,
     );
     if (fit.showTime) continue;
-    final course = placement.entry.teacherClass.cohort.course;
-    final title = course.title.preferred ?? course.slug;
+    final title = blockText(placement.entry);
     final firstWord = title.trim().split(RegExp(r'\s+')).first;
     final painter = TextPainter(
       text: TextSpan(text: firstWord, style: drawn),

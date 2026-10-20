@@ -79,12 +79,20 @@ void main() {
     );
   }
 
-  /// Answers a week's sessions with none, for the valid-schedule control.
+  /// Answers a week's sessions with none, for the valid-schedule control:
+  /// each cohort's sessions, and — since Issue #455 — the teacher's own
+  /// `GET /teacher/sessions` range read, also empty.
   MockClient noSessions() => MockClient(
-    (request) async => json({
-      'cohort_id': int.parse(request.url.pathSegments[2]),
-      'sessions': <Object>[],
-    }),
+    (request) async => request.url.path == '/teacher/sessions'
+        ? json({
+            'from': request.url.queryParameters['from'],
+            'to': request.url.queryParameters['to'],
+            'items': <Object>[],
+          })
+        : json({
+            'cohort_id': int.parse(request.url.pathSegments[2]),
+            'sessions': <Object>[],
+          }),
   );
 
   final serverMessage = TeacherHomeStrings.messageFor(

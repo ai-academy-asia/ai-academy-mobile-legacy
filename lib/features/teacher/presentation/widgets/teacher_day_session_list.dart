@@ -106,10 +106,13 @@ class TeacherDaySessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = entry.session;
     final palette = context.palette;
-    final card = TeacherClassCard(
-      teacherClass: entry.teacherClass,
+    final card = scheduledSessionCard(
+      entry,
       timeLabel: '${session.startLabel}-${session.endLabel}',
     );
+    // A covered or covering session's label (Issue #455), beside
+    // "Дууссан" when it is over.
+    final label = TeacherScheduleStrings.assignmentLabel(entry);
 
     // One node for assistive tech: the card's title, class, room and time,
     // and "Дууссан" when it is over — a button that opens the sheet.
@@ -122,17 +125,24 @@ class TeacherDaySessionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (held) ...[
+              if (label != null) ...[
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: CardCapsule(
-                    label: TeacherScheduleStrings.finished,
-                    // The grid's own finished-block roles.
-                    outline: palette.outline,
-                    fill: palette.scheduleHeld,
-                    ink: palette.scheduleHeldInk,
-                    horizontalPadding: 11,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (held) _FinishedCapsule(palette: palette),
+                      AssignmentCapsule(label: label),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 8),
+                held ? Opacity(opacity: _heldOpacity, child: card) : card,
+              ] else if (held) ...[
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: _FinishedCapsule(palette: palette),
                 ),
                 const SizedBox(height: 8),
                 Opacity(opacity: _heldOpacity, child: card),
@@ -144,6 +154,23 @@ class TeacherDaySessionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Дууссан", over a finished session's card.
+class _FinishedCapsule extends StatelessWidget {
+  const _FinishedCapsule({required this.palette});
+
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) => CardCapsule(
+    label: TeacherScheduleStrings.finished,
+    // The grid's own finished-block roles.
+    outline: palette.outline,
+    fill: palette.scheduleHeld,
+    ink: palette.scheduleHeldInk,
+    horizontalPadding: 11,
+  );
 }
 
 /// Between two cards — Teacher Home's gap.

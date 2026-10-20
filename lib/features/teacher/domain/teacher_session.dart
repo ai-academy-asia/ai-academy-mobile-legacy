@@ -47,13 +47,108 @@ class TeacherSession {
 String _clock((int, int) time) =>
     '${time.$1.toString().padLeft(2, '0')}:${time.$2.toString().padLeft(2, '0')}';
 
-/// A session placed on the calendar with the class it belongs to — the
-/// class supplies the title, room, track and student count.
+/// A session placed on the calendar (Issue #231).
+///
+/// Either one of the teacher's own sessions, with the class it belongs to —
+/// the class supplies the title, room, track and student count — and, once
+/// another teacher has accepted to cover it, [coveredBy] (Issue #455); or a
+/// session the teacher covers for someone else ([ScheduledSession.covering]),
+/// known only by its brief: there is no [TeacherClass] for a cohort the
+/// teacher does not teach, and none is invented.
 class ScheduledSession {
-  const ScheduledSession({required this.session, required this.teacherClass});
+  const ScheduledSession({
+    required this.session,
+    required TeacherClass this.teacherClass,
+    this.coveredBy,
+  }) : covering = null;
+
+  /// A session the signed-in teacher covers (Issue #455).
+  const ScheduledSession.covering({
+    required this.session,
+    required CoveringSession this.covering,
+  }) : teacherClass = null,
+       coveredBy = null;
 
   final TeacherSession session;
-  final TeacherClass teacherClass;
+
+  /// The teacher's own class. Null for a covering session.
+  final TeacherClass? teacherClass;
+
+  /// The teacher covering this own session — `covered_by.name` — or null
+  /// while nobody does.
+  final String? coveredBy;
+
+  /// What is known of a session the teacher covers. Null for an own one.
+  final CoveringSession? covering;
+
+  bool get isCovering => covering != null;
+
+  /// The block's and card's title: the class's course (Mongolian first), or
+  /// a covering session's own `title`, else its `cohort_name`; null when a
+  /// covering session names neither.
+  String? get title {
+    final teacherClass = this.teacherClass;
+    if (teacherClass != null) {
+      final course = teacherClass.cohort.course;
+      return course.title.preferred ?? course.slug;
+    }
+    return covering?.courseTitle ?? covering?.cohortName;
+  }
+}
+
+/// A session the teacher covers — an item of `GET /teacher/sessions` with
+/// `assignment_type: covering` (Issue #455): the session brief and whose
+/// session it is. No student count or track: the brief carries neither.
+class CoveringSession {
+  const CoveringSession({
+    required this.requestId,
+    this.courseTitle,
+    this.cohortName,
+    this.room,
+    this.originalTeacher,
+  });
+
+  /// The accepted request — `request_id`.
+  final int requestId;
+
+  /// `title` (the course, Mongolian), `cohort_name` and `room`; each may be
+  /// null.
+  final String? courseTitle;
+  final String? cohortName;
+  final String? room;
+
+  /// `original_teacher.name` — the cohort's own teacher; null when the
+  /// cohort has none.
+  final String? originalTeacher;
+}
+
+/// One item of `GET /teacher/sessions?from=&to=` (Issue #455): a session of
+/// the teacher's — their own (`regular`), matched by [sessionId] onto the
+/// cohort read's session, with [coveredBy] once someone covers it; or one
+/// they cover ([AssignedSession.covering]), placed from its own [session].
+class AssignedSession {
+  const AssignedSession.regular({required this.sessionId, this.coveredBy})
+    : session = null,
+      covering = null;
+
+  const AssignedSession.covering({
+    required this.sessionId,
+    required TeacherSession this.session,
+    required CoveringSession this.covering,
+  }) : coveredBy = null;
+
+  /// The session's `id`.
+  final int sessionId;
+
+  /// For an own session: the covering teacher's name, or null.
+  final String? coveredBy;
+
+  /// For a covering session: its date and times, and its brief. Null for
+  /// an own session, which the cohort read already places.
+  final TeacherSession? session;
+  final CoveringSession? covering;
+
+  bool get isCovering => covering != null;
 }
 
 /// A session's attendance tally, the `counts` of
