@@ -1224,6 +1224,32 @@ void main() {
         expect(exercise.extraSections.last.bullets, isEmpty);
       });
 
+      test('a section with no title — null, or no text — reads as an empty '
+          'title, and the lesson still opens (Issue #481)', () async {
+        final exercise = await exerciseFrom(
+          lessonBody(
+            sections: [
+              {
+                'title': null,
+                'body': {'mn': 'Бие', 'en': null},
+                'bullets': <Object?>[],
+              },
+              {
+                'title': {'mn': '', 'en': null},
+                'body': {'mn': 'Хоёр', 'en': null},
+                'bullets': [
+                  {'mn': 'Нэг', 'en': null},
+                ],
+              },
+            ],
+          ),
+        );
+
+        expect(exercise.extraSections.map((s) => s.title), ['', '']);
+        expect(exercise.extraSections.map((s) => s.body), ['Бие', 'Хоёр']);
+        expect(exercise.extraSections.last.bullets, ['Нэг']);
+      });
+
       test(
         'formats duration_seconds as M:SS, or H:MM:SS from an hour',
         () async {
@@ -2190,6 +2216,22 @@ void main() {
         );
 
         expect(failure.detail, contains('section.title'));
+      });
+
+      test('a section title that is not an object is still a fault', () async {
+        final failure = await failureForExerciseBody(
+          lessonBody(
+            sections: [
+              {
+                'title': 'Heading',
+                'body': {'en': 'Body'},
+                'bullets': <Object?>[],
+              },
+            ],
+          ),
+        );
+
+        expect(failure.kind, CourseLearningFailureKind.server);
       });
 
       test('a file material without size_bytes is a fault', () async {

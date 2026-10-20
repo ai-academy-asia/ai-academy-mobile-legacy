@@ -116,7 +116,9 @@ CourseExerciseSection _sectionFrom(Object? entry) {
     );
   }
   return CourseExerciseSection(
-    title: _requireLocalized(entry, 'section.title'),
+    // Like `body`: always sent, and null when the section has no title
+    // (Issue #481) — `''` then; a missing key is still a fault.
+    title: _localizedOrEmpty(entry, 'section.title'),
     body: _localizedOrEmpty(entry, 'section.body'),
     bullets: [
       for (final bullet in _requireList(entry, 'section.bullets'))

@@ -57,13 +57,16 @@ class ExerciseInfoSection extends StatelessWidget {
         if (expanded)
           for (final section in exercise.extraSections) ...[
             const SizedBox(height: 16),
-            Text(
-              section.title,
-              style: AppTypography.itemTitle.copyWith(
-                color: palette.textPrimary,
+            // A section with no title draws no empty heading (Issue #481).
+            if (section.title.isNotEmpty) ...[
+              Text(
+                section.title,
+                style: AppTypography.itemTitle.copyWith(
+                  color: palette.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
             Text(section.body, style: bodyStyle),
             for (final bullet in section.bullets) ...[
               const SizedBox(height: 12),
