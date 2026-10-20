@@ -103,7 +103,7 @@ class JuniorCalendarSource {
   final Set<DateTime> attendedDates;
 
   /// Local dates of the sessions the server recorded as missed
-  /// (`AttendanceSession.countsAsMissed` — `absent`). Both the Adult
+  /// (`AttendanceSession.missedAt` — `absent` on a session that has ended). Both the Adult
   /// attendance screen (Issue #172) and the Junior "Сурлагын явц" calendar
   /// (Issue #180) pass them.
   final Set<DateTime> missedDates;

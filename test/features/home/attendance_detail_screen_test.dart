@@ -41,7 +41,7 @@ void main() {
         },
         missedDates: {
           for (final s in sessions)
-            if (s.countsAsMissed) s.date,
+            if (s.missedAt(today)) s.date,
         },
       );
 

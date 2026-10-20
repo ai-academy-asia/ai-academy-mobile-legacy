@@ -314,6 +314,8 @@ List<AttendanceSession> _sessions(Object? value) {
           status: _optionalString(entry, 'status'),
           // Orders two sessions on one day (Issue #443).
           startTime: _optionalString(entry, 'start_time'),
+          // When an `absent` becomes missed (Issue #475).
+          endTime: _optionalString(entry, 'end_time'),
         )
       else
         throw AttendanceFailure(

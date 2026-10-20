@@ -337,6 +337,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
   Future<AttendanceSummary?> _attendanceSummary(String courseSlug) async {
     try {
       final attendance = await _attendance.getCourseAttendance(courseSlug);
+      final now = _clock();
       return AttendanceSummary(
         attended: attendance.attended,
         total: attendance.totalPast,
@@ -347,7 +348,8 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         },
         missedDates: {
           for (final session in attendance.sessions)
-            if (session.countsAsMissed) session.date,
+            // Only a session that has ended (Issue #475).
+            if (session.missedAt(now)) session.date,
         },
       );
     } catch (_) {

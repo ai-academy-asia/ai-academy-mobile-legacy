@@ -457,12 +457,14 @@ void main() {
       FakeLedgerRepository? ledger,
       FakeAttendanceRepository? attendance,
       List<Course> courses = const [],
+      DateTime? now,
     }) => repository(
       enrolled: const [EnrolledCohortSummary(cohortId: 1)],
       cohorts: [sampleCohort(id: 1)],
       courses: courses,
       ledger: ledger,
       attendance: attendance,
+      now: now,
     ).getDashboard();
 
     PaymentStatus? paymentOf(HomeDashboard dashboard) =>
@@ -548,8 +550,10 @@ void main() {
     test('future null-status and absent sessions keep the card, unmarked '
         '(Issue #170)', () async {
       // The adult corp.s01 shape: past present/late/absent sessions, and
-      // sessions not held yet with a null status.
+      // sessions not held yet with a null status — seen on 5 October, so
+      // the 1 October absent is over (Issue #475) and the rest are to come.
       final dashboard = await dashboardWith(
+        now: DateTime(2026, 10, 5, 9),
         attendance: FakeAttendanceRepository(
           attendance: CourseAttendance(
             attended: 2,
@@ -576,6 +580,54 @@ void main() {
       expect(attendance.attended, 2);
       expect(attendance.total, 3);
       expect(attendance.percent, 66);
+    });
+
+    test('today\'s absent is not missed until the session has ended '
+        '(Issue #475)', () async {
+      // The backend reports today's unrecorded session `absent` from
+      // midnight. Ulaanbaatar wall-clock times; the clock here is UTC.
+      Future<Set<DateTime>> missedAt(DateTime now) async {
+        final dashboard = await dashboardWith(
+          now: now,
+          attendance: FakeAttendanceRepository(
+            attendance: CourseAttendance(
+              attended: 0,
+              totalPast: 2,
+              percent: 0,
+              sessions: [
+                AttendanceSession(
+                  date: DateTime(2026, 10, 19),
+                  status: 'absent',
+                  startTime: '18:30',
+                  endTime: '21:30',
+                ),
+                AttendanceSession(
+                  date: DateTime(2026, 10, 20),
+                  status: 'absent',
+                  startTime: '18:30',
+                  endTime: '21:30',
+                ),
+              ],
+            ),
+          ),
+        );
+        return attendanceOf(dashboard)!.missedDates;
+      }
+
+      // 20 October, 10:00 in Ulaanbaatar: yesterday's is missed, today's
+      // has not even started.
+      expect(await missedAt(DateTime.utc(2026, 10, 20, 2)), {
+        DateTime(2026, 10, 19),
+      });
+      // 20:00, under way: still not missed.
+      expect(await missedAt(DateTime.utc(2026, 10, 20, 12)), {
+        DateTime(2026, 10, 19),
+      });
+      // 21:30, over: missed.
+      expect(await missedAt(DateTime.utc(2026, 10, 20, 13, 30)), {
+        DateTime(2026, 10, 19),
+        DateTime(2026, 10, 20),
+      });
     });
 
     test('no sessions: no attended dates', () async {

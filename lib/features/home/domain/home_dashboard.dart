@@ -202,7 +202,7 @@ class AttendanceSummary {
   final Set<DateTime> attendedDates;
 
   /// The days of the sessions the server recorded as missed
-  /// (`AttendanceSession.countsAsMissed` — `absent`), as local dates — what
+  /// (`AttendanceSession.missedAt` — `absent` on a session that has ended), as local dates — what
   /// the Adult attendance calendar and the Junior calendar mark missed. Empty
   /// when none is.
   final Set<DateTime> missedDates;
