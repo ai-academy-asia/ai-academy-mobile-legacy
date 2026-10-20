@@ -122,43 +122,47 @@ class _PopulatedMentorFeedback extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: _avatarRadius,
-                    backgroundColor: palette.primary,
-                    child: Text(
-                      feedback.mentorInitials,
-                      style: AppTypography.buttonLabel.copyWith(
-                        color: palette.onPrimary,
-                        fontSize: 13,
+              // A staff review has no mentor (Issue #473): the author row is
+              // left out rather than given an invented name or role.
+              if (feedback.hasMentor) ...[
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: _avatarRadius,
+                      backgroundColor: palette.primary,
+                      child: Text(
+                        feedback.mentorInitials ?? '',
+                        style: AppTypography.buttonLabel.copyWith(
+                          color: palette.onPrimary,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          feedback.mentorName,
-                          style: AppTypography.cardHeading.copyWith(
-                            color: palette.textPrimary,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            feedback.mentorName ?? '',
+                            style: AppTypography.cardHeading.copyWith(
+                              color: palette.textPrimary,
+                            ),
                           ),
-                        ),
-                        Text(
-                          feedback.mentorRole,
-                          style: AppTypography.cardSupporting.copyWith(
-                            color: palette.textSecondary,
+                          Text(
+                            feedback.mentorRole ?? '',
+                            style: AppTypography.cardSupporting.copyWith(
+                              color: palette.textSecondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: _avatarToMessage),
+                  ],
+                ),
+                const SizedBox(height: _avatarToMessage),
+              ],
               Text(
                 feedback.message,
                 style: AppTypography.settingsRowLabel.copyWith(

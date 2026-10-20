@@ -1713,6 +1713,26 @@ void main() {
         expect(feedback.timestampLabel, 'Today, 14:20');
       });
 
+      test('a staff review carries no mentor: the feedback still reads, '
+          'with every mentor field null (Issue #473)', () async {
+        final exercise = await withAssignment(
+          assignmentBody(
+            submission: submissionBody(
+              status: 'reviewed',
+              feedback: feedbackBody(mentor: null),
+            ),
+          ),
+        );
+
+        final feedback = exercise.assignment!.submission!.feedback!;
+        expect(feedback.hasMentor, isFalse);
+        expect(feedback.mentorInitials, isNull);
+        expect(feedback.mentorName, isNull);
+        expect(feedback.mentorRole, isNull);
+        expect(feedback.message, 'Сайн ажил — баталгаажуулалтыг сайжруул.');
+        expect(feedback.timestampLabel, 'Today, 14:20');
+      });
+
       test('an older review is dated MM/dd', () async {
         final exercise = await withAssignment(
           assignmentBody(
@@ -2009,10 +2029,21 @@ void main() {
           );
         });
 
-        test('feedback without a mentor, or a mentor without a name', () async {
+        // `mentor: null` is valid — a staff review (Issue #473); see "a
+        // staff review carries no mentor". The key itself is always sent.
+        test('feedback with no mentor key, a non-object mentor, or a mentor '
+            'without a name', () async {
           await expectFault(
             assignmentBody(
-              submission: submissionBody(feedback: feedbackBody(mentor: null)),
+              submission: submissionBody(
+                feedback: feedbackBody()..remove('mentor'),
+              ),
+            ),
+            'feedback.mentor',
+          );
+          await expectFault(
+            assignmentBody(
+              submission: submissionBody(feedback: feedbackBody(mentor: 'ДБ')),
             ),
             'mentor',
           );
