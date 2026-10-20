@@ -106,10 +106,7 @@ class TeacherDaySessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = entry.session;
     final palette = context.palette;
-    final card = scheduledSessionCard(
-      entry,
-      timeLabel: '${session.startLabel}-${session.endLabel}',
-    );
+    final card = scheduledSessionCard(entry, timeLabel: session.timeLabel);
     // A covered or covering session's label (Issue #455), beside
     // "Дууссан" when it is over.
     final label = TeacherScheduleStrings.assignmentLabel(entry);

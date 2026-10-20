@@ -39,6 +39,57 @@ void main() {
     });
   });
 
+  group('a session with no end time (Issue #479)', () {
+    final session = sampleSession(start: (18, 30), end: null);
+
+    test('is over only once its day is over, never before', () {
+      expect(session.endsAt, isNull);
+      expect(session.isOverAt(DateTime(2026, 10, 6, 18, 29)), isFalse);
+      expect(session.isOverAt(DateTime(2026, 10, 6, 21, 30)), isFalse);
+      expect(session.isOverAt(DateTime(2026, 10, 6, 23, 59)), isFalse);
+      expect(session.isOverAt(DateTime(2026, 10, 7)), isTrue);
+    });
+
+    test('labels its start alone; a session with an end, both', () {
+      expect(session.endLabel, isNull);
+      expect(session.timeLabel, '18:30');
+      expect(sampleSession().timeLabel, '14:00-17:00');
+    });
+
+    test('is drawn at the minimum block from its start, never longer', () {
+      final placement = placeSessions(
+        [entry(session)],
+        weekStart: DateTime(2026, 10, 4),
+        firstHour: 7,
+      ).single;
+      expect(
+        placement.top,
+        TeacherWeekGridMetrics.topInset +
+            11.5 * TeacherWeekGridMetrics.hourHeight,
+      );
+      expect(placement.height, 0.25 * TeacherWeekGridMetrics.hourHeight);
+    });
+
+    test('a later session in the same column does not overlap it', () {
+      final placements = placeSessions(
+        [
+          entry(session),
+          entry(sampleSession(id: 2, start: (19, 0), end: (20, 0))),
+        ],
+        weekStart: DateTime(2026, 10, 4),
+        firstHour: 7,
+      );
+      expect([for (final p in placements) p.lanes], [1, 1]);
+    });
+
+    test('the grid still spans the hour it starts in', () {
+      expect(hourSpan([entry(sampleSession(start: (23, 15), end: null))]), (
+        7,
+        24,
+      ));
+    });
+  });
+
   group('attendance', () {
     test('present and late are attended; absent and excused are not', () {
       const counts = AttendanceCounts(

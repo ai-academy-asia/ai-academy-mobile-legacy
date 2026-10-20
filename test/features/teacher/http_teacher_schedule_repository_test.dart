@@ -146,9 +146,63 @@ void main() {
       expect(sessions, isEmpty);
     });
 
+    test('a session with no end time (null) reads, with its start alone '
+        '(Issue #479)', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(
+          sessionsBody(
+            sessions: [
+              {
+                'id': 41,
+                'cohort_id': 2,
+                'topic_id': null,
+                'session_date': '2026-10-06',
+                'start_time': '18:30',
+                'end_time': null,
+                'created_at': '2026-09-28T03:56:11',
+              },
+            ],
+          ),
+          200,
+        ),
+      );
+
+      final sessions = await repo.getSessions(
+        cohortId: 2,
+        from: DateTime(2026, 10, 4),
+        to: DateTime(2026, 10, 11),
+      );
+
+      expect(sessions.single.start, (18, 30));
+      expect(sessions.single.end, isNull);
+      expect(sessions.single.timeLabel, '18:30');
+    });
+
     test('a session off the verified shape is a server failure', () async {
       for (final bad in [
         {'id': 1, 'cohort_id': 2, 'session_date': '2026-10-06'},
+        // An end time may be null, but never unreadable or another type.
+        {
+          'id': 1,
+          'cohort_id': 2,
+          'session_date': '2026-10-06',
+          'start_time': '14:00',
+          'end_time': '25:00',
+        },
+        {
+          'id': 1,
+          'cohort_id': 2,
+          'session_date': '2026-10-06',
+          'start_time': '14:00',
+          'end_time': 17,
+        },
+        {
+          'id': 1,
+          'cohort_id': 2,
+          'session_date': '2026-10-06',
+          'start_time': null,
+          'end_time': '17:00',
+        },
         {
           'id': 1,
           'cohort_id': 2,
@@ -367,6 +421,27 @@ void main() {
       expect(item.covering!.originalTeacher, isNull);
     });
 
+    test('a covering item with no end time reads, with its start alone '
+        '(Issue #479)', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(
+          assignedBody([
+            assignedItem(type: 'covering', requestId: 12, end: null),
+          ]),
+          200,
+        ),
+      );
+
+      final items = await repo.getAssignedSessions(
+        from: DateTime(2026, 10, 4),
+        to: DateTime(2026, 10, 10),
+      );
+
+      final session = items.single.session!;
+      expect(session.end, isNull);
+      expect(session.timeLabel, '14:00');
+    });
+
     test('a body off the documented shape is a server failure', () async {
       final bodies = <String, String>{
         'no items': jsonEncode({'from': '2026-10-04', 'to': '2026-10-10'}),
@@ -380,8 +455,8 @@ void main() {
         'covering without request_id': assignedBody([
           assignedItem(type: 'covering'),
         ]),
-        'covering without an end time': assignedBody([
-          assignedItem(type: 'covering', requestId: 12, end: null),
+        'covering with an unreadable end time': assignedBody([
+          assignedItem(type: 'covering', requestId: 12, end: '25:00'),
         ]),
         'covering with an unreadable date': assignedBody([
           assignedItem(type: 'covering', requestId: 12, date: 'soon'),

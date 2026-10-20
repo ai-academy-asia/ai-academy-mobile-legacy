@@ -61,6 +61,17 @@ double timeColumnWidthOf(BuildContext context) {
   );
 }
 
+/// The shortest a block is drawn, in minutes — a very short session's, and
+/// the drawing extent of a session with no end time (Issue #479), which is
+/// never shown as an end.
+const int _minBlockMinutes = 15;
+
+/// Where a block is drawn to: its end, or — with no end time — the minimum
+/// block after its start. Layout only.
+DateTime _drawnUntil(TeacherSession session) =>
+    session.endsAt ??
+    session.startsAt.add(const Duration(minutes: _minBlockMinutes));
+
 /// The hours the grid draws, `(first, last)`: the reference's 07:00–23:00
 /// widened to whole hours that hold every session of [sessions].
 (int, int) hourSpan(List<ScheduledSession> sessions) {
@@ -69,7 +80,9 @@ double timeColumnWidthOf(BuildContext context) {
   for (final entry in sessions) {
     final session = entry.session;
     first = math.min(first, session.start.$1);
-    final endHour = session.end.$1 + (session.end.$2 > 0 ? 1 : 0);
+    // With no end time, at least the hour it starts in (Issue #479).
+    final end = session.end ?? (session.start.$1 + 1, 0);
+    final endHour = end.$1 + (end.$2 > 0 ? 1 : 0);
     last = math.max(last, math.min(endHour, 24));
   }
   return (first, last);
@@ -129,13 +142,15 @@ List<SessionPlacement> placeSessions(
         final session = entry.session;
         final startMinutes =
             (session.start.$1 - firstHour) * 60 + session.start.$2;
-        final minutes = session.endsAt.difference(session.startsAt).inMinutes;
+        final minutes = _drawnUntil(
+          session,
+        ).difference(session.startsAt).inMinutes;
         placements.add(
           SessionPlacement(
             entry: entry,
             day: day,
             top: TeacherWeekGridMetrics.topInset + startMinutes * perMinute,
-            height: math.max(minutes, 15) * perMinute,
+            height: math.max(minutes, _minBlockMinutes) * perMinute,
             lane: lane,
             lanes: lanes,
           ),
@@ -154,12 +169,12 @@ List<SessionPlacement> placeSessions(
       var lane = laneEnds.indexWhere((end) => !session.startsAt.isBefore(end));
       if (lane == -1) {
         lane = laneEnds.length;
-        laneEnds.add(session.endsAt);
+        laneEnds.add(_drawnUntil(session));
       } else {
-        laneEnds[lane] = session.endsAt;
+        laneEnds[lane] = _drawnUntil(session);
       }
       run.add((entry, lane));
-      if (session.endsAt.isAfter(runEnd)) runEnd = session.endsAt;
+      if (_drawnUntil(session).isAfter(runEnd)) runEnd = _drawnUntil(session);
     }
     if (run.isNotEmpty) closeRun();
   }
@@ -338,7 +353,7 @@ class SessionBlock extends StatelessWidget {
       label: [
         ?label,
         TeacherScheduleStrings.sessionTitle(entry),
-        '${session.startLabel}-${session.endLabel}',
+        session.timeLabel,
       ].join(', '),
       onTap: onTap,
       excludeSemantics: true,
@@ -382,10 +397,11 @@ class SessionBlock extends StatelessWidget {
                           ),
                   ),
                   if (fit.showTime)
-                    Text(
-                      '${session.startLabel}\n-${session.endLabel}',
-                      style: style,
-                    ),
+                    Text(switch (session.endLabel) {
+                      final end? => '${session.startLabel}\n-$end',
+                      // No end time: the start alone (Issue #479).
+                      null => session.startLabel,
+                    }, style: style),
                 ],
               );
             },
@@ -468,7 +484,8 @@ bool weekBlocksLegible(
 ///
 /// The time comes first, as the block always drew it: it shows only when
 /// each of its two lines, `09:00` and `-10:00`, fits the width on one line
-/// and both fit the height — so a time is never broken mid-number. The title
+/// and both fit the height — so a time is never broken mid-number. With no
+/// end time it is the one line, `09:00` (Issue #479). The title
 /// takes whole lines of what is left, ending in an ellipsis when it is cut.
 /// When neither fits, the block shows no text.
 class _BlockFit {
@@ -478,7 +495,7 @@ class _BlockFit {
     BuildContext context, {
     required TextStyle style,
     required String start,
-    required String end,
+    required String? end,
     required Size space,
   }) {
     final direction = Directionality.of(context);
@@ -499,12 +516,13 @@ class _BlockFit {
     }
 
     final (startWidth, line) = measure(start);
-    final (endWidth, _) = measure('-$end');
+    final (endWidth, _) = end == null ? (0.0, line) : measure('-$end');
+    final timeLines = end == null ? 1 : 2;
     final showTime =
         startWidth <= space.width &&
         endWidth <= space.width &&
-        2 * line <= space.height;
-    final left = space.height - (showTime ? 2 * line : 0);
+        timeLines * line <= space.height;
+    final left = space.height - (showTime ? timeLines * line : 0);
     return _BlockFit(
       showTime: showTime,
       titleLines: math.max(0, (left / line + 1e-6).floor()),

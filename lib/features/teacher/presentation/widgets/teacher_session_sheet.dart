@@ -183,7 +183,7 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
             ],
             scheduledSessionCard(
               entry,
-              timeLabel: '${session.startLabel}-${session.endLabel}',
+              timeLabel: session.timeLabel,
               // A covering teacher has no attendance access (contract §1):
               // no summary for a session they cover.
               footer: held && !covering

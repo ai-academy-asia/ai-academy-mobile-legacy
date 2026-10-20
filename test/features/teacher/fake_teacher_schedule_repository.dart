@@ -116,7 +116,8 @@ TeacherSession sampleSession({
   int cohortId = 2,
   String date = '2026-10-06',
   (int, int) start = (14, 0),
-  (int, int) end = (17, 0),
+  // Null: a session with no end time (Issue #479).
+  (int, int)? end = (17, 0),
 }) {
   final day = DateTime.parse(date);
   return TeacherSession(
