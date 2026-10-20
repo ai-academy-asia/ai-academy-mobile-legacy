@@ -1,5 +1,6 @@
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:aia_mobile/features/courses/presentation/course_catalog_screen.dart';
 import 'package:aia_mobile/features/courses/presentation/course_catalog_strings.dart';
 import 'package:aia_mobile/features/courses/presentation/widgets/course_card.dart';
@@ -259,6 +260,125 @@ void main() {
         (image.image as NetworkImage).url,
         'https://example.test/banner.png',
       );
+    });
+  });
+
+  // Issue #485: a listed course may send `null` for any of these; the card
+  // leaves the absent part out — never "null", an empty line, or a guess.
+  group('absent optional fields (Issue #485)', () {
+    Course bare({int id = 2}) => sampleCourse(
+      id: id,
+      level: null,
+      format: null,
+      ageMin: null,
+      ageMax: null,
+      durationWeeks: null,
+      startDate: null,
+      endDate: null,
+      priceAmount: null,
+      finalPriceAmount: null,
+      discountPercent: null,
+      currency: null,
+    );
+
+    Finder emptyText() =>
+        find.byWidgetPredicate((w) => w is Text && (w.data ?? '').trim().isEmpty);
+
+    testWidgets('a course with none of them draws its title and status only, '
+        'beside full courses', (tester) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(courses: [sampleCourse(id: 1), bare(), sampleCourse(id: 3)]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widgetList<CourseCard>(find.byType(CourseCard)).map((c) => c.course.id),
+        [1, 2, 3],
+      );
+      final card = find.byWidgetPredicate((w) => w is CourseCard && w.course.id == 2);
+      Finder inCard(Finder f) => find.descendant(of: card, matching: f);
+
+      expect(inCard(find.text('Зуны бүтээлч кэмп')), findsOneWidget);
+      expect(inCard(find.text('Open')), findsOneWidget);
+      expect(inCard(find.text('Junior')), findsNothing);
+      expect(inCard(find.text(CourseCatalogStrings.whoIsItFor)), findsNothing);
+      expect(inCard(find.text(CourseCatalogStrings.durationSectionLabel)), findsNothing);
+      expect(inCard(find.textContaining('MNT')), findsNothing);
+      expect(inCard(find.textContaining(CourseCatalogStrings.ageUnit)), findsNothing);
+      expect(inCard(find.textContaining('2026')), findsNothing);
+      expect(inCard(find.textContaining(',000')), findsNothing);
+      expect(inCard(emptyText()), findsNothing);
+      expect(find.textContaining('null'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('each section is composed from the parts that are sent', (
+      tester,
+    ) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(
+          courses: [
+            // No level: the age alone; no dates: the length alone.
+            sampleCourse(id: 1, level: null, startDate: null),
+            // No age: the level alone; no length: the dates alone.
+            sampleCourse(id: 2, ageMin: null, durationWeeks: null),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('10-18 ${CourseCatalogStrings.ageUnit}'), findsOneWidget);
+      expect(find.text('3 ${CourseCatalogStrings.weeksUnit}'), findsOneWidget);
+      expect(find.text('Junior'), findsNWidgets(2));
+      expect(
+        find.text(CourseCatalogStrings.dateRange('2026-06-01', '2026-06-21')),
+        findsOneWidget,
+      );
+      expect(find.text(CourseCatalogStrings.whoIsItFor), findsNWidgets(2));
+      expect(find.text(CourseCatalogStrings.durationSectionLabel), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an upper age alone, or one date alone, is left out rather than '
+        'worded', (tester) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(
+          courses: [
+            sampleCourse(level: null, ageMin: null, ageMax: 18, endDate: null, durationWeeks: null),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('18'), findsNothing);
+      expect(find.textContaining('2026'), findsNothing);
+      expect(find.text(CourseCatalogStrings.whoIsItFor), findsNothing);
+      expect(find.text(CourseCatalogStrings.durationSectionLabel), findsNothing);
+    });
+
+    testWidgets('no currency: the amount alone; no discount without a list price', (
+      tester,
+    ) async {
+      await pumpCatalog(
+        tester,
+        FakeCourseRepository(
+          courses: [
+            sampleCourse(id: 1, currency: null),
+            sampleCourse(id: 2, priceAmount: null),
+            sampleCourse(id: 3, discountPercent: null),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('960,000'), findsOneWidget);
+      expect(find.text('1,200,000'), findsOneWidget);
+      expect(find.text('960,000 MNT'), findsNWidgets(2));
+      expect(find.text('1,200,000 MNT'), findsNothing);
+      expect(find.text('-20%'), findsOneWidget);
     });
   });
 

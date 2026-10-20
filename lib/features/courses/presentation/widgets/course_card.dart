@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../domain/course.dart';
 import '../course_catalog_strings.dart';
+import 'course_price_row.dart';
 
 /// One course in the catalog — matches the Figma "Course Catalog" frame's
 /// card structure: a track badge and status pill, title and description, a
@@ -49,6 +50,11 @@ class CourseCard extends StatelessWidget {
     final contentColor = isOpen
         ? context.palette.textPrimary
         : context.palette.textSecondary;
+    final level = course.level;
+    // Absent parts are left out (Issue #485): a section with nothing to say
+    // is not drawn, and with neither the block and its divider go too.
+    final audience = _audience(course);
+    final duration = _durationValue(course);
 
     return Material(
       color: context.palette.surface,
@@ -74,16 +80,18 @@ class CourseCard extends StatelessWidget {
               ],
 
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _TrackBadge(level: course.level),
+                  if (level != null && level.trim().isNotEmpty)
+                    _TrackBadge(level: level),
+                  const Spacer(),
                   _StatusPill(status: course.status),
                 ],
               ),
               const SizedBox(height: 12),
 
               Text(
-                _preferMongolian(course.title.mn, course.title.en) ?? course.slug,
+                _preferMongolian(course.title.mn, course.title.en) ??
+                    course.slug,
                 style: AppTypography.catalogTitle.copyWith(color: contentColor),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -102,21 +110,25 @@ class CourseCard extends StatelessWidget {
                 ),
               ],
 
-              const SizedBox(height: 12),
-              _Divider(),
-              const SizedBox(height: 12),
-
-              _Section(
-                label: CourseCatalogStrings.whoIsItFor,
-                value: _audience(course),
-                valueColor: contentColor,
-              ),
-              const SizedBox(height: 10),
-              _Section(
-                label: CourseCatalogStrings.durationSectionLabel,
-                value: _durationValue(course),
-                valueColor: contentColor,
-              ),
+              if (audience != null || duration != null) ...[
+                const SizedBox(height: 12),
+                _Divider(),
+                const SizedBox(height: 12),
+                if (audience != null)
+                  _Section(
+                    label: CourseCatalogStrings.whoIsItFor,
+                    value: audience,
+                    valueColor: contentColor,
+                  ),
+                if (audience != null && duration != null)
+                  const SizedBox(height: 10),
+                if (duration != null)
+                  _Section(
+                    label: CourseCatalogStrings.durationSectionLabel,
+                    value: duration,
+                    valueColor: contentColor,
+                  ),
+              ],
 
               const SizedBox(height: 12),
               _Divider(),
@@ -149,21 +161,36 @@ String _capitalize(String value) =>
 /// The card's "Who is it for" value. Real API copy (`target_audience`) wins
 /// when the course sends one; otherwise this composes the same shape from
 /// the confirmed `level`/`age_min`/`age_max` fields rather than showing
-/// nothing.
-String _audience(Course course) {
+/// nothing — from whichever of the two parts the course sends, or null when
+/// it sends neither (Issue #485).
+String? _audience(Course course) {
   if (course.targetAudience case final audience?) return audience;
-  final ageRange = CourseCatalogStrings.ageRange(course.ageMin, course.ageMax);
-  return '${_capitalize(course.level)} · $ageRange';
+  final level = course.level?.trim() ?? '';
+  final parts = [
+    if (level.isNotEmpty) _capitalize(level),
+    ?CourseCatalogStrings.ageRangeOf(course.ageMin, course.ageMax),
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 /// The card's "Duration" value: the date range with the length in
-/// parentheses, e.g. "2026-06-01 – 2026-06-21 (3 долоо хоног)".
-String _durationValue(Course course) {
-  final duration =
-      course.durationLabel ??
-      '${course.durationWeeks} ${CourseCatalogStrings.weeksUnit}';
-  final dates = CourseCatalogStrings.dateRange(course.startDate, course.endDate);
-  return '$dates ($duration)';
+/// parentheses, e.g. "2026-06-01 – 2026-06-21 (3 долоо хоног)" — or either
+/// part alone, or null when the course sends neither (Issue #485).
+String? _durationValue(Course course) {
+  final duration = CourseCatalogStrings.durationOf(
+    course.durationLabel,
+    course.durationWeeks,
+  );
+  final dates = CourseCatalogStrings.dateRangeOf(
+    course.startDate,
+    course.endDate,
+  );
+  return switch ((dates, duration)) {
+    (final dates?, final duration?) => '$dates ($duration)',
+    (final dates?, null) => dates,
+    (null, final duration?) => duration,
+    (null, null) => null,
+  };
 }
 
 class _Banner extends StatelessWidget {
@@ -268,7 +295,11 @@ class _StatusPill extends StatelessWidget {
 
 /// A caption over its value, e.g. "Who is it for" over "Junior · 10-18 нас".
 class _Section extends StatelessWidget {
-  const _Section({required this.label, required this.value, required this.valueColor});
+  const _Section({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
 
   final String label;
   final String value;
@@ -286,7 +317,10 @@ class _Section extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(value, style: AppTypography.catalogSectionValue.copyWith(color: valueColor)),
+        Text(
+          value,
+          style: AppTypography.catalogSectionValue.copyWith(color: valueColor),
+        ),
       ],
     );
   }
@@ -315,25 +349,28 @@ class _PriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasDiscount =
-        course.discountPercent > 0 && course.finalPriceAmount < course.priceAmount;
+    // No price, no amount (Issue #485) — the chevron still says the card
+    // opens; whether to say "no price yet" is a PRODUCT DECISION.
+    final finalPrice = course.finalPriceAmount;
+    final discount = courseDiscount(course);
 
     return Row(
       children: [
-        Text(
-          '${_formatAmount(course.finalPriceAmount)} ${course.currency}',
-          style: AppTypography.catalogPrice.copyWith(color: priceColor),
-        ),
-        if (hasDiscount) ...[
+        if (finalPrice != null)
+          Text(
+            courseAmountLabel(finalPrice, course.currency),
+            style: AppTypography.catalogPrice.copyWith(color: priceColor),
+          ),
+        if (discount case (final price, final percent)) ...[
           const SizedBox(width: 8),
           Text(
-            '${_formatAmount(course.priceAmount)} ${course.currency}',
+            courseAmountLabel(price, course.currency),
             style: AppTypography.cardSupporting
                 .copyWith(color: context.palette.textSecondary)
                 .copyWith(decoration: TextDecoration.lineThrough),
           ),
           const SizedBox(width: 6),
-          _DiscountBadge(percent: course.discountPercent),
+          _DiscountBadge(percent: percent),
         ],
         const Spacer(),
         Icon(
@@ -368,18 +405,4 @@ class _DiscountBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-/// `1200000.0` -> `"1,200,000"`. A thousands separator on the integer part;
-/// the API sends whole amounts (currency minor units are not confirmed to be
-/// in play here), so any fractional part is dropped rather than displayed as
-/// meaningless trailing zeros.
-String _formatAmount(double amount) {
-  final whole = amount.round().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < whole.length; i++) {
-    if (i > 0 && (whole.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(whole[i]);
-  }
-  return buffer.toString();
 }

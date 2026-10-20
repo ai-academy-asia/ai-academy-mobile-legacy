@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:aia_mobile/core/api/api_config.dart';
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/features/courses/data/http_course_repository.dart';
+import 'package:aia_mobile/features/courses/domain/course.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -517,6 +518,187 @@ void main() {
         final failure = await failureFor(entry);
         expect(failure.kind, ApiFailureKind.server, reason: field);
         expect(failure.detail, contains(field), reason: field);
+      }
+    });
+  });
+
+  // Issue #485: `GET /courses` always sends these keys, but the backend
+  // validates none of their values (`level`: null or junior/adult), so a
+  // listed course may carry `null` in any of them.
+  group('null optional fields (Issue #485)', () {
+    const nullable = [
+      'level',
+      'format',
+      'age_min',
+      'duration_weeks',
+      'start_date',
+      'end_date',
+      'price_amount',
+      'final_price_amount',
+      'discount_percent',
+      'currency',
+    ];
+
+    Future<ApiFailure> failureFrom(HttpCourseRepository repository) async {
+      try {
+        await repository.getCourses();
+      } on ApiFailure catch (failure) {
+        return failure;
+      }
+      fail('expected an ApiFailure');
+    }
+
+    Future<List<Course>> coursesFrom(List<Map<String, dynamic>> entries) =>
+        repositoryReturning(
+          (_) async => jsonResponse(jsonEncode({'courses': entries}), 200),
+        ).getCourses();
+
+    Object? valueOf(Course course, String field) => switch (field) {
+      'level' => course.level,
+      'format' => course.format,
+      'age_min' => course.ageMin,
+      'duration_weeks' => course.durationWeeks,
+      'start_date' => course.startDate,
+      'end_date' => course.endDate,
+      'price_amount' => course.priceAmount,
+      'final_price_amount' => course.finalPriceAmount,
+      'discount_percent' => course.discountPercent,
+      'currency' => course.currency,
+      _ => throw ArgumentError(field),
+    };
+
+    for (final field in nullable) {
+      test(
+        '$field: null reads as null, and the catalogue still loads',
+        () async {
+          final courses = await coursesFrom([
+            _courseJson(overrides: {'id': 1}),
+            _courseJson(overrides: {'id': 2, 'slug': 'bare', field: null}),
+          ]);
+
+          expect(courses.map((c) => c.id), [1, 2]);
+          expect(valueOf(courses.last, field), isNull);
+          expect(valueOf(courses.first, field), isNotNull);
+          expect(courses.last.slug, 'bare');
+          expect(courses.last.status, 'open');
+        },
+      );
+    }
+
+    test('a course with all ten null loads beside full ones, in server order, '
+        'the rest of it unchanged', () async {
+      final courses = await coursesFrom([
+        _courseJson(overrides: {'id': 1}),
+        _courseJson(
+          overrides: {
+            'id': 2,
+            'slug': 'undated',
+            for (final field in nullable) field: null,
+          },
+        ),
+        _courseJson(overrides: {'id': 3}),
+      ]);
+
+      expect(courses.map((c) => c.id), [1, 2, 3]);
+      final bare = courses[1];
+      for (final field in nullable) {
+        expect(valueOf(bare, field), isNull, reason: field);
+      }
+      expect(bare.title.mn, 'Зуны бүтээлч кэмп');
+      expect(bare.category, 'bootcamp');
+      expect(bare.ageMax, 18);
+      expect(courses.first.priceAmount, 1200000.0);
+      expect(courses.last.startDate, '2026-06-01');
+    });
+
+    test(
+      'course detail loads for a course with null optional fields',
+      () async {
+        final course = await repositoryReturning(
+          (_) async => jsonResponse(
+            jsonEncode(
+              _courseJson(
+                overrides: {for (final field in nullable) field: null},
+              ),
+            ),
+            200,
+          ),
+        ).getCourseDetail('summer-bootcamp');
+
+        expect(course.slug, 'summer-bootcamp');
+        expect(course.priceAmount, isNull);
+        expect(course.startDate, isNull);
+      },
+    );
+
+    test(
+      'a missing key is still a fault — the backend always sends it',
+      () async {
+        for (final field in nullable) {
+          final failure = await failureFrom(
+            repositoryReturning(
+              (_) async => jsonResponse(
+                jsonEncode({
+                  'courses': [_courseJson()..remove(field)],
+                }),
+                200,
+              ),
+            ),
+          );
+          expect(failure.kind, ApiFailureKind.server, reason: field);
+          expect(failure.detail, contains('course.$field'), reason: field);
+        }
+      },
+    );
+
+    test('a wrong type is still a fault', () async {
+      final wrong = <String, Object>{
+        'level': 5,
+        'format': true,
+        'age_min': '10',
+        'duration_weeks': '3',
+        'start_date': 20260601,
+        'end_date': <Object?>[],
+        'price_amount': 'free',
+        'final_price_amount': '960000',
+        'discount_percent': '20%',
+        'currency': 496,
+      };
+      for (final MapEntry(key: field, value: value) in wrong.entries) {
+        final failure = await failureFrom(
+          repositoryReturning(
+            (_) async => jsonResponse(
+              jsonEncode({
+                'courses': [
+                  _courseJson(overrides: {field: value}),
+                ],
+              }),
+              200,
+            ),
+          ),
+        );
+        expect(failure.kind, ApiFailureKind.server, reason: field);
+        expect(failure.detail, contains('course.$field'), reason: field);
+      }
+    });
+
+    test('the required fields are not loosened: null id, slug, status, title '
+        'or tagline is still a fault', () async {
+      for (final field in ['id', 'slug', 'status', 'title', 'tagline']) {
+        final failure = await failureFrom(
+          repositoryReturning(
+            (_) async => jsonResponse(
+              jsonEncode({
+                'courses': [
+                  _courseJson(overrides: {field: null}),
+                ],
+              }),
+              200,
+            ),
+          ),
+        );
+        expect(failure.kind, ApiFailureKind.server, reason: field);
+        expect(failure.detail, contains('course.$field'), reason: field);
       }
     });
   });

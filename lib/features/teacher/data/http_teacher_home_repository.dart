@@ -112,11 +112,13 @@ class HttpTeacherHomeRepository implements TeacherHomeRepository {
     }
   }
 
-  /// `course.id` → `level`, or empty when the catalog cannot be read.
+  /// `course.id` → `level`, or empty when the catalog cannot be read. A
+  /// course with no level (Issue #485) has no entry, so its class draws no
+  /// track badge.
   Future<Map<int, String>> _tracksByCourseId() async {
     try {
       final courses = await _courses.getCourses();
-      return {for (final course in courses) course.id: course.level};
+      return {for (final course in courses) course.id: ?course.level};
     } catch (_) {
       return const {};
     }

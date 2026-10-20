@@ -232,6 +232,71 @@ void main() {
     });
   });
 
+  // Issue #485: absent optional fields are left out of the badges, the
+  // meta row and the price row — never "null", an empty pill or a guess.
+  group('absent optional fields (Issue #485)', () {
+    testWidgets('a course with none of them still opens, drawing only what '
+        'it sends', (tester) async {
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(
+          courseDetail: sampleCourse(
+            level: null,
+            format: null,
+            ageMin: null,
+            ageMax: null,
+            durationWeeks: null,
+            startDate: null,
+            endDate: null,
+            priceAmount: null,
+            finalPriceAmount: null,
+            discountPercent: null,
+            currency: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Зуны бүтээлч кэмп'), findsOneWidget);
+      expect(find.text('bootcamp'), findsOneWidget);
+      expect(find.text('open'), findsOneWidget);
+      expect(find.text('junior'), findsNothing);
+      expect(find.text('in_person'), findsNothing);
+      expect(find.textContaining('нас'), findsNothing);
+      expect(find.textContaining('2026'), findsNothing);
+      expect(find.textContaining('MNT'), findsNothing);
+      expect(find.textContaining('%'), findsNothing);
+      expect(find.textContaining('null'), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Text && (w.data ?? '').trim().isEmpty,
+        ),
+        findsNothing,
+      );
+      expect(find.byType(AppButton), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a blank level or format draws no empty pill', (tester) async {
+      await pumpDetail(
+        tester,
+        FakeCourseRepository(
+          courseDetail: sampleCourse(level: '', format: '  '),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Text && (w.data ?? '').trim().isEmpty,
+        ),
+        findsNothing,
+      );
+      expect(find.text('bootcamp'), findsOneWidget);
+      expect(find.text('open'), findsOneWidget);
+    });
+  });
+
   group('course learning', () {
     testWidgets('the CTA opens CourseModuleListScreen for the course\'s slug', (
       tester,

@@ -17,31 +17,55 @@ class CoursePriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasDiscount =
-        course.discountPercent > 0 && course.finalPriceAmount < course.priceAmount;
+    // A course with no price draws none (Issue #485) — no "0" or
+    // placeholder; whether it should say so is a PRODUCT DECISION.
+    final finalPrice = course.finalPriceAmount;
+    if (finalPrice == null) return const SizedBox.shrink();
+    final discount = courseDiscount(course);
 
     return Row(
       children: [
         Text(
-          '${formatCourseAmount(course.finalPriceAmount)} ${course.currency}',
+          courseAmountLabel(finalPrice, course.currency),
           style: AppTypography.cardHeading.copyWith(
             color: context.palette.primary,
           ),
         ),
-        if (hasDiscount) ...[
+        if (discount case (final price, final percent)) ...[
           const SizedBox(width: 8),
           Text(
-            '${formatCourseAmount(course.priceAmount)} ${course.currency}',
+            courseAmountLabel(price, course.currency),
             style: AppTypography.cardSupporting
                 .copyWith(color: context.palette.textSecondary)
                 .copyWith(decoration: TextDecoration.lineThrough),
           ),
           const SizedBox(width: 6),
-          CourseBadge('-${course.discountPercent}%'),
+          CourseBadge('-$percent%'),
         ],
       ],
     );
   }
+}
+
+/// The struck-through pre-discount price and the percentage, when a discount
+/// applies: both prices and `discount_percent` sent, a positive percentage,
+/// and a final price below the list price. Null otherwise — including when
+/// any of the three is `null` (Issue #485).
+(double, int)? courseDiscount(Course course) {
+  final price = course.priceAmount;
+  final finalPrice = course.finalPriceAmount;
+  final percent = course.discountPercent;
+  if (price == null || finalPrice == null || percent == null) return null;
+  if (percent <= 0 || finalPrice >= price) return null;
+  return (price, percent);
+}
+
+/// `"960,000 MNT"`, or the amount alone when the course sends no currency
+/// (Issue #485) — none is assumed.
+String courseAmountLabel(double amount, String? currency) {
+  final code = currency?.trim() ?? '';
+  final formatted = formatCourseAmount(amount);
+  return code.isEmpty ? formatted : '$formatted $code';
 }
 
 /// `1200000.0` -> `"1,200,000"`. A thousands separator on the integer part;
