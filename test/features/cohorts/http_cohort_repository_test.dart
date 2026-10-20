@@ -245,6 +245,83 @@ void main() {
   // Issue #445: a row the parser rejects is skipped and reported, not a
   // failure of the whole list. Each case below is one bad row on its own, so
   // the listing is empty and its report names the failing field.
+  // Issue #489: `Cohort.to_dict` always sends these keys; the backend never
+  // requires a graduation date or a capacity, and `seats_available` is null
+  // whenever `capacity` is.
+  group('null graduation_date, capacity and seats_available (Issue #489)', () {
+    Future<CohortListing> listingOf(List<Object?> rows) => repositoryReturning(
+      (_) async => jsonResponse(jsonEncode({'cohorts': rows}), 200),
+    ).getCohorts();
+
+    test('each null reads as null, and the cohort is listed, not skipped', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 1}),
+        _cohortJson(overrides: {'id': 2, 'graduation_date': null}),
+        _cohortJson(overrides: {'id': 3, 'capacity': null, 'seats_available': null}),
+        _cohortJson(
+          overrides: {
+            'id': 4,
+            'graduation_date': null,
+            'capacity': null,
+            'seats_available': null,
+          },
+        ),
+      ]);
+
+      expect(listing.skipped, isEmpty);
+      expect(listing.cohorts.map((c) => c.id), [1, 2, 3, 4]);
+      expect(listing.cohorts[1].graduationDate, isNull);
+      expect(listing.cohorts[1].capacity, 20);
+      expect(listing.cohorts[2].capacity, isNull);
+      expect(listing.cohorts[2].seatsAvailable, isNull);
+      expect(listing.cohorts[2].graduationDate, '2026-10-10');
+      expect(listing.cohorts[3].name, 'Corporate Leaders 2026-08');
+      expect(listing.cohorts[3].teacher.id, 2);
+    });
+
+    test('a missing key is still skipped, naming the field', () async {
+      for (final field in ['graduation_date', 'capacity', 'seats_available']) {
+        final listing = await listingOf([_cohortJson()..remove(field)]);
+        expect(listing.cohorts, isEmpty, reason: field);
+        expect(listing.skipped.single.reason, contains('cohort.$field'), reason: field);
+      }
+    });
+
+    test('a wrong type is still skipped, naming the field', () async {
+      final wrong = <String, Object>{
+        'graduation_date': 20261010,
+        'capacity': '20',
+        'seats_available': true,
+      };
+      for (final MapEntry(key: field, value: value) in wrong.entries) {
+        final listing = await listingOf([
+          _cohortJson(overrides: {field: value}),
+        ]);
+        expect(listing.cohorts, isEmpty, reason: field);
+        expect(listing.skipped.single.reason, contains('cohort.$field'), reason: field);
+      }
+    });
+
+    test('no other field is loosened: null teacher, dates, times, meeting days '
+        'and enrolled count are still skipped', () async {
+      for (final field in [
+        'teacher',
+        'start_date',
+        'end_date',
+        'start_time',
+        'end_time',
+        'meeting_days',
+        'enrolled_count',
+      ]) {
+        final listing = await listingOf([
+          _cohortJson(overrides: {field: null, 'graduation_date': null}),
+        ]);
+        expect(listing.cohorts, isEmpty, reason: field);
+        expect(listing.skipped.single.reason, contains('cohort.$field'), reason: field);
+      }
+    });
+  });
+
   group('malformed rows', () {
     Future<CohortListing> listingOf(List<Object?> rows) => repositoryReturning(
       (_) async => jsonResponse(jsonEncode({'cohorts': rows}), 200),

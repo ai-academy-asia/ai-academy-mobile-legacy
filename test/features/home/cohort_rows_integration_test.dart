@@ -184,6 +184,40 @@ void main() {
     );
   });
 
+  // Issue #489: the student's own cohort with no graduation date or
+  // capacity is a valid row, not a malformed one.
+  group('a cohort with no graduation date or capacity (Issue #489)', () {
+    const nulls = {
+      'graduation_date': null,
+      'capacity': null,
+      'seats_available': null,
+    };
+
+    test(
+      'is the student\'s own cohort on Home, not the server error',
+      () async {
+        final dashboard = await home(
+          [row(1), row(2, overrides: nulls)],
+          enrolledIds: [2],
+        ).getDashboard();
+
+        expect(dashboard.program!.cohortId, 2);
+      },
+    );
+
+    test(
+      'draws the student\'s certificate card, not the server error',
+      () async {
+        final entries = await certificates(
+          [row(1), row(2, overrides: nulls)],
+          enrolledIds: [2],
+        ).getCertificates();
+
+        expect([for (final e in entries) e.cohortId], [2]);
+      },
+    );
+  });
+
   group('Certificates', () {
     test(
       'an unrelated malformed row still draws the student\'s card',

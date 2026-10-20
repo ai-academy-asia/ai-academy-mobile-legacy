@@ -5,7 +5,9 @@ import '../../../core/models/localized_text.dart';
 /// Nullability mirrors `Course`'s policy: a field is modelled nullable only
 /// where a confirmed response showed it as `null` ([parentCohortId],
 /// [scheduleNote], and [classroom] — `null` on an online cohort in the
-/// production response, see its doc). Everything else is required, and a
+/// production response, see its doc) — plus [capacity], [seatsAvailable] and
+/// [graduationDate], which the backend's source shows it sends as `null`
+/// (Issue #489). Everything else is required, and a
 /// row missing one is rejected loudly — treat that as a sign this model needs
 /// to loosen, not as a bug in the cohort.
 ///
@@ -60,9 +62,12 @@ class Cohort {
 
   final CohortTeacher teacher;
 
-  final int capacity;
+  /// `null` for a cohort with no capacity set (Issue #489).
+  final int? capacity;
   final int enrolledCount;
-  final int seatsAvailable;
+
+  /// `null` exactly when [capacity] is — the backend derives it.
+  final int? seatsAvailable;
 
   /// e.g. "open".
   final String status;
@@ -72,7 +77,10 @@ class Cohort {
   final String endDate;
   final String startTime;
   final String endTime;
-  final String graduationDate;
+
+  /// `null` for a cohort with no graduation date — the backend never
+  /// requires one (Issue #489).
+  final String? graduationDate;
 
   /// e.g. `["mon", "wed"]`. Lowercase three-letter weekday codes, unconfirmed
   /// as a closed set — shown verbatim rather than mapped to display names.
