@@ -1,3 +1,6 @@
+import '../../home/domain/lesson_schedule.dart' show parseClockTime;
+import '../../teacher/domain/teacher_attendance.dart' show ulaanbaatarToday;
+
 /// The student's attendance in one course, as
 /// `GET /me/attendance?course={slug}` reports it.
 ///
@@ -42,15 +45,17 @@ class CourseAttendance {
 /// One session from `GET /me/attendance` `sessions` — held, or still to come.
 ///
 /// Modelled: [date] and [status] — what the Junior calendar marks — and
-/// [startTime], which orders two sessions on one day (Issue #443). The entry
-/// also carries `session_id`, `end_time` and `topic_id` (confirmed in the
-/// same response); nothing reads them yet, so they are not modelled, and a
-/// later change to them cannot fail this parse.
+/// [startTime], which orders two sessions on one day (Issue #443), and
+/// [endTime], which says when an `absent` becomes missed (Issue #475). The
+/// entry also carries `session_id` and `topic_id` (confirmed in the same
+/// response); nothing reads them yet, so they are not modelled, and a later
+/// change to them cannot fail this parse.
 class AttendanceSession {
   const AttendanceSession({
     required this.date,
     required this.status,
     this.startTime,
+    this.endTime,
   });
 
   /// The session's calendar day, as a local date.
@@ -70,6 +75,10 @@ class AttendanceSession {
   /// when the response has none. Only ever compared as text.
   final String? startTime;
 
+  /// The session's `end_time`, `"HH:MM"` in Ulaanbaatar, as sent; null when
+  /// the response has none (Issue #475).
+  final String? endTime;
+
   /// Whether the server counts this session as attended.
   ///
   /// `present` and `late` only. The evidence is the server's own arithmetic:
@@ -82,9 +91,32 @@ class AttendanceSession {
   /// made.
   bool get countsAsAttended => status == 'present' || status == 'late';
 
-  /// Whether the server recorded the student as not attending: `absent`
-  /// only — the confirmed value (Issue #170) the Adult attendance frame's
-  /// "Хичээлдээ суугаагүй" mark stands for (Issue #172). `null` (a session
-  /// not held yet) and any unknown value answer false: neither mark.
-  bool get countsAsMissed => status == 'absent';
+  /// Whether the student had missed this session by [now]: `absent` — the
+  /// confirmed value (Issue #170) the Adult attendance frame's
+  /// "Хичээлдээ суугаагүй" mark stands for (Issue #172) — on a session that
+  /// has **ended**, in Ulaanbaatar (Issue #475). The backend reports today's
+  /// unrecorded session `absent` from midnight (see [status]), and a student
+  /// can still check in while it is under way, so:
+  ///
+  ///  * a day before today, in Ulaanbaatar ([ulaanbaatarToday]): missed;
+  ///  * today: missed only once [now] has reached [endTime] in Ulaanbaatar —
+  ///    with no readable [endTime], not until the day is over;
+  ///  * a later day: never.
+  ///
+  /// `null` (a session not held yet) and any unknown value answer false:
+  /// neither mark.
+  bool missedAt(DateTime now) {
+    if (status != 'absent') return false;
+    final today = ulaanbaatarToday(now);
+    final day = DateTime(date.year, date.month, date.day);
+    if (day.isBefore(today)) return true;
+    if (day.isAfter(today)) return false;
+    final end = switch (endTime) {
+      final time? => parseClockTime(time),
+      null => null,
+    };
+    if (end == null) return false;
+    final local = now.toUtc().add(const Duration(hours: 8));
+    return local.hour * 60 + local.minute >= end.$1 * 60 + end.$2;
+  }
 }

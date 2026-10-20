@@ -234,14 +234,18 @@ void main() {
         expect(counts('late'), isTrue);
         expect(counts('absent'), isFalse);
         expect(counts(null), isFalse);
-        // Only absent counts as missed (Issue #172); null is neither.
+        // Only absent counts as missed (Issue #172); null is neither. These
+        // sessions are long over by 2100 (when absent is missed: #475).
         bool missed(String? status) => attendance.sessions
             .firstWhere((s) => s.status == status)
-            .countsAsMissed;
+            .missedAt(DateTime.utc(2100));
         expect(missed('absent'), isTrue);
         expect(missed('present'), isFalse);
         expect(missed('late'), isFalse);
         expect(missed(null), isFalse);
+        // `end_time` is read as sent (Issue #475).
+        expect(attendance.sessions.first.endTime, '21:30');
+        expect(attendance.sessions.first.startTime, '18:30');
         // 7 present + 1 late = summary.attended 8.
         expect(
           attendance.sessions.where((s) => s.countsAsAttended),
