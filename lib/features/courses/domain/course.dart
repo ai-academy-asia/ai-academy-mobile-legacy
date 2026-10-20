@@ -11,6 +11,13 @@ import '../../../core/models/localized_text.dart';
 /// `null`, and [category], which the Admin Panel's category change makes
 /// optional (Issue #426). Everything else is modelled as required.
 ///
+/// Since Issue #485 the backend source is the contract instead: `GET
+/// /courses` always sends every key, but validates only `slug`, `title.mn`,
+/// `status` and `level` (null, or `junior`/`adult`). [level], [format],
+/// [ageMin], [durationWeeks], [startDate], [endDate], [priceAmount],
+/// [finalPriceAmount], [discountPercent] and [currency] are therefore
+/// nullable; the screens leave an absent one out rather than fill it in.
+///
 /// **That is a real limitation, not a guarantee.** A field that happened to
 /// carry a value in the one example (`age_min`, `discount_percent`, …) could
 /// still be nullable on a course the example didn't cover — a summer bootcamp
@@ -110,35 +117,41 @@ class Course {
   /// or not a string (Issue #426) — never a reason to drop the course.
   final String? category;
 
-  /// e.g. "junior".
-  final String level;
+  /// e.g. "junior". Null when the course has none (Issue #485).
+  final String? level;
 
-  /// e.g. "in_person".
-  final String format;
+  /// e.g. "in_person". Null when the course has none (Issue #485).
+  final String? format;
 
   /// e.g. "open".
   final String status;
 
-  final int ageMin;
+  /// The lower age bound, or `null` for a course with none (Issue #485).
+  final int? ageMin;
 
   /// The upper age bound, or `null` for a course with none — the production
   /// `GET /courses` sends `"age_max": null` (with `age_min: 18`) for its adult
   /// courses. Shown as an open-ended range, never filled in with a guess.
   final int? ageMax;
-  final int durationWeeks;
 
-  /// Raw ISO-looking date string from the wire, e.g. "2026-06-01".
-  final String startDate;
+  /// Null when the course has no length in weeks (Issue #485).
+  final int? durationWeeks;
 
-  /// Raw ISO-looking date string from the wire, e.g. "2026-06-21".
-  final String endDate;
+  /// Raw ISO-looking date string from the wire, e.g. "2026-06-01". Null for
+  /// an undated course (Issue #485).
+  final String? startDate;
 
-  final double priceAmount;
-  final double finalPriceAmount;
-  final int discountPercent;
+  /// Raw ISO-looking date string from the wire, e.g. "2026-06-21". Null for
+  /// an undated course (Issue #485).
+  final String? endDate;
+
+  /// Null, with [finalPriceAmount], for a course with no price (Issue #485).
+  final double? priceAmount;
+  final double? finalPriceAmount;
+  final int? discountPercent;
 
   /// e.g. "MNT".
-  final String currency;
+  final String? currency;
 
   final String? durationLabel;
   final String? bannerImageUrl;

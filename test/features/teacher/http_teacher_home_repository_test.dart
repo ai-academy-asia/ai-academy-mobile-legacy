@@ -197,6 +197,17 @@ void main() {
       expect(classes.single.track, isNull);
     });
 
+    test('a course with no level has no track (Issue #485)', () async {
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(scheduleBody(), 200),
+        courses: FakeCourseRepository(
+          courses: [sampleCourse(id: 8, level: null)],
+        ),
+      );
+
+      expect((await repository.getClasses()).single.track, isNull);
+    });
+
     test('a course the catalog does not list has no track', () async {
       final repository = repositoryReturning(
         (_) async => jsonResponse(scheduleBody(), 200),

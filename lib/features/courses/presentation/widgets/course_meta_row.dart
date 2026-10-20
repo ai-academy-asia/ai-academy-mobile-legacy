@@ -16,34 +16,28 @@ class CourseMetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final duration =
-        course.durationLabel ??
-        '${course.durationWeeks} ${CourseCatalogStrings.weeksUnit}';
-    final age = CourseCatalogStrings.ageRange(course.ageMin, course.ageMax);
-    final dates = CourseCatalogStrings.dateRange(course.startDate, course.endDate);
+    // Only the facts the course sends (Issue #485): an absent one is left
+    // out, and with none the row draws nothing.
+    final facts = [
+      ?CourseCatalogStrings.durationOf(
+        course.durationLabel,
+        course.durationWeeks,
+      ),
+      ?CourseCatalogStrings.ageRangeOf(course.ageMin, course.ageMax),
+      ?CourseCatalogStrings.dateRangeOf(course.startDate, course.endDate),
+    ];
 
     return Wrap(
       spacing: 10,
       runSpacing: 4,
       children: [
-        Text(
-          duration,
-          style: AppTypography.cardSupporting.copyWith(
-            color: context.palette.textSecondary,
+        for (final fact in facts)
+          Text(
+            fact,
+            style: AppTypography.cardSupporting.copyWith(
+              color: context.palette.textSecondary,
+            ),
           ),
-        ),
-        Text(
-          age,
-          style: AppTypography.cardSupporting.copyWith(
-            color: context.palette.textSecondary,
-          ),
-        ),
-        Text(
-          dates,
-          style: AppTypography.cardSupporting.copyWith(
-            color: context.palette.textSecondary,
-          ),
-        ),
       ],
     );
   }

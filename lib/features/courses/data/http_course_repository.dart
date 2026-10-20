@@ -139,19 +139,22 @@ Course _courseFromJson(Object? entry) {
     // `null` or any non-string reads as no category, and the course still
     // loads — a classification is not worth failing the catalogue over.
     category: _softString(entry, 'category'),
-    level: _requireString(entry, 'level'),
-    format: _requireString(entry, 'format'),
+    // These ten are always sent but may be `null` on a listed course
+    // (Issue #485): the backend validates none of them beyond `level`'s
+    // "null or junior/adult". A missing key or a wrong type is still a fault.
+    level: _sentString(entry, 'level'),
+    format: _sentString(entry, 'format'),
     status: _requireString(entry, 'status'),
-    ageMin: _requireInt(entry, 'age_min'),
+    ageMin: _sentInt(entry, 'age_min'),
     // `null` on the production catalog's adult courses: no upper age bound.
     ageMax: _optionalInt(entry, 'age_max'),
-    durationWeeks: _requireInt(entry, 'duration_weeks'),
-    startDate: _requireString(entry, 'start_date'),
-    endDate: _requireString(entry, 'end_date'),
-    priceAmount: _requireDouble(entry, 'price_amount'),
-    finalPriceAmount: _requireDouble(entry, 'final_price_amount'),
-    discountPercent: _requireInt(entry, 'discount_percent'),
-    currency: _requireString(entry, 'currency'),
+    durationWeeks: _sentInt(entry, 'duration_weeks'),
+    startDate: _sentString(entry, 'start_date'),
+    endDate: _sentString(entry, 'end_date'),
+    priceAmount: _sentDouble(entry, 'price_amount'),
+    finalPriceAmount: _sentDouble(entry, 'final_price_amount'),
+    discountPercent: _sentInt(entry, 'discount_percent'),
+    currency: _sentString(entry, 'currency'),
     durationLabel: _optionalString(entry, 'duration_label'),
     bannerImageUrl: _optionalString(entry, 'banner_image_url'),
     icon: _optionalString(entry, 'icon'),
@@ -237,15 +240,6 @@ int? _optionalInt(Map<String, dynamic> json, String key) {
   );
 }
 
-double _requireDouble(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value is num) return value.toDouble();
-  throw ApiFailure(
-    ApiFailureKind.server,
-    detail: 'course.$key: expected a number, got ${value.runtimeType}',
-  );
-}
-
 String _requireString(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is String) return value;
@@ -262,6 +256,37 @@ String? _optionalString(Map<String, dynamic> json, String key) {
   throw ApiFailure(
     ApiFailureKind.server,
     detail: 'course.$key: expected a string or null, got ${value.runtimeType}',
+  );
+}
+
+// Like `_optionalString`/`_optionalInt`, but the key itself is required: the
+// backend's `to_summary` always writes it, so only its *value* may be `null`
+// (Issue #485).
+
+void _requireKey(Map<String, dynamic> json, String key) {
+  if (!json.containsKey(key)) {
+    throw ApiFailure(ApiFailureKind.server, detail: 'course.$key: missing');
+  }
+}
+
+String? _sentString(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  return _optionalString(json, key);
+}
+
+int? _sentInt(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  return _optionalInt(json, key);
+}
+
+double? _sentDouble(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  final value = json[key];
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  throw ApiFailure(
+    ApiFailureKind.server,
+    detail: 'course.$key: expected a number or null, got ${value.runtimeType}',
   );
 }
 
