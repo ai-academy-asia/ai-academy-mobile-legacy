@@ -166,6 +166,29 @@ List<SessionPlacement> placeSessions(
   return placements;
 }
 
+/// The top edge, from the grid's own top, of [day]'s earliest session block
+/// on the grid [TeacherWeekGrid] draws for [sessions] — the same
+/// [hourSpan] and [placeSessions] geometry, so it is where that block
+/// really is. Null when [day] has no session in the week starting
+/// [weekStart] (Issue #465).
+double? firstSessionTop(
+  List<ScheduledSession> sessions, {
+  required DateTime weekStart,
+  required DateTime day,
+}) {
+  final (first, _) = hourSpan(sessions);
+  double? top;
+  for (final placement in placeSessions(
+    sessions,
+    weekStart: weekStart,
+    firstHour: first,
+  )) {
+    if (!isSameDay(placement.entry.session.date, day)) continue;
+    top = math.min(top ?? placement.top, placement.top);
+  }
+  return top;
+}
+
 /// The hourly week grid under the strip: hour labels down the left, seven
 /// day columns, and a block per session (Issue #231).
 ///

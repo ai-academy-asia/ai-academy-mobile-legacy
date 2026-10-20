@@ -78,6 +78,15 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   late final TeacherScheduleRepository _repository;
   late final TeacherScheduleController _controller;
 
+  /// The week grid's vertical scroll, positioned on the selected day's
+  /// first session (Issue #465).
+  final _gridScroll = ScrollController();
+
+  /// The selected day the grid was last positioned for. A day is
+  /// positioned once — rebuilds, a refresh or the teacher's own scrolling
+  /// never pull the grid back — and again only when another day is chosen.
+  DateTime? _positionedDay;
+
   @override
   void initState() {
     super.initState();
@@ -90,8 +99,55 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
   @override
   void dispose() {
+    _gridScroll.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Once per selected day, once its week has loaded: makes sure the day's
+  /// earliest session block shows with an hour of the grid above it —
+  /// derived from where the grid places that block, never a fixed time, and
+  /// clamped to what the grid can scroll. Nothing moves when that is already
+  /// on screen (a 09:00 class on a grid opening at 07:00), nor for a day
+  /// with no session. The first time is a jump (the screen is just
+  /// opening); a later day eases there.
+  void _positionOnFirstSession(List<ScheduledSession> sessions) {
+    final day = _controller.selectedDay;
+    if (_positionedDay == day) return;
+    final first = _positionedDay == null;
+    _positionedDay = day;
+    final top = firstSessionTop(
+      sessions,
+      weekStart: _controller.weekStart,
+      day: day,
+    );
+    if (top == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_gridScroll.hasClients) return;
+      if (_controller.selectedDay != day) return;
+      const hourAbove = TeacherWeekGridMetrics.hourHeight;
+      final position = _gridScroll.position;
+      final target = (top - hourAbove).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      // Already showing: the hour above the block from the top of the
+      // view, and the block's first hour above its bottom.
+      final shown =
+          target >= position.pixels &&
+          top + hourAbove <= position.pixels + position.viewportDimension;
+      if (shown) return;
+      if (first) {
+        _gridScroll.jumpTo(target);
+      } else {
+        _gridScroll.animateTo(
+          target,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
   }
 
   Future<void> _pickDate() async {
@@ -219,11 +275,13 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       return _ErrorView(message: message, onRetry: _controller.load);
     }
     if (sessions == null) return const _LoadingView();
+    _positionOnFirstSession(sessions);
 
     return RefreshIndicator(
       onRefresh: _controller.load,
       color: context.palette.primary,
       child: SingleChildScrollView(
+        controller: _gridScroll,
         // Always scrollable, so pull-to-refresh works on any screen height.
         physics: const AlwaysScrollableScrollPhysics(),
         child: Stack(
