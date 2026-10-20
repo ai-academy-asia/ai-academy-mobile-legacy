@@ -127,35 +127,40 @@ class _NoteTabState extends State<NoteTab> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: _editing
-          ? Column(
-              children: [
-                ExerciseTextField(
-                  controller: _controller,
-                  placeholder: CourseLearningStrings.descriptionPlaceholder,
-                  floatingLabel: CourseLearningStrings.descriptionFloatingLabel,
-                  height: 118,
-                  multiline: true,
-                  enabled: !readOnly,
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: _fieldToError),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      errorMessage,
-                      style: AppTypography.fieldHelper.copyWith(
-                        color: context.palette.error,
+          // The textarea down to its Submit: revealed together above the
+          // keyboard (Issue #461).
+          ? ExerciseSubmitArea(
+              child: Column(
+                children: [
+                  ExerciseTextField(
+                    controller: _controller,
+                    placeholder: CourseLearningStrings.descriptionPlaceholder,
+                    floatingLabel:
+                        CourseLearningStrings.descriptionFloatingLabel,
+                    height: 118,
+                    multiline: true,
+                    enabled: !readOnly,
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: _fieldToError),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        errorMessage,
+                        style: AppTypography.fieldHelper.copyWith(
+                          color: context.palette.error,
+                        ),
                       ),
                     ),
+                  ],
+                  const SizedBox(height: 16),
+                  ExerciseSubmitButton(
+                    onPressed: !readOnly && _hasContent && !widget.saving
+                        ? _submit
+                        : null,
                   ),
                 ],
-                const SizedBox(height: 16),
-                ExerciseSubmitButton(
-                  onPressed: !readOnly && _hasContent && !widget.saving
-                      ? _submit
-                      : null,
-                ),
-              ],
+              ),
             )
           // The reference ends the note card at the timestamp and sets the
           // edit action below it, inside the tab rather than inside the card.

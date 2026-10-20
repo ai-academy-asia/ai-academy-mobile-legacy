@@ -572,7 +572,7 @@ void main() {
     });
   });
 
-  group('keyboard (Issue #459)', () {
+  group('keyboard (Issues #459, #461)', () {
     // An iPhone keyboard over `pumpScreen`'s 393 x 852 screen: the page
     // above it ends at 516.
     const keyboard = 336.0;
@@ -581,11 +581,23 @@ void main() {
     const margin = 20.0;
 
     Finder noteField() => find.byType(ExerciseTextField);
+    Finder submit() => find.byType(ExerciseSubmitButton);
+    // The text itself, inside the field's padding: its first line is where
+    // the caret starts.
+    Finder typedText() => find.byType(EditableText);
 
-    Future<void> openKeyboard(WidgetTester tester) async {
+    Future<void> openKeyboard(
+      WidgetTester tester, [
+      double height = keyboard,
+    ]) async {
       tester.view.viewInsets = FakeViewPadding(
-        bottom: keyboard * tester.view.devicePixelRatio,
+        bottom: height * tester.view.devicePixelRatio,
       );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> closeKeyboard(WidgetTester tester) async {
+      tester.view.viewInsets = FakeViewPadding.zero;
       await tester.pumpAndSettle();
     }
 
@@ -596,43 +608,65 @@ void main() {
       await tester.pump();
     }
 
-    void expectWhollyAboveKeyboard(WidgetTester tester, Finder field) {
-      final rect = tester.getRect(field);
-      expect(rect.bottom, lessThanOrEqualTo(visibleBottom - margin));
+    /// [finder] wholly on screen above the keyboard, [clear] to spare.
+    void expectAbove(
+      WidgetTester tester,
+      Finder finder, {
+      double bottom = visibleBottom,
+      double clear = margin,
+    }) {
+      final rect = tester.getRect(finder);
+      expect(rect.bottom, lessThanOrEqualTo(bottom - clear));
       expect(rect.top, greaterThanOrEqualTo(0));
     }
 
-    Future<void> pumpEmptyNote(WidgetTester tester) async {
+    ScrollPosition page(WidgetTester tester) => tester
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byType(SingleChildScrollView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position;
+
+    Future<void> pumpEmptyNote(
+      WidgetTester tester, {
+      Size size = const Size(393, 852),
+    }) async {
       await pumpScreen(
         tester,
         FakeCourseLearningRepository(exercise: sampleExercise(note: null)),
+        size: size,
       );
       await tester.pumpAndSettle();
     }
 
-    testWidgets('the Note textarea scrolls wholly above the keyboard, not '
-        'just its first line', (tester) async {
+    testWidgets('the Note textarea and its Submit land together above the '
+        'keyboard', (tester) async {
       await pumpEmptyNote(tester);
       await focus(tester, noteField());
 
       await openKeyboard(tester);
 
-      expectWhollyAboveKeyboard(tester, noteField());
+      expectAbove(tester, noteField());
+      expectAbove(tester, submit());
     });
 
-    testWidgets('typing in the revealed field does not scroll the page', (
-      tester,
-    ) async {
+    testWidgets('typing in the revealed field scrolls nothing', (tester) async {
       await pumpEmptyNote(tester);
       await focus(tester, noteField());
       await openKeyboard(tester);
-      final revealed = tester.getRect(noteField());
+      final field = tester.getRect(noteField());
+      final button = tester.getRect(submit());
 
       // Down to the textarea's last visible line, caret and all.
       await tester.enterText(find.byType(TextField), 'one\ntwo\nthree\nfour');
       await tester.pumpAndSettle();
 
-      expect(tester.getRect(noteField()), revealed);
+      expect(tester.getRect(noteField()), field);
+      expect(tester.getRect(submit()), button);
     });
 
     testWidgets('with the keyboard closed, focusing moves nothing', (
@@ -647,32 +681,60 @@ void main() {
       expect(tester.getRect(noteField()), before);
     });
 
-    testWidgets('Submit is reachable above the keyboard and still saves', (
-      tester,
-    ) async {
+    testWidgets('Submit keeps its validation above the keyboard, and saves '
+        'with no manual scroll', (tester) async {
       await pumpEmptyNote(tester);
       await focus(tester, noteField());
       await openKeyboard(tester);
+      ExerciseSubmitButton button() =>
+          tester.widget<ExerciseSubmitButton>(submit());
+
+      expect(button().onPressed, isNull);
+      await tester.enterText(find.byType(TextField), '   ');
+      await tester.pump();
+      expect(button().onPressed, isNull);
+
       await tester.enterText(find.byType(TextField), 'This part is unclear.');
       await tester.pump();
+      expect(button().onPressed, isNotNull);
+      expectAbove(tester, submit());
 
-      await tester.drag(
-        find.byType(SingleChildScrollView).first,
-        const Offset(0, -300),
-      );
-      await tester.pumpAndSettle();
-      final submit = find.byType(ExerciseSubmitButton);
-      expect(tester.getRect(submit).bottom, lessThanOrEqualTo(visibleBottom));
-
-      await tester.tap(submit);
+      await tester.tap(submit());
       await tester.pumpAndSettle();
 
       expect(find.text('This part is unclear.'), findsOneWidget);
       expect(find.text('Засах'), findsOneWidget);
     });
 
-    testWidgets('the Assignment link and description fields each scroll '
-        'wholly above the keyboard, as focus moves between them', (
+    testWidgets('closing the keyboard restores the full page and keeps the '
+        'layout as it was', (tester) async {
+      await pumpEmptyNote(tester);
+      final viewport = page(tester).viewportDimension;
+      final gap =
+          tester.getRect(submit()).top - tester.getRect(noteField()).bottom;
+      await focus(tester, noteField());
+      await openKeyboard(tester);
+      expect(page(tester).viewportDimension, lessThan(viewport));
+
+      await closeKeyboard(tester);
+
+      expect(page(tester).viewportDimension, viewport);
+      expect(
+        page(tester).pixels,
+        inInclusiveRange(0, page(tester).maxScrollExtent),
+      );
+      expect(tester.getRect(noteField()).height, 118);
+      expect(
+        tester.getRect(submit()).top - tester.getRect(noteField()).bottom,
+        gap,
+      );
+      expectAbove(tester, noteField(), bottom: 852);
+      expectAbove(tester, submit(), bottom: 852);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Assignment: each field lands above the keyboard with the '
+        'Submit, as focus moves between them, and still submits', (
       tester,
     ) async {
       await pumpScreen(tester, FakeCourseLearningRepository());
@@ -683,15 +745,71 @@ void main() {
 
       await focus(tester, link);
       await openKeyboard(tester);
-      expectWhollyAboveKeyboard(tester, link);
+      expectAbove(tester, link);
+      expectAbove(tester, submit());
+      await tester.enterText(
+        find.descendant(of: link, matching: find.byType(TextField)),
+        'https://a.b/c',
+      );
+      await tester.pumpAndSettle();
 
-      // The keyboard stays up; focus moves to the field below, which may
-      // sit behind it — focused directly, as "next" on the keyboard would.
+      // The keyboard stays up; focus moves to the field below — focused
+      // directly, as "next" on the keyboard would.
       await tester.showKeyboard(
         find.descendant(of: description, matching: find.byType(TextField)),
       );
       await tester.pumpAndSettle();
-      expectWhollyAboveKeyboard(tester, description);
+      expectAbove(tester, description);
+      expectAbove(tester, submit());
+
+      final field = tester.getRect(description);
+      await tester.enterText(
+        find.descendant(of: description, matching: find.byType(TextField)),
+        'My submission.\nSecond line.',
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getRect(description), field);
+
+      await tester.tap(submit());
+      await tester.pump();
+      expect(find.text('Submitted'), findsOneWidget);
+
+      // The sample's simulated review delay, as the pending-state test
+      // advances it.
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('too short for field and Submit both: Submit stays above '
+        'the keyboard, with the caret line', (tester) async {
+      // Landscape, with a keyboard leaving 213: the 118 textarea, its 16 gap
+      // and Submit fit only without the margins.
+      const short = Size(852, 393);
+      const landscapeKeyboard = 180.0;
+      const bottom = 393 - landscapeKeyboard;
+      await pumpEmptyNote(tester, size: short);
+      await focus(tester, noteField());
+
+      await openKeyboard(tester, landscapeKeyboard);
+
+      expectAbove(tester, submit(), bottom: bottom, clear: 0);
+      expectAbove(tester, typedText(), bottom: bottom, clear: 0);
+    });
+
+    testWidgets('too short even for that: the caret alone stays visible', (
+      tester,
+    ) async {
+      const short = Size(852, 393);
+      const tallKeyboard = 260.0;
+      const bottom = 393 - tallKeyboard;
+      await pumpEmptyNote(tester, size: short);
+      await focus(tester, noteField());
+
+      await openKeyboard(tester, tallKeyboard);
+
+      final text = tester.getRect(typedText());
+      expect(text.top, greaterThanOrEqualTo(0));
+      expect(text.top, lessThan(bottom));
     });
   });
 

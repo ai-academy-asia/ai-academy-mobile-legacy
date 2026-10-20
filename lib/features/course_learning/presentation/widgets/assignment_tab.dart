@@ -407,58 +407,70 @@ class _AssignmentTabState extends State<AssignmentTab> {
             _AssignmentSuccessCard(
               onResubmit: widget.enabled ? _resubmit : null,
             )
-          else ...[
-            // The reference draws the file area and the link field as
-            // alternatives, never together: the frames with a drop area have
-            // no link row, and the frame with the link row has no file area.
-            if (widget.attachment case final attachment?) ...[
-              AssignmentAttachmentCard(
-                attachment: attachment,
-                onDownloaded: () => setState(() => _attachmentReady = true),
-                onRemoved: () => setState(() => _attachmentReady = false),
-              ),
-              const SizedBox(height: 18),
-            ] else if (_fileForm)
-              ..._fileArea()
-            else ...[
-              ExerciseTextField(
-                controller: _linkController,
-                placeholder: CourseLearningStrings.linkPlaceholder,
-                height: 53,
-                enabled:
-                    widget.enabled && _stage == _AssignmentStage.notSubmitted,
-              ),
-              const SizedBox(height: 18),
-            ],
-            ExerciseTextField(
-              controller: _descriptionController,
-              placeholder: CourseLearningStrings.descriptionPlaceholder,
-              floatingLabel: CourseLearningStrings.descriptionFloatingLabel,
-              height: 104,
-              multiline: true,
-              enabled:
-                  widget.enabled && _stage == _AssignmentStage.notSubmitted,
-            ),
-            if (_submitFailed && widget.errorMessage != null) ...[
-              const SizedBox(height: _fieldToError),
-              SizedBox(
-                width: double.infinity,
-                child: Text(
-                  widget.errorMessage!,
-                  style: AppTypography.fieldError.copyWith(
-                    color: context.palette.error,
+          else
+            // The form down to its Submit: a focused field and the Submit
+            // are revealed together above the keyboard (Issue #461).
+            ExerciseSubmitArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // The reference draws the file area and the link field as
+                  // alternatives, never together: the frames with a drop area have
+                  // no link row, and the frame with the link row has no file area.
+                  if (widget.attachment case final attachment?) ...[
+                    AssignmentAttachmentCard(
+                      attachment: attachment,
+                      onDownloaded: () =>
+                          setState(() => _attachmentReady = true),
+                      onRemoved: () => setState(() => _attachmentReady = false),
+                    ),
+                    const SizedBox(height: 18),
+                  ] else if (_fileForm)
+                    ..._fileArea()
+                  else ...[
+                    ExerciseTextField(
+                      controller: _linkController,
+                      placeholder: CourseLearningStrings.linkPlaceholder,
+                      height: 53,
+                      enabled:
+                          widget.enabled &&
+                          _stage == _AssignmentStage.notSubmitted,
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                  ExerciseTextField(
+                    controller: _descriptionController,
+                    placeholder: CourseLearningStrings.descriptionPlaceholder,
+                    floatingLabel:
+                        CourseLearningStrings.descriptionFloatingLabel,
+                    height: 104,
+                    multiline: true,
+                    enabled:
+                        widget.enabled &&
+                        _stage == _AssignmentStage.notSubmitted,
                   ),
-                ),
+                  if (_submitFailed && widget.errorMessage != null) ...[
+                    const SizedBox(height: _fieldToError),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        widget.errorMessage!,
+                        style: AppTypography.fieldError.copyWith(
+                          color: context.palette.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  ExerciseSubmitButton(
+                    label: _stage == _AssignmentStage.pendingReview
+                        ? CourseLearningStrings.submitted
+                        : CourseLearningStrings.submit,
+                    onPressed: _readyToSubmit ? _submit : null,
+                  ),
+                ],
               ),
-            ],
-            const SizedBox(height: 32),
-            ExerciseSubmitButton(
-              label: _stage == _AssignmentStage.pendingReview
-                  ? CourseLearningStrings.submitted
-                  : CourseLearningStrings.submit,
-              onPressed: _readyToSubmit ? _submit : null,
             ),
-          ],
           const SizedBox(height: 24),
           // No colour: the rule draws the theme's own Material default
           // (`ColorScheme.outlineVariant`, `#C5C6D0` in light), not

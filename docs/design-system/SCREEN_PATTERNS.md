@@ -124,7 +124,7 @@ Reuse that three-part shape for any future full-screen flow with a persistent bo
 - Gaps between cards are `AppDimens.cardGap`; Module List draws a connector rule in its gaps.
 - **Tab rows scroll horizontally** so a longer label or a large accessibility text scale cannot overflow.
 - Fixed-width inner blocks (the 329 form/action width) live inside a 16pt-padded 361 column — check both when a layout overflows by a few pixels.
-- **A focused field shows whole above the keyboard.** Keep the default `resizeToAvoidBottomInset` and one scrolling parent; Flutter then scrolls only the *caret* (+ `scrollPadding`) into view, which hides most of a tall textarea. `ExerciseTextField` widens that request to its whole box (Issue #459) — reuse it, or the same idea, rather than adding spacers or fixed offsets. Test it by setting `tester.view.viewInsets` and checking the field's rect.
+- **A focused field shows whole above the keyboard.** Keep the default `resizeToAvoidBottomInset` and one scrolling parent; Flutter then scrolls only the *caret* (+ `scrollPadding`) into view, which hides most of a tall textarea. `ExerciseTextField` widens that request to its whole box (Issue #459), and — inside an `ExerciseSubmitArea` ending with the form's Submit — down through that Submit (Issue #461), falling back to the caret line through Submit, then the caret alone, when the viewport is too short. Reuse it, or the same idea, rather than adding spacers, fixed offsets or a pinned button. Test it by setting `tester.view.viewInsets` and checking the field's and the button's rects.
 
 ## 5. Testing a screen
 
