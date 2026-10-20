@@ -20,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../support/screenshot.dart';
 import '../profile/fake_current_user_repository.dart';
 import '../notifications/notification_switch_cases.dart';
+import '../profile/contact_link_cases.dart';
 
 /// Junior Profile — the "Kids - Profile" frame.
 void main() {
@@ -30,6 +31,7 @@ void main() {
     FakeCurrentUserRepository? repository,
     Size size = const Size(393, 1274),
     PushNotifications? push,
+    Future<bool> Function(Uri url)? openUrl,
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
     await tester.pumpWidget(
@@ -38,6 +40,7 @@ void main() {
         home: JuniorProfileScreen(
           repository: repository ?? FakeCurrentUserRepository(hold: true),
           push: push,
+          openUrl: openUrl,
         ),
       ),
     );
@@ -47,6 +50,13 @@ void main() {
   notificationPermissionSwitchCases(
     label: JuniorProfileStrings.notification,
     pumpWith: (tester, push) => pumpScreen(tester, push: push),
+  );
+
+  profileContactLinkCases(
+    helpCenter: JuniorProfileStrings.helpCenter,
+    termsOfService: JuniorProfileStrings.termsOfService,
+    privacyPolicy: JuniorProfileStrings.privacyPolicy,
+    pumpWith: (tester, openUrl) => pumpScreen(tester, openUrl: openUrl),
   );
 
   testWidgets('draws every line of the frame\'s copy except its placeholder '

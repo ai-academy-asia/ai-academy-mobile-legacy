@@ -24,6 +24,7 @@ import '../../contracts/presentation/contract_screen.dart';
 import '../../course_learning/domain/course_learning_repository.dart';
 import '../../home/presentation/widgets/adult_bottom_nav.dart';
 import 'profile_controller.dart';
+import 'profile_links.dart';
 import 'profile_strings.dart';
 import 'widgets/profile_parts.dart';
 import '../../notifications/push/notification_permission_switch.dart';
@@ -55,11 +56,12 @@ const double _editGlyph = 20;
 /// avatar, caption bands, rows, MN/EN control, switch and log-out pill).
 ///
 /// **Every row but the header, E-Contract (Issue #294), Certificate (Issue
-/// #155) and Change password is UI only.** Transaction history, edit profile,
-/// Help center, Term of Service and Privacy Policy have no destination yet,
-/// and the language and notification controls hold local state that nothing
-/// else reads — there is no locale mechanism and no notification-preference
-/// endpoint in the app to hand them to.
+/// #155), Change password, Term of Service and Privacy Policy is UI only.**
+/// Term of Service and Privacy Policy open the published pages
+/// ([ProfileLinks]). Transaction history, edit profile and Help center have
+/// no destination yet, and the language and notification controls hold
+/// local state that nothing else reads — there is no locale mechanism and no
+/// notification-preference endpoint in the app to hand them to.
 ///
 /// **Dark mode shows the app's one theme preference** (Phase 10, Issue
 /// #278): `AppThemeController.preference`, the signed-in account's own,
@@ -101,6 +103,7 @@ class ProfileScreen extends StatefulWidget {
     this.contractRepository,
     this.themeController,
     this.push,
+    this.openUrl,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -110,6 +113,11 @@ class ProfileScreen extends StatefulWidget {
   /// default to the app's own (see [signOutToLogin]). Injected in tests.
   final AuthRepository? authRepository;
   final AuthSessionStore? sessionStore;
+
+  /// Opens the Terms of Service and Privacy Policy pages ([ProfileLinks]).
+  /// Defaults to `openExternalUrl`. Injected in tests, which must not reach
+  /// the platform.
+  final Future<bool> Function(Uri url)? openUrl;
 
   /// What the Certificate row's screen reads (Issue #155). Default to the
   /// real API; injected in tests.
@@ -307,15 +315,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           const ProfileCaption(ProfileStrings.contactSection),
-          for (final (icon, label) in const [
-            (ProfileIcons.helpCenter, ProfileStrings.helpCenter),
-            (ProfileIcons.termsOfService, ProfileStrings.termsOfService),
-            (ProfileIcons.privacyPolicy, ProfileStrings.privacyPolicy),
+          // Help center has no destination yet; the other two open the
+          // published pages.
+          for (final (icon, label, link) in [
+            (ProfileIcons.helpCenter, ProfileStrings.helpCenter, null),
+            (
+              ProfileIcons.termsOfService,
+              ProfileStrings.termsOfService,
+              ProfileLinks.termsOfService,
+            ),
+            (
+              ProfileIcons.privacyPolicy,
+              ProfileStrings.privacyPolicy,
+              ProfileLinks.privacyPolicy,
+            ),
           ])
             ProfileRow(
               icon: icon,
               label: label,
               height: ProfileMetrics.contactRowHeight,
+              onTap: link == null
+                  ? null
+                  : () =>
+                        openProfileLink(context, link, openUrl: widget.openUrl),
             ),
 
           const SizedBox(height: ProfileMetrics.contactToLogOut),

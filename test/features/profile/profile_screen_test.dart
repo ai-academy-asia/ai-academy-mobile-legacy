@@ -29,6 +29,7 @@ import 'package:http/testing.dart';
 import '../../support/theme_storage.dart';
 import 'fake_current_user_repository.dart';
 import '../notifications/notification_switch_cases.dart';
+import 'contact_link_cases.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
 /// without it, text is measured in the fallback font.
@@ -70,6 +71,7 @@ void main() {
     ThemeData? theme,
     AppThemeController? themeController,
     PushNotifications? push,
+    Future<bool> Function(Uri url)? openUrl,
   }) async {
     tester.view.devicePixelRatio = 3;
     tester.view.physicalSize = size * 3;
@@ -88,6 +90,7 @@ void main() {
               ),
           themeController: themeController,
           push: push,
+          openUrl: openUrl,
         ),
       ),
     );
@@ -97,6 +100,13 @@ void main() {
   notificationPermissionSwitchCases(
     label: ProfileStrings.notification,
     pumpWith: (tester, push) => pumpProfile(tester, push: push),
+  );
+
+  profileContactLinkCases(
+    helpCenter: ProfileStrings.helpCenter,
+    termsOfService: ProfileStrings.termsOfService,
+    privacyPolicy: ProfileStrings.privacyPolicy,
+    pumpWith: (tester, openUrl) => pumpProfile(tester, openUrl: openUrl),
   );
 
   group('layout', () {
