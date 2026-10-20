@@ -45,7 +45,12 @@ No endpoint name, field name, or response shape below is invented. Where the req
 
 `Course` fields, as `HttpCourseRepository`/`course.dart` already parse them from a confirmed response:
 
-- List response: `id`, `slug`, `title{en,mn}`, `tagline{en,mn}`, `category`, `level`, `format`, `status`, `age_min`, `age_max`, `duration_weeks`, `start_date`, `end_date`, `price_amount`, `final_price_amount`, `discount_percent`, `currency`, plus nullable `duration_label`, `banner_image_url`, `icon`, `sort_order`, `target_audience`.
+- List response: `id`, `slug`, `title{en,mn}`, `tagline{en,mn}`, `category`, `level`, `format`, `status`, `age_min`, `age_max`, `duration_weeks`, `start_date`, `end_date`, `price_amount`, `final_price_amount`, `discount_percent`, `currency`, `duration_label`, `banner_image_url`, `icon`, `sort_order`, `target_audience`. Nullability (Issue #485; evidence and UI rules in `docs/ai/DATA_AND_API.md`, "Nullable fields"):
+  - **Required, never `null`:** `id` (number), `slug` (string), `status` (string), `title` and `tagline` (`{en, mn}` objects whose `en`/`mn` may each be `null`). A missing key, `null` or a wrong type is a `server` failure.
+  - **Key always sent, value may be `null`:** `level`, `format`, `age_min`, `duration_weeks`, `start_date`, `end_date`, `price_amount`, `final_price_amount`, `discount_percent`, `currency`. The backend's `Course.to_summary` always writes these keys, but validates no value except `level` (`null` or `junior`/`adult`). A missing key or a wrong type is still a `server` failure.
+  - **Value may be `null`, key may be absent:** `age_max`, `duration_label`, `banner_image_url`, `icon`, `sort_order`, `target_audience`. A present, non-`null` value of the wrong type is a `server` failure.
+  - **Read leniently:** `category`. Absent, `null` or a non-string reads as no category, and the course still loads (Issue #426).
+  - The backend does **not** guarantee a non-`null` value for any field outside the first group, so the app leaves an absent value out rather than guessing it.
 - Detail response adds: `attendance_method`, `capacity`, `cert_template_name`, `contract_template_name`, `created_at`, `curriculum`, `description`, `final_project_type`, `google_classroom_url`, `has_attendance`, `has_cert_template`, `has_contract_template`, `has_exam`, `has_final_project`, `instructors`, `prerequisites`, `updated_at`, `whats_included`.
 
 Relevant IDs: `Course.id` (int), `Course.slug` (string) — `CourseModule`/`CourseLearningPath` will need one of these as the foreign key once a real Module endpoint exists; `CourseLearningPath.courseSlug` already borrows `Course.slug` today (see `CourseLearningRepository`'s own doc comment).
