@@ -231,6 +231,8 @@ class CourseExerciseSection {
     this.bullets = const [],
   });
 
+  /// Empty when the section has no title — the backend allows `null`
+  /// (Issue #481); no heading is drawn then.
   final String title;
   final String body;
   final List<String> bullets;
