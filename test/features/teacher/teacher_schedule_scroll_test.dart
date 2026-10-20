@@ -51,6 +51,7 @@ void main() {
     List<TeacherSession> sessions, {
     DateTime Function() clock = tuesday,
     List<AssignedSession> assigned = const [],
+    FakeTeacherScheduleRepository? repository,
   }) async {
     tester.view.physicalSize = const Size(393, 852);
     tester.view.devicePixelRatio = 1;
@@ -59,11 +60,13 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: TeacherScheduleScreen(
-          repository: FakeTeacherScheduleRepository(
-            classes: [sampleClass()],
-            sessions: {2: sessions},
-            assigned: assigned,
-          ),
+          repository:
+              repository ??
+              FakeTeacherScheduleRepository(
+                classes: [sampleClass()],
+                sessions: {2: sessions},
+                assigned: assigned,
+              ),
           clock: clock,
           scheduleChangeRepository: FakeScheduleChangeRepository(),
         ),
@@ -368,6 +371,89 @@ void main() {
       await selectDay(tester, 7);
 
       expect(grid(tester).pixels, left);
+    });
+  });
+
+  group('a stale focus is refreshed (Issue #467)', () {
+    /// The app going to the background and coming back, through the
+    /// states a real app passes.
+    Future<void> resume(WidgetTester tester) async {
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('opened during a morning lesson, back after it ended: the '
+        'evening lesson is focused', (tester) async {
+      var now = DateTime(2026, 10, 6, 10);
+      await pumpScreen(tester, clock: () => now, [
+        sampleSession(id: 1, date: '2026-10-06', start: (9, 0), end: (11, 0)),
+        sampleSession(
+          id: 2,
+          date: '2026-10-06',
+          start: (18, 30),
+          end: (21, 30),
+        ),
+      ]);
+      // 09:00 is under way and already in view: nothing moved.
+      expect(grid(tester).pixels, 0);
+
+      now = DateTime(2026, 10, 6, 15);
+      await resume(tester);
+
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-06', (18, 30)));
+    });
+
+    testWidgets('no eligible lesson at first, one after a refresh: it is '
+        'focused', (tester) async {
+      final repository = FakeTeacherScheduleRepository(
+        classes: [sampleClass()],
+        sessions: {2: []},
+      );
+      await pumpScreen(tester, const [], repository: repository);
+      expect(grid(tester).pixels, 0);
+
+      repository.sessions = {
+        2: [
+          sampleSession(
+            id: 1,
+            date: '2026-10-06',
+            start: (19, 0),
+            end: (21, 0),
+          ),
+        ],
+      };
+      await tester.fling(gridScrollable(), const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-06', (19, 0)));
+    });
+
+    testWidgets('the same target after a resume or a refresh: the teacher\'s '
+        'own scrolling is kept', (tester) async {
+      await pumpScreen(tester, [
+        sampleSession(id: 1, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+      expect(grid(tester).pixels, greaterThan(0));
+      grid(tester).jumpTo(0);
+      await tester.pumpAndSettle();
+
+      await resume(tester);
+      expect(grid(tester).pixels, 0);
+
+      await tester.fling(gridScrollable(), const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+      expect(grid(tester).pixels, 0);
     });
   });
 
