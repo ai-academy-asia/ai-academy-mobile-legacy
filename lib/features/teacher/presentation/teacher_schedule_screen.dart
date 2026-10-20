@@ -102,10 +102,22 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   /// first session (Issue #465).
   final _gridScroll = ScrollController();
 
-  /// The selected day the grid was last positioned for. A day is
-  /// positioned once — rebuilds, a refresh or the teacher's own scrolling
-  /// never pull the grid back — and again only when another day is chosen.
-  DateTime? _positionedDay;
+  /// What the grid was last positioned for: the selected day and its
+  /// target session's id — null when the day had none (Issue #467). The
+  /// same pair is positioned once: rebuilds, a refresh, a tab switch, a
+  /// sheet or the teacher's own scrolling never pull the grid back. A new
+  /// pair — another day, or today's next lesson once the clock has moved
+  /// on or a refresh brings one — is positioned again.
+  (DateTime, int?)? _positionedFor;
+
+  /// True while a positioning waits for its frame, so one build schedules
+  /// at most one.
+  bool _positionPending = false;
+
+  /// Re-checks today's target when the app comes back to the foreground:
+  /// the clock has moved on while it was away, and a kept-alive tab is not
+  /// rebuilt by itself (Issue #467).
+  late final AppLifecycleListener _lifecycle;
 
   @override
   void initState() {
@@ -115,40 +127,60 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       repository: _repository,
       clock: widget.clock,
     )..load();
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _gridScroll.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  /// Once per selected day, once its week has loaded: makes sure the day's
-  /// target session — its earliest [isScheduleFocusTarget] one: today, the
-  /// next the teacher teaches; another day, the first — shows with an hour
-  /// of the grid above it, derived from where the grid places that block,
-  /// never a fixed time, and clamped to what the grid can scroll. Nothing
-  /// moves when that is already on screen (a 09:00 class on a grid opening
-  /// at 07:00), nor for a day with no such session. The first time is a
-  /// jump (the screen is just opening); a later day eases there.
+  /// Once per target, once its week has loaded: makes sure the selected
+  /// day's target session — its earliest [isScheduleFocusTarget] one:
+  /// today, the next the teacher teaches; another day, the first — shows
+  /// with an hour of the grid above it, derived from where the grid places
+  /// that block, never a fixed time, and clamped to what the grid can
+  /// scroll. Nothing moves when that is already on screen (a 09:00 class on
+  /// a grid opening at 07:00), nor for a day with no such session. The
+  /// first time is a jump (the screen is just opening); later, it eases.
+  ///
+  /// A target is recorded only when its frame runs with the grid attached
+  /// and the same day selected; otherwise the next build tries again
+  /// (Issue #467).
   void _positionOnFirstSession(List<ScheduledSession> sessions) {
+    if (_positionPending) return;
     final day = _controller.selectedDay;
-    if (_positionedDay == day) return;
-    final first = _positionedDay == null;
-    _positionedDay = day;
     final now = _controller.now();
-    final top = firstSessionTop(
+    final placement = firstSessionPlacement(
       sessions,
       weekStart: _controller.weekStart,
       day: day,
       where: (entry) => isScheduleFocusTarget(entry, day: day, now: now),
     );
-    if (top == null) return;
+    final key = (day, placement?.entry.session.id);
+    if (_positionedFor == key) return;
+    if (placement == null) {
+      // Nothing to show: recorded, so the grid stays where it is until a
+      // target appears.
+      _positionedFor = key;
+      return;
+    }
+    final first = _positionedFor == null;
+    final top = placement.top;
+    _positionPending = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _positionPending = false;
       if (!mounted || !_gridScroll.hasClients) return;
       if (_controller.selectedDay != day) return;
+      _positionedFor = key;
       const hourAbove = TeacherWeekGridMetrics.hourHeight;
       final position = _gridScroll.position;
       final target = (top - hourAbove).clamp(
