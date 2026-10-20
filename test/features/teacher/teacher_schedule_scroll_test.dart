@@ -439,6 +439,51 @@ void main() {
       expectShown(tester, block('2026-10-06', (19, 0)));
     });
 
+    testWidgets('left open overnight: back the next morning, the new today '
+        'is selected and its lesson focused (Issue #471)', (tester) async {
+      var now = DateTime(2026, 10, 6, 22);
+      await pumpScreen(tester, clock: () => now, [
+        sampleSession(id: 1, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+        sampleSession(id: 2, date: '2026-10-07', start: (19, 0), end: (21, 0)),
+      ]);
+      // Tuesday 22:00: its only lesson is over, so nothing moved.
+      expect(grid(tester).pixels, 0);
+      expect(
+        find.text(TeacherScheduleStrings.headerDate(DateTime(2026, 10, 6))),
+        findsOneWidget,
+      );
+
+      now = DateTime(2026, 10, 7, 8);
+      await resume(tester);
+
+      expect(
+        find.text(TeacherScheduleStrings.headerDate(DateTime(2026, 10, 7))),
+        findsOneWidget,
+      );
+      expect(grid(tester).pixels, greaterThan(0));
+      expectShown(tester, block('2026-10-07', (19, 0)));
+    });
+
+    testWidgets('left open overnight: the grid does not slide back to '
+        'yesterday\'s first lesson (Issue #471)', (tester) async {
+      var now = DateTime(2026, 10, 6, 18);
+      await pumpScreen(tester, clock: () => now, [
+        sampleSession(id: 1, date: '2026-10-06', start: (9, 0), end: (11, 0)),
+        sampleSession(id: 2, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+        sampleSession(id: 3, date: '2026-10-07', start: (19, 0), end: (21, 0)),
+      ]);
+      final evening = grid(tester).pixels;
+      expect(evening, greaterThan(0)); // Tuesday 19:00, focused
+
+      now = DateTime(2026, 10, 7, 8);
+      await resume(tester);
+
+      // Wednesday's 19:00 is the target, already in view: the grid stays
+      // rather than going up to Tuesday's 09:00.
+      expect(grid(tester).pixels, evening);
+      expectShown(tester, block('2026-10-07', (19, 0)));
+    });
+
     testWidgets('the same target after a resume or a refresh: the teacher\'s '
         'own scrolling is kept', (tester) async {
       await pumpScreen(tester, [

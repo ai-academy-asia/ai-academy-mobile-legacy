@@ -154,4 +154,100 @@ void main() {
     expect(repository.classCalls, 1);
     expect(controller.loading, isFalse);
   });
+
+  group('follows today across midnight (Issue #471)', () {
+    test('the date moves on while today was selected: the new today is '
+        'selected, in the same week without a reload', () async {
+      var now = DateTime(2026, 10, 6, 22);
+      final repository = repositoryWithWeek();
+      final controller = TeacherScheduleController(
+        repository: repository,
+        clock: () => now,
+      );
+      await controller.load();
+      final calls = repository.sessionCalls.length;
+
+      now = DateTime(2026, 10, 7, 8);
+      controller.followToday();
+
+      expect(controller.selectedDay, DateTime(2026, 10, 7));
+      expect(controller.weekStart, DateTime(2026, 10, 4));
+      expect(controller.sessions, isNotNull);
+      expect(repository.sessionCalls.length, calls);
+    });
+
+    test('Saturday to Sunday: the new today\'s week loads', () async {
+      var now = DateTime(2026, 10, 10, 23);
+      final repository = repositoryWithWeek();
+      final controller = TeacherScheduleController(
+        repository: repository,
+        clock: () => now,
+      );
+      await controller.load();
+
+      now = DateTime(2026, 10, 11, 7);
+      controller.followToday();
+      expect(controller.selectedDay, DateTime(2026, 10, 11));
+      expect(controller.sessions, isNull); // the new week is loading
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.weekStart, DateTime(2026, 10, 11));
+      expect([for (final e in controller.sessions!) e.session.id], [11]);
+    });
+
+    test('a day the teacher chose stays selected', () async {
+      var now = DateTime(2026, 10, 6, 22);
+      final controller = TeacherScheduleController(
+        repository: repositoryWithWeek(),
+        clock: () => now,
+      );
+      await controller.load();
+      controller.selectDay(DateTime(2026, 10, 9));
+
+      now = DateTime(2026, 10, 7, 8);
+      controller.followToday();
+
+      expect(controller.selectedDay, DateTime(2026, 10, 9));
+    });
+
+    test('a chosen day, then the next midnight: the day after is followed '
+        'only once today is selected again', () async {
+      var now = DateTime(2026, 10, 6, 22);
+      final controller = TeacherScheduleController(
+        repository: repositoryWithWeek(),
+        clock: () => now,
+      );
+      await controller.load();
+      controller.selectDay(DateTime(2026, 10, 9));
+      now = DateTime(2026, 10, 7, 8);
+      controller.followToday();
+      // Back on (the new) today, then another night passes.
+      controller.selectDay(DateTime(2026, 10, 7));
+      now = DateTime(2026, 10, 8, 8);
+      controller.followToday();
+
+      expect(controller.selectedDay, DateTime(2026, 10, 8));
+    });
+
+    test('the same date: nothing changes and nobody is notified', () async {
+      var now = DateTime(2026, 10, 6, 9);
+      final repository = repositoryWithWeek();
+      final controller = TeacherScheduleController(
+        repository: repository,
+        clock: () => now,
+      );
+      await controller.load();
+      final calls = repository.sessionCalls.length;
+      var notified = 0;
+      controller.addListener(() => notified++);
+
+      now = DateTime(2026, 10, 6, 23, 59);
+      controller.followToday();
+
+      expect(controller.selectedDay, DateTime(2026, 10, 6));
+      expect(notified, 0);
+      expect(repository.sessionCalls.length, calls);
+    });
+  });
 }
