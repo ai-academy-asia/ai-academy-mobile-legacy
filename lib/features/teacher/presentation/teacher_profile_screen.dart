@@ -17,6 +17,7 @@ import '../../auth/presentation/reset_password_screen.dart';
 import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../profile/presentation/profile_controller.dart';
+import '../../profile/presentation/profile_links.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../../profile/presentation/widgets/profile_parts.dart';
 import '../../notifications/push/notification_permission_switch.dart';
@@ -81,8 +82,9 @@ const double _textToRule = 24;
 ///    locale mechanism to hand a choice to (`UNKNOWN`);
 ///  * the Notification switch shows off and ignores taps — no
 ///    notification-preference endpoint exists (`BACKEND GAP`);
-///  * Help center, Term of Service and Privacy Policy have no destination
-///    (`UNKNOWN`), so they are rows without a tap.
+///  * Help center has no destination (`UNKNOWN`), so it is a row without a
+///    tap; Term of Service and Privacy Policy open the published pages
+///    ([ProfileLinks]).
 ///
 /// The frame's version line is left off: the app does not read its own
 /// version, as on the Adult Profile (#223).
@@ -94,11 +96,17 @@ class TeacherProfileScreen extends StatefulWidget {
     this.sessionStore,
     this.themeController,
     this.push,
+    this.openUrl,
   });
 
   /// Defaults to the real `GET /auth/me` with the app-wide session. Injected
   /// in tests.
   final CurrentUserRepository? repository;
+
+  /// Opens the Terms of Service and Privacy Policy pages ([ProfileLinks]).
+  /// Defaults to `openExternalUrl`. Injected in tests, which must not reach
+  /// the platform.
+  final Future<bool> Function(Uri url)? openUrl;
 
   /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
@@ -242,15 +250,29 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           ),
 
           const ProfileCaption(ProfileStrings.contactSection),
-          for (final (icon, label) in const [
-            (ProfileIcons.helpCenter, ProfileStrings.helpCenter),
-            (ProfileIcons.termsOfService, ProfileStrings.termsOfService),
-            (ProfileIcons.privacyPolicy, ProfileStrings.privacyPolicy),
+          // Help center has no destination yet; the other two open the
+          // published pages.
+          for (final (icon, label, link) in [
+            (ProfileIcons.helpCenter, ProfileStrings.helpCenter, null),
+            (
+              ProfileIcons.termsOfService,
+              ProfileStrings.termsOfService,
+              ProfileLinks.termsOfService,
+            ),
+            (
+              ProfileIcons.privacyPolicy,
+              ProfileStrings.privacyPolicy,
+              ProfileLinks.privacyPolicy,
+            ),
           ])
             ProfileRow(
               icon: icon,
               label: label,
               height: ProfileMetrics.contactRowHeight,
+              onTap: link == null
+                  ? null
+                  : () =>
+                        openProfileLink(context, link, openUrl: widget.openUrl),
             ),
 
           const SizedBox(height: ProfileMetrics.contactToLogOut),

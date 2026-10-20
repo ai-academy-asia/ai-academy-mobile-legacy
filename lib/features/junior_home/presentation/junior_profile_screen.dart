@@ -23,6 +23,7 @@ import '../../auth/presentation/sign_out.dart';
 import '../../auth/presentation/widgets/sign_out_confirmation_dialog.dart';
 import '../../auth/presentation/student_tabs.dart';
 import '../../profile/presentation/profile_controller.dart';
+import '../../profile/presentation/profile_links.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../../profile/presentation/widgets/profile_parts.dart';
 import 'junior_profile_strings.dart';
@@ -110,6 +111,7 @@ class JuniorProfileScreen extends StatefulWidget {
     this.contractRepository,
     this.themeController,
     this.push,
+    this.openUrl,
   });
 
   /// Defaults to the real API with the app-wide session. Injected in tests.
@@ -119,6 +121,11 @@ class JuniorProfileScreen extends StatefulWidget {
   /// default to the app's own (see [signOutToLogin]). Injected in tests.
   final AuthRepository? authRepository;
   final AuthSessionStore? sessionStore;
+
+  /// Opens the Terms of Service and Privacy Policy pages ([ProfileLinks]).
+  /// Defaults to `openExternalUrl`. Injected in tests, which must not reach
+  /// the platform.
+  final Future<bool> Function(Uri url)? openUrl;
 
   /// Whether this screen draws its tab bar itself. False inside
   /// `JuniorStudentShell`, which owns the one persistent bar (Issue #241).
@@ -326,12 +333,30 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
           ),
 
           const _Caption(JuniorProfileStrings.contactSection),
-          for (final (icon, label) in const [
-            (ProfileIcons.helpCenter, JuniorProfileStrings.helpCenter),
-            (ProfileIcons.termsOfService, JuniorProfileStrings.termsOfService),
-            (ProfileIcons.privacyPolicy, JuniorProfileStrings.privacyPolicy),
+          // Help center has no destination yet; the other two open the
+          // published pages.
+          for (final (icon, label, link) in [
+            (ProfileIcons.helpCenter, JuniorProfileStrings.helpCenter, null),
+            (
+              ProfileIcons.termsOfService,
+              JuniorProfileStrings.termsOfService,
+              ProfileLinks.termsOfService,
+            ),
+            (
+              ProfileIcons.privacyPolicy,
+              JuniorProfileStrings.privacyPolicy,
+              ProfileLinks.privacyPolicy,
+            ),
           ])
-            _Row(icon: _RowIcon(icon), label: label, height: _contactRowHeight),
+            _Row(
+              icon: _RowIcon(icon),
+              label: label,
+              height: _contactRowHeight,
+              onTap: link == null
+                  ? null
+                  : () =>
+                        openProfileLink(context, link, openUrl: widget.openUrl),
+            ),
 
           const SizedBox(height: 32),
           Padding(

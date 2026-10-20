@@ -24,6 +24,7 @@ import '../../support/screenshot.dart';
 import '../auth/fake_auth_repository.dart';
 import '../profile/fake_current_user_repository.dart';
 import '../notifications/notification_switch_cases.dart';
+import '../profile/contact_link_cases.dart';
 
 /// A teacher's `/auth/me`, in the confirmed shape. Test values only.
 const teacher = CurrentUser(
@@ -55,6 +56,7 @@ void main() {
     FakeAuthRepository? auth,
     AuthSessionStore? store,
     PushNotifications? push,
+    Future<bool> Function(Uri url)? openUrl,
   }) async {
     useLogicalViewport(tester, const Size(393, 966), padding: iPhonePadding);
     await tester.pumpWidget(
@@ -66,6 +68,7 @@ void main() {
             authRepository: auth ?? FakeAuthRepository(),
             sessionStore: store ?? AuthSessionStore(),
             push: push,
+            openUrl: openUrl,
           ),
           loginRoute: (_) => const Scaffold(body: Text('login')),
         },
@@ -77,6 +80,13 @@ void main() {
   notificationPermissionSwitchCases(
     label: ProfileStrings.notification,
     pumpWith: (tester, push) => pump(tester, push: push),
+  );
+
+  profileContactLinkCases(
+    helpCenter: ProfileStrings.helpCenter,
+    termsOfService: ProfileStrings.termsOfService,
+    privacyPolicy: ProfileStrings.privacyPolicy,
+    pumpWith: (tester, openUrl) => pump(tester, openUrl: openUrl),
   );
 
   group('account', () {
@@ -274,30 +284,25 @@ void main() {
       expect(toggle.onChanged, isNull);
     });
 
-    testWidgets(
-      'Help center, Term of Service and Privacy Policy open nothing',
-      (tester) async {
-        await pump(tester);
+    // Term of Service and Privacy Policy open their pages: see
+    // `profileContactLinkCases`.
+    testWidgets('Help center opens nothing', (tester) async {
+      await pump(tester);
 
-        for (final label in [
-          ProfileStrings.helpCenter,
-          ProfileStrings.termsOfService,
-          ProfileStrings.privacyPolicy,
-        ]) {
-          final row = tester.widget<ProfileRow>(
-            find.ancestor(
-              of: find.text(label),
-              matching: find.byType(ProfileRow),
-            ),
-          );
-          expect(row.onTap, isNull, reason: label);
-          await tester.ensureVisible(find.text(label));
-          await tester.tap(find.text(label));
-          await tester.pumpAndSettle();
-          expect(find.byType(TeacherProfileScreen), findsOneWidget);
-        }
-      },
-    );
+      for (final label in [ProfileStrings.helpCenter]) {
+        final row = tester.widget<ProfileRow>(
+          find.ancestor(
+            of: find.text(label),
+            matching: find.byType(ProfileRow),
+          ),
+        );
+        expect(row.onTap, isNull, reason: label);
+        await tester.ensureVisible(find.text(label));
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+        expect(find.byType(TeacherProfileScreen), findsOneWidget);
+      }
+    });
   });
 
   group('log out', () {
