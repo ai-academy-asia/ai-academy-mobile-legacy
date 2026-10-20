@@ -5,7 +5,9 @@ import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/track_badge.dart';
 import '../../domain/teacher_class.dart';
+import '../../domain/teacher_session.dart';
 import '../teacher_home_strings.dart';
+import '../teacher_schedule_strings.dart';
 
 /// One of today's classes on Teacher Home, as the `teacher-homepage`
 /// reference draws it (Issue #229): the track badge and the student count
@@ -166,6 +168,55 @@ class TeacherClassCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The card for a scheduled [entry] (Issue #455): the class card for an own
+/// session, or — for a session the teacher covers, which has no class —
+/// the brief card from what the session says of itself. [footer] (the held
+/// attendance summary) is for own sessions only.
+TeacherClassCard scheduledSessionCard(
+  ScheduledSession entry, {
+  required String timeLabel,
+  Widget? footer,
+}) {
+  final teacherClass = entry.teacherClass;
+  if (teacherClass != null) {
+    return TeacherClassCard(
+      teacherClass: teacherClass,
+      timeLabel: timeLabel,
+      footer: footer,
+    );
+  }
+  final covering = entry.covering;
+  return TeacherClassCard.brief(
+    title: TeacherScheduleStrings.sessionTitle(entry),
+    // The cohort as the caption only when the title is the course's own.
+    caption: covering?.courseTitle == null ? null : covering?.cohortName,
+    room: covering?.room,
+    timeLabel: timeLabel,
+  );
+}
+
+/// A covered or covering session's label (Issue #455) — "Орлон заах" or
+/// "Орлон заагдсан · {name}" — as a capsule over its card, drawn like the
+/// day list's "Дууссан" from existing roles: the outline, the surface and
+/// the accent text ink.
+class AssignmentCapsule extends StatelessWidget {
+  const AssignmentCapsule({required this.label, super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return CardCapsule(
+      label: label,
+      outline: palette.outline,
+      fill: palette.surface,
+      ink: palette.accentText,
+      horizontalPadding: 11,
     );
   }
 }

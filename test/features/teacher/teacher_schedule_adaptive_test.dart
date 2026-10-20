@@ -185,7 +185,7 @@ void main() {
     for (final block in find.byType(SessionBlock).evaluate()) {
       final title = (block.widget as SessionBlock)
           .entry
-          .teacherClass
+          .teacherClass!
           .cohort
           .course
           .title

@@ -8,7 +8,9 @@ import 'package:aia_mobile/features/teacher/domain/teacher_session.dart';
 /// A repository the tests drive by hand: [classes], the [sessions] of each
 /// cohort (filtered to the asked range, as a server would), and the
 /// [attendance] of each session. [failure] / [attendanceFailure] throw;
-/// [hold] parks the next class read until [release].
+/// [hold] parks the next class read until [release]. [assigned] is what
+/// `GET /teacher/sessions` answers (Issue #455), filtered to the asked range
+/// with both days included, as the backend does; [assignedFailure] throws.
 class FakeTeacherScheduleRepository implements TeacherScheduleRepository {
   FakeTeacherScheduleRepository({
     this.classes = const [],
@@ -17,6 +19,8 @@ class FakeTeacherScheduleRepository implements TeacherScheduleRepository {
     this.failure,
     this.attendanceFailure,
     this.hold = false,
+    this.assigned = const [],
+    this.assignedFailure,
   });
 
   List<TeacherClass> classes;
@@ -26,9 +30,16 @@ class FakeTeacherScheduleRepository implements TeacherScheduleRepository {
   TeacherFailure? attendanceFailure;
   bool hold;
 
+  /// Own sessions' covers and covering sessions (Issue #455).
+  List<AssignedSession> assigned;
+  TeacherFailure? assignedFailure;
+
   int classCalls = 0;
   final List<(int, DateTime, DateTime)> sessionCalls = [];
   final List<int> attendanceCalls = [];
+
+  /// Every range `getAssignedSessions` was asked for, in order.
+  final List<(DateTime, DateTime)> assignedCalls = [];
 
   Completer<void>? _gate;
 
@@ -74,6 +85,28 @@ class FakeTeacherScheduleRepository implements TeacherScheduleRepository {
       throw const TeacherFailure(TeacherFailureKind.rejected);
     }
     return counts;
+  }
+
+  @override
+  Future<List<AssignedSession>> getAssignedSessions({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    assignedCalls.add((from, to));
+    final failure = assignedFailure;
+    if (failure != null) throw failure;
+    return [
+      for (final item in assigned)
+        // Own items are matched by id, whatever their date; covers are
+        // filtered to the range, both days included.
+        if (item.session case final session?)
+          if (!session.date.isBefore(from) && !session.date.isAfter(to))
+            item
+          else
+            ...[]
+        else
+          item,
+    ];
   }
 }
 

@@ -22,4 +22,12 @@ abstract interface class TeacherScheduleRepository {
   /// The session's attendance tally —
   /// `GET /teacher/sessions/{session_id}/attendance`.
   Future<AttendanceCounts> getAttendance(int sessionId);
+
+  /// Every session of the teacher's from [from] to [to], both included —
+  /// `GET /teacher/sessions?from=&to=` (Issue #455): their own, with who
+  /// covers them, and the ones they cover for someone else.
+  Future<List<AssignedSession>> getAssignedSessions({
+    required DateTime from,
+    required DateTime to,
+  });
 }

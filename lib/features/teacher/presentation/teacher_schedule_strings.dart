@@ -1,5 +1,6 @@
 import '../../home/presentation/home_strings.dart';
 import '../domain/teacher_failure.dart';
+import '../domain/teacher_session.dart';
 import 'teacher_home_strings.dart';
 
 /// Every word on Teacher Schedule, its session sheets and the "Багш нар"
@@ -125,8 +126,29 @@ abstract final class TeacherScheduleStrings {
   // wording; each says only what its status or code documents.
 
   /// The card's title when the request's session names neither its course
-  /// nor its cohort.
+  /// nor its cohort — also a covered session's (Issue #455).
   static const String incomingUntitled = 'Хичээл';
+
+  // --- Covered sessions (Issue #455) ----------------------------------------
+
+  /// A session the signed-in teacher covers for someone else.
+  static const String covering = 'Орлон заах';
+
+  /// An own session another teacher covers, with that teacher's name.
+  static String coveredBy(String name) => 'Орлон заагдсан · $name';
+
+  /// The line a scheduled [entry] carries on its block, card and sheet:
+  /// [covering], [coveredBy], or null for an ordinary session.
+  static String? assignmentLabel(ScheduledSession entry) {
+    if (entry.isCovering) return covering;
+    final coveredByName = entry.coveredBy;
+    return coveredByName == null ? null : coveredBy(coveredByName);
+  }
+
+  /// A scheduled [entry]'s title, with [incomingUntitled] for a covering
+  /// session that names neither course nor cohort.
+  static String sessionTitle(ScheduledSession entry) =>
+      entry.title ?? incomingUntitled;
 
   /// Where an incoming request stands once it is no longer `pending`.
   static const String incomingAccepted = 'Хүсэлтийг зөвшөөрсөн';
