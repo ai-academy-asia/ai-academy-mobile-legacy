@@ -375,7 +375,11 @@ class _CohortList extends StatelessWidget {
                   progressPct: showProgress
                       ? enrolledCohorts.progressFor(cohort.id)
                       : null,
-                  onEnroll: () => enrollment.enroll(cohort.id),
+                  // Offered only where the backend would accept it (Issue
+                  // #497); the status pill already says why it is not.
+                  onEnroll: _acceptsEnrolment(cohort)
+                      ? () => enrollment.enroll(cohort.id)
+                      : null,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => CourseModuleListScreen(
@@ -448,3 +452,11 @@ class _EnrolledCohortsErrorBanner extends StatelessWidget {
     );
   }
 }
+
+/// Whether [cohort] can take a self-enrolment, by the backend's own rule
+/// (`app/services/enrollments.py` `enroll`): it must be `open` — anything
+/// else answers `409 cohort_not_open` — and must not be full, `409
+/// cohort_full` when `seats_available` is 0. A null `seatsAvailable` is a
+/// cohort with no capacity set, so nothing limits it.
+bool _acceptsEnrolment(Cohort cohort) =>
+    cohort.status.toLowerCase() == 'open' && cohort.seatsAvailable != 0;

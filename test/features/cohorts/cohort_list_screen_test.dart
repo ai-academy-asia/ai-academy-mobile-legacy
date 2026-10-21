@@ -772,6 +772,112 @@ void main() {
     Finder enrollButton() =>
         find.widgetWithText(AppButton, EnrollmentStrings.enroll);
 
+    // Issue #497: Enroll is offered only where the backend would accept it
+    // — an `open` cohort that is not full — and is hidden, not disabled,
+    // everywhere else.
+    group('only where the cohort accepts enrolment', () {
+      /// Enroll inside the card of the cohort with [id].
+      Finder enrollOn(int id) => find.descendant(
+        of: find.byWidgetPredicate((w) => w is CohortCard && w.cohort.id == id),
+        matching: enrollButton(),
+      );
+
+      Future<void> pumpCohorts(
+        WidgetTester tester,
+        List<Cohort> cohorts, {
+        Set<int> enrolled = const {},
+      }) async {
+        await pumpList(
+          tester,
+          FakeCohortRepository(cohorts: cohorts),
+          enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+            enrolledCohortIds: enrolled,
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('an open cohort with seats left offers Enroll', (
+        tester,
+      ) async {
+        await pumpCohorts(tester, [
+          sampleCohort(id: 1, status: 'open', seatsAvailable: 5),
+        ]);
+
+        expect(enrollOn(1), findsOneWidget);
+      });
+
+      testWidgets('a closed cohort offers no Enroll', (tester) async {
+        await pumpCohorts(tester, [
+          sampleCohort(id: 1, status: 'closed', seatsAvailable: 5),
+          sampleCohort(id: 2, status: 'open', seatsAvailable: 5),
+        ]);
+
+        expect(enrollOn(1), findsNothing);
+        expect(enrollOn(2), findsOneWidget);
+      });
+
+      testWidgets('a draft cohort offers no Enroll', (tester) async {
+        await pumpCohorts(tester, [
+          sampleCohort(id: 1, status: 'draft', seatsAvailable: 5),
+          sampleCohort(id: 2, status: 'open', seatsAvailable: 5),
+        ]);
+
+        expect(enrollOn(1), findsNothing);
+        expect(enrollOn(2), findsOneWidget);
+      });
+
+      testWidgets('a full open cohort (no seats left) offers no Enroll', (
+        tester,
+      ) async {
+        await pumpCohorts(tester, [
+          sampleCohort(id: 1, status: 'open', capacity: 20, seatsAvailable: 0),
+          sampleCohort(id: 2, status: 'open', seatsAvailable: 1),
+        ]);
+
+        expect(enrollOn(1), findsNothing);
+        expect(enrollOn(2), findsOneWidget);
+      });
+
+      testWidgets('an open cohort with no capacity set (seats null) offers '
+          'Enroll', (tester) async {
+        await pumpCohorts(tester, [
+          sampleCohort(
+            id: 1,
+            status: 'open',
+            capacity: null,
+            seatsAvailable: null,
+          ),
+        ]);
+
+        expect(enrollOn(1), findsOneWidget);
+      });
+
+      testWidgets('an enrolled open cohort offers no Enroll', (tester) async {
+        await pumpCohorts(
+          tester,
+          [
+            sampleCohort(id: 1, status: 'open', seatsAvailable: 5),
+            sampleCohort(id: 2, status: 'open', seatsAvailable: 5),
+          ],
+          enrolled: {1},
+        );
+
+        expect(enrollOn(1), findsNothing);
+        expect(enrollOn(2), findsOneWidget);
+      });
+
+      testWidgets('the status is matched case-insensitively', (tester) async {
+        await pumpCohorts(tester, [
+          sampleCohort(id: 1, status: 'Open', seatsAvailable: 5),
+          sampleCohort(id: 2, status: 'CLOSED', seatsAvailable: 5),
+        ]);
+
+        expect(enrollOn(1), findsOneWidget);
+        expect(enrollOn(2), findsNothing);
+      });
+    });
+
     testWidgets('every card offers the enroll action', (tester) async {
       await pumpList(
         tester,
