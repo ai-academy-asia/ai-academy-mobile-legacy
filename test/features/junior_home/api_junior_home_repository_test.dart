@@ -1,24 +1,35 @@
 import 'dart:convert';
 
+import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
 import 'package:aia_mobile/features/attendance/domain/course_attendance.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
 import 'package:aia_mobile/features/course_learning/data/http_course_learning_repository.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_learning_path.dart';
 import 'package:aia_mobile/features/course_learning/domain/lesson.dart';
+import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
+import 'package:aia_mobile/features/home/data/enrolled_home_dashboard_repository.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:aia_mobile/features/junior_home/data/api_junior_home_repository.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_learning_map.dart';
+import 'package:aia_mobile/features/payments/domain/ledger_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../attendance/fake_attendance_repository.dart';
+import '../cohorts/fake_cohort_repository.dart';
+import '../contracts/fake_contract_repository.dart';
 import '../course_learning/fake_course_learning_repository.dart';
+import '../courses/fake_course_repository.dart';
+import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../home/fake_home_dashboard_repository.dart' hide sampleLesson;
+import '../payments/fake_ledger_repository.dart';
+import '../profile/fake_current_user_repository.dart';
 
 /// Junior Home over the repositories it composes.
 ///
@@ -60,6 +71,70 @@ void main() {
     }
     fail('expected a CourseLearningFailure');
   }
+
+  // Issue #495: Junior Home learns its course from the real dashboard's
+  // choice of cohort — the one in progress today, not the first listed.
+  test('the course comes from the cohort in progress, not the first '
+      'listed', () async {
+    Cohort cohortOf(int id, String slug, String start, String end) =>
+        sampleCohort(
+          id: id,
+          course: CohortCourse(
+            id: id,
+            slug: slug,
+            title: const LocalizedText(en: 'Course', mn: 'Хичээл'),
+          ),
+          startDate: start,
+          endDate: end,
+        );
+    final ended = cohortOf(1, 'ended-course', '2026-05-01', '2026-07-31');
+    final current = cohortOf(2, 'current-course', '2026-09-01', '2026-12-20');
+    // Noon on 15 October 2026 in Ulaanbaatar.
+    DateTime now() => DateTime.utc(2026, 10, 15, 4);
+    final learning = FakeCourseLearningRepository(
+      failure: const CourseLearningFailure(
+        CourseLearningFailureKind.notEnrolled,
+      ),
+    );
+
+    final repository = ApiJuniorHomeRepository(
+      clock: now,
+      dashboardRepository: EnrolledHomeDashboardRepository(
+        enrolledCohorts: FakeEnrolledCohortsRepository(
+          enrolledCohorts: const [
+            EnrolledCohortSummary(cohortId: 1),
+            EnrolledCohortSummary(cohortId: 2),
+          ],
+        ),
+        cohorts: FakeCohortRepository(cohorts: [ended, current]),
+        courses: FakeCourseRepository(),
+        currentUser: FakeCurrentUserRepository(),
+        courseLearning: FakeCourseLearningRepository(
+          failure: const CourseLearningFailure(
+            CourseLearningFailureKind.notEnrolled,
+          ),
+        ),
+        ledger: FakeLedgerRepository(
+          failure: const LedgerFailure(LedgerFailureKind.network),
+        ),
+        attendance: FakeAttendanceRepository(
+          failure: const AttendanceFailure(AttendanceFailureKind.network),
+        ),
+        contracts: FakeContractRepository(),
+        clock: now,
+      ),
+      courseLearningRepository: learning,
+      attendanceRepository: FakeAttendanceRepository(),
+    );
+
+    try {
+      await repository.getLearningMap();
+    } on CourseLearningFailure {
+      // The fake path answers notEnrolled; only the slug asked for matters.
+    }
+
+    expect(learning.calls, ['current-course']);
+  });
 
   group('resolving the course', () {
     test('asks the learning API for the enrolled course\'s own slug', () async {

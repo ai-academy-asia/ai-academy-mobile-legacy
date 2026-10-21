@@ -776,24 +776,170 @@ void main() {
     });
   });
 
+  // Issue #495: the cohort is chosen by its dates against the Ulaanbaatar
+  // date — never by `status`, which the backend sends only as `draft`,
+  // `open` or `closed`.
   group('which cohort', () {
-    test('prefers the active cohort over other enrolled ones', () async {
-      final dashboard = await repository(
-        enrolled: const [
-          EnrolledCohortSummary(cohortId: 1),
-          EnrolledCohortSummary(cohortId: 2),
-        ],
-        cohorts: [
-          sampleCohort(id: 1, name: 'Finished cohort', status: 'finished'),
-          sampleCohort(id: 2, name: 'Active cohort', status: 'active'),
-        ],
-      ).getDashboard();
+    /// Noon in Ulaanbaatar on [day] of October 2026 (04:00 UTC).
+    DateTime ubNoonOct(int day) => DateTime.utc(2026, 10, day, 4);
 
-      expect(dashboard.program!.cohortId, 2);
+    Future<int?> chosenAt(DateTime now, List<Cohort> cohorts) async {
+      final dashboard = await repository(
+        enrolled: [
+          for (final cohort in cohorts)
+            EnrolledCohortSummary(cohortId: cohort.id),
+        ],
+        cohorts: cohorts,
+        now: now,
+      ).getDashboard();
+      return dashboard.program?.cohortId;
+    }
+
+    Cohort dated(int id, String start, String end, {String status = 'open'}) =>
+        sampleCohort(
+          id: id,
+          name: 'Cohort $id',
+          status: status,
+          startDate: start,
+          endDate: end,
+        );
+
+    test('an in-progress cohort wins over an ended one, in either list '
+        'order', () async {
+      final ended = dated(1, '2026-06-01', '2026-07-31', status: 'closed');
+      final current = dated(2, '2026-09-01', '2026-12-20');
+
+      expect(await chosenAt(ubNoonOct(15), [ended, current]), 2);
+      expect(await chosenAt(ubNoonOct(15), [current, ended]), 2);
+    });
+
+    test('with only upcoming cohorts, the earliest start wins', () async {
+      expect(
+        await chosenAt(ubNoonOct(15), [
+          dated(1, '2027-03-01', '2027-05-01'),
+          dated(2, '2026-11-01', '2027-01-01'),
+          dated(3, '2027-01-10', '2027-02-10'),
+        ]),
+        2,
+      );
+    });
+
+    test('with only ended cohorts, the latest end wins', () async {
+      expect(
+        await chosenAt(ubNoonOct(15), [
+          dated(1, '2026-01-01', '2026-03-01', status: 'closed'),
+          dated(2, '2026-05-01', '2026-09-30', status: 'closed'),
+          dated(3, '2026-04-01', '2026-06-01', status: 'closed'),
+        ]),
+        2,
+      );
+    });
+
+    test('an upcoming cohort wins over an ended one', () async {
+      expect(
+        await chosenAt(ubNoonOct(15), [
+          dated(1, '2026-05-01', '2026-09-30', status: 'closed'),
+          dated(2, '2026-11-01', '2027-01-01'),
+        ]),
+        2,
+      );
+    });
+
+    test('a single enrolled cohort is chosen whatever its dates', () async {
+      for (final cohort in [
+        dated(1, '2026-09-01', '2026-12-20'),
+        dated(1, '2027-01-01', '2027-02-01'),
+        dated(1, '2026-01-01', '2026-02-01', status: 'closed'),
+        dated(1, '', ''),
+      ]) {
+        expect(await chosenAt(ubNoonOct(15), [cohort]), 1);
+      }
     });
 
     test(
-      'falls back to the first enrolled cohort when none is active',
+      'cohorts with no usable dates fall back to the first listed',
+      () async {
+        expect(
+          await chosenAt(ubNoonOct(15), [
+            dated(4, '', ''),
+            dated(2, 'soon', 'later'),
+          ]),
+          4,
+        );
+      },
+    );
+
+    test('a known start with no end is in progress once started', () async {
+      final openEnded = dated(2, '2026-09-01', '');
+      final ended = dated(1, '2026-05-01', '2026-09-30', status: 'closed');
+
+      expect(await chosenAt(ubNoonOct(15), [ended, openEnded]), 2);
+      // Not started yet: upcoming, not in progress.
+      final later = dated(3, '2026-11-01', '');
+      final current = dated(4, '2026-09-01', '2026-12-20');
+      expect(await chosenAt(ubNoonOct(15), [later, current]), 4);
+    });
+
+    test('a known end with no start is in progress through its end', () async {
+      final noStart = dated(2, '', '2026-10-20');
+      final ended = dated(1, '2026-05-01', '2026-09-30', status: 'closed');
+
+      expect(await chosenAt(ubNoonOct(15), [ended, noStart]), 2);
+      // After its end it counts as ended — the latest end still wins.
+      expect(await chosenAt(ubNoonOct(25), [ended, noStart]), 2);
+    });
+
+    test('several in progress: the first listed wins, not the latest '
+        'start', () async {
+      expect(
+        await chosenAt(ubNoonOct(15), [
+          dated(1, '2026-08-01', '2026-12-20'),
+          dated(2, '2026-10-01', '2026-12-20'),
+        ]),
+        1,
+      );
+    });
+
+    test('the end date counts through the last Ulaanbaatar day', () async {
+      final endsOct6 = dated(1, '2026-09-01', '2026-10-06');
+      final upcoming = dated(2, '2026-12-01', '2027-01-01');
+
+      // 23:59 on 6 October in Ulaanbaatar: still in progress.
+      expect(
+        await chosenAt(DateTime.utc(2026, 10, 6, 15, 59), [upcoming, endsOct6]),
+        1,
+      );
+      // 00:00 on 7 October in Ulaanbaatar: ended, so the upcoming one wins.
+      expect(
+        await chosenAt(DateTime.utc(2026, 10, 6, 16), [upcoming, endsOct6]),
+        2,
+      );
+    });
+
+    test('a start that is tomorrow in Ulaanbaatar is upcoming even while '
+        'UTC is still on the day before', () async {
+      final startsOct7 = dated(2, '2026-10-07', '2026-12-20');
+      final ended = dated(1, '2026-05-01', '2026-09-30', status: 'closed');
+      // 15:00 UTC on 6 October is 23:00 on 6 October in Ulaanbaatar:
+      // `2026-10-07` has not started, so it is upcoming, not in progress.
+      expect(
+        await chosenAt(DateTime.utc(2026, 10, 6, 15), [ended, startsOct7]),
+        2,
+      );
+      // 16:00 UTC on 6 October is already 7 October in Ulaanbaatar.
+      final other = dated(3, '2026-10-01', '2026-12-20');
+      expect(
+        await chosenAt(DateTime.utc(2026, 10, 6, 15), [startsOct7, other]),
+        3,
+      );
+      expect(
+        await chosenAt(DateTime.utc(2026, 10, 6, 16), [startsOct7, other]),
+        2,
+      );
+    });
+
+    test(
+      'between equally placed cohorts, the first enrolled one listed wins',
       () async {
         final dashboard = await repository(
           enrolled: const [
