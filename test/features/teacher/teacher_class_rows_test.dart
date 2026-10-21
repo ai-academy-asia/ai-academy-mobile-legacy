@@ -145,6 +145,29 @@ void main() {
     );
 
     test(
+      'a class with no dates, times or meeting days loads (Issue #491)',
+      () async {
+        final controller = controllerFor([
+          cohort(2),
+          cohort(
+            3,
+            overrides: {
+              'start_date': null,
+              'end_date': null,
+              'start_time': null,
+              'end_time': null,
+              'meeting_days': null,
+            },
+          ),
+        ]);
+
+        await controller.load();
+
+        expect(controller.errorMessage, isNull);
+      },
+    );
+
+    test(
       'control: the same schedule without the malformed class loads',
       () async {
         final controller = controllerFor([cohort(2)]);
@@ -179,6 +202,30 @@ void main() {
       expect(controller.errorMessage, serverMessage);
       expect(controller.classes, isNull);
     });
+
+    test(
+      'a class with no dates, times or meeting days is listed (Issue #491)',
+      () async {
+        final controller = controllerFor([
+          cohort(2),
+          cohort(
+            5,
+            overrides: {
+              'start_date': null,
+              'end_date': null,
+              'start_time': null,
+              'end_time': null,
+              'meeting_days': null,
+            },
+          ),
+        ]);
+
+        await controller.load();
+
+        expect(controller.errorMessage, isNull);
+        expect([for (final c in controller.classes!) c.cohort.id], [2, 5]);
+      },
+    );
 
     test('control: the same classes without the malformed one load', () async {
       final controller = controllerFor([cohort(2), cohort(5)]);

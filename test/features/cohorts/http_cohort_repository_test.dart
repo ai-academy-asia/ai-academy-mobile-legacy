@@ -302,23 +302,91 @@ void main() {
       }
     });
 
-    test('no other field is loosened: null teacher, dates, times, meeting days '
-        'and enrolled count are still skipped', () async {
-      for (final field in [
-        'teacher',
-        'start_date',
-        'end_date',
-        'start_time',
-        'end_time',
-        'meeting_days',
-        'enrolled_count',
-      ]) {
+    test('no other field is loosened: a null teacher or enrolled count is '
+        'still skipped', () async {
+      for (final field in ['teacher', 'enrolled_count']) {
         final listing = await listingOf([
           _cohortJson(overrides: {field: null, 'graduation_date': null}),
         ]);
         expect(listing.cohorts, isEmpty, reason: field);
         expect(listing.skipped.single.reason, contains('cohort.$field'), reason: field);
       }
+    });
+  });
+
+  // Issue #491: `Cohort.to_dict` always sends these keys; the backend never
+  // requires dates, times or meeting days. `null` reads as the "not set"
+  // value every schedule reader already handles: `''`, or `[]`.
+  group('null dates, times and meeting days (Issue #491)', () {
+    const schedule = ['start_date', 'end_date', 'start_time', 'end_time', 'meeting_days'];
+
+    Future<CohortListing> listingOf(List<Object?> rows) => repositoryReturning(
+      (_) async => jsonResponse(jsonEncode({'cohorts': rows}), 200),
+    ).getCohorts();
+
+    test('each null reads as not set, and the cohort is listed in order', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 1}),
+        for (final (i, field) in schedule.indexed)
+          _cohortJson(overrides: {'id': i + 2, field: null}),
+        _cohortJson(overrides: {'id': 9, for (final field in schedule) field: null}),
+      ]);
+
+      expect(listing.skipped, isEmpty);
+      expect(listing.cohorts.map((c) => c.id), [1, 2, 3, 4, 5, 6, 9]);
+      final bare = listing.cohorts.last;
+      expect(bare.startDate, '');
+      expect(bare.endDate, '');
+      expect(bare.startTime, '');
+      expect(bare.endTime, '');
+      expect(bare.meetingDays, isEmpty);
+      expect(bare.teacher.id, 2);
+      expect(listing.cohorts[1].startDate, '');
+      expect(listing.cohorts[1].endDate, '2026-10-06');
+      expect(listing.cohorts[5].meetingDays, isEmpty);
+      expect(listing.cohorts[5].startTime, '18:00');
+    });
+
+    test('an empty string or list is kept as sent', () async {
+      final listing = await listingOf([
+        _cohortJson(
+          overrides: {'start_time': '', 'end_time': '', 'meeting_days': <String>[]},
+        ),
+      ]);
+
+      final cohort = listing.cohorts.single;
+      expect(cohort.startTime, '');
+      expect(cohort.endTime, '');
+      expect(cohort.meetingDays, isEmpty);
+    });
+
+    test('a missing key is still skipped, naming the field', () async {
+      for (final field in schedule) {
+        final listing = await listingOf([_cohortJson()..remove(field)]);
+        expect(listing.cohorts, isEmpty, reason: field);
+        expect(listing.skipped.single.reason, contains('cohort.$field'), reason: field);
+      }
+    });
+
+    test('a wrong type is still skipped, naming the field', () async {
+      final wrong = <String, Object>{
+        'start_date': 20260806,
+        'end_date': true,
+        'start_time': 1800,
+        'end_time': <Object?>[],
+        'meeting_days': 'mon,wed',
+      };
+      for (final MapEntry(key: field, value: value) in wrong.entries) {
+        final listing = await listingOf([
+          _cohortJson(overrides: {field: value}),
+        ]);
+        expect(listing.cohorts, isEmpty, reason: field);
+        expect(listing.skipped.single.reason, contains('cohort.$field'), reason: field);
+      }
+      final listing = await listingOf([
+        _cohortJson(overrides: {'meeting_days': ['mon', 3]}),
+      ]);
+      expect(listing.skipped.single.reason, contains('cohort.meeting_days'));
     });
   });
 
