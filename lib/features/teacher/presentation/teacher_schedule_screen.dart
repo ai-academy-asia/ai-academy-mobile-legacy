@@ -106,8 +106,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   /// target session's id — null when the day had none (Issue #467). The
   /// same pair is positioned once: rebuilds, a refresh, a tab switch, a
   /// sheet or the teacher's own scrolling never pull the grid back. A new
-  /// pair — another day, or today's next lesson once the clock has moved
-  /// on or a refresh brings one — is positioned again.
+  /// pair — another day (Issue #499), or today's next lesson once the clock
+  /// has moved on or a refresh brings one — is positioned again.
   (DateTime, int?)? _positionedFor;
 
   /// True while a positioning waits for its frame, so one build schedules
@@ -145,18 +145,29 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     super.dispose();
   }
 
-  /// Once per target, once its week has loaded: makes sure the selected
-  /// day's target session — its earliest [isScheduleFocusTarget] one:
-  /// today, the next the teacher teaches; another day, the first — shows
-  /// with an hour of the grid above it, derived from where the grid places
-  /// that block, never a fixed time, and clamped to what the grid can
-  /// scroll. Nothing moves when that is already on screen (a 09:00 class on
-  /// a grid opening at 07:00), nor for a day with no such session. The
-  /// first time is a jump (the screen is just opening); later, it eases.
+  /// Once per target, once its week has loaded: positions the grid for the
+  /// selected day's target session — its earliest [isScheduleFocusTarget]
+  /// one: today, the next the teacher teaches; another day, the first —
+  /// so it shows with an hour of the grid above it, derived from where the
+  /// grid places that block, never a fixed time, and clamped to what the
+  /// grid can scroll.
   ///
-  /// A target is recorded only when its frame runs with the grid attached
-  /// and the same day selected; otherwise the next build tries again
-  /// (Issue #467).
+  /// **A new date** always takes that date's own position, whatever offset
+  /// the last date left (Issue #499): the top when the date has no such
+  /// session or when its block already shows from the top (a 09:00 class on
+  /// a grid opening at 07:00), and the hour above the block otherwise — the
+  /// same place the screen opens at for that date.
+  ///
+  /// **The same date** with a new target — today's next lesson once the
+  /// clock has moved on, or one a refresh brings (Issue #467) — moves only
+  /// when that block is not already on screen; a target that goes away
+  /// moves nothing. Rebuilds, a refresh, a tab switch, a sheet or the
+  /// teacher's own scrolling never pull the grid.
+  ///
+  /// The first time is a jump (the screen is just opening); later, it
+  /// eases. A target is recorded only when its frame runs with the grid
+  /// attached and the same day selected; otherwise the next build tries
+  /// again (Issue #467).
   void _positionOnFirstSession(List<ScheduledSession> sessions) {
     if (_positionPending) return;
     final day = _controller.selectedDay;
@@ -169,14 +180,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     );
     final key = (day, placement?.entry.session.id);
     if (_positionedFor == key) return;
-    if (placement == null) {
-      // Nothing to show: recorded, so the grid stays where it is until a
-      // target appears.
+    final first = _positionedFor == null;
+    final newDate = first || _positionedFor!.$1 != day;
+    if (placement == null && !newDate) {
+      // The same date's target went away: nothing to move to.
       _positionedFor = key;
       return;
     }
-    final first = _positionedFor == null;
-    final top = placement.top;
+    final top = placement?.top;
     _positionPending = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -186,16 +197,30 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       _positionedFor = key;
       const hourAbove = TeacherWeekGridMetrics.hourHeight;
       final position = _gridScroll.position;
-      final target = (top - hourAbove).clamp(
-        position.minScrollExtent,
-        position.maxScrollExtent,
-      );
-      // Already showing: the hour above the block from the top of the
-      // view, and the block's first hour above its bottom.
-      final shown =
-          target >= position.pixels &&
-          top + hourAbove <= position.pixels + position.viewportDimension;
-      if (shown) return;
+      final double target;
+      if (top == null) {
+        // A date with nothing to show opens at the top.
+        target = position.minScrollExtent;
+      } else {
+        final aligned = (top - hourAbove).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+        // Shown from [from]: the hour above the block from the top of the
+        // view, and the block's first hour above its bottom.
+        bool shownFrom(double from) =>
+            aligned >= from &&
+            top + hourAbove <= from + position.viewportDimension;
+        if (newDate) {
+          target = shownFrom(position.minScrollExtent)
+              ? position.minScrollExtent
+              : aligned;
+        } else {
+          if (shownFrom(position.pixels)) return;
+          target = aligned;
+        }
+      }
+      if (target == position.pixels) return;
       if (first) {
         _gridScroll.jumpTo(target);
       } else {
@@ -297,6 +322,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     _WeekStrip(
                       days: _controller.weekDays,
                       selected: _controller.selectedDay,
+                      today: _controller.now(),
                       onSelect: _controller.selectDay,
                     ),
                   Expanded(child: dayList ? _buildDayList() : _buildBody()),
@@ -565,16 +591,21 @@ bool _weekStripFits(BuildContext context, double width, List<DateTime> days) {
 }
 
 /// The week's seven days under their weekday letters, the selected one in
-/// the reference's blue circle. A tap selects the day.
+/// the reference's blue circle. Today's column carries the grid's faint
+/// wash whatever day is selected (Issue #499). A tap selects the day.
 class _WeekStrip extends StatelessWidget {
   const _WeekStrip({
     required this.days,
     required this.selected,
+    required this.today,
     required this.onSelect,
   });
 
   final List<DateTime> days;
   final DateTime selected;
+
+  /// Now — only its date is read.
+  final DateTime today;
   final ValueChanged<DateTime> onSelect;
 
   @override
@@ -613,6 +644,7 @@ class _WeekStrip extends StatelessWidget {
                       weekday: TeacherScheduleStrings.weekdays[index],
                       day: day,
                       selected: isSameDay(day, selected),
+                      today: isSameDay(day, today),
                       columnWidth: columnWidth,
                       onTap: () => onSelect(day),
                     ),
@@ -631,6 +663,7 @@ class _DayCell extends StatelessWidget {
     required this.weekday,
     required this.day,
     required this.selected,
+    required this.today,
     required this.columnWidth,
     required this.onTap,
   });
@@ -638,6 +671,10 @@ class _DayCell extends StatelessWidget {
   final String weekday;
   final DateTime day;
   final bool selected;
+
+  /// Today: the column's wash behind the cell, and — when not selected —
+  /// the number in the accent's ink (Issue #499).
+  final bool today;
 
   /// The cell's width — the most the marker can take.
   final double columnWidth;
@@ -667,43 +704,48 @@ class _DayCell extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              weekday,
-              style: _weekdayStyle.copyWith(
-                color: context.palette.textInactive,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: marker.width,
-              height: marker.height,
-              alignment: Alignment.center,
-              decoration: selected
-                  ? BoxDecoration(
-                      color: context.palette.accent,
-                      // A circle while it fits the column, as before; taller
-                      // than wide, an upright rounded rectangle.
-                      shape: marker.width == marker.height
-                          ? BoxShape.circle
-                          : BoxShape.rectangle,
-                      borderRadius: marker.width == marker.height
-                          ? null
-                          : BorderRadius.circular(marker.width / 2),
-                    )
-                  : null,
-              child: Text(
-                number,
-                style: _dateStyle.copyWith(
-                  color: selected
-                      ? context.palette.onPrimary
-                      : context.palette.textStrong,
+        child: ColoredBox(
+          color: today ? context.palette.scheduleToday : Colors.transparent,
+          child: Column(
+            children: [
+              const SizedBox(height: 4),
+              Text(
+                weekday,
+                style: _weekdayStyle.copyWith(
+                  color: context.palette.textInactive,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Container(
+                width: marker.width,
+                height: marker.height,
+                alignment: Alignment.center,
+                decoration: selected
+                    ? BoxDecoration(
+                        color: context.palette.accent,
+                        // A circle while it fits the column, as before; taller
+                        // than wide, an upright rounded rectangle.
+                        shape: marker.width == marker.height
+                            ? BoxShape.circle
+                            : BoxShape.rectangle,
+                        borderRadius: marker.width == marker.height
+                            ? null
+                            : BorderRadius.circular(marker.width / 2),
+                      )
+                    : null,
+                child: Text(
+                  number,
+                  style: _dateStyle.copyWith(
+                    color: selected
+                        ? context.palette.onPrimary
+                        : today
+                        ? context.palette.accentText
+                        : context.palette.textStrong,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

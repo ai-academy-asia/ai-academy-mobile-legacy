@@ -118,6 +118,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.scheduleBand,
     required this.scheduleHeld,
     required this.scheduleHeldInk,
+    required this.scheduleToday,
     required this.teacherTitle,
     required this.teacherNameInk,
     required this.teacherRoleInk,
@@ -224,6 +225,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     scheduleBand: AppColors.scheduleBand,
     scheduleHeld: AppColors.scheduleHeld,
     scheduleHeldInk: AppColors.scheduleHeldInk,
+    scheduleToday: AppColors.scheduleToday,
     teacherTitle: AppColors.teacherTitle,
     teacherNameInk: AppColors.teacherNameInk,
     teacherRoleInk: AppColors.teacherRoleInk,
@@ -428,6 +430,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     scheduleHeld: _Dark.accentSubtle,
     // PROPOSED: §12 #A3ACB9
     scheduleHeldInk: _Dark.secondary,
+    // PROPOSED: accent at ~10% (Issue #499), strip only; not accentSubtle
+    scheduleToday: _Dark.scheduleToday,
     // DERIVED: §3 folds #0B1230 into textPrimary
     teacherTitle: _Dark.ink,
     // DERIVED: §12: name → textPrimary
@@ -780,6 +784,13 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// A held session's ink.
   final Color scheduleHeldInk;
 
+  /// Today's cell in the Schedule week strip: a faint `accent` wash,
+  /// whatever day is selected (Issue #499). Strip only: the grid stays
+  /// neutral — a column fill this faint is nearly [scheduleHeld] and hid
+  /// held sessions, and edge lines competed with the grid. Not
+  /// [scheduleHeld] itself.
+  final Color scheduleToday;
+
   /// The near-black navy of Teacher Home's and the Gradebook's titles and
   /// the class card titles (`#0B1230`). Not [textTitle] (`#191919`); proposal
   /// §12 folds it into [textPrimary] in dark, which only a role allows.
@@ -928,6 +939,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? scheduleBand,
     Color? scheduleHeld,
     Color? scheduleHeldInk,
+    Color? scheduleToday,
     Color? teacherTitle,
     Color? teacherNameInk,
     Color? teacherRoleInk,
@@ -1032,6 +1044,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     scheduleBand: scheduleBand ?? this.scheduleBand,
     scheduleHeld: scheduleHeld ?? this.scheduleHeld,
     scheduleHeldInk: scheduleHeldInk ?? this.scheduleHeldInk,
+    scheduleToday: scheduleToday ?? this.scheduleToday,
     teacherTitle: teacherTitle ?? this.teacherTitle,
     teacherNameInk: teacherNameInk ?? this.teacherNameInk,
     teacherRoleInk: teacherRoleInk ?? this.teacherRoleInk,
@@ -1147,6 +1160,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       scheduleBand: mix(scheduleBand, other.scheduleBand),
       scheduleHeld: mix(scheduleHeld, other.scheduleHeld),
       scheduleHeldInk: mix(scheduleHeldInk, other.scheduleHeldInk),
+      scheduleToday: mix(scheduleToday, other.scheduleToday),
       teacherTitle: mix(teacherTitle, other.teacherTitle),
       teacherNameInk: mix(teacherNameInk, other.teacherNameInk),
       teacherRoleInk: mix(teacherRoleInk, other.teacherRoleInk),
@@ -1219,4 +1233,5 @@ abstract final class _Dark {
   static const Color sky = Color(0xFF2A4A73);
   static const Color calendarMissed = Color(0xFF3A1F22);
   static const Color band = Color(0xFF1F4FC9);
+  static const Color scheduleToday = Color(0x1A2970FF);
 }

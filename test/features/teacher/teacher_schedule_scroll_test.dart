@@ -182,10 +182,11 @@ void main() {
     final evening = grid(tester).pixels;
     expect(evening, greaterThan(0));
 
-    // Wednesday's 08:00 is above the view: the grid goes back up, to the
-    // 07:00 line an hour above it.
+    // Wednesday's 08:00 shows from the top: a new date opens where the
+    // screen would open for it, so the grid goes back to the top (Issue
+    // #499).
     await selectDay(tester, 7);
-    expect(grid(tester).pixels, TeacherWeekGridMetrics.topInset);
+    expect(grid(tester).pixels, 0);
     expectShown(tester, block('2026-10-07', (8, 0)));
 
     // Thursday's 20:00 is below it again.
@@ -345,8 +346,8 @@ void main() {
       expectShown(tester, block('2026-10-06', (19, 0)));
     });
 
-    testWidgets('no eligible lesson on the new day: the grid stays where '
-        'the teacher left it', (tester) async {
+    testWidgets('no eligible lesson on the new day: the grid returns to its '
+        'top (Issue #499)', (tester) async {
       await pumpScreen(
         tester,
         [
@@ -367,10 +368,131 @@ void main() {
       final left = grid(tester).pixels;
       expect(left, greaterThan(0));
 
-      // Wednesday's only lesson is covered by someone else.
+      // Wednesday's only lesson is covered by someone else: nothing to show,
+      // so the date opens at the top rather than keeping Tuesday's offset.
       await selectDay(tester, 7);
 
-      expect(grid(tester).pixels, left);
+      expect(grid(tester).pixels, 0);
+    });
+  });
+
+  // Issue #499: every date change takes the new date's own position — the
+  // one the screen opens at for it — never the offset the last date left.
+  group('a new date takes its own position (Issue #499)', () {
+    /// Lessons on other days (Sunday 00:00, Saturday 23:00) that stretch
+    /// the grid over the whole day, so midday dates' positions are neither
+    /// the top nor all clamped to the same bottom of the scroll.
+    final wideHours = [
+      sampleSession(id: 90, date: '2026-10-04', start: (0, 0), end: (1, 0)),
+      sampleSession(id: 91, date: '2026-10-10', start: (23, 0), end: (24, 0)),
+    ];
+
+    /// The grid sits where the screen opens for the date of [finder]'s
+    /// block: at the top when the block, with an hour above it, shows from
+    /// there; otherwise the hour above the block, clamped to the scroll.
+    void expectOwnPosition(WidgetTester tester, Finder finder) {
+      final position = grid(tester);
+      const hour = TeacherWeekGridMetrics.hourHeight;
+      final top =
+          tester.getRect(finder).top - window(tester).top + position.pixels;
+      final want = top + hour <= position.viewportDimension
+          ? position.minScrollExtent
+          : (top - hour).clamp(
+              position.minScrollExtent,
+              position.maxScrollExtent,
+            );
+      expect(position.pixels, moreOrLessEquals(want), reason: '$finder');
+    }
+
+    testWidgets('a lesson day, then a day with no lesson: back to the top', (
+      tester,
+    ) async {
+      await pumpScreen(tester, [
+        sampleSession(id: 1, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+      expect(grid(tester).pixels, greaterThan(0));
+
+      await selectDay(tester, 7);
+
+      expect(grid(tester).pixels, 0);
+    });
+
+    testWidgets('a new target already visible from the old offset still '
+        'takes its own date\'s position', (tester) async {
+      await pumpScreen(tester, [
+        ...wideHours,
+        sampleSession(id: 1, date: '2026-10-06', start: (12, 0), end: (13, 0)),
+        sampleSession(id: 2, date: '2026-10-07', start: (13, 0), end: (14, 0)),
+      ]);
+      final tuesday = grid(tester).pixels;
+      expect(tuesday, greaterThan(0));
+      expectOwnPosition(tester, block('2026-10-06', (12, 0)));
+      // From Tuesday's offset, Wednesday's 13:00 is already on screen.
+      expectShown(tester, block('2026-10-07', (13, 0)));
+
+      await selectDay(tester, 7);
+
+      expect(grid(tester).pixels, isNot(moreOrLessEquals(tuesday)));
+      expectOwnPosition(tester, block('2026-10-07', (13, 0)));
+    });
+
+    testWidgets('past, then future, then no lesson: each date its own '
+        'position', (tester) async {
+      await pumpScreen(tester, [
+        ...wideHours,
+        sampleSession(id: 1, date: '2026-10-05', start: (12, 0), end: (13, 0)),
+        sampleSession(id: 2, date: '2026-10-08', start: (13, 0), end: (14, 0)),
+      ]);
+
+      await selectDay(tester, 5);
+      final past = grid(tester).pixels;
+      expectOwnPosition(tester, block('2026-10-05', (12, 0)));
+
+      await selectDay(tester, 8);
+      expect(grid(tester).pixels, isNot(moreOrLessEquals(past)));
+      expectOwnPosition(tester, block('2026-10-08', (13, 0)));
+
+      await selectDay(tester, 9);
+      expect(grid(tester).pixels, 0);
+    });
+
+    testWidgets('the teacher\'s scrolling is kept within a date, and '
+        'recalculated after a date change', (tester) async {
+      await pumpScreen(tester, [
+        ...wideHours,
+        sampleSession(id: 1, date: '2026-10-06', start: (12, 0), end: (13, 0)),
+        sampleSession(id: 2, date: '2026-10-07', start: (13, 0), end: (14, 0)),
+      ]);
+      final opened = grid(tester).pixels;
+      await tester.drag(gridScrollable(), const Offset(0, 150));
+      await tester.pumpAndSettle();
+      final scrolled = grid(tester).pixels;
+      expect(scrolled, isNot(moreOrLessEquals(opened)));
+
+      // A rebuild of the same date leaves it alone.
+      await tester.pump();
+      expect(grid(tester).pixels, scrolled);
+
+      await selectDay(tester, 7);
+      expectOwnPosition(tester, block('2026-10-07', (13, 0)));
+
+      // Back on Tuesday: its own position again, not the teacher's scroll.
+      await selectDay(tester, 6);
+      expect(grid(tester).pixels, moreOrLessEquals(opened));
+    });
+
+    testWidgets('re-selecting the selected date keeps the teacher\'s '
+        'scrolling', (tester) async {
+      await pumpScreen(tester, [
+        sampleSession(id: 1, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+      await tester.drag(gridScrollable(), const Offset(0, 150));
+      await tester.pumpAndSettle();
+      final scrolled = grid(tester).pixels;
+
+      await selectDay(tester, 6);
+
+      expect(grid(tester).pixels, scrolled);
     });
   });
 
@@ -482,6 +604,20 @@ void main() {
       // rather than going up to Tuesday's 09:00.
       expect(grid(tester).pixels, evening);
       expectShown(tester, block('2026-10-07', (19, 0)));
+    });
+
+    testWidgets('left open overnight onto a day with no lesson: the grid '
+        'returns to its top (Issue #499)', (tester) async {
+      var now = DateTime(2026, 10, 6, 18);
+      await pumpScreen(tester, clock: () => now, [
+        sampleSession(id: 1, date: '2026-10-06', start: (19, 0), end: (21, 0)),
+      ]);
+      expect(grid(tester).pixels, greaterThan(0));
+
+      now = DateTime(2026, 10, 7, 8);
+      await resume(tester);
+
+      expect(grid(tester).pixels, 0);
     });
 
     testWidgets('the same target after a resume or a refresh: the teacher\'s '

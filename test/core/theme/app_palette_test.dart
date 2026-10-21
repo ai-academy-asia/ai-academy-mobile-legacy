@@ -113,6 +113,7 @@ void main() {
       'scheduleBand': (light.scheduleBand, const Color(0xFF2970FF)),
       'scheduleHeld': (light.scheduleHeld, const Color(0xFFEFF4FF)),
       'scheduleHeldInk': (light.scheduleHeldInk, const Color(0xFF787A80)),
+      'scheduleToday': (light.scheduleToday, const Color(0x0F2970FF)),
       'teacherTitle': (light.teacherTitle, const Color(0xFF0B1230)),
       'teacherNameInk': (light.teacherNameInk, const Color(0xFF0C226E)),
       'teacherRoleInk': (light.teacherRoleInk, const Color(0xFF6371A2)),

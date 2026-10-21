@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/theme/app_palette.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/presentation/home_route.dart';
 import 'package:aia_mobile/features/home/presentation/home_strings.dart';
@@ -412,6 +413,180 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TeacherProfileScreen), findsOneWidget);
       expect(find.byType(TeacherScheduleScreen), findsNothing);
+    });
+  });
+
+  // Issue #499: today is marked in the week strip only, whatever day is
+  // selected — a faint wash on its cell, its number in the accent when not
+  // selected; the selected day keeps its circle. The grid stays neutral: no
+  // column fill (it hid held lessons) and no edge lines.
+  group('today\'s column', () {
+    const palette = AppPalette.light;
+
+    /// The strip's cell for [dayOfMonth] — labelled "<weekday> <day>",
+    /// unlike the header's date button.
+    Finder stripCell(int dayOfMonth) => find.byWidgetPredicate(
+      (w) =>
+          w is Semantics &&
+          w.properties.button == true &&
+          RegExp('^\\S+ $dayOfMonth\$').hasMatch(w.properties.label ?? ''),
+    );
+
+    /// The grid's painted layer (its hairlines only).
+    RenderObject gridPaint(WidgetTester tester) => tester.renderObject(
+      find
+          .descendant(
+            of: find.byType(TeacherWeekGrid),
+            matching: find.byType(CustomPaint),
+          )
+          .first,
+    );
+
+    /// Whether [paint] is in [color] — compared as ARGB: a colour read back
+    /// from a Paint compares float components, which need not be
+    /// bit-identical to the token's.
+    bool inColor(Paint paint, Color color) =>
+        paint.color.toARGB32() == color.toARGB32();
+
+    /// Any line in the accent's outline colour — what a today-edge was.
+    PaintPattern anyEdge() => paints
+      ..something(
+        (method, arguments) =>
+            method == #drawLine &&
+            inColor(arguments[2] as Paint, palette.accentSubtleOutline),
+      );
+
+    /// [dayOfMonth]'s date number in the strip.
+    Text number(WidgetTester tester, int dayOfMonth) => tester.widget<Text>(
+      find.descendant(
+        of: stripCell(dayOfMonth),
+        matching: find.text('$dayOfMonth'),
+      ),
+    );
+
+    /// Whether [dayOfMonth]'s strip cell carries the wash.
+    bool cellWashed(WidgetTester tester, int dayOfMonth) => tester
+        .widgetList<ColoredBox>(
+          find.descendant(
+            of: stripCell(dayOfMonth),
+            matching: find.byType(ColoredBox),
+          ),
+        )
+        .any((box) => box.color == palette.scheduleToday);
+
+    /// The grid marks nothing for today: no edge line, no fill.
+    void expectNeutralGrid(WidgetTester tester) {
+      expect(gridPaint(tester), isNot(anyEdge()));
+      expect(gridPaint(tester), paintsExactlyCountTimes(#drawRect, 0));
+    }
+
+    testWidgets('today selected: its strip cell is washed and its number sits '
+        'in the filled circle; the grid stays neutral', (tester) async {
+      await pumpScreen(tester, weekRepository());
+
+      expectNeutralGrid(tester);
+      expect(cellWashed(tester, 6), isTrue);
+      expect(number(tester, 6).style?.color, palette.onPrimary);
+      expect(
+        find.descendant(
+          of: stripCell(6),
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Container &&
+                w.decoration is BoxDecoration &&
+                (w.decoration! as BoxDecoration).color == palette.accent,
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('another day selected: today keeps its wash and its number '
+        'turns accent; the selected day keeps the circle; the grid stays '
+        'neutral', (tester) async {
+      await pumpScreen(tester, weekRepository());
+      await tester.tap(find.text('8'));
+      await tester.pumpAndSettle();
+
+      expectNeutralGrid(tester);
+      expect(cellWashed(tester, 6), isTrue);
+      expect(cellWashed(tester, 8), isFalse);
+      expect(number(tester, 6).style?.color, palette.accentText);
+      expect(number(tester, 8).style?.color, palette.onPrimary);
+      expect(number(tester, 7).style?.color, palette.textStrong);
+    });
+
+    testWidgets('a week without today: the grid marks nothing either', (
+      tester,
+    ) async {
+      tallView(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: TeacherWeekGrid(
+              // The week after Tuesday 6 October.
+              weekStart: DateTime(2026, 10, 11),
+              sessions: const [],
+              now: DateTime(2026, 10, 6, 9),
+              onSessionTap: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expectNeutralGrid(tester);
+    });
+
+    testWidgets('a held lesson in today\'s column keeps its own fill: the '
+        'grid paints no fill behind it', (tester) async {
+      // 07:00–08:00 today is over at 09:00; 14:00–17:00 is still ahead.
+      await pumpScreen(
+        tester,
+        FakeTeacherScheduleRepository(
+          classes: [sampleClass()],
+          sessions: {
+            2: [
+              sampleSession(
+                id: 50,
+                date: '2026-10-06',
+                start: (7, 0),
+                end: (8, 0),
+              ),
+              sampleSession(id: 41, date: '2026-10-06'),
+            ],
+          },
+        ),
+      );
+
+      expect(gridPaint(tester), paintsExactlyCountTimes(#drawRect, 0));
+      final held = find.byWidgetPredicate(
+        (w) => w is SessionBlock && w.held && w.entry.session.id == 50,
+      );
+      expect(held, findsOneWidget);
+      expect(
+        find.descendant(
+          of: held,
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Container &&
+                w.decoration is BoxDecoration &&
+                (w.decoration! as BoxDecoration).color == palette.scheduleHeld,
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a lesson in today\'s column still opens its sheet', (
+      tester,
+    ) async {
+      await pumpScreen(tester, weekRepository());
+
+      await tester.tap(find.bySemanticsLabel(upcomingLabel));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TeacherSessionSheet), findsOneWidget);
     });
   });
 }
