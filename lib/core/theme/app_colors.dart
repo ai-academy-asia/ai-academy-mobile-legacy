@@ -315,8 +315,7 @@ abstract final class AppColors {
   static const Color scheduleHeldInk = Color(0xFF787A80);
 
   /// Today's cell in the Teacher Schedule week strip: `accent` at about 6%
-  /// (Issue #499). The grid marks today's column with
-  /// [accentSubtleOutline] edges instead.
+  /// (Issue #499). The grid itself stays neutral — it does not mark today.
   static const Color scheduleToday = Color(0x0F2970FF);
 
   // Teacher (Dark Mode Phase 8, Issue #274).

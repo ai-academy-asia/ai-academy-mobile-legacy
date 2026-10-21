@@ -548,7 +548,7 @@ Counts: **48 PROPOSED, 35 DERIVED, 11 UNRESOLVED**, 94 roles in all. None is app
 | `scheduleBand` | `#FF1F4FC9` | PROPOSED | §12 #1F4FC9 |
 | `scheduleHeld` | `#FF1A2A47` | PROPOSED | §12 #1A2A47 |
 | `scheduleHeldInk` | `#FFA3ACB9` | PROPOSED | §12 #A3ACB9 |
-| `scheduleToday` | `#1A2970FF` | PROPOSED | `accent` at ~10%, Teacher Schedule's today cell in the week strip (Issue #499); the grid uses `accentSubtleOutline` edges |
+| `scheduleToday` | `#1A2970FF` | PROPOSED | `accent` at ~10%, Teacher Schedule's today cell in the week strip only (Issue #499); the grid stays neutral |
 | `teacherTitle` | `#FFECEFF3` | DERIVED | §3 folds #0B1230 into textPrimary |
 | `teacherNameInk` | `#FFECEFF3` | DERIVED | §12: name → textPrimary |
 | `teacherRoleInk` | `#FFA3ACB9` | DERIVED | §12: role → textSecondary |

@@ -416,9 +416,10 @@ void main() {
     });
   });
 
-  // Issue #499: today is marked whatever day is selected — a faint wash on
-  // its strip cell, and two thin edge lines along its grid column (not a
-  // fill, which hid held lessons); the selected day keeps its circle.
+  // Issue #499: today is marked in the week strip only, whatever day is
+  // selected — a faint wash on its cell, its number in the accent when not
+  // selected; the selected day keeps its circle. The grid stays neutral: no
+  // column fill (it hid held lessons) and no edge lines.
   group('today\'s column', () {
     const palette = AppPalette.light;
 
@@ -431,7 +432,7 @@ void main() {
           RegExp('^\\S+ $dayOfMonth\$').hasMatch(w.properties.label ?? ''),
     );
 
-    /// The grid's painted layer (hairlines and today's edges).
+    /// The grid's painted layer (its hairlines only).
     RenderObject gridPaint(WidgetTester tester) => tester.renderObject(
       find
           .descendant(
@@ -447,18 +448,7 @@ void main() {
     bool inColor(Paint paint, Color color) =>
         paint.color.toARGB32() == color.toARGB32();
 
-    /// A vertical today-edge line at [x].
-    PaintPattern edgeAt(double x) => paints
-      ..something((method, arguments) {
-        if (method != #drawLine) return false;
-        final from = arguments[0] as Offset;
-        final to = arguments[1] as Offset;
-        return inColor(arguments[2] as Paint, palette.accentSubtleOutline) &&
-            (from.dx - x).abs() < 0.5 &&
-            (to.dx - x).abs() < 0.5;
-      });
-
-    /// Any today-edge line at all.
+    /// Any line in the accent's outline colour — what a today-edge was.
     PaintPattern anyEdge() => paints
       ..something(
         (method, arguments) =>
@@ -484,17 +474,17 @@ void main() {
         )
         .any((box) => box.color == palette.scheduleToday);
 
-    void expectTodayEdges(WidgetTester tester, int dayOfMonth) {
-      final cell = tester.getRect(stripCell(dayOfMonth));
-      expect(gridPaint(tester), edgeAt(cell.left));
-      expect(gridPaint(tester), edgeAt(cell.right));
+    /// The grid marks nothing for today: no edge line, no fill.
+    void expectNeutralGrid(WidgetTester tester) {
+      expect(gridPaint(tester), isNot(anyEdge()));
+      expect(gridPaint(tester), paintsExactlyCountTimes(#drawRect, 0));
     }
 
-    testWidgets('today selected: its grid column is edged, its strip cell '
-        'washed, and its number sits in the filled circle', (tester) async {
+    testWidgets('today selected: its strip cell is washed and its number sits '
+        'in the filled circle; the grid stays neutral', (tester) async {
       await pumpScreen(tester, weekRepository());
 
-      expectTodayEdges(tester, 6);
+      expectNeutralGrid(tester);
       expect(cellWashed(tester, 6), isTrue);
       expect(number(tester, 6).style?.color, palette.onPrimary);
       expect(
@@ -511,15 +501,14 @@ void main() {
       );
     });
 
-    testWidgets('another day selected: today keeps its edges and wash and '
-        'its number turns accent; the selected day keeps the circle', (
-      tester,
-    ) async {
+    testWidgets('another day selected: today keeps its wash and its number '
+        'turns accent; the selected day keeps the circle; the grid stays '
+        'neutral', (tester) async {
       await pumpScreen(tester, weekRepository());
       await tester.tap(find.text('8'));
       await tester.pumpAndSettle();
 
-      expectTodayEdges(tester, 6);
+      expectNeutralGrid(tester);
       expect(cellWashed(tester, 6), isTrue);
       expect(cellWashed(tester, 8), isFalse);
       expect(number(tester, 6).style?.color, palette.accentText);
@@ -527,7 +516,9 @@ void main() {
       expect(number(tester, 7).style?.color, palette.textStrong);
     });
 
-    testWidgets('a week without today: no today edges', (tester) async {
+    testWidgets('a week without today: the grid marks nothing either', (
+      tester,
+    ) async {
       tallView(tester);
       await tester.pumpWidget(
         MaterialApp(
@@ -544,7 +535,7 @@ void main() {
         ),
       );
 
-      expect(gridPaint(tester), isNot(anyEdge()));
+      expectNeutralGrid(tester);
     });
 
     testWidgets('a held lesson in today\'s column keeps its own fill: the '

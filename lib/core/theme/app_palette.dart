@@ -785,9 +785,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color scheduleHeldInk;
 
   /// Today's cell in the Schedule week strip: a faint `accent` wash,
-  /// whatever day is selected (Issue #499). The grid draws today's column
-  /// as [accentSubtleOutline] edges instead — a fill this faint is nearly
-  /// [scheduleHeld], and hid held sessions. Not [scheduleHeld] itself.
+  /// whatever day is selected (Issue #499). Strip only: the grid stays
+  /// neutral — a column fill this faint is nearly [scheduleHeld] and hid
+  /// held sessions, and edge lines competed with the grid. Not
+  /// [scheduleHeld] itself.
   final Color scheduleToday;
 
   /// The near-black navy of Teacher Home's and the Gradebook's titles and
