@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/models/localized_text.dart';
 import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
@@ -215,7 +216,14 @@ class ContractCard extends StatelessWidget {
 /// The caption and title the card draws — see [ContractCard].
 (String?, String?) _captionAndTitle(StudentContract contract) {
   final course = contract.course;
-  final courseTitle = course?.titleMn ?? course?.titleEn;
+  // The selected content language first (Issue #501); Mongolian as before.
+  final titleEn = course?.titleEn;
+  final courseTitle =
+      ContentLanguage.prefersEnglish &&
+          titleEn != null &&
+          titleEn.trim().isNotEmpty
+      ? titleEn
+      : course?.titleMn ?? titleEn;
   final cohortName = contract.cohort?.name;
   if (courseTitle != null && cohortName != null) {
     return (cohortName, courseTitle);

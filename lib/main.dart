@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/api/api_config.dart';
+import 'core/locale/app_locale_controller.dart';
+import 'core/locale/locale_preference.dart';
 import 'core/theme/app_theme_controller.dart';
 import 'core/theme/theme_preference.dart';
 import 'features/auth/data/secure_session_persistence.dart';
@@ -27,6 +29,12 @@ Future<void> main() async {
   // #278) — the restored account's own (Issue #286). Never throws: anything
   // unreadable falls back to light.
   await AppThemeController.instance.attach(SecureThemePreferencePersistence());
+  // The language too, one for the device, before the first frame — Splash
+  // and Login included (Issue #501). Never throws: anything unreadable
+  // falls back to Mongolian.
+  await AppLocaleController.instance.attach(
+    SecureLocalePreferencePersistence(),
+  );
   await followAccountTheme(
     AuthSessionStore.instance,
     AppThemeController.instance,

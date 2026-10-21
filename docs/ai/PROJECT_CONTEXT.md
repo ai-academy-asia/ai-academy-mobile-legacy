@@ -16,11 +16,11 @@
 | Display name | "AI Academy Asia" (Android `android:label`, iOS `CFBundleDisplayName`) |
 | API base URL | `https://api.ai-academy.asia` |
 | Size | 171 Dart files under `lib/`, 72 under `test/` |
-| Languages in UI copy | Mixed Mongolian and English, **verbatim from the design** — there is no localization framework and none should be added without an explicit task |
+| Languages in UI copy | Mixed Mongolian and English, **verbatim from the design**. **Language foundation only (Issue #501, explicitly approved):** a device-level MN/EN preference (`LocalePreference`, `AppLocaleController`, saved in secure storage before sign-in and across accounts, Mongolian by default), `MaterialApp` `locale` / `supportedLocales` (`mn`, `en`) / the global Material, Widgets and Cupertino delegates (`flutter_localizations`, from the SDK), the MN/EN control on Adult, Junior and Teacher Profile, and the API's bilingual `{mn, en}` text shown in the chosen language (English when it holds text, else Mongolian — `preferredText`). **The app's own UI copy (the `*_strings.dart` classes) is not translated:** it reads the same in either language. Bulk string extraction, ARB migration or translation is out of scope until a separate task asks for it |
 
 ### Runtime dependencies (deliberately few)
 
-`http ^1.6.0`, `flutter_svg ^2.2.1`, `cupertino_icons ^1.0.8`, `url_launcher ^6.3.2` (opens a lesson material — a file's signed download link, or a link material's own URL), `file_selector ^1.1.0` (the OS document picker behind assignment file submission), `flutter_secure_storage ^11.2.0` (keeps the auth session across restarts in the iOS Keychain / Android encrypted storage, Issue #235). Dev: `flutter_lints ^6.0.0`, `flutter_launcher_icons ^0.14.4` (build-time only).
+`http ^1.6.0`, `flutter_svg ^2.2.1`, `cupertino_icons ^1.0.8`, `url_launcher ^6.3.2` (opens a lesson material — a file's signed download link, or a link material's own URL), `file_selector ^1.1.0` (the OS document picker behind assignment file submission), `flutter_secure_storage ^11.2.0` (keeps the auth session across restarts in the iOS Keychain / Android encrypted storage, Issue #235; also the theme and language preferences), `flutter_localizations` (Flutter SDK: Material, Widgets and Cupertino in Mongolian or English, Issue #501). Dev: `flutter_lints ^6.0.0`, `flutter_launcher_icons ^0.14.4` (build-time only).
 
 **There is no state-management package, no routing package, no DI container, and no HTTP interceptor layer.** Every one of those roles is filled by hand-written code described in [ARCHITECTURE.md](ARCHITECTURE.md). Adding a dependency is a decision that needs its own task and justification.
 

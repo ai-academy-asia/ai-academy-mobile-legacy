@@ -16,6 +16,8 @@
 /// typed reader once a real response settles its shape.
 library;
 
+import '../models/localized_text.dart';
+
 /// Flattens [value] into one line of display text per leaf, in order.
 /// Returns an empty list for `null`, an empty string, an empty list, or an
 /// empty map — i.e. exactly the inputs a caller should treat as "nothing to
@@ -60,8 +62,18 @@ void _describeInto(Object? value, List<String> lines, {String prefix = ''}) {
 /// Returns null when [value] is not a map holding a non-empty `en` or `mn`
 /// string, so a caller can fall back to [describeJsonLines] for whatever the
 /// value actually turns out to be instead of showing nothing.
+///
+/// With English selected ([ContentLanguage.prefersEnglish], Issue #501) a
+/// non-blank `en` is read first; otherwise Mongolian first, as before. The
+/// name is kept from before the language choice existed.
 String? preferMongolianText(Object? value) {
   if (value is! Map) return null;
+  final english = value['en'];
+  if (ContentLanguage.prefersEnglish &&
+      english is String &&
+      english.trim().isNotEmpty) {
+    return english.trim();
+  }
   final mn = value['mn'];
   if (mn is String && mn.trim().isNotEmpty) return mn.trim();
   final en = value['en'];

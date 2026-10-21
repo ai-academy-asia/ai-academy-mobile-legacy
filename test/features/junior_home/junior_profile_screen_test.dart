@@ -1,6 +1,8 @@
 import 'dart:ui' show Tristate;
 
 import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/auth/domain/current_user.dart';
 import 'package:aia_mobile/features/auth/domain/current_user_failure.dart';
@@ -21,9 +23,15 @@ import '../../support/screenshot.dart';
 import '../profile/fake_current_user_repository.dart';
 import '../notifications/notification_switch_cases.dart';
 import '../profile/contact_link_cases.dart';
+import '../profile/language_toggle_cases.dart';
 
 /// Junior Profile — the "Kids - Profile" frame.
 void main() {
+  // A test that taps EN without its own controller would change the app's
+  // one: put it back, so no test leaks a language into the next (Issue #501).
+  tearDown(
+    () => AppLocaleController.instance.setPreference(LocalePreference.mongolian),
+  );
   setUpAll(loadAppFonts);
 
   Future<void> pumpScreen(
@@ -32,6 +40,7 @@ void main() {
     Size size = const Size(393, 1274),
     PushNotifications? push,
     Future<bool> Function(Uri url)? openUrl,
+    AppLocaleController? localeController,
   }) async {
     useLogicalViewport(tester, size, padding: iPhonePadding);
     await tester.pumpWidget(
@@ -41,11 +50,17 @@ void main() {
           repository: repository ?? FakeCurrentUserRepository(hold: true),
           push: push,
           openUrl: openUrl,
+          localeController: localeController,
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  profileLanguageToggleCases(
+    pumpWith: (tester, controller) =>
+        pumpScreen(tester, localeController: controller),
+  );
 
   notificationPermissionSwitchCases(
     label: JuniorProfileStrings.notification,

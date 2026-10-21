@@ -1,3 +1,5 @@
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
 import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
@@ -23,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../support/screenshot.dart';
 import '../auth/fake_auth_repository.dart';
 import '../profile/fake_current_user_repository.dart';
+import '../profile/language_toggle_cases.dart';
 import '../notifications/notification_switch_cases.dart';
 import '../profile/contact_link_cases.dart';
 
@@ -48,6 +51,11 @@ const teacher = CurrentUser(
 /// change-password and sign-out flows, and the frame's unbacked controls
 /// drawn but inert.
 void main() {
+  // A test that taps EN without its own controller would change the app's
+  // one: put it back, so no test leaks a language into the next (Issue #501).
+  tearDown(
+    () => AppLocaleController.instance.setPreference(LocalePreference.mongolian),
+  );
   setUpAll(loadAppFonts);
 
   Future<void> pump(
@@ -57,6 +65,7 @@ void main() {
     AuthSessionStore? store,
     PushNotifications? push,
     Future<bool> Function(Uri url)? openUrl,
+    AppLocaleController? localeController,
   }) async {
     useLogicalViewport(tester, const Size(393, 966), padding: iPhonePadding);
     await tester.pumpWidget(
@@ -69,6 +78,7 @@ void main() {
             sessionStore: store ?? AuthSessionStore(),
             push: push,
             openUrl: openUrl,
+            localeController: localeController,
           ),
           loginRoute: (_) => const Scaffold(body: Text('login')),
         },
@@ -76,6 +86,12 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  // MN/EN is no longer inert: it shows and writes the app's one language
+  // (Issue #501).
+  profileLanguageToggleCases(
+    pumpWith: (tester, controller) => pump(tester, localeController: controller),
+  );
 
   notificationPermissionSwitchCases(
     label: ProfileStrings.notification,
@@ -253,19 +269,6 @@ void main() {
   });
 
   group('unbacked controls stay inert', () {
-    testWidgets('MN/EN shows MN and a tap changes nothing', (tester) async {
-      await pump(tester);
-
-      await tester.tap(find.text(ProfileStrings.languageEn));
-      await tester.pumpAndSettle();
-
-      final toggle = tester.widget<ProfileLanguageToggle>(
-        find.byType(ProfileLanguageToggle),
-      );
-      expect(toggle.english, isFalse);
-      expect(toggle.onChanged, isNull);
-    });
-
     testWidgets('the Notification switch shows off and a tap changes nothing', (
       tester,
     ) async {

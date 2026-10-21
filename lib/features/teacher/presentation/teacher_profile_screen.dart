@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/locale/app_locale_controller.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../shared/widgets/tab_title_bar.dart';
 import '../../auth/data/http_current_user_repository.dart';
@@ -78,8 +79,8 @@ const double _textToRule = 24;
 ///
 ///  * the avatar is the placeholder disc: `/auth/me` has no avatar field, and
 ///    the frame's photo is design content (`BACKEND GAP`);
-///  * MN/EN shows MN, the app's one language, and ignores taps — there is no
-///    locale mechanism to hand a choice to (`UNKNOWN`);
+///  * MN/EN shows and writes the app's one language ([AppLocaleController],
+///    Issue #501);
 ///  * the Notification switch shows off and ignores taps — no
 ///    notification-preference endpoint exists (`BACKEND GAP`);
 ///  * Help center has no destination (`UNKNOWN`), so it is a row without a
@@ -95,6 +96,7 @@ class TeacherProfileScreen extends StatefulWidget {
     this.authRepository,
     this.sessionStore,
     this.themeController,
+    this.localeController,
     this.push,
     this.openUrl,
   });
@@ -111,6 +113,11 @@ class TeacherProfileScreen extends StatefulWidget {
   /// The app's one theme state, which the Dark mode row shows and writes.
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
+
+  /// The app's one language state, which the MN/EN control shows and writes
+  /// (Issue #501). Defaults to [AppLocaleController.instance]; injected in
+  /// tests.
+  final AppLocaleController? localeController;
 
   /// The OS notification permission the Notification switch shows and whose
   /// settings it opens (Issue #429). Defaults to
@@ -185,6 +192,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   Widget _buildBody() {
     final theme = widget.themeController ?? AppThemeController.instance;
+    final locale = widget.localeController ?? AppLocaleController.instance;
     // A `SingleChildScrollView`, as on the Adult Profile: a fixed, fully
     // known set of rows, laid out whole so one fling reaches the end.
     return SingleChildScrollView(
@@ -201,12 +209,15 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           const ProfileCaption(ProfileStrings.appSettingsSection),
           ProfileGroup(
             rows: [
-              const ProfileRow(
+              ProfileRow(
                 icon: ProfileIcons.language,
                 label: ProfileStrings.language,
-                trailing: ProfileLanguageToggle(
-                  english: false,
-                  onChanged: null,
+                trailing: ListenableBuilder(
+                  listenable: locale,
+                  builder: (context, _) => ProfileLanguageToggle(
+                    english: locale.english,
+                    onChanged: locale.setEnglish,
+                  ),
                 ),
               ),
               ProfileRow(

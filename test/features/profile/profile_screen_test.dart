@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:ui' show Tristate;
 
 import 'package:aia_mobile/features/notifications/push/push_notifications.dart';
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/core/theme/app_theme_controller.dart';
 import 'package:aia_mobile/core/theme/theme_preference.dart';
 import 'package:aia_mobile/core/theme/app_palette.dart';
@@ -30,6 +32,7 @@ import '../../support/theme_storage.dart';
 import 'fake_current_user_repository.dart';
 import '../notifications/notification_switch_cases.dart';
 import 'contact_link_cases.dart';
+import 'language_toggle_cases.dart';
 
 /// Loads the real Manrope face, the same reason the other screen tests do —
 /// without it, text is measured in the fallback font.
@@ -63,6 +66,11 @@ Finder rowLabel(String label) => find.byWidgetPredicate(
 
 void main() {
   setUpAll(_loadFonts);
+  // A test that taps EN without its own controller would change the app's
+  // one: put it back, so no test leaks a language into the next (Issue #501).
+  tearDown(
+    () => AppLocaleController.instance.setPreference(LocalePreference.mongolian),
+  );
 
   Future<void> pumpProfile(
     WidgetTester tester, {
@@ -70,6 +78,7 @@ void main() {
     FakeCurrentUserRepository? repository,
     ThemeData? theme,
     AppThemeController? themeController,
+    AppLocaleController? localeController,
     PushNotifications? push,
     Future<bool> Function(Uri url)? openUrl,
   }) async {
@@ -89,6 +98,7 @@ void main() {
                 ),
               ),
           themeController: themeController,
+          localeController: localeController,
           push: push,
           openUrl: openUrl,
         ),
@@ -96,6 +106,14 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  profileLanguageToggleCases(
+    pumpWith: (tester, controller) => pumpProfile(
+      tester,
+      size: const Size(393, 1400),
+      localeController: controller,
+    ),
+  );
 
   notificationPermissionSwitchCases(
     label: ProfileStrings.notification,

@@ -8,6 +8,7 @@ import '../../../../shared/widgets/track_badge.dart';
 import '../../../enrollments/presentation/enrollment_strings.dart';
 import '../../domain/cohort.dart';
 import '../cohort_list_strings.dart';
+import '../../../../core/models/localized_text.dart';
 
 /// The card's shortest height, border included: Figma's "148 Hug" for a card
 /// with no progress. A minimum, not a fixed height — a card with progress or
@@ -130,7 +131,7 @@ class CohortCard extends StatelessWidget {
                       ),
                       const SizedBox(height: _rowToCaptionGap),
 
-                      if (_preferMongolian(
+                      if (preferredText(
                             cohort.course.title.mn,
                             cohort.course.title.en,
                           )
@@ -239,16 +240,6 @@ class _Progress extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Mongolian first — every other string in the app is — falling back to
-/// English, and to null only when the API sent neither. Matches
-/// `course_card.dart`'s helper; not shared, since neither file currently
-/// depends on the other.
-String? _preferMongolian(String? mn, String? en) {
-  if (mn != null && mn.isNotEmpty) return mn;
-  if (en != null && en.isNotEmpty) return en;
-  return null;
 }
 
 /// `"open"` -> `"Open"`. Values are shown verbatim otherwise — `status` has

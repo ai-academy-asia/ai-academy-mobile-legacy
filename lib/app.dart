@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api/api_config.dart';
 import 'core/api/api_override_banner.dart';
+import 'core/locale/app_locale_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_theme_controller.dart';
 import 'features/auth/presentation/home_route.dart';
@@ -37,26 +39,31 @@ final GlobalKey<ScaffoldMessengerState> appMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
 class AiAcademyApp extends StatelessWidget {
-  const AiAcademyApp({super.key, this.themeController});
+  const AiAcademyApp({super.key, this.themeController, this.localeController});
 
   /// The one theme state for every role (Issue #252). Defaults to
   /// [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
+  /// The one language state for every role (Issue #501). Defaults to
+  /// [AppLocaleController.instance]; injected in tests.
+  final AppLocaleController? localeController;
+
   @override
   Widget build(BuildContext context) {
     final controller = themeController ?? AppThemeController.instance;
+    final locale = localeController ?? AppLocaleController.instance;
     // Above the whole navigator, so Adult, Junior and Teacher — and Login
-    // and Splash — all draw in the same theme. `darkTheme` is the
-    // candidate (Issue #276), unreachable: the controller stays light and
-    // nothing sets another mode until Phase 10.
+    // and Splash — all draw in the same theme and language. `darkTheme` is
+    // the candidate (Issue #276), unreachable: the controller stays light
+    // and nothing sets another mode until Phase 10.
     return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) => _app(controller.mode),
+      listenable: Listenable.merge([controller, locale]),
+      builder: (context, _) => _app(controller.mode, locale.locale),
     );
   }
 
-  Widget _app(ThemeMode themeMode) {
+  Widget _app(ThemeMode themeMode, Locale locale) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
       scaffoldMessengerKey: appMessengerKey,
@@ -75,6 +82,15 @@ class AiAcademyApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
+      // Flutter's own widgets in the chosen language (Issue #501). The app's
+      // own UI copy is not translated yet — see `docs/ai/PROJECT_CONTEXT.md`.
+      locale: locale,
+      supportedLocales: AppLocaleController.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       initialRoute: '/',
       routes: {
         '/': (_) => const SplashScreen(),
