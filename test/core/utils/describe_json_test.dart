@@ -1,3 +1,4 @@
+import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/utils/describe_json.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -100,6 +101,34 @@ void main() {
       expect(preferMongolianText('A hands-on bootcamp'), isNull);
       expect(preferMongolianText(['a', 'b']), isNull);
       expect(preferMongolianText(null), isNull);
+    });
+  });
+
+  // Issue #501: with English selected, a non-blank `en` is read first.
+  group('preferMongolianText with English selected', () {
+    setUp(() => ContentLanguage.prefersEnglish = true);
+    tearDown(() => ContentLanguage.prefersEnglish = false);
+
+    test('returns the English value when it holds text', () {
+      expect(
+        preferMongolianText({'en': ' Hello ', 'mn': 'Сайн байна уу'}),
+        'Hello',
+      );
+    });
+
+    test('falls back to Mongolian when English is null, empty or blank', () {
+      for (final en in [null, '', '   ']) {
+        expect(
+          preferMongolianText({'en': en, 'mn': 'Сайн байна уу'}),
+          'Сайн байна уу',
+          reason: '$en',
+        );
+      }
+    });
+
+    test('still null for no text, or for anything that is not a map', () {
+      expect(preferMongolianText({'en': '  ', 'mn': null}), isNull);
+      expect(preferMongolianText('A hands-on bootcamp'), isNull);
     });
   });
 }

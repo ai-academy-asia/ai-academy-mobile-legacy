@@ -26,6 +26,7 @@ import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import '../domain/home_failure.dart';
 import '../domain/lesson_schedule.dart';
+import '../../../core/models/localized_text.dart';
 
 /// Assembles the Home dashboard out of the endpoints the app already has.
 ///
@@ -173,7 +174,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
         cohortId: cohort.id,
         cohortName: cohort.name,
         courseTitle:
-            _preferMongolian(cohort.course.title.mn, cohort.course.title.en) ??
+            preferredText(cohort.course.title.mn, cohort.course.title.en) ??
             cohort.name,
         courseSlug: courseSlug,
         status: cohort.status,
@@ -436,15 +437,6 @@ HomeFailureKind _kindForApi(ApiFailureKind kind) => switch (kind) {
   ApiFailureKind.notFound => HomeFailureKind.unexpected,
   ApiFailureKind.unexpected => HomeFailureKind.unexpected,
 };
-
-/// Mongolian first — every other string in the app is — falling back to
-/// English, and to null only when the API sent neither. Matches the same
-/// helper in `cohort_card.dart` and `course_card.dart`.
-String? _preferMongolian(String? mn, String? en) {
-  if (mn != null && mn.isNotEmpty) return mn;
-  if (en != null && en.isNotEmpty) return en;
-  return null;
-}
 
 /// A cohort's `start_date` / `end_date` (`"2026-08-06"`) as that date's
 /// midnight, as [LessonSchedule] reads them; null for `''` or anything that

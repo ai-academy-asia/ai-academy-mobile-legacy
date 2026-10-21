@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/locale/app_locale_controller.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../shared/widgets/app_svg_icon.dart';
 import '../../../shared/widgets/tab_title_bar.dart';
@@ -95,9 +96,11 @@ const double _iconToLabel = 8;
 ///
 /// **Gaps.** No confirmed response carries an avatar URL, so the avatar is
 /// a placeholder disc, as on the adult Profile — the frame's photo is design
-/// content, not app data. Every other row and the toggles have no
-/// destination yet, as on the adult Profile; the toggles hold local state
-/// that nothing reads. Log out signs out for real through the same
+/// content, not app data. Every other row and the Notification toggle have
+/// no destination yet, as on the adult Profile; that toggle holds local state
+/// that nothing reads. The MN/EN control shows and writes the app's one
+/// language ([AppLocaleController], Issue #501). Log out signs out for real
+/// through the same
 /// [signOutToLogin] the adult Profile uses.
 class JuniorProfileScreen extends StatefulWidget {
   const JuniorProfileScreen({
@@ -110,6 +113,7 @@ class JuniorProfileScreen extends StatefulWidget {
     this.courseLearningRepository,
     this.contractRepository,
     this.themeController,
+    this.localeController,
     this.push,
     this.openUrl,
   });
@@ -145,6 +149,11 @@ class JuniorProfileScreen extends StatefulWidget {
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
+  /// The app's one language state, which the MN/EN control shows and writes
+  /// (Issue #501). Defaults to [AppLocaleController.instance]; injected in
+  /// tests.
+  final AppLocaleController? localeController;
+
   /// The OS notification permission the Notification switch shows and whose
   /// settings it opens (Issue #429). Defaults to
   /// [PushNotifications.instance]; injected in tests.
@@ -155,9 +164,6 @@ class JuniorProfileScreen extends StatefulWidget {
 }
 
 class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
-  // UI-only state — see the class doc.
-  bool _english = false;
-
   late final ProfileController _profile;
 
   @override
@@ -224,6 +230,7 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
 
   Widget _buildBody() {
     final theme = widget.themeController ?? AppThemeController.instance;
+    final locale = widget.localeController ?? AppLocaleController.instance;
     // A `SingleChildScrollView`, for the reason the adult Profile gives: a
     // fixed, fully-known set of rows whose exact extent one fling must reach.
     return SingleChildScrollView(
@@ -282,9 +289,12 @@ class _JuniorProfileScreenState extends State<JuniorProfileScreen> {
               _Row(
                 icon: const _RowIcon(ProfileIcons.language),
                 label: JuniorProfileStrings.language,
-                trailing: _LanguageToggle(
-                  english: _english,
-                  onChanged: (value) => setState(() => _english = value),
+                trailing: ListenableBuilder(
+                  listenable: locale,
+                  builder: (context, _) => _LanguageToggle(
+                    english: locale.english,
+                    onChanged: locale.setEnglish,
+                  ),
                 ),
               ),
               _Row(

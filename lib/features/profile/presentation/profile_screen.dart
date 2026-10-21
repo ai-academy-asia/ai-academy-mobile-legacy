@@ -6,6 +6,7 @@ import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_system_ui.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
+import '../../../core/locale/app_locale_controller.dart';
 import '../../../core/theme/app_theme_controller.dart';
 import '../../../core/theme/theme_preference.dart';
 import '../../../shared/widgets/tab_title_bar.dart';
@@ -59,9 +60,10 @@ const double _editGlyph = 20;
 /// #155), Change password, Term of Service and Privacy Policy is UI only.**
 /// Term of Service and Privacy Policy open the published pages
 /// ([ProfileLinks]). Transaction history, edit profile and Help center have
-/// no destination yet, and the language and notification controls hold
-/// local state that nothing else reads — there is no locale mechanism and no
-/// notification-preference endpoint in the app to hand them to.
+/// no destination yet, and the notification control holds local state that
+/// nothing else reads — there is no notification-preference endpoint to
+/// hand it to. The MN/EN control shows and writes the app's one language
+/// ([AppLocaleController], Issue #501).
 ///
 /// **Dark mode shows the app's one theme preference** (Phase 10, Issue
 /// #278): `AppThemeController.preference`, the signed-in account's own,
@@ -102,6 +104,7 @@ class ProfileScreen extends StatefulWidget {
     this.courseLearningRepository,
     this.contractRepository,
     this.themeController,
+    this.localeController,
     this.push,
     this.openUrl,
   });
@@ -136,6 +139,11 @@ class ProfileScreen extends StatefulWidget {
   /// Defaults to [AppThemeController.instance]; injected in tests.
   final AppThemeController? themeController;
 
+  /// The app's one language state, which the MN/EN control shows and writes
+  /// (Issue #501). Defaults to [AppLocaleController.instance]; injected in
+  /// tests.
+  final AppLocaleController? localeController;
+
   /// The OS notification permission the Notification switch shows and whose
   /// settings it opens (Issue #429). Defaults to
   /// [PushNotifications.instance]; injected in tests.
@@ -146,10 +154,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // UI-only state. Deliberately not persisted and not read by anything else —
-  // see the class doc above.
-  bool _english = false;
-
   late final ProfileController _profile;
 
   @override
@@ -204,6 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildBody() {
     final theme = widget.themeController ?? AppThemeController.instance;
+    final locale = widget.localeController ?? AppLocaleController.instance;
     // A `SingleChildScrollView` rather than a `ListView`: the rows are a
     // fixed, fully-known set, and a lazily-built sliver only *estimates* its
     // scroll extent from the children it has laid out so far — which made a
@@ -260,9 +265,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ProfileRow(
                 icon: ProfileIcons.language,
                 label: ProfileStrings.language,
-                trailing: ProfileLanguageToggle(
-                  english: _english,
-                  onChanged: (value) => setState(() => _english = value),
+                trailing: ListenableBuilder(
+                  listenable: locale,
+                  builder: (context, _) => ProfileLanguageToggle(
+                    english: locale.english,
+                    onChanged: locale.setEnglish,
+                  ),
                 ),
               ),
               ProfileRow(

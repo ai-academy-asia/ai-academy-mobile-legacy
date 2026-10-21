@@ -9,6 +9,7 @@ import '../../../../core/theme/app_palette.dart';
 import '../../domain/course.dart';
 import '../course_catalog_strings.dart';
 import 'course_price_row.dart';
+import '../../../../core/models/localized_text.dart';
 
 /// One course in the catalog — matches the Figma "Course Catalog" frame's
 /// card structure: a track badge and status pill, title and description, a
@@ -90,14 +91,13 @@ class CourseCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               Text(
-                _preferMongolian(course.title.mn, course.title.en) ??
-                    course.slug,
+                preferredText(course.title.mn, course.title.en) ?? course.slug,
                 style: AppTypography.catalogTitle.copyWith(color: contentColor),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
 
-              if (_preferMongolian(course.tagline.mn, course.tagline.en)
+              if (preferredText(course.tagline.mn, course.tagline.en)
                   case final tagline?) ...[
                 const SizedBox(height: AppDimens.cardLineGap),
                 Text(
@@ -141,15 +141,6 @@ class CourseCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Mongolian first — every other string in the app is — falling back to
-/// English, and to null (the caller's problem, not this widget's) only when
-/// the API sent neither.
-String? _preferMongolian(String? mn, String? en) {
-  if (mn != null && mn.isNotEmpty) return mn;
-  if (en != null && en.isNotEmpty) return en;
-  return null;
 }
 
 /// `"junior"` -> `"Junior"`. Values are shown verbatim otherwise — neither
