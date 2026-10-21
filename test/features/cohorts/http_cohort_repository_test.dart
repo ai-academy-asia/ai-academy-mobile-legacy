@@ -152,7 +152,7 @@ void main() {
 
       final teacher = (await repository.getCohorts()).cohorts.single.teacher;
 
-      expect(teacher.id, 2);
+      expect(teacher!.id, 2);
       expect(teacher.name, 'Сараа Ганбат');
     });
 
@@ -276,7 +276,7 @@ void main() {
       expect(listing.cohorts[2].seatsAvailable, isNull);
       expect(listing.cohorts[2].graduationDate, '2026-10-10');
       expect(listing.cohorts[3].name, 'Corporate Leaders 2026-08');
-      expect(listing.cohorts[3].teacher.id, 2);
+      expect(listing.cohorts[3].teacher!.id, 2);
     });
 
     test('a missing key is still skipped, naming the field', () async {
@@ -302,9 +302,8 @@ void main() {
       }
     });
 
-    test('no other field is loosened: a null teacher or enrolled count is '
-        'still skipped', () async {
-      for (final field in ['teacher', 'enrolled_count']) {
+    test('no other field is loosened: a null enrolled count is still skipped', () async {
+      for (final field in ['enrolled_count']) {
         final listing = await listingOf([
           _cohortJson(overrides: {field: null, 'graduation_date': null}),
         ]);
@@ -340,7 +339,7 @@ void main() {
       expect(bare.startTime, '');
       expect(bare.endTime, '');
       expect(bare.meetingDays, isEmpty);
-      expect(bare.teacher.id, 2);
+      expect(bare.teacher!.id, 2);
       expect(listing.cohorts[1].startDate, '');
       expect(listing.cohorts[1].endDate, '2026-10-06');
       expect(listing.cohorts[5].meetingDays, isEmpty);
@@ -424,22 +423,44 @@ void main() {
     });
 
     test('a missing nested object names the field', () async {
-      // `teacher` — still required. `classroom` may be absent or null: see
-      // the "nullable classroom" group.
+      // The `teacher` key is still required — its value may be `null` (Issue
+      // #493). `classroom` may be absent or null: see the "nullable
+      // classroom" group.
       final skipped = await skippedRow(_cohortJson()..remove('teacher'));
       expect(skipped.reason, contains('cohort.teacher'));
     });
 
-    test(
-      'a null teacher — what a deleted teacher leaves — names the field',
-      () async {
-        final skipped = await skippedRow(
-          _cohortJson(overrides: {'teacher': null}),
-        );
-        expect(skipped.id, 1);
-        expect(skipped.reason, contains('cohort.teacher'));
-      },
-    );
+    test('a null teacher — none assigned, or a deleted teacher — is a cohort '
+        'with no teacher, not a malformed row (Issue #493)', () async {
+      final listing = await listingOf([
+        _cohortJson(overrides: {'id': 1}),
+        _cohortJson(overrides: {'id': 2, 'teacher': null}),
+      ]);
+
+      expect(listing.skipped, isEmpty);
+      expect(listing.cohorts.map((c) => c.id), [1, 2]);
+      expect(listing.cohorts.first.teacher!.id, 2);
+      expect(listing.cohorts.last.teacher, isNull);
+      expect(listing.cohorts.last.name, 'Corporate Leaders 2026-08');
+      expect(listing.cohorts.last.course.slug, 'summer-bootcamp-2027');
+    });
+
+    test('a sent teacher must still be an object with a number id and a '
+        'string name', () async {
+      for (final teacher in <Object?>[
+        <String, dynamic>{},
+        {'id': 2},
+        {'name': 'Сараа'},
+        {'id': '2', 'name': 'Сараа'},
+        {'id': 2, 'name': null},
+        {'id': 2, 'name': 7},
+      ]) {
+        final skipped = await skippedRow(_cohortJson(overrides: {'teacher': teacher}));
+        expect(skipped.id, 1, reason: '$teacher');
+        expect(skipped.reason, anyOf(contains('cohort.id'), contains('cohort.name')),
+            reason: '$teacher');
+      }
+    });
 
     test('a non-object nested field names the field', () async {
       final skipped = await skippedRow(
@@ -479,7 +500,7 @@ void main() {
         'reported under that id, so the id stays suspect', () async {
       final listing = await listingOf([
         _cohortJson(overrides: {'id': 5, 'name': 'Valid'}),
-        _cohortJson(overrides: {'id': 5, 'teacher': null}),
+        _cohortJson(overrides: {'id': 5, 'teacher': 'Bat'}),
       ]);
 
       expect(listing.cohorts.single.id, 5);
@@ -491,7 +512,7 @@ void main() {
         '(never truncated to another cohort\'s)', () async {
       final listing = await listingOf([
         _cohortJson(overrides: {'id': 7}),
-        _cohortJson(overrides: {'id': 7.5, 'teacher': null}),
+        _cohortJson(overrides: {'id': 7.5, 'teacher': 'Bat'}),
       ]);
 
       expect(listing.cohorts.single.id, 7);
@@ -506,7 +527,7 @@ void main() {
         'in order, and the malformed one is reported', () async {
       final listing = await listingOf([
         _cohortJson(overrides: {'id': 1, 'name': 'A'}),
-        _cohortJson(overrides: {'id': 2, 'teacher': null}),
+        _cohortJson(overrides: {'id': 2, 'teacher': 'Bat'}),
         _cohortJson(overrides: {'id': 3, 'name': 'C'}),
       ]);
 
@@ -518,7 +539,7 @@ void main() {
 
     test('every row malformed: no cohorts, every row reported', () async {
       final listing = await listingOf([
-        _cohortJson(overrides: {'id': 1, 'teacher': null}),
+        _cohortJson(overrides: {'id': 1, 'teacher': 'Bat'}),
         _cohortJson(overrides: {'id': 2})..remove('start_date'),
         'not-an-object',
       ]);
@@ -571,7 +592,7 @@ void main() {
 
       expect(cohort.classroom, isNull);
       expect(cohort.id, 1);
-      expect(cohort.teacher.name, 'Сараа Ганбат');
+      expect(cohort.teacher!.name, 'Сараа Ганбат');
     });
 
     test(

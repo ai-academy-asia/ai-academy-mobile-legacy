@@ -117,12 +117,12 @@ void main() {
 
   group('Home', () {
     test(
-      'an unrelated row with a null teacher still loads the dashboard',
+      'an unrelated row with a malformed teacher still loads the dashboard',
       () async {
         final dashboard = await home(
           [
             row(1),
-            row(2, overrides: {'teacher': null}),
+            row(2, overrides: {'teacher': 'Bat'}),
           ],
           enrolledIds: [1],
         ).getDashboard();
@@ -174,7 +174,7 @@ void main() {
           home(
             [
               row(1),
-              row(2, overrides: {'id': 2.5, 'teacher': null}),
+              row(2, overrides: {'id': 2.5, 'teacher': 'Bat'}),
             ],
             enrolledIds: [2],
           ).getDashboard(),
@@ -242,6 +242,39 @@ void main() {
     expect(dashboard.program!.cohortId, 2);
     expect(dashboard.program!.nextLesson, isNull);
     expect(dashboard.program!.schedule, isNull);
+  });
+
+  // Issue #493: the student's own cohort with no teacher is a valid row.
+  group('a cohort with no teacher (Issue #493)', () {
+    test(
+      'is the student\'s own cohort on Home, not the server error',
+      () async {
+        final dashboard = await home(
+          [
+            row(1),
+            row(2, overrides: {'teacher': null}),
+          ],
+          enrolledIds: [2],
+        ).getDashboard();
+
+        expect(dashboard.program!.cohortId, 2);
+      },
+    );
+
+    test(
+      'draws the student\'s certificate card, not the server error',
+      () async {
+        final entries = await certificates(
+          [
+            row(1),
+            row(2, overrides: {'teacher': null}),
+          ],
+          enrolledIds: [2],
+        ).getCertificates();
+
+        expect([for (final e in entries) e.cohortId], [2]);
+      },
+    );
   });
 
   group('Certificates', () {

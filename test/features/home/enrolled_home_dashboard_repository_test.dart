@@ -1074,7 +1074,7 @@ void main() {
   // Issue #445: `GET /cohorts` reads row by row. An unrelated malformed
   // cohort is not listed; one that may be the student's own fails closed.
   group('malformed cohort rows', () {
-    const unreadableTeacher = 'cohort.teacher: expected an object, got Null';
+    const unreadableTeacher = 'cohort.teacher: expected an object, got String';
 
     Matcher serverFailure() => throwsA(
       isA<HomeFailure>().having((f) => f.kind, 'kind', HomeFailureKind.server),

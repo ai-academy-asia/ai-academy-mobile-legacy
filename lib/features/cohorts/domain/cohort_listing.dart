@@ -48,7 +48,7 @@ class SkippedCohort {
   final int? id;
 
   /// The failing field and the type that arrived — for example
-  /// `cohort.teacher: expected an object, got Null`. It names fields and
+  /// `cohort.teacher: expected an object, got String`. It names fields and
   /// types only, never a value, so it carries no personal data.
   final String reason;
 }
