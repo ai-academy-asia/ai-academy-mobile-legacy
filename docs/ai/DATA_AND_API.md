@@ -96,6 +96,15 @@ Base URL `https://api.ai-academy.asia`, held once in `ApiConfig` and used by eve
 
 Adult Home (`EnrolledHomeDashboardRepository`) and Junior "Сурлагын явц" (`ApiJuniorProgressRepository`, which maps that same dashboard) read only these fields. Each shape is the verified production response recorded on the repository; `mobile_api_v1_1.md` is the contract they were checked against.
 
+**Which cohort the dashboard is about** (Issue #495), for a student enrolled in more than one. Adult Home, Junior Home and Junior Progress all take the dashboard's choice. It is made from the enrolled cohorts' `start_date` / `end_date` against today's **Ulaanbaatar** date (`ulaanbaatarToday`), never from `status`: the backend sends only `draft`, `open` and `closed`, which say nothing about whether a cohort is under way. In order:
+
+1. **In progress:** start ≤ today ≤ end, both ends inclusive. A missing or unparseable date leaves that end open (as `LessonSchedule` treats it); a cohort with neither date is not in progress on its dates alone. If several qualify, the first in `/cohorts` order wins.
+2. **Upcoming:** start after today; the earliest start wins.
+3. **Ended:** end before today; the latest end wins.
+4. Otherwise, the first enrolled cohort in `/cohorts` order.
+
+Ties keep `/cohorts` order.
+
 | Endpoint | Fields read | Used for |
 |---|---|---|
 | `GET /me/cohorts` | entry `cohort_id`, `progress_pct` | which cohorts the student is in; progress fallback |

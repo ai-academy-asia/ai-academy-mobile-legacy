@@ -1,11 +1,27 @@
+import 'package:aia_mobile/core/models/localized_text.dart';
+import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
+import 'package:aia_mobile/features/cohorts/domain/cohort.dart';
+import 'package:aia_mobile/features/course_learning/domain/course_learning_failure.dart';
+import 'package:aia_mobile/features/enrollments/domain/enrolled_cohorts_repository.dart';
+import 'package:aia_mobile/features/home/data/enrolled_home_dashboard_repository.dart';
 import 'package:aia_mobile/features/home/domain/home_dashboard.dart';
 import 'package:aia_mobile/features/home/domain/home_failure.dart';
 import 'package:aia_mobile/features/home/domain/lesson_schedule.dart';
 import 'package:aia_mobile/features/junior_home/data/api_junior_progress_repository.dart';
 import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
+import 'package:aia_mobile/features/payments/domain/ledger_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../attendance/fake_attendance_repository.dart';
+import '../cohorts/fake_cohort_repository.dart';
+import '../contracts/fake_contract_repository.dart';
+import '../course_learning/fake_course_learning_repository.dart'
+    show FakeCourseLearningRepository;
+import '../courses/fake_course_repository.dart';
+import '../enrollments/fake_enrolled_cohorts_repository.dart';
 import '../home/fake_home_dashboard_repository.dart';
+import '../payments/fake_ledger_repository.dart';
+import '../profile/fake_current_user_repository.dart';
 
 /// [ApiJuniorProgressRepository] is a mapper over the adult dashboard: these
 /// tests feed it a [HomeDashboard] and check what reaches [JuniorProgress] —
@@ -155,6 +171,62 @@ void main() {
       expect(progress.examPercent, isNull);
     },
   );
+
+  // Issue #495: the calendar's lesson days come from the real dashboard's
+  // choice of cohort — the one in progress today, not the first listed.
+  test('the calendar follows the cohort in progress, not the first listed',
+      () async {
+    Cohort cohortOf(int id, List<String> days, String start, String end) =>
+        sampleCohort(
+          id: id,
+          course: CohortCourse(
+            id: id,
+            slug: 'course-$id',
+            title: const LocalizedText(en: 'Course', mn: 'Хичээл'),
+          ),
+          meetingDays: days,
+          startDate: start,
+          endDate: end,
+        );
+    final ended = cohortOf(1, const ['mon', 'wed'], '2026-05-01', '2026-07-31');
+    final current =
+        cohortOf(2, const ['tue', 'thu'], '2026-09-01', '2026-12-20');
+    // Noon on 15 October 2026 in Ulaanbaatar.
+    DateTime clock() => DateTime.utc(2026, 10, 15, 4);
+
+    final progress = await ApiJuniorProgressRepository(
+      dashboard: EnrolledHomeDashboardRepository(
+        enrolledCohorts: FakeEnrolledCohortsRepository(
+          enrolledCohorts: const [
+            EnrolledCohortSummary(cohortId: 1),
+            EnrolledCohortSummary(cohortId: 2),
+          ],
+        ),
+        cohorts: FakeCohortRepository(cohorts: [ended, current]),
+        courses: FakeCourseRepository(),
+        currentUser: FakeCurrentUserRepository(),
+        courseLearning: FakeCourseLearningRepository(
+          failure: const CourseLearningFailure(
+            CourseLearningFailureKind.notEnrolled,
+          ),
+        ),
+        ledger: FakeLedgerRepository(
+          failure: const LedgerFailure(LedgerFailureKind.network),
+        ),
+        attendance: FakeAttendanceRepository(
+          failure: const AttendanceFailure(AttendanceFailureKind.network),
+        ),
+        contracts: FakeContractRepository(),
+        clock: clock,
+      ),
+      clock: clock,
+    ).getProgress();
+
+    expect(
+      progress!.calendar!.schedule!.weekdays,
+      {DateTime.tuesday, DateTime.thursday},
+    );
+  });
 
   group('calendar', () {
     test('this month, today selected', () async {

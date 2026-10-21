@@ -21,6 +21,7 @@ import '../../enrollments/domain/enrolled_cohorts_repository.dart';
 import '../../enrollments/domain/enrollment_failure.dart';
 import '../../payments/data/http_ledger_repository.dart';
 import '../../payments/domain/ledger_repository.dart';
+import '../../teacher/domain/teacher_attendance.dart' show ulaanbaatarToday;
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import '../domain/home_failure.dart';
@@ -151,6 +152,7 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
     final cohort = _currentCohort(
       listing.cohorts,
       progressByCohortId.keys.toSet(),
+      today: ulaanbaatarToday(_clock()),
     );
     if (cohort == null) return const HomeDashboard();
 
@@ -235,21 +237,69 @@ class EnrolledHomeDashboardRepository implements HomeDashboardRepository {
 
   /// The cohort the dashboard is about.
   ///
-  /// A student can be enrolled in several; the reference shows one. An
-  /// in-progress cohort is the one they are studying in now, so that wins —
-  /// otherwise the first enrolled cohort the API listed, which keeps the
-  /// choice stable rather than arbitrary.
-  Cohort? _currentCohort(List<Cohort> cohorts, Set<int> enrolledIds) {
+  /// A student can be enrolled in several; the reference shows one. It is
+  /// chosen by the cohorts' dates against [today] — the Ulaanbaatar date —
+  /// never by `status`, whose values (`draft` / `open` / `closed`) say
+  /// nothing about whether a cohort is under way (Issue #495). In order:
+  ///
+  ///  1. **In progress** — start ≤ today ≤ end, both ends inclusive. A date
+  ///     that is missing or not a date leaves that end open, as
+  ///     [LessonSchedule] treats it; a cohort with neither date is not in
+  ///     progress on its dates alone. Of several, the first the API listed.
+  ///  2. **Upcoming** — start after today: the earliest start.
+  ///  3. **Ended** — end before today: the latest end.
+  ///  4. Otherwise the first enrolled cohort the API listed.
+  ///
+  /// Ties keep the API's `/cohorts` order, which keeps the choice stable
+  /// rather than arbitrary.
+  Cohort? _currentCohort(
+    List<Cohort> cohorts,
+    Set<int> enrolledIds, {
+    required DateTime today,
+  }) {
     final enrolled = [
       for (final cohort in cohorts)
-        if (enrolledIds.contains(cohort.id)) cohort,
+        if (enrolledIds.contains(cohort.id))
+          (
+            cohort: cohort,
+            start: _cohortDate(cohort.startDate),
+            end: _cohortDate(cohort.endDate),
+          ),
     ];
     if (enrolled.isEmpty) return null;
 
-    for (final cohort in enrolled) {
-      if (cohort.status.toLowerCase() == 'active') return cohort;
+    for (final c in enrolled) {
+      if (c.start == null && c.end == null) continue;
+      final started = c.start == null || !c.start!.isAfter(today);
+      final notEnded = c.end == null || !c.end!.isBefore(today);
+      if (started && notEnded) return c.cohort;
     }
-    return enrolled.first;
+
+    Cohort? upcoming;
+    DateTime? upcomingStart;
+    for (final c in enrolled) {
+      final start = c.start;
+      if (start == null || !start.isAfter(today)) continue;
+      if (upcomingStart == null || start.isBefore(upcomingStart)) {
+        upcoming = c.cohort;
+        upcomingStart = start;
+      }
+    }
+    if (upcoming != null) return upcoming;
+
+    Cohort? ended;
+    DateTime? endedEnd;
+    for (final c in enrolled) {
+      final end = c.end;
+      if (end == null || !end.isBefore(today)) continue;
+      if (endedEnd == null || end.isAfter(endedEnd)) {
+        ended = c.cohort;
+        endedEnd = end;
+      }
+    }
+    if (ended != null) return ended;
+
+    return enrolled.first.cohort;
   }
 
   /// The account's `ui_mode`, for the track badge.
@@ -394,4 +444,13 @@ String? _preferMongolian(String? mn, String? en) {
   if (mn != null && mn.isNotEmpty) return mn;
   if (en != null && en.isNotEmpty) return en;
   return null;
+}
+
+/// A cohort's `start_date` / `end_date` (`"2026-08-06"`) as that date's
+/// midnight, as [LessonSchedule] reads them; null for `''` or anything that
+/// is not a date.
+DateTime? _cohortDate(String value) {
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) return null;
+  return DateTime(parsed.year, parsed.month, parsed.day);
 }
