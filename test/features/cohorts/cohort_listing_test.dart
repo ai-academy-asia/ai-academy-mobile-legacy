@@ -6,7 +6,7 @@ import 'fake_cohort_repository.dart';
 /// The fail-closed rule Home and Certificates apply to the student's own
 /// cohorts (Issue #445).
 void main() {
-  const teacher = 'cohort.teacher: expected an object, got Null';
+  const teacher = 'cohort.teacher: expected an object, got String';
 
   group('mayHideAny', () {
     test('nothing skipped hides nothing, listed or not', () {

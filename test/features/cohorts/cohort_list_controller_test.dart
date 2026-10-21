@@ -160,7 +160,7 @@ void main() {
 
   // Issue #445: the controller keeps the rows `GET /cohorts` skipped.
   group('malformed rows', () {
-    const teacher = 'cohort.teacher: expected an object, got Null';
+    const teacher = 'cohort.teacher: expected an object, got String';
 
     CohortListController controllerFor(FakeCohortRepository repository) =>
         CohortListController(

@@ -279,7 +279,7 @@ void main() {
   // Issue #445: `GET /cohorts` reads row by row. An unrelated malformed
   // cohort is not listed; one that may be the student's own fails closed.
   group('malformed cohort rows', () {
-    const unreadableTeacher = 'cohort.teacher: expected an object, got Null';
+    const unreadableTeacher = 'cohort.teacher: expected an object, got String';
 
     test(
       'an unrelated malformed cohort still draws the student\'s cards',

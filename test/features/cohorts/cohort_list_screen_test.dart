@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:aia_mobile/core/api/api_failure.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_colors.dart';
@@ -5,6 +7,7 @@ import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
 import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
+import 'package:aia_mobile/features/cohorts/data/http_cohort_repository.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_screen.dart';
 import 'package:aia_mobile/features/cohorts/presentation/cohort_list_strings.dart';
 import 'package:aia_mobile/features/cohorts/presentation/widgets/cohort_card.dart';
@@ -22,6 +25,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:aia_mobile/shared/widgets/track_badge.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../courses/fake_course_repository.dart';
 import '../enrollments/fake_enrolled_cohorts_repository.dart';
@@ -582,7 +587,7 @@ void main() {
           skipped: const [
             SkippedCohort(
               id: 2,
-              reason: 'cohort.teacher: expected an object, got Null',
+              reason: 'cohort.teacher: expected an object, got String',
             ),
           ],
         ),
@@ -1119,7 +1124,8 @@ void main() {
     // be one of the student's own cohorts fails closed; an unrelated one is
     // simply not listed.
     group('a malformed cohort row', () {
-      const unreadableTeacher = 'cohort.teacher: expected an object, got Null';
+      const unreadableTeacher =
+          'cohort.teacher: expected an object, got String';
 
       testWidgets('the student\'s own cohort malformed shows the server error '
           'with retry, never "not enrolled"', (tester) async {
@@ -1568,6 +1574,118 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  // Issue #493: a cohort with no teacher (`teacher: null` — none assigned,
+  // or the teacher was deleted) is a normal cohort, read by the real parser.
+  group('a cohort with no teacher (Issue #493)', () {
+    Map<String, dynamic> row(
+      int id, {
+      Object? teacher = const {'id': 2, 'name': 'T'},
+    }) => {
+      'id': id,
+      'name': 'Cohort 0$id',
+      'course_id': 6,
+      'course': {
+        'id': 6,
+        'slug': 'ai-basics',
+        'title_en': 'AI Basics',
+        'title_mn': 'AI Үндэс',
+      },
+      'classroom': null,
+      'teacher': teacher,
+      'capacity': 20,
+      'enrolled_count': 1,
+      'seats_available': 19,
+      'status': 'open',
+      'start_date': '2026-08-06',
+      'end_date': '2026-10-06',
+      'start_time': '18:00',
+      'end_time': '20:00',
+      'graduation_date': null,
+      'meeting_days': ['mon', 'wed'],
+      'parent_cohort_id': null,
+      'schedule_note': null,
+    };
+
+    Future<void> pumpReal(
+      WidgetTester tester,
+      List<Object?> rows, {
+      bool enrolledOnly = false,
+      List<int> enrolled = const [],
+    }) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: CohortListScreen(
+            repository: HttpCohortRepository(
+              client: MockClient(
+                (_) async => http.Response(
+                  jsonEncode({'cohorts': rows}),
+                  200,
+                  headers: {'content-type': 'application/json; charset=utf-8'},
+                ),
+              ),
+            ),
+            courseRepository: FakeCourseRepository(),
+            enrollmentRepository: FakeEnrollmentRepository(),
+            enrolledCohortsRepository: FakeEnrolledCohortsRepository(
+              enrolledCohorts: [
+                for (final id in enrolled) EnrolledCohortSummary(cohortId: id),
+              ],
+            ),
+            enrolledOnly: enrolledOnly,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    List<int> rendered(WidgetTester tester) => tester
+        .widgetList<CohortCard>(find.byType(CohortCard))
+        .map((card) => card.cohort.id)
+        .toList();
+
+    testWidgets('Progress tab: the student\'s own teacherless cohort is drawn, '
+        'not the server error', (tester) async {
+      await pumpReal(
+        tester,
+        [row(1), row(2, teacher: null)],
+        enrolledOnly: true,
+        enrolled: const [2],
+      );
+
+      expect(rendered(tester), [2]);
+      expect(find.text('Cohort 02'), findsOneWidget);
+      expect(find.text(CohortListStrings.serverError), findsNothing);
+      expect(find.text(CohortListStrings.emptyMine), findsNothing);
+    });
+
+    testWidgets('browse list: a teacherless cohort is listed with the others', (
+      tester,
+    ) async {
+      await pumpReal(tester, [row(1), row(2, teacher: null), row(3)]);
+
+      expect(rendered(tester), [1, 2, 3]);
+      expect(find.text(CohortListStrings.serverError), findsNothing);
+    });
+
+    testWidgets('a malformed teacher still fails the student\'s own cohort '
+        'closed', (tester) async {
+      await pumpReal(
+        tester,
+        [row(1), row(2, teacher: 'Bat')],
+        enrolledOnly: true,
+        enrolled: const [2],
+      );
+
+      expect(find.text(CohortListStrings.serverError), findsOneWidget);
+      expect(find.byType(CohortCard), findsNothing);
     });
   });
 }

@@ -7,7 +7,7 @@ import '../../../core/models/localized_text.dart';
 /// [scheduleNote], and [classroom] — `null` on an online cohort in the
 /// production response, see its doc) — plus [capacity], [seatsAvailable] and
 /// [graduationDate], which the backend's source shows it sends as `null`
-/// (Issue #489). Everything else is required, and a
+/// (Issue #489), and [teacher] (Issue #493). Everything else is required, and a
 /// row missing one is rejected loudly — treat that as a sign this model needs
 /// to loosen, not as a bug in the cohort.
 ///
@@ -60,7 +60,9 @@ class Cohort {
   /// `ai-applied-online` cohort. Nothing in the app draws it yet.
   final CohortClassroom? classroom;
 
-  final CohortTeacher teacher;
+  /// `null` for a cohort with no teacher — none assigned, or the teacher
+  /// was deleted (Issue #493). Nothing in the app draws it.
+  final CohortTeacher? teacher;
 
   /// `null` for a cohort with no capacity set (Issue #489).
   final int? capacity;

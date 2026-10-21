@@ -229,7 +229,7 @@ void main() {
           scheduleBody(
             cohorts: [
               {...valid, 'id': 2},
-              {...valid, 'id': 3, 'teacher': null},
+              {...valid, 'id': 3, 'teacher': 'Bat'},
               {...valid, 'id': 5},
             ],
           ),

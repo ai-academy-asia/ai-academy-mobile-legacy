@@ -114,7 +114,9 @@ Cohort cohortFromJson(Object? entry) {
     courseId: _requireInt(entry, 'course_id'),
     course: _requireCohortCourse(entry, 'course'),
     classroom: _optionalClassroom(entry, 'classroom'),
-    teacher: _requireTeacher(entry, 'teacher'),
+    // Always sent, `null` for a cohort with no teacher (Issue #493): none
+    // assigned, the importer's cohorts, or a deleted teacher.
+    teacher: _sentTeacher(entry, 'teacher'),
     // Always sent, `null` when the cohort has no capacity — and then so is
     // `seats_available` (Issue #489). Nothing draws either.
     capacity: _sentInt(entry, 'capacity'),
@@ -163,7 +165,11 @@ CohortClassroom? _optionalClassroom(Map<String, dynamic> json, String key) {
   );
 }
 
-CohortTeacher _requireTeacher(Map<String, dynamic> json, String key) {
+/// `null` for a cohort with no teacher (Issue #493); the key is still
+/// required, and a teacher that is sent must be an object with `id`/`name`.
+CohortTeacher? _sentTeacher(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  if (json[key] == null) return null;
   final value = _requireObject(json, key);
   return CohortTeacher(id: _requireInt(value, 'id'), name: _requireString(value, 'name'));
 }

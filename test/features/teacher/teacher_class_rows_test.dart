@@ -115,7 +115,7 @@ void main() {
         'missing', () async {
       final controller = controllerFor([
         cohort(2),
-        cohort(3, overrides: {'teacher': null}),
+        cohort(3, overrides: {'teacher': 'Bat'}),
       ]);
 
       await controller.load();
