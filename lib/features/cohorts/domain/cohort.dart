@@ -72,7 +72,9 @@ class Cohort {
   /// e.g. "open".
   final String status;
 
-  /// Raw wire strings — e.g. "2026-08-06", "18:00".
+  /// Raw wire strings — e.g. "2026-08-06", "18:00". `''` when the cohort
+  /// has none: the backend sends `null` (or `""`) for a date or time not
+  /// yet set (Issue #491). Readers treat `''` like any unparseable value.
   final String startDate;
   final String endDate;
   final String startTime;
@@ -84,6 +86,7 @@ class Cohort {
 
   /// e.g. `["mon", "wed"]`. Lowercase three-letter weekday codes, unconfirmed
   /// as a closed set — shown verbatim rather than mapped to display names.
+  /// Empty when none are set — `null` on the wire reads as `[]` (Issue #491).
   final List<String> meetingDays;
 
   final int? parentCohortId;

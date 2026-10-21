@@ -218,6 +218,32 @@ void main() {
     );
   });
 
+  // Issue #491: the student's own cohort with no dates, times or meeting
+  // days is a valid row; Home draws it with no next lesson.
+  test('the student\'s own cohort with no dates, times or meeting days loads '
+      'Home, with no next lesson (Issue #491)', () async {
+    final dashboard = await home(
+      [
+        row(1),
+        row(
+          2,
+          overrides: {
+            'start_date': null,
+            'end_date': null,
+            'start_time': null,
+            'end_time': null,
+            'meeting_days': null,
+          },
+        ),
+      ],
+      enrolledIds: [2],
+    ).getDashboard();
+
+    expect(dashboard.program!.cohortId, 2);
+    expect(dashboard.program!.nextLesson, isNull);
+    expect(dashboard.program!.schedule, isNull);
+  });
+
   group('Certificates', () {
     test(
       'an unrelated malformed row still draws the student\'s card',
@@ -225,7 +251,7 @@ void main() {
         final entries = await certificates(
           [
             row(1),
-            row(2, overrides: {'meeting_days': null}),
+            row(2, overrides: {'meeting_days': 'mon,wed'}),
           ],
           enrolledIds: [1],
         ).getCertificates();
@@ -240,7 +266,7 @@ void main() {
         certificates(
           [
             row(1),
-            row(2, overrides: {'meeting_days': null}),
+            row(2, overrides: {'meeting_days': 'mon,wed'}),
           ],
           enrolledIds: [2],
         ).getCertificates(),

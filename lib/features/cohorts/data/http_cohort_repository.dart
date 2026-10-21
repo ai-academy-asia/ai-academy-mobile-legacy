@@ -121,14 +121,19 @@ Cohort cohortFromJson(Object? entry) {
     enrolledCount: _requireInt(entry, 'enrolled_count'),
     seatsAvailable: _sentInt(entry, 'seats_available'),
     status: _requireString(entry, 'status'),
-    startDate: _requireString(entry, 'start_date'),
-    endDate: _requireString(entry, 'end_date'),
-    startTime: _requireString(entry, 'start_time'),
-    endTime: _requireString(entry, 'end_time'),
+    // Always sent, `null` when the cohort has no date or time yet (Issue
+    // #491) — read as `''`, the "not set" every schedule reader already
+    // handles (no next lesson; an open date window).
+    startDate: _sentString(entry, 'start_date') ?? '',
+    endDate: _sentString(entry, 'end_date') ?? '',
+    startTime: _sentString(entry, 'start_time') ?? '',
+    endTime: _sentString(entry, 'end_time') ?? '',
     // Always sent, and `null` when the cohort has none: the backend never
     // requires it (Issue #489). Nothing draws it.
     graduationDate: _sentString(entry, 'graduation_date'),
-    meetingDays: _requireStringList(entry, 'meeting_days'),
+    // `null` when no meeting days are set (Issue #491): `[]`, like a cohort
+    // that sends an empty list.
+    meetingDays: _sentStringList(entry, 'meeting_days'),
     parentCohortId: _optionalInt(entry, 'parent_cohort_id'),
     scheduleNote: _optionalString(entry, 'schedule_note'),
   );
@@ -233,6 +238,14 @@ int? _sentInt(Map<String, dynamic> json, String key) {
 String? _sentString(Map<String, dynamic> json, String key) {
   _requireKey(json, key);
   return _optionalString(json, key);
+}
+
+/// `null` reads as `[]` (Issue #491); the key is still required, and
+/// anything else must be a list of strings.
+List<String> _sentStringList(Map<String, dynamic> json, String key) {
+  _requireKey(json, key);
+  if (json[key] == null) return const [];
+  return _requireStringList(json, key);
 }
 
 List<String> _requireStringList(Map<String, dynamic> json, String key) {
