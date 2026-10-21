@@ -12,6 +12,11 @@ import 'fake_cohort_repository.dart';
 /// A light-mode capture of the Cohort list — `CohortCard` in its states —
 /// taken before any theme migration touches it (Dark Mode Phase 0, Issue
 /// #252). It must stay byte-identical while colours move onto `AppPalette`.
+///
+/// The cohorts carry statuses the backend actually sends (Issue #497): a
+/// `closed` one (the neutral pill, no Enroll), a full `open` one (the green
+/// pill, no Enroll), and an `open` one with seats left — the only card that
+/// offers Enroll.
 void main() {
   setUpAll(loadAppFonts);
 
@@ -24,9 +29,14 @@ void main() {
         home: CohortListScreen(
           repository: FakeCohortRepository(
             cohorts: [
-              sampleCohort(id: 1, name: 'Cohort 01', status: 'finished'),
-              sampleCohort(id: 2, name: 'Cohort 02', status: 'active'),
-              sampleCohort(id: 3, name: 'Cohort 03'),
+              sampleCohort(id: 1, name: 'Cohort 01', status: 'closed'),
+              sampleCohort(
+                id: 2,
+                name: 'Cohort 02',
+                status: 'open',
+                seatsAvailable: 0,
+              ),
+              sampleCohort(id: 3, name: 'Cohort 03', status: 'open'),
             ],
           ),
           courseRepository: FakeCourseRepository(),
