@@ -190,6 +190,7 @@ void main() {
       const Color(0xFFA3ACB9),
       'PROPOSED',
     ),
+    'scheduleToday': (dark.scheduleToday, const Color(0x1A2970FF), 'PROPOSED'),
     'teacherTitle': (dark.teacherTitle, const Color(0xFFECEFF3), 'DERIVED'),
     'teacherNameInk': (dark.teacherNameInk, const Color(0xFFECEFF3), 'DERIVED'),
     'teacherRoleInk': (dark.teacherRoleInk, const Color(0xFFA3ACB9), 'DERIVED'),
@@ -253,7 +254,7 @@ void main() {
     final declared = RegExp(
       r'required this\.(\w+),',
     ).allMatches(source).map((m) => m.group(1)!).toList();
-    expect(declared, hasLength(102));
+    expect(declared, hasLength(103));
     expect(roles.keys.toSet(), declared.toSet());
     for (final MapEntry(key: role, value: (actual, expected, status))
         in roles.entries) {

@@ -252,6 +252,13 @@ class TeacherWeekGrid extends StatelessWidget {
     final height =
         TeacherWeekGridMetrics.topInset +
         (last - first) * TeacherWeekGridMetrics.hourHeight;
+    // Today's column, whatever day is selected — none when today is not in
+    // this week (Issue #499).
+    int? todayColumn;
+    for (var d = 0; d < DateTime.daysPerWeek; d++) {
+      final date = DateTime(weekStart.year, weekStart.month, weekStart.day + d);
+      if (isSameDay(date, now)) todayColumn = d;
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -272,6 +279,8 @@ class TeacherWeekGrid extends StatelessWidget {
                     dayWidth: dayWidth,
                     // The grid's hairlines are rules (proposal §12).
                     line: context.palette.divider,
+                    todayColumn: todayColumn,
+                    todayEdge: context.palette.accentSubtleOutline,
                   ),
                 ),
               ),
@@ -539,6 +548,8 @@ class _GridPainter extends CustomPainter {
     required this.timeColumn,
     required this.dayWidth,
     required this.line,
+    required this.todayColumn,
+    required this.todayEdge,
   });
 
   final int hours;
@@ -549,6 +560,14 @@ class _GridPainter extends CustomPainter {
 
   /// The hairlines' colour — passed in: a painter has no context.
   final Color line;
+
+  /// Today's column (0 = the week's Sunday), or null when today is not in
+  /// this week, and the colour of its two edge lines — painted over the
+  /// hairlines but under the session blocks, so it never takes a tap
+  /// (Issue #499). An edge, not a fill: a fill as faint as the strip's wash
+  /// is nearly the held blocks' own colour, and hid their shape.
+  final int? todayColumn;
+  final Color todayEdge;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -570,6 +589,18 @@ class _GridPainter extends CustomPainter {
       final at = math.min(x, size.width - 0.5);
       canvas.drawLine(Offset(at, 0), Offset(at, size.height), paint);
     }
+    if (todayColumn case final column?) {
+      final edge = Paint()
+        ..color = todayEdge
+        ..strokeWidth = 1;
+      for (final x in [
+        timeColumn + column * dayWidth,
+        timeColumn + (column + 1) * dayWidth,
+      ]) {
+        final at = math.min(x, size.width - 0.5);
+        canvas.drawLine(Offset(at, 0), Offset(at, size.height), edge);
+      }
+    }
   }
 
   @override
@@ -577,7 +608,9 @@ class _GridPainter extends CustomPainter {
       old.hours != hours ||
       old.timeColumn != timeColumn ||
       old.dayWidth != dayWidth ||
-      old.line != line;
+      old.line != line ||
+      old.todayColumn != todayColumn ||
+      old.todayEdge != todayEdge;
 }
 
 /// The hour labels: a dense-grid exception to the type scale
