@@ -1,6 +1,8 @@
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/core/theme/app_typography.dart';
 import 'package:aia_mobile/features/auth/presentation/login_strings.dart';
@@ -280,125 +282,147 @@ void main() {
     /// A miss is a failure here, not a warning.
     setUp(() => WidgetController.hitTestWarningShouldBeFatal = true);
     tearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
+    tearDown(
+      () => AppLocaleController.instance.setPreference(
+        LocalePreference.mongolian,
+      ),
+    );
 
-    const options = [
-      ('Утасдах', '+976 7505 1055'),
-      ('Email бичих', 'info@ai-academy.asia'),
-    ];
+    /// Each option's label and contact, in each language (Issue #513): the
+    /// sheet must fit and answer in English as it does in Mongolian.
+    const optionsIn = {
+      LocalePreference.mongolian: [
+        ('Утасдах', '+976 7505 1055'),
+        ('Email бичих', 'info@ai-academy.asia'),
+      ],
+      LocalePreference.english: [
+        ('Call', '+976 7505 1055'),
+        ('Write an email', 'info@ai-academy.asia'),
+      ],
+    };
     final links = [ManagerContact.phone, ManagerContact.email];
 
     /// One option's card — its tappable ink.
     Finder card(String label) =>
         find.ancestor(of: find.text(label), matching: find.byType(InkWell));
 
-    for (final size in const [Size(320, 568), Size(375, 667), Size(393, 852)]) {
-      for (final scale in const [1.0, 1.3, 1.5, 2.0, 3.0]) {
-        final name =
-            '${size.width.toInt()}×${size.height.toInt()}, '
-            'text ×$scale';
+    for (final MapEntry(key: language, value: options) in optionsIn.entries) {
+      for (final size in const [
+        Size(320, 568),
+        Size(375, 667),
+        Size(393, 852),
+      ]) {
+        for (final scale in const [1.0, 1.3, 1.5, 2.0, 3.0]) {
+          final name =
+              'in ${language.name}, ${size.width.toInt()}×${size.height.toInt()}, '
+              'text ×$scale';
 
-        Future<List<Uri?>> open(WidgetTester tester) {
-          tester.platformDispatcher.textScaleFactorTestValue = scale;
-          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-          return openSheet(tester, size: size);
-        }
-
-        group(name, () {
-          testWidgets('lays out without overflow, at the user\'s text size, '
-              'below the status bar', (tester) async {
-            await open(tester);
-
-            expect(tester.takeException(), isNull);
-            expect(
-              tester.getTopLeft(sheet()).dy,
-              greaterThanOrEqualTo(iPhonePadding.top),
+          Future<List<Uri?>> open(WidgetTester tester) async {
+            await AppLocaleController.instance.setPreference(language);
+            tester.platformDispatcher.textScaleFactorTestValue = scale;
+            addTearDown(
+              tester.platformDispatcher.clearTextScaleFactorTestValue,
             );
-            final title = tester.widget<RichText>(
-              find.descendant(
-                of: find.text(LoginStrings.contactSheetTitle),
-                matching: find.byType(RichText),
-              ),
-            );
-            expect(title.textScaler.scale(10), moreOrLessEquals(10 * scale));
-          });
-
-          for (final (i, (label, value)) in options.indexed) {
-            testWidgets('"$label" can be scrolled to, is fully on screen, '
-                'and answers its link', (tester) async {
-              final answers = await open(tester);
-
-              await tester.ensureVisible(card(label));
-              await tester.pumpAndSettle();
-              final rect = tester.getRect(card(label));
-              expect(rect.top, greaterThanOrEqualTo(iPhonePadding.top));
-              expect(
-                rect.bottom,
-                lessThanOrEqualTo(size.height - iPhonePadding.bottom),
-              );
-              // Not cut short: the whole contact is drawn.
-              expect(find.text(value), findsOneWidget);
-
-              await tester.tap(find.text(label));
-              await tester.pumpAndSettle();
-
-              expect(answers, [links[i]]);
-              expect(sheet(), findsNothing);
-              expect(tester.takeException(), isNull);
-            });
+            return openSheet(tester, size: size);
           }
 
-          testWidgets('each option is one button, announced with its '
-              'contact', (tester) async {
-            final semantics = tester.ensureSemantics();
-            final answers = await open(tester);
+          group(name, () {
+            testWidgets('lays out without overflow, at the user\'s text size, '
+                'below the status bar', (tester) async {
+              await open(tester);
 
-            for (final (label, value) in options) {
-              await tester.ensureVisible(card(label));
-              await tester.pumpAndSettle();
+              expect(tester.takeException(), isNull);
               expect(
-                tester.getSemantics(find.bySemanticsLabel('$label, $value')),
-                isSemantics(
-                  label: '$label, $value',
-                  isButton: true,
-                  hasTapAction: true,
+                tester.getTopLeft(sheet()).dy,
+                greaterThanOrEqualTo(iPhonePadding.top),
+              );
+              final title = tester.widget<RichText>(
+                find.descendant(
+                  of: find.text(LoginStrings.contactSheetTitle),
+                  matching: find.byType(RichText),
                 ),
               );
-              // Its text is not read again on its own.
-              expect(find.bySemanticsLabel(label), findsNothing);
+              expect(title.textScaler.scale(10), moreOrLessEquals(10 * scale));
+            });
+
+            for (final (i, (label, value)) in options.indexed) {
+              testWidgets('"$label" can be scrolled to, is fully on screen, '
+                  'and answers its link', (tester) async {
+                final answers = await open(tester);
+
+                await tester.ensureVisible(card(label));
+                await tester.pumpAndSettle();
+                final rect = tester.getRect(card(label));
+                expect(rect.top, greaterThanOrEqualTo(iPhonePadding.top));
+                expect(
+                  rect.bottom,
+                  lessThanOrEqualTo(size.height - iPhonePadding.bottom),
+                );
+                // Not cut short: the whole contact is drawn.
+                expect(find.text(value), findsOneWidget);
+
+                await tester.tap(find.text(label));
+                await tester.pumpAndSettle();
+
+                expect(answers, [links[i]]);
+                expect(sheet(), findsNothing);
+                expect(tester.takeException(), isNull);
+              });
             }
 
-            // Activated as a screen reader does, the button answers its link.
-            final (label, value) = options.last;
-            tester.semantics.performAction(
-              find.semantics.byLabel('$label, $value'),
-              SemanticsAction.tap,
-            );
-            await tester.pumpAndSettle();
-            expect(answers, [ManagerContact.email]);
-            semantics.dispose();
-          });
-
-          testWidgets('the barrier, a drag down on the cue and system back '
-              'all complete with null', (tester) async {
-            for (final close in <Future<void> Function()>[
-              // The strip above the sheet, under the status bar.
-              () => tester.tapAt(Offset(size.width / 2, 20)),
-              // The cue never scrolls, so this dismisses at every size.
-              () => tester.drag(
-                find.byIcon(AppIcons.chatCircleDots),
-                Offset(0, size.height),
-              ),
-              () => tester.binding.handlePopRoute(),
-            ]) {
+            testWidgets('each option is one button, announced with its '
+                'contact', (tester) async {
+              final semantics = tester.ensureSemantics();
               final answers = await open(tester);
-              await close();
-              await tester.pumpAndSettle();
 
-              expect(answers, [null]);
-              expect(sheet(), findsNothing);
-            }
+              for (final (label, value) in options) {
+                await tester.ensureVisible(card(label));
+                await tester.pumpAndSettle();
+                expect(
+                  tester.getSemantics(find.bySemanticsLabel('$label, $value')),
+                  isSemantics(
+                    label: '$label, $value',
+                    isButton: true,
+                    hasTapAction: true,
+                  ),
+                );
+                // Its text is not read again on its own.
+                expect(find.bySemanticsLabel(label), findsNothing);
+              }
+
+              // Activated as a screen reader does, the button answers its link.
+              final (label, value) = options.last;
+              tester.semantics.performAction(
+                find.semantics.byLabel('$label, $value'),
+                SemanticsAction.tap,
+              );
+              await tester.pumpAndSettle();
+              expect(answers, [ManagerContact.email]);
+              semantics.dispose();
+            });
+
+            testWidgets('the barrier, a drag down on the cue and system back '
+                'all complete with null', (tester) async {
+              for (final close in <Future<void> Function()>[
+                // The strip above the sheet, under the status bar.
+                () => tester.tapAt(Offset(size.width / 2, 20)),
+                // The cue never scrolls, so this dismisses at every size.
+                () => tester.drag(
+                  find.byIcon(AppIcons.chatCircleDots),
+                  Offset(0, size.height),
+                ),
+                () => tester.binding.handlePopRoute(),
+              ]) {
+                final answers = await open(tester);
+                await close();
+                await tester.pumpAndSettle();
+
+                expect(answers, [null]);
+                expect(sheet(), findsNothing);
+              }
+            });
           });
-        });
+        }
       }
     }
 

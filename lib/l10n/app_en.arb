@@ -23,5 +23,26 @@
   "navProfile": "Profile",
   "navProgress": "Progress",
   "navSchedule": "Schedule",
-  "navPrograms": "Programs"
+  "navPrograms": "Programs",
+
+  "loginTitle": "Log in",
+  "loginIdentifierPlaceholder": "Phone or email",
+  "loginIdentifierPhoneLabel": "Phone number",
+  "loginIdentifierEmailLabel": "Email address",
+  "loginPasswordLabel": "Password",
+  "loginRememberMe": "Remember me",
+  "loginResetPassword": "Reset password",
+  "loginContactSupporting": "No account, or forgot your password?",
+  "loginContactManager": "Contact a manager",
+  "loginContactSheetTitle": "Do you have a question?",
+  "loginContactMessage": "Contact us for information about courses and registration.",
+  "loginContactCall": "Call",
+  "loginContactEmail": "Write an email",
+  "loginIdentifierRequired": "Enter your phone number or email address",
+  "loginIdentifierInvalid": "The phone number or email address is not valid",
+  "loginPasswordRequired": "Enter your password",
+  "loginPasswordTooShort": "The password must be at least 6 characters",
+  "loginInvalidCredentials": "Incorrect phone number or password",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password"
 }

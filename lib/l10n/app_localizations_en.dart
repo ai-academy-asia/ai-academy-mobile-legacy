@@ -80,4 +80,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navPrograms => 'Programs';
+
+  @override
+  String get loginTitle => 'Log in';
+
+  @override
+  String get loginIdentifierPlaceholder => 'Phone or email';
+
+  @override
+  String get loginIdentifierPhoneLabel => 'Phone number';
+
+  @override
+  String get loginIdentifierEmailLabel => 'Email address';
+
+  @override
+  String get loginPasswordLabel => 'Password';
+
+  @override
+  String get loginRememberMe => 'Remember me';
+
+  @override
+  String get loginResetPassword => 'Reset password';
+
+  @override
+  String get loginContactSupporting => 'No account, or forgot your password?';
+
+  @override
+  String get loginContactManager => 'Contact a manager';
+
+  @override
+  String get loginContactSheetTitle => 'Do you have a question?';
+
+  @override
+  String get loginContactMessage =>
+      'Contact us for information about courses and registration.';
+
+  @override
+  String get loginContactCall => 'Call';
+
+  @override
+  String get loginContactEmail => 'Write an email';
+
+  @override
+  String get loginIdentifierRequired =>
+      'Enter your phone number or email address';
+
+  @override
+  String get loginIdentifierInvalid =>
+      'The phone number or email address is not valid';
+
+  @override
+  String get loginPasswordRequired => 'Enter your password';
+
+  @override
+  String get loginPasswordTooShort =>
+      'The password must be at least 6 characters';
+
+  @override
+  String get loginInvalidCredentials => 'Incorrect phone number or password';
+
+  @override
+  String get authShowPassword => 'Show password';
+
+  @override
+  String get authHidePassword => 'Hide password';
 }

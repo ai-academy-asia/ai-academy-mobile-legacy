@@ -231,6 +231,126 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Хөтөлбөрүүд'**
   String get navPrograms;
+
+  /// Login: the screen heading and the filled button that signs in.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нэвтрэх'**
+  String get loginTitle;
+
+  /// Login: the first field while empty, and its floating label while what is typed is neither recognisably a phone number nor an email address. "Email" is the product term.
+  ///
+  /// In mn, this message translates to:
+  /// **'Утасны дугаар / Email хаяг'**
+  String get loginIdentifierPlaceholder;
+
+  /// Login: the first field's floating label once what is typed is recognisably a phone number.
+  ///
+  /// In mn, this message translates to:
+  /// **'Утасны дугаар'**
+  String get loginIdentifierPhoneLabel;
+
+  /// Login: the first field's floating label once what is typed is recognisably an email address. "Email" is the product term.
+  ///
+  /// In mn, this message translates to:
+  /// **'Email хаяг'**
+  String get loginIdentifierEmailLabel;
+
+  /// Login: the password field's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг'**
+  String get loginPasswordLabel;
+
+  /// Login: the checkbox under the fields that keeps the session.
+  ///
+  /// In mn, this message translates to:
+  /// **'Намайг сануулах'**
+  String get loginRememberMe;
+
+  /// Login: the outlined button that starts resetting the password.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг сэргээх'**
+  String get loginResetPassword;
+
+  /// Login: the supporting line on the bottom card that opens the manager-contact sheet.
+  ///
+  /// In mn, this message translates to:
+  /// **'Бүртгэлгүй эсвэл нууц үгээ мартсан бол'**
+  String get loginContactSupporting;
+
+  /// Login: the bottom card's title, which opens the manager-contact sheet.
+  ///
+  /// In mn, this message translates to:
+  /// **'Менежертэй холбогдоорой'**
+  String get loginContactManager;
+
+  /// Manager-contact sheet: its heading.
+  ///
+  /// In mn, this message translates to:
+  /// **'Танд асуух зүйл байна уу?'**
+  String get loginContactSheetTitle;
+
+  /// Manager-contact sheet: the line under the heading, saying what the call and email options are for.
+  ///
+  /// In mn, this message translates to:
+  /// **'Сургалт болон бүртгэлтэй холбоотой мэдээлэл авах бол бидэнтэй холбогдоорой.'**
+  String get loginContactMessage;
+
+  /// Manager-contact sheet: the option that phones the manager.
+  ///
+  /// In mn, this message translates to:
+  /// **'Утасдах'**
+  String get loginContactCall;
+
+  /// Manager-contact sheet: the option that writes the manager an email. "Email" is the product term.
+  ///
+  /// In mn, this message translates to:
+  /// **'Email бичих'**
+  String get loginContactEmail;
+
+  /// Login validation: the first field is empty.
+  ///
+  /// In mn, this message translates to:
+  /// **'Утасны дугаар эсвэл имэйл хаягаа оруулна уу'**
+  String get loginIdentifierRequired;
+
+  /// Login validation: what is typed in the first field is neither a valid phone number nor a valid email address.
+  ///
+  /// In mn, this message translates to:
+  /// **'Утасны дугаар эсвэл имэйл хаяг буруу байна'**
+  String get loginIdentifierInvalid;
+
+  /// Login validation: the password field is empty.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үгээ оруулна уу'**
+  String get loginPasswordRequired;
+
+  /// Login validation: the password is shorter than 6 characters.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг дор хаяж 6 тэмдэгт байх ёстой'**
+  String get loginPasswordTooShort;
+
+  /// Login: the server refused the phone number (or email) and password.
+  ///
+  /// In mn, this message translates to:
+  /// **'Утасны дугаар эсвэл нууц үг буруу байна'**
+  String get loginInvalidCredentials;
+
+  /// Screen-reader label (never drawn) of a password field's eye button while the password is hidden. Shared by every password field.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг харуулах'**
+  String get authShowPassword;
+
+  /// Screen-reader label (never drawn) of a password field's eye button while the password is shown. Shared by every password field.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг нуух'**
+  String get authHidePassword;
 }
 
 class _AppLocalizationsDelegate
