@@ -264,4 +264,19 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get juniorLessonAttended => 'Хичээлдээ суусан';
+
+  @override
+  String get notificationEmpty => 'Одоогоор мэдэгдэл алга байна';
+
+  @override
+  String get notificationNotFound => 'Мэдэгдэл олдсонгүй';
+
+  @override
+  String get notificationPushReceived => 'Шинэ мэдэгдэл ирлээ';
+
+  @override
+  String get notificationPushOpen => 'Харах';
+
+  @override
+  String get cohortEmptyMine => 'Та одоогоор ямар ч ангид бүртгүүлээгүй байна';
 }

@@ -158,7 +158,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: SizedBox(
               height: constraints.maxHeight,
-              child: const _Message(message: NotificationStrings.empty),
+              child: _Message(message: NotificationStrings.empty),
             ),
           ),
         ),

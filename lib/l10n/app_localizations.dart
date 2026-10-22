@@ -585,6 +585,36 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Хичээлдээ суусан'**
   String get juniorLessonAttended;
+
+  /// Notification Center: the line when the student or teacher has no notifications.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогоор мэдэгдэл алга байна'**
+  String get notificationEmpty;
+
+  /// Notification Center: the server no longer has the notification (a 404 loading the list, or marking one read).
+  ///
+  /// In mn, this message translates to:
+  /// **'Мэдэгдэл олдсонгүй'**
+  String get notificationNotFound;
+
+  /// Foreground push SnackBar: the text when the push itself carries no title or body.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ мэдэгдэл ирлээ'**
+  String get notificationPushReceived;
+
+  /// Foreground push SnackBar: the action that opens the push's notification.
+  ///
+  /// In mn, this message translates to:
+  /// **'Харах'**
+  String get notificationPushOpen;
+
+  /// Adult Courses tab: shown when the student is enrolled in no class. Its own Mongolian, distinct from Home's empty line.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та одоогоор ямар ч ангид бүртгүүлээгүй байна'**
+  String get cohortEmptyMine;
 }
 
 class _AppLocalizationsDelegate

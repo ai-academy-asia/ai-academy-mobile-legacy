@@ -32,7 +32,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashNetworkError =>
-      'Интернэт холболтоо шалгаад дахин оролдоно уу.';
+      'Check your internet connection and try again.';
 
   @override
   String get commonNetworkError =>
@@ -266,4 +266,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get juniorLessonAttended => 'Attended lesson';
+
+  @override
+  String get notificationEmpty => 'No notifications yet';
+
+  @override
+  String get notificationNotFound => 'Notification not found';
+
+  @override
+  String get notificationPushReceived => 'You have a new notification';
+
+  @override
+  String get notificationPushOpen => 'View';
+
+  @override
+  String get cohortEmptyMine => 'You are not enrolled in any class yet';
 }

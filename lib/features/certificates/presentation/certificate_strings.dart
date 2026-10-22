@@ -14,8 +14,9 @@ abstract final class CertificateStrings {
   /// The issued card's button.
   static const String download = 'Download';
 
-  /// Enrolled in nothing — the Хичээл tab's own line for the same state.
-  static const String empty = CohortListStrings.emptyMine;
+  /// Enrolled in nothing — the Хичээл tab's own line for the same state, so
+  /// it follows the selected language with it (Issue #523).
+  static String get empty => CohortListStrings.emptyMine;
 
   static String get retry => CourseLearningStrings.retry;
 

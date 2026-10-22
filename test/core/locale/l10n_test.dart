@@ -112,20 +112,19 @@ void main() {
       expect(english.commonRetry, 'Try again.');
     });
 
-    test('English without approved copy falls back to the Mongolian, and is '
-        'listed as untranslated', () {
-      const untranslated = ['splashNetworkError'];
-      final english = messages(L10n.of(LocalePreference.english));
-      for (final key in untranslated) {
-        expect(english[key], mongolian[key], reason: key);
-      }
-
-      // The list `flutter gen-l10n` writes is the same open work — so new
-      // English copy, or a new untranslated message, updates both.
+    test('every message has approved English: the untranslated list is '
+        'empty (Issue #523)', () {
+      // The list `flutter gen-l10n` writes is the open translation work. A new
+      // message without approved English lands in it — and fails this, so
+      // the gap is decided rather than shipped by accident.
       final listed = jsonDecode(
         File('lib/l10n/untranslated_messages.json').readAsStringSync(),
       );
-      expect(listed, {'en': untranslated});
+      expect(listed, isEmpty);
+      expect(
+        messages(L10n.of(LocalePreference.english))['splashNetworkError'],
+        'Check your internet connection and try again.',
+      );
     });
 
     test('each language is one set, made once', () {
@@ -195,12 +194,12 @@ void main() {
       await AppLocaleController.instance.setEnglish(true);
 
       expect(SplashStrings.wordmarkSemanticsLabel, 'AI academy Asia');
-      // Retry is the shared key (Issue #507); the network error still has
-      // no approved English.
+      // Retry is the shared key (Issue #507); the network error has its
+      // approved English since Issue #523.
       expect(SplashStrings.retry, 'Try again.');
       expect(
         SplashStrings.networkError,
-        'Интернэт холболтоо шалгаад дахин оролдоно уу.',
+        'Check your internet connection and try again.',
       );
     });
   });

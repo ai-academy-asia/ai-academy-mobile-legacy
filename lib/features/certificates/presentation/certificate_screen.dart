@@ -182,7 +182,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
     }
     final entries = _controller.entries;
     if (entries.isEmpty) {
-      return const _Message(message: CertificateStrings.empty);
+      return _Message(message: CertificateStrings.empty);
     }
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(

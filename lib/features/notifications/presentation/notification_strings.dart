@@ -15,12 +15,12 @@ abstract final class NotificationStrings {
 
   /// No notifications yet. No frame draws this state, so the line is the
   /// app's own plain wording (a `PRODUCT DECISION`).
-  static const String empty = 'Одоогоор мэдэгдэл алга байна';
+  static String get empty => L10n.current.notificationEmpty;
 
   static String get retry => L10n.current.commonRetry;
 
   /// A mark-read for a notification the server no longer has.
-  static const String notFound = 'Мэдэгдэл олдсонгүй';
+  static String get notFound => L10n.current.notificationNotFound;
 
   static String messageFor(NotificationFailureKind kind) => switch (kind) {
     NotificationFailureKind.sessionExpired => ProfileStrings.sessionExpired,
@@ -51,8 +51,8 @@ abstract final class NotificationStrings {
 
   /// A foreground push's SnackBar text when the push carries no title or
   /// body.
-  static const String pushReceived = 'Шинэ мэдэгдэл ирлээ';
+  static String get pushReceived => L10n.current.notificationPushReceived;
 
   /// The SnackBar action that opens the push's notification.
-  static const String pushOpen = 'Харах';
+  static String get pushOpen => L10n.current.notificationPushOpen;
 }
