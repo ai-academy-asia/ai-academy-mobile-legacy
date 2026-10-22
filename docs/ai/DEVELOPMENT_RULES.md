@@ -93,7 +93,7 @@ Widget tests are the primary evidence. When a change is visual, verify it rather
 - **Follow the existing architecture** (see [ARCHITECTURE.md](ARCHITECTURE.md)): `data`/`domain`/`presentation`, `ChangeNotifier` controllers, injected repositories.
 - **Doc comments carry the reasoning.** This codebase explains *why* — why a widget is not reused, why a field is nullable, why a value was chosen — in doc comments rather than inline noise. Match that. A non-obvious decision should be explained where it lives.
 - **No `TODO`/`FIXME` markers exist anywhere in `lib/` or `test/`.** Do not introduce them; either do the work or document the gap in the right doc.
-- User-facing copy goes in that feature's `*_strings.dart`, verbatim from the design (mixed Mongolian/English is intentional). There is no localization framework; do not add one.
+- User-facing copy goes in that feature's `*_strings.dart`, verbatim from the design (mixed Mongolian/English is intentional). A class migrated to ARB (Issue #503) takes its copy from `lib/l10n/app_mn.arb` / `app_en.arb` instead: edit the ARB files, run `flutter gen-l10n`, commit the regenerated `lib/l10n/` files — never edit the generated Dart. Do not write English copy that has not been approved: leave it out of `app_en.arb`, where it falls back to Mongolian. See [ARCHITECTURE.md](ARCHITECTURE.md) §6.
 - Icon codepoints must be **confirmed against the bundled font**, never guessed; fall back to a Material icon with a comment when no confirmed glyph exists.
 - Dart 3 features are available and used: records, patterns, `switch` expressions, `if (x case final y?)`.
 - Prefer `const` constructors; use private widget classes (`_Foo`) for screen-internal pieces.

@@ -1,3 +1,5 @@
+import '../../../core/locale/l10n.dart';
+
 /// Every word on the splash screen.
 ///
 /// The wordmark is drawn from [SplashAssets.wordmark] (outlined vector paths,
@@ -5,21 +7,25 @@
 /// these two lines no longer render directly. They are kept because the
 /// artwork still has to *say* something to a screen reader — see
 /// [wordmarkSemanticsLabel], which is what the splash passes to the SVG.
+///
+/// In the selected language (Issue #503): the copy lives in
+/// `lib/l10n/app_*.arb` and is read through [L10n.current]. The wordmark is
+/// the brand, the same in both; the network error and Retry have no
+/// approved English yet, so English shows them in Mongolian.
 abstract final class SplashStrings {
-  static const String wordmarkLine1 = 'AI academy';
-  static const String wordmarkLine2 = 'Asia';
+  static String get wordmarkLine1 => L10n.current.splashWordmarkLine1;
+  static String get wordmarkLine2 => L10n.current.splashWordmarkLine2;
 
   /// Announced in place of the wordmark artwork. One line rather than two:
   /// the line break is a typographic choice in the artwork, not a pause.
-  static const String wordmarkSemanticsLabel = '$wordmarkLine1 $wordmarkLine2';
+  static String get wordmarkSemanticsLabel => '$wordmarkLine1 $wordmarkLine2';
 
   /// Shown when a held session could not be restored for want of a network
   /// (Issue #435) — the product's own copy.
-  static const String networkError =
-      'Интернэт холболтоо шалгаад дахин оролдоно уу.';
+  static String get networkError => L10n.current.splashNetworkError;
 
   /// The app's retry label, as on every other error state.
-  static const String retry = 'Дахин оролдох';
+  static String get retry => L10n.current.splashRetry;
 }
 
 /// The splash screen's own assets, both exported from the Figma Splash frame.

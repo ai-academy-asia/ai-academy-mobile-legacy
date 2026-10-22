@@ -48,7 +48,7 @@ Default: **mirror the nearest documented sibling, or leave the state unmodelled,
 
 ## 6. Copy
 
-UI strings go in that feature's `presentation/<feature>_strings.dart`, **verbatim from the frame** — including the mixed Mongolian/English the design uses. There is no localization framework and **none should be added** without a task that asks for it. Do not translate, normalise or "fix" copy that the design specifies.
+UI strings go in that feature's `presentation/<feature>_strings.dart`, **verbatim from the frame** — including the mixed Mongolian/English the design uses. Features migrated to ARB (Issue #503) keep that copy in `lib/l10n/app_mn.arb` instead, read through the same `*_strings.dart` class — see [ARCHITECTURE.md](../ai/ARCHITECTURE.md) §6. Do not translate, normalise or "fix" copy that the design specifies.
 
 ## 7. Verifying the result
 

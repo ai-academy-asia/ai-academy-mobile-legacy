@@ -34,6 +34,11 @@ dependencies:
   # English (Issue #501). Part of the Flutter SDK, not a third-party package.
   flutter_localizations:
     sdk: flutter
+  # The message formatting the generated UI strings (`lib/l10n/`, Issue #503)
+  # are built on. `any`, as Flutter's localization guide sets it: the SDK's
+  # `flutter_localizations` pins the exact version, so a range here could
+  # only conflict with it on an SDK upgrade.
+  intl: any
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -125,6 +130,10 @@ flutter_launcher_icons:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  # Generates the UI strings from `lib/l10n/*.arb`, as `l10n.yaml` sets it
+  # (Issue #503).
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
