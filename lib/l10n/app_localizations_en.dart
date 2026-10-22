@@ -144,4 +144,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authHidePassword => 'Hide password';
+
+  @override
+  String get resetTitle => 'Set your password';
+
+  @override
+  String get resetCurrentPassword => 'Current password';
+
+  @override
+  String get resetNewPassword => 'New password';
+
+  @override
+  String get resetConfirmPassword => 'Confirm new password';
+
+  @override
+  String get resetRequirementsTitle =>
+      'Your password must meet these requirements:';
+
+  @override
+  String get resetSubmit => 'Save';
+
+  @override
+  String get resetRuleMinLength => 'Use 8 or more characters';
+
+  @override
+  String get resetRuleUppercase => 'Use an uppercase letter';
+
+  @override
+  String get resetRuleLowercase => 'Use a lowercase letter';
+
+  @override
+  String get resetRuleDigit => 'Use a number';
+
+  @override
+  String get resetRuleSpecial => 'Use a special character';
+
+  @override
+  String get resetCurrentPasswordRequired => 'Enter your current password';
+
+  @override
+  String get resetNewPasswordRequired => 'Enter a new password';
+
+  @override
+  String get resetNewPasswordWeak =>
+      'The password does not meet the requirements';
+
+  @override
+  String get resetConfirmPasswordRequired => 'Enter your new password again';
+
+  @override
+  String get resetConfirmPasswordMismatch => 'Does not match the new password';
+
+  @override
+  String get resetNewPasswordSameAsCurrent =>
+      'The new password must be different from the current one';
+
+  @override
+  String get resetSuccess => 'Your password has been changed';
+
+  @override
+  String get resetInvalidCurrentPassword => 'The current password is incorrect';
 }

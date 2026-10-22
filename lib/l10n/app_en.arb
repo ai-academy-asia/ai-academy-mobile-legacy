@@ -44,5 +44,25 @@
   "loginPasswordTooShort": "The password must be at least 6 characters",
   "loginInvalidCredentials": "Incorrect phone number or password",
   "authShowPassword": "Show password",
-  "authHidePassword": "Hide password"
+  "authHidePassword": "Hide password",
+
+  "resetTitle": "Set your password",
+  "resetCurrentPassword": "Current password",
+  "resetNewPassword": "New password",
+  "resetConfirmPassword": "Confirm new password",
+  "resetRequirementsTitle": "Your password must meet these requirements:",
+  "resetSubmit": "Save",
+  "resetRuleMinLength": "Use 8 or more characters",
+  "resetRuleUppercase": "Use an uppercase letter",
+  "resetRuleLowercase": "Use a lowercase letter",
+  "resetRuleDigit": "Use a number",
+  "resetRuleSpecial": "Use a special character",
+  "resetCurrentPasswordRequired": "Enter your current password",
+  "resetNewPasswordRequired": "Enter a new password",
+  "resetNewPasswordWeak": "The password does not meet the requirements",
+  "resetConfirmPasswordRequired": "Enter your new password again",
+  "resetConfirmPasswordMismatch": "Does not match the new password",
+  "resetNewPasswordSameAsCurrent": "The new password must be different from the current one",
+  "resetSuccess": "Your password has been changed",
+  "resetInvalidCurrentPassword": "The current password is incorrect"
 }

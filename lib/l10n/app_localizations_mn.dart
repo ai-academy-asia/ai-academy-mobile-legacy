@@ -144,4 +144,63 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get authHidePassword => 'Нууц үг нуух';
+
+  @override
+  String get resetTitle => 'Нууц үгээ тохируулах';
+
+  @override
+  String get resetCurrentPassword => 'Одоогийн нууц үг';
+
+  @override
+  String get resetNewPassword => 'Шинэ нууц үг';
+
+  @override
+  String get resetConfirmPassword => 'Шинэ нууц үг давтах';
+
+  @override
+  String get resetRequirementsTitle =>
+      'Нууц үг нь дараах шаардлагыг хангасан байна:';
+
+  @override
+  String get resetSubmit => 'Хадгалах';
+
+  @override
+  String get resetRuleMinLength => '8 ба түүнээс дээш тэмдэгт ашиглах';
+
+  @override
+  String get resetRuleUppercase => 'Том үсэг ашиглах';
+
+  @override
+  String get resetRuleLowercase => 'Жижиг үсэг ашиглах';
+
+  @override
+  String get resetRuleDigit => 'Тоо ашиглах';
+
+  @override
+  String get resetRuleSpecial => 'Тусгай тэмдэгт ашиглах';
+
+  @override
+  String get resetCurrentPasswordRequired => 'Одоогийн нууц үгээ оруулна уу';
+
+  @override
+  String get resetNewPasswordRequired => 'Шинэ нууц үгээ оруулна уу';
+
+  @override
+  String get resetNewPasswordWeak => 'Нууц үг шаардлагыг хангахгүй байна';
+
+  @override
+  String get resetConfirmPasswordRequired => 'Шинэ нууц үгээ давтан оруулна уу';
+
+  @override
+  String get resetConfirmPasswordMismatch => 'Шинэ нууц үгтэй таарахгүй байна';
+
+  @override
+  String get resetNewPasswordSameAsCurrent =>
+      'Шинэ нууц үг одоогийнхоос өөр байх ёстой';
+
+  @override
+  String get resetSuccess => 'Нууц үг амжилттай солигдлоо';
+
+  @override
+  String get resetInvalidCurrentPassword => 'Одоогийн нууц үг буруу байна';
 }

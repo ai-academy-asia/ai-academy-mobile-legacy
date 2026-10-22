@@ -93,7 +93,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text(ResetPasswordStrings.success)));
+    ).showSnackBar(SnackBar(content: Text(ResetPasswordStrings.success)));
     Navigator.of(context).maybePop();
   }
 
@@ -125,7 +125,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 // has no way back, so it keeps the auth layout's own heading
                 // (see [showBackButton]).
                 if (widget.showBackButton)
-                  const ContentColumn(
+                  ContentColumn(
                     child: BackTitleHeader(title: ResetPasswordStrings.title),
                   ),
                 Expanded(

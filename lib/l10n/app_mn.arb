@@ -173,5 +173,82 @@
   "authHidePassword": "Нууц үг нуух",
   "@authHidePassword": {
     "description": "Screen-reader label (never drawn) of a password field's eye button while the password is shown. Shared by every password field."
+  },
+
+  "resetTitle": "Нууц үгээ тохируулах",
+  "@resetTitle": {
+    "description": "Password reset: the screen title, for the required change after first sign-in and the voluntary change from Profile."
+  },
+  "resetCurrentPassword": "Одоогийн нууц үг",
+  "@resetCurrentPassword": {
+    "description": "Password reset: the current-password field's label."
+  },
+  "resetNewPassword": "Шинэ нууц үг",
+  "@resetNewPassword": {
+    "description": "Password reset: the new-password field's label."
+  },
+  "resetConfirmPassword": "Шинэ нууц үг давтах",
+  "@resetConfirmPassword": {
+    "description": "Password reset: the field where the new password is typed again."
+  },
+  "resetRequirementsTitle": "Нууц үг нь дараах шаардлагыг хангасан байна:",
+  "@resetRequirementsTitle": {
+    "description": "Password reset: the heading of the panel listing the five password rules."
+  },
+  "resetSubmit": "Хадгалах",
+  "@resetSubmit": {
+    "description": "Password reset: the button that saves the new password."
+  },
+  "resetRuleMinLength": "8 ба түүнээс дээш тэмдэгт ашиглах",
+  "@resetRuleMinLength": {
+    "description": "Password reset rule: at least 8 characters. Also its screen-reader label, with a checked state once met."
+  },
+  "resetRuleUppercase": "Том үсэг ашиглах",
+  "@resetRuleUppercase": {
+    "description": "Password reset rule: at least one uppercase letter. Also its screen-reader label."
+  },
+  "resetRuleLowercase": "Жижиг үсэг ашиглах",
+  "@resetRuleLowercase": {
+    "description": "Password reset rule: at least one lowercase letter. Also its screen-reader label."
+  },
+  "resetRuleDigit": "Тоо ашиглах",
+  "@resetRuleDigit": {
+    "description": "Password reset rule: at least one digit. Also its screen-reader label."
+  },
+  "resetRuleSpecial": "Тусгай тэмдэгт ашиглах",
+  "@resetRuleSpecial": {
+    "description": "Password reset rule: at least one special character. Also its screen-reader label."
+  },
+  "resetCurrentPasswordRequired": "Одоогийн нууц үгээ оруулна уу",
+  "@resetCurrentPasswordRequired": {
+    "description": "Password reset validation: the current-password field is empty."
+  },
+  "resetNewPasswordRequired": "Шинэ нууц үгээ оруулна уу",
+  "@resetNewPasswordRequired": {
+    "description": "Password reset validation: the new-password field is empty."
+  },
+  "resetNewPasswordWeak": "Нууц үг шаардлагыг хангахгүй байна",
+  "@resetNewPasswordWeak": {
+    "description": "Password reset validation: the new password fails one or more of the five rules (the panel says which)."
+  },
+  "resetConfirmPasswordRequired": "Шинэ нууц үгээ давтан оруулна уу",
+  "@resetConfirmPasswordRequired": {
+    "description": "Password reset validation: the confirmation field is empty."
+  },
+  "resetConfirmPasswordMismatch": "Шинэ нууц үгтэй таарахгүй байна",
+  "@resetConfirmPasswordMismatch": {
+    "description": "Password reset validation: the confirmation differs from the new password."
+  },
+  "resetNewPasswordSameAsCurrent": "Шинэ нууц үг одоогийнхоос өөр байх ёстой",
+  "@resetNewPasswordSameAsCurrent": {
+    "description": "Password reset validation: the new password is the same as the current one."
+  },
+  "resetSuccess": "Нууц үг амжилттай солигдлоо",
+  "@resetSuccess": {
+    "description": "Password reset: the snackbar once the password is changed, after either flow."
+  },
+  "resetInvalidCurrentPassword": "Одоогийн нууц үг буруу байна",
+  "@resetInvalidCurrentPassword": {
+    "description": "Password reset: the server refused the current password."
   }
 }
