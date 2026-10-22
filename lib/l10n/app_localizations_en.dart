@@ -62,4 +62,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationUnread => 'Unread';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navCourses => 'Courses';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
+  String get navProgress => 'Progress';
+
+  @override
+  String get navSchedule => 'Schedule';
+
+  @override
+  String get navPrograms => 'Programs';
 }

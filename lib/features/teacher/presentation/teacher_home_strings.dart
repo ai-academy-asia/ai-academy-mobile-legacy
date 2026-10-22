@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/teacher_failure.dart';
 
@@ -38,10 +39,13 @@ abstract final class TeacherHomeStrings {
   };
 
   // --- Bottom navigation ----------------------------------------------------
+  //
+  // In the selected language (Issue #511): Хуваарь / Schedule, Хөтөлбөрүүд /
+  // Programs, Профайл / Profile.
 
-  static const String navSchedule = 'Хуваарь';
+  static String get navSchedule => L10n.current.navSchedule;
 
   /// Хөтөлбөрүүд — formerly "Дүнгийн хуудас" (Issue #390).
-  static const String navGrades = 'Хөтөлбөрүүд';
-  static const String navProfile = HomeStrings.navProfile;
+  static String get navGrades => L10n.current.navPrograms;
+  static String get navProfile => HomeStrings.navProfile;
 }

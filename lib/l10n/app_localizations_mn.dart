@@ -62,4 +62,22 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get notificationUnread => 'Шинэ';
+
+  @override
+  String get navHome => 'Нүүр';
+
+  @override
+  String get navCourses => 'Хичээл';
+
+  @override
+  String get navProfile => 'Профайл';
+
+  @override
+  String get navProgress => 'Сурлагын явц';
+
+  @override
+  String get navSchedule => 'Хуваарь';
+
+  @override
+  String get navPrograms => 'Хөтөлбөрүүд';
 }
