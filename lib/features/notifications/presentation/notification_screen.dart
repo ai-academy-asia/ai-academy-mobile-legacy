@@ -312,7 +312,7 @@ class NotificationTile extends StatelessWidget {
       container: true,
       button: onTap != null,
       label: [
-        if (unread) _unreadLabel,
+        if (unread) NotificationStrings.unread,
         notification.title,
         // No body, no part — never "null" (Issue #451).
         ?notification.body,
@@ -395,9 +395,6 @@ const double _textBottom = 11;
 const double _titleToBody = 4;
 const double _ageToDot = 13;
 const double _dotSize = 8;
-
-/// Read by a screen reader before an unread row's title.
-const String _unreadLabel = 'Шинэ';
 
 /// A row's title — a list row's primary line.
 const TextStyle _rowTitleStyle = AppTypography.itemTitle;

@@ -70,7 +70,7 @@ class _CloseButton extends StatelessWidget {
     // `outline` ring, its glyph `textPrimary`.
     return Semantics(
       button: true,
-      label: 'Close',
+      label: CourseLearningStrings.quizClose,
       child: Material(
         color: palette.surface,
         shape: CircleBorder(side: BorderSide(color: palette.outline)),

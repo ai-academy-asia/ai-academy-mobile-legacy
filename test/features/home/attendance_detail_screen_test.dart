@@ -8,6 +8,7 @@ import 'package:aia_mobile/features/home/presentation/widgets/home_palette.dart'
 import 'package:aia_mobile/features/junior_home/domain/junior_progress.dart';
 import 'package:aia_mobile/features/junior_home/presentation/junior_progress_strings.dart';
 import 'package:aia_mobile/features/junior_home/presentation/widgets/junior_progress_calendar.dart';
+import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:aia_mobile/core/theme/app_colors.dart';
 import 'package:aia_mobile/core/theme/app_icons.dart';
@@ -215,7 +216,7 @@ void main() {
   testWidgets('the back control returns to Home', (tester) async {
     await pump(tester);
 
-    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.tap(find.bySemanticsLabel(AppBackButton.label));
     await tester.pumpAndSettle();
 
     expect(find.byType(AttendanceDetailScreen), findsNothing);

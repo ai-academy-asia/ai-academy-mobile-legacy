@@ -133,7 +133,7 @@ void main() {
       await pumpScreen(tester, FakeCourseLearningRepository());
       await tester.pumpAndSettle();
 
-      expect(find.bySemanticsLabel('Play'), findsOneWidget);
+      expect(find.bySemanticsLabel(CourseLearningStrings.play), findsOneWidget);
     });
 
     testWidgets('the module caption and title', (tester) async {
@@ -1097,7 +1097,9 @@ void main() {
         repository.exercise = sampleExercise(
           quiz: sampleQuiz(openAttemptId: sampleAttemptId),
         );
-        await tester.tap(find.bySemanticsLabel('Close'));
+        await tester.tap(
+          find.bySemanticsLabel(CourseLearningStrings.quizClose),
+        );
         await tester.pumpAndSettle();
 
         expect(repository.exerciseCalls, [2, 2]);
@@ -2818,7 +2820,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.play));
       await tester.pumpAndSettle();
 
       expect(opened, [videoUrl]);
@@ -2835,7 +2837,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.play));
       await tester.pump();
 
       expect(find.byType(SnackBar), findsOneWidget);
@@ -2855,9 +2857,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.play));
       await tester.pump();
-      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.play));
       await tester.pump();
       gate.complete(true);
       await tester.pumpAndSettle();
@@ -2880,7 +2882,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(CourseLearningStrings.videoUnavailable), findsOneWidget);
-      expect(find.bySemanticsLabel('Play'), findsNothing);
+      expect(find.bySemanticsLabel(CourseLearningStrings.play), findsNothing);
       expect(launches, 0);
     });
 
@@ -2897,7 +2899,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Play'));
+      await tester.tap(find.bySemanticsLabel(CourseLearningStrings.play));
       await tester.pumpAndSettle();
 
       expect(launches, 0);

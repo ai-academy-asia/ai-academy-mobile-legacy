@@ -144,7 +144,7 @@ class _VideoBackButton extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: 'Back',
+      label: CourseLearningStrings.back,
       child: Material(
         color: palette.mediaControl,
         shape: CircleBorder(
@@ -183,7 +183,7 @@ class _PlayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Play',
+      label: CourseLearningStrings.play,
       child: Material(
         color: context.palette.mediaControl,
         shape: const CircleBorder(),

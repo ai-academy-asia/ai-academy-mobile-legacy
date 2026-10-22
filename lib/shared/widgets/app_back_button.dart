@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/locale/l10n.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_dimens.dart';
 import '../../core/theme/app_icons.dart';
@@ -20,9 +21,10 @@ import '../../core/theme/app_icons.dart';
 class AppBackButton extends StatelessWidget {
   const AppBackButton({super.key, this.icon = AppIcons.arrowLeft});
 
-  /// What assistive technology announces. The text it has always had;
-  /// `CourseLearningStrings.back` is this.
-  static const String label = 'Back';
+  /// What assistive technology announces — `Буцах`, or `Back` in English
+  /// (`commonBack`, Issue #509), the label every back control shares;
+  /// `CourseLearningStrings.back` and `CourseDetailStrings.back` are this.
+  static String get label => L10n.current.commonBack;
 
   static const double _size = AppDimens.backButtonSize;
 

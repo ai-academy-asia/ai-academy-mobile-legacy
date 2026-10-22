@@ -6,6 +6,10 @@ import '../domain/notification_failure.dart';
 /// Copy for the Notification Center (Issue #246) — English where the Figma
 /// frame draws English, as the Profile and Certificate frames do.
 abstract final class NotificationStrings {
+  /// Read by a screen reader before an unread row's title, in place of the
+  /// unread dot: `Шинэ`, or `Unread` in English (Issue #509).
+  static String get unread => L10n.current.notificationUnread;
+
   /// The screen's title.
   static const String title = 'Notification';
 

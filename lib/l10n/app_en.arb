@@ -11,5 +11,10 @@
   "commonServerError": "Something went wrong on the server. Please wait a moment and try again.",
   "commonUnexpectedError": "Something went wrong. Please try again.",
   "commonSessionExpired": "Your session has expired. Please sign in again.",
-  "commonRetry": "Try again."
+  "commonRetry": "Try again.",
+
+  "commonBack": "Back",
+  "videoPlay": "Play",
+  "quizClose": "Close",
+  "notificationUnread": "Unread"
 }
