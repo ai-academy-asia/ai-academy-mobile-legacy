@@ -80,6 +80,15 @@ void main() {
       expect(english.splashWordmarkLine2, 'Asia');
     });
 
+    test('English: the approved sign-out confirmation (Issue #521)', () {
+      final english = L10n.of(LocalePreference.english);
+      expect(english.signOutTitle, 'Log out?');
+      expect(
+        english.signOutMessage,
+        'Are you sure you want to log out of your account?',
+      );
+    });
+
     test('English: the approved shared error and retry messages (Issue '
         '#507)', () {
       final english = L10n.of(LocalePreference.english);
@@ -105,11 +114,7 @@ void main() {
 
     test('English without approved copy falls back to the Mongolian, and is '
         'listed as untranslated', () {
-      const untranslated = [
-        'signOutTitle',
-        'signOutMessage',
-        'splashNetworkError',
-      ];
+      const untranslated = ['splashNetworkError'];
       final english = messages(L10n.of(LocalePreference.english));
       for (final key in untranslated) {
         expect(english[key], mongolian[key], reason: key);
@@ -171,7 +176,12 @@ void main() {
 
       expect(SignOutStrings.cancel, 'Cancel');
       expect(SignOutStrings.confirm, 'Log out');
-      expect(SignOutStrings.title, 'Гарах уу?');
+      // Approved English since Issue #521.
+      expect(SignOutStrings.title, 'Log out?');
+      expect(
+        SignOutStrings.message,
+        'Are you sure you want to log out of your account?',
+      );
     });
 
     test('SplashStrings', () async {
