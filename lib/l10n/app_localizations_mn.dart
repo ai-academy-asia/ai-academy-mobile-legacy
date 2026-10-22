@@ -203,4 +203,34 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get resetInvalidCurrentPassword => 'Одоогийн нууц үг буруу байна';
+
+  @override
+  String get homeNotifications => 'Мэдэгдэл';
+
+  @override
+  String get homeNextLesson => 'Дараагийн хичээл:';
+
+  @override
+  String get homeLiveHint => 'Хичээл эхлсэн та ирцээ бүртгүүлээрэй';
+
+  @override
+  String get homeAttendanceAction => 'Ирц бүртгүүлэх';
+
+  @override
+  String get homeContractTitle => 'Та гэрээ хийгдээгүй байна';
+
+  @override
+  String get homeContractSupporting => 'Гэрээгээ хийгээрэй';
+
+  @override
+  String get homeAttendanceLabel => 'Хичээлийн ирц';
+
+  @override
+  String get homeDetails => 'Дэлгэрэнгүй';
+
+  @override
+  String get homeAttendanceMissed => 'Хичээлдээ суугаагүй';
+
+  @override
+  String get homeEmpty => 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';
 }

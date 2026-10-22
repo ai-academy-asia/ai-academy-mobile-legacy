@@ -25,7 +25,7 @@ abstract final class TeacherScheduleStrings {
 
   /// Accessibility label for the header's bell, the student Home's own. It
   /// opens the shared Notification Center (Issue #246).
-  static const String notifications = HomeStrings.notifications;
+  static String get notifications => HomeStrings.notifications;
 
   /// No session in the week. Not drawn by the reference — Teacher Home's
   /// wording for the same state.

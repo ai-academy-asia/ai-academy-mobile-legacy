@@ -465,6 +465,66 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Одоогийн нууц үг буруу байна'**
   String get resetInvalidCurrentPassword;
+
+  /// Home header (also Teacher Schedule): screen-reader label of the bell that opens the notifications; ", <unread count>" follows when there are unread ones.
+  ///
+  /// In mn, this message translates to:
+  /// **'Мэдэгдэл'**
+  String get homeNotifications;
+
+  /// Home program card: the caption before the next lesson's date and time.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дараагийн хичээл:'**
+  String get homeNextLesson;
+
+  /// Home program card: the line shown while the lesson is under way.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээл эхлсэн та ирцээ бүртгүүлээрэй'**
+  String get homeLiveHint;
+
+  /// Home program card: the button that opens attendance check-in while the lesson is under way.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирц бүртгүүлэх'**
+  String get homeAttendanceAction;
+
+  /// Home contract banner: the title when the student has no signed contract.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та гэрээ хийгдээгүй байна'**
+  String get homeContractTitle;
+
+  /// Home contract banner: the line under the title, leading to the E-Contract screen.
+  ///
+  /// In mn, this message translates to:
+  /// **'Гэрээгээ хийгээрэй'**
+  String get homeContractSupporting;
+
+  /// Home attendance card's label, and the Attendance detail screen's title.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээлийн ирц'**
+  String get homeAttendanceLabel;
+
+  /// Home: the action on the attendance and payment cards that opens their detail.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дэлгэрэнгүй'**
+  String get homeDetails;
+
+  /// Attendance detail: the legend row for a session the student missed.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээлдээ суугаагүй'**
+  String get homeAttendanceMissed;
+
+  /// Home: shown when the student is enrolled in no class.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна'**
+  String get homeEmpty;
 }
 
 class _AppLocalizationsDelegate

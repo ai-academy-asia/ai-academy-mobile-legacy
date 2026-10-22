@@ -250,5 +250,46 @@
   "resetInvalidCurrentPassword": "Одоогийн нууц үг буруу байна",
   "@resetInvalidCurrentPassword": {
     "description": "Password reset: the server refused the current password."
+  },
+
+  "homeNotifications": "Мэдэгдэл",
+  "@homeNotifications": {
+    "description": "Home header (also Teacher Schedule): screen-reader label of the bell that opens the notifications; \", <unread count>\" follows when there are unread ones."
+  },
+  "homeNextLesson": "Дараагийн хичээл:",
+  "@homeNextLesson": {
+    "description": "Home program card: the caption before the next lesson's date and time."
+  },
+  "homeLiveHint": "Хичээл эхлсэн та ирцээ бүртгүүлээрэй",
+  "@homeLiveHint": {
+    "description": "Home program card: the line shown while the lesson is under way."
+  },
+  "homeAttendanceAction": "Ирц бүртгүүлэх",
+  "@homeAttendanceAction": {
+    "description": "Home program card: the button that opens attendance check-in while the lesson is under way."
+  },
+  "homeContractTitle": "Та гэрээ хийгдээгүй байна",
+  "@homeContractTitle": {
+    "description": "Home contract banner: the title when the student has no signed contract."
+  },
+  "homeContractSupporting": "Гэрээгээ хийгээрэй",
+  "@homeContractSupporting": {
+    "description": "Home contract banner: the line under the title, leading to the E-Contract screen."
+  },
+  "homeAttendanceLabel": "Хичээлийн ирц",
+  "@homeAttendanceLabel": {
+    "description": "Home attendance card's label, and the Attendance detail screen's title."
+  },
+  "homeDetails": "Дэлгэрэнгүй",
+  "@homeDetails": {
+    "description": "Home: the action on the attendance and payment cards that opens their detail."
+  },
+  "homeAttendanceMissed": "Хичээлдээ суугаагүй",
+  "@homeAttendanceMissed": {
+    "description": "Attendance detail: the legend row for a session the student missed."
+  },
+  "homeEmpty": "Та одоогоор ямар нэг ангид бүртгүүлээгүй байна",
+  "@homeEmpty": {
+    "description": "Home: shown when the student is enrolled in no class."
   }
 }
