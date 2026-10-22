@@ -50,4 +50,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonRetry => 'Try again.';
+
+  @override
+  String get commonBack => 'Back';
+
+  @override
+  String get videoPlay => 'Play';
+
+  @override
+  String get quizClose => 'Close';
+
+  @override
+  String get notificationUnread => 'Unread';
 }

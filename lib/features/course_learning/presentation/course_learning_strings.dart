@@ -11,8 +11,17 @@ import '../domain/course_learning_failure.dart';
 /// reference rather than translated, since translating would be inventing
 /// copy the design never specified.
 abstract final class CourseLearningStrings {
-  /// The back control's label — [AppBackButton.label] (Issue #327).
-  static const String back = AppBackButton.label;
+  /// The back control's label — [AppBackButton.label] (Issue #327), the
+  /// shared `commonBack` (Issue #509).
+  static String get back => AppBackButton.label;
+
+  /// What a screen reader announces for the lesson video's play button:
+  /// `Тоглуулах`, or `Play` in English (Issue #509).
+  static String get play => L10n.current.videoPlay;
+
+  /// What a screen reader announces for the quiz's close button: `Хаах`, or
+  /// `Close` in English (Issue #509).
+  static String get quizClose => L10n.current.quizClose;
 
   // --- Failures ----------------------------------------------------------
   //

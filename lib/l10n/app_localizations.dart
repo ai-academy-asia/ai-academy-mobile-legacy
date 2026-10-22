@@ -171,6 +171,30 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Дахин оролдох'**
   String get commonRetry;
+
+  /// Screen-reader label (never drawn) of every back control: the shared circular back button, the lesson video's back button and the course detail back button.
+  ///
+  /// In mn, this message translates to:
+  /// **'Буцах'**
+  String get commonBack;
+
+  /// Screen-reader label (never drawn) of the lesson video's play button.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тоглуулах'**
+  String get videoPlay;
+
+  /// Screen-reader label (never drawn) of the quiz's close (x) button.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хаах'**
+  String get quizClose;
+
+  /// Screen-reader label (never drawn): read first in an unread notification row's label, in place of the unread dot. The row reads '<this>, <title>, <body>, <age>'.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ'**
+  String get notificationUnread;
 }
 
 class _AppLocalizationsDelegate

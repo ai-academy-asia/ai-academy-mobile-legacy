@@ -50,4 +50,16 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get commonRetry => 'Дахин оролдох';
+
+  @override
+  String get commonBack => 'Буцах';
+
+  @override
+  String get videoPlay => 'Тоглуулах';
+
+  @override
+  String get quizClose => 'Хаах';
+
+  @override
+  String get notificationUnread => 'Шинэ';
 }

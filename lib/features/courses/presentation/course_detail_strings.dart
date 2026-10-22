@@ -6,7 +6,9 @@ import '../../../core/locale/l10n.dart';
 /// `CourseCatalogStrings`. The screen is the only caller, so wording it
 /// differently is a single-file edit.
 abstract final class CourseDetailStrings {
-  static const String back = 'Буцах';
+  /// The back control's screen-reader label — every back control's shared
+  /// `commonBack`: `Буцах`, or `Back` in English (Issue #509).
+  static String get back => L10n.current.commonBack;
 
   /// Opens the Course Learning overview (modules, progress, certification).
   static const String openCourseLearning = 'Сургалт үзэх';

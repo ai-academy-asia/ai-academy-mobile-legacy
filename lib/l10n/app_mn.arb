@@ -50,5 +50,22 @@
   "commonRetry": "Дахин оролдох",
   "@commonRetry": {
     "description": "The button on any error state (Splash included) that tries the failed action again."
+  },
+
+  "commonBack": "Буцах",
+  "@commonBack": {
+    "description": "Screen-reader label (never drawn) of every back control: the shared circular back button, the lesson video's back button and the course detail back button."
+  },
+  "videoPlay": "Тоглуулах",
+  "@videoPlay": {
+    "description": "Screen-reader label (never drawn) of the lesson video's play button."
+  },
+  "quizClose": "Хаах",
+  "@quizClose": {
+    "description": "Screen-reader label (never drawn) of the quiz's close (x) button."
+  },
+  "notificationUnread": "Шинэ",
+  "@notificationUnread": {
+    "description": "Screen-reader label (never drawn): read first in an unread notification row's label, in place of the unread dot. The row reads '<this>, <title>, <body>, <age>'."
   }
 }
