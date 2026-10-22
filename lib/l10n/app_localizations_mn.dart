@@ -233,4 +233,35 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get homeEmpty => 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';
+
+  @override
+  String get learningNotEnrolled => 'Та энэ хөтөлбөрт бүртгэлгүй байна';
+
+  @override
+  String get learningNotFound => 'Хөтөлбөр олдсонгүй';
+
+  @override
+  String get juniorContractTitle => 'Гэрээ хийгдээгүй байна';
+
+  @override
+  String get juniorShowParent => 'Эцэг эхдээ үзүүлнэ үү 😊';
+
+  @override
+  String get juniorExam => 'Шалгалтын дүн';
+
+  @override
+  String get juniorLegendTitle => 'Тайлбар:';
+
+  @override
+  String get juniorLegendHint =>
+      'Та хичээлдээ идэвхттэй суугаад тамгаа цуглуулаарай';
+
+  @override
+  String get juniorLessonDay => 'Хичээлтэй өдөр';
+
+  @override
+  String get juniorLessonMissed => 'Хичээлээ тасалсан';
+
+  @override
+  String get juniorLessonAttended => 'Хичээлдээ суусан';
 }
