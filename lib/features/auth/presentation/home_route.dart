@@ -59,7 +59,7 @@ void openSignedIn(
       builder: (context) => ResetPasswordScreen(
         onCompleted: () {
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            const SnackBar(content: Text(ResetPasswordStrings.success)),
+            SnackBar(content: Text(ResetPasswordStrings.success)),
           );
           goHome(context);
         },

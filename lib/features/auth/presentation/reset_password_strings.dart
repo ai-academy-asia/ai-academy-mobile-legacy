@@ -6,56 +6,65 @@ import '../domain/password_policy.dart';
 /// Read off the Figma reference for `Sign in - 6` … `10`. Same arrangement as
 /// `LoginStrings`: the screen is the only caller, so rewording or translating
 /// it is a single-file edit.
+///
+/// In the selected language (Issue #515): every member but [supporting] reads
+/// an ARB key — `reset*`, the shared error keys, and `authShowPassword` /
+/// `authHidePassword`, Login's own eye-button labels.
 abstract final class ResetPasswordStrings {
   /// Screen title.
-  static const String title = 'Нууц үгээ тохируулах';
+  static String get title => L10n.current.resetTitle;
 
   /// The line under the title. The design ships Lorem ipsum here — the real
   /// copy has not been written yet, so it is carried through verbatim rather
   /// than invented.
   static const String supporting = 'Lorem ipsum dolor sit amet consectetur.';
 
-  static const String currentPassword = 'Одоогийн нууц үг';
-  static const String newPassword = 'Шинэ нууц үг';
-  static const String confirmPassword = 'Шинэ нууц үг давтах';
+  static String get currentPassword => L10n.current.resetCurrentPassword;
+  static String get newPassword => L10n.current.resetNewPassword;
+  static String get confirmPassword => L10n.current.resetConfirmPassword;
 
   /// Heading of the requirements panel.
-  static const String requirementsTitle = 'Нууц үг нь дараах шаардлагыг хангасан байна:';
+  static String get requirementsTitle => L10n.current.resetRequirementsTitle;
 
   /// Submit. Not in the reference crop — see `ResetPasswordScreen`.
-  static const String submit = 'Хадгалах';
+  static String get submit => L10n.current.resetSubmit;
 
   static String requirement(PasswordRequirement requirement) => switch (requirement) {
-    PasswordRequirement.minLength => '8 ба түүнээс дээш тэмдэгт ашиглах',
-    PasswordRequirement.uppercase => 'Том үсэг ашиглах',
-    PasswordRequirement.lowercase => 'Жижиг үсэг ашиглах',
-    PasswordRequirement.digit => 'Тоо ашиглах',
-    PasswordRequirement.special => 'Тусгай тэмдэгт ашиглах',
+    PasswordRequirement.minLength => L10n.current.resetRuleMinLength,
+    PasswordRequirement.uppercase => L10n.current.resetRuleUppercase,
+    PasswordRequirement.lowercase => L10n.current.resetRuleLowercase,
+    PasswordRequirement.digit => L10n.current.resetRuleDigit,
+    PasswordRequirement.special => L10n.current.resetRuleSpecial,
   };
 
   // --- Validation ----------------------------------------------------------
 
-  static const String currentPasswordRequired = 'Одоогийн нууц үгээ оруулна уу';
-  static const String newPasswordRequired = 'Шинэ нууц үгээ оруулна уу';
+  static String get currentPasswordRequired =>
+      L10n.current.resetCurrentPasswordRequired;
+  static String get newPasswordRequired =>
+      L10n.current.resetNewPasswordRequired;
 
   /// Shown when the new password fails one or more of the five rules. The
   /// panel already says which, so this only points at the field.
-  static const String newPasswordWeak = 'Нууц үг шаардлагыг хангахгүй байна';
+  static String get newPasswordWeak => L10n.current.resetNewPasswordWeak;
 
-  static const String confirmPasswordRequired = 'Шинэ нууц үгээ давтан оруулна уу';
+  static String get confirmPasswordRequired =>
+      L10n.current.resetConfirmPasswordRequired;
 
   /// Exact wording from `Sign in - 10`.
-  static const String confirmPasswordMismatch = 'Шинэ нууц үгтэй таарахгүй байна';
+  static String get confirmPasswordMismatch =>
+      L10n.current.resetConfirmPasswordMismatch;
 
   /// A new password identical to the current one is not a change.
-  static const String newPasswordSameAsCurrent =
-      'Шинэ нууц үг одоогийнхоос өөр байх ёстой';
+  static String get newPasswordSameAsCurrent =>
+      L10n.current.resetNewPasswordSameAsCurrent;
 
   // --- Outcomes ------------------------------------------------------------
 
-  static const String success = 'Нууц үг амжилттай солигдлоо';
+  static String get success => L10n.current.resetSuccess;
 
-  static const String invalidCurrentPassword = 'Одоогийн нууц үг буруу байна';
+  static String get invalidCurrentPassword =>
+      L10n.current.resetInvalidCurrentPassword;
 
   /// The request was not authenticated — the session has gone, not the password.
   static String get sessionExpired => L10n.current.commonSessionExpired;
@@ -65,6 +74,6 @@ abstract final class ResetPasswordStrings {
 
   // --- Accessibility -------------------------------------------------------
 
-  static const String showPassword = 'Нууц үг харуулах';
-  static const String hidePassword = 'Нууц үг нуух';
+  static String get showPassword => L10n.current.authShowPassword;
+  static String get hidePassword => L10n.current.authHidePassword;
 }

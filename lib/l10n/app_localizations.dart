@@ -351,6 +351,120 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Нууц үг нуух'**
   String get authHidePassword;
+
+  /// Password reset: the screen title, for the required change after first sign-in and the voluntary change from Profile.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үгээ тохируулах'**
+  String get resetTitle;
+
+  /// Password reset: the current-password field's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогийн нууц үг'**
+  String get resetCurrentPassword;
+
+  /// Password reset: the new-password field's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ нууц үг'**
+  String get resetNewPassword;
+
+  /// Password reset: the field where the new password is typed again.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ нууц үг давтах'**
+  String get resetConfirmPassword;
+
+  /// Password reset: the heading of the panel listing the five password rules.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг нь дараах шаардлагыг хангасан байна:'**
+  String get resetRequirementsTitle;
+
+  /// Password reset: the button that saves the new password.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хадгалах'**
+  String get resetSubmit;
+
+  /// Password reset rule: at least 8 characters. Also its screen-reader label, with a checked state once met.
+  ///
+  /// In mn, this message translates to:
+  /// **'8 ба түүнээс дээш тэмдэгт ашиглах'**
+  String get resetRuleMinLength;
+
+  /// Password reset rule: at least one uppercase letter. Also its screen-reader label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Том үсэг ашиглах'**
+  String get resetRuleUppercase;
+
+  /// Password reset rule: at least one lowercase letter. Also its screen-reader label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Жижиг үсэг ашиглах'**
+  String get resetRuleLowercase;
+
+  /// Password reset rule: at least one digit. Also its screen-reader label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тоо ашиглах'**
+  String get resetRuleDigit;
+
+  /// Password reset rule: at least one special character. Also its screen-reader label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тусгай тэмдэгт ашиглах'**
+  String get resetRuleSpecial;
+
+  /// Password reset validation: the current-password field is empty.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогийн нууц үгээ оруулна уу'**
+  String get resetCurrentPasswordRequired;
+
+  /// Password reset validation: the new-password field is empty.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ нууц үгээ оруулна уу'**
+  String get resetNewPasswordRequired;
+
+  /// Password reset validation: the new password fails one or more of the five rules (the panel says which).
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг шаардлагыг хангахгүй байна'**
+  String get resetNewPasswordWeak;
+
+  /// Password reset validation: the confirmation field is empty.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ нууц үгээ давтан оруулна уу'**
+  String get resetConfirmPasswordRequired;
+
+  /// Password reset validation: the confirmation differs from the new password.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ нууц үгтэй таарахгүй байна'**
+  String get resetConfirmPasswordMismatch;
+
+  /// Password reset validation: the new password is the same as the current one.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шинэ нууц үг одоогийнхоос өөр байх ёстой'**
+  String get resetNewPasswordSameAsCurrent;
+
+  /// Password reset: the snackbar once the password is changed, after either flow.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нууц үг амжилттай солигдлоо'**
+  String get resetSuccess;
+
+  /// Password reset: the server refused the current password.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогийн нууц үг буруу байна'**
+  String get resetInvalidCurrentPassword;
 }
 
 class _AppLocalizationsDelegate
