@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../domain/enrollment_failure.dart';
 
 /// Every word the enroll action shows. No Figma reference exists for it —
@@ -6,13 +7,12 @@ import '../domain/enrollment_failure.dart';
 abstract final class EnrollmentStrings {
   static const String enroll = 'Бүртгүүлэх';
 
-  static const String sessionExpired = 'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
+  static String get sessionExpired => L10n.current.commonSessionExpired;
   static const String rejected = 'Энэ ангид бүртгүүлэх боломжгүй байна';
 
-  static const String networkError = 'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
-  static const String serverError =
-      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
-  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+  static String get networkError => L10n.current.commonNetworkError;
+  static String get serverError => L10n.current.commonServerError;
+  static String get unexpectedError => L10n.current.commonUnexpectedError;
 
   /// The message for a failed enrollment-related request — one fixed string
   /// per [EnrollmentFailureKind], shared by every controller in this feature

@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../../../core/locale/app_format.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../domain/notification_failure.dart';
@@ -12,7 +13,7 @@ abstract final class NotificationStrings {
   /// app's own plain wording (a `PRODUCT DECISION`).
   static const String empty = 'Одоогоор мэдэгдэл алга байна';
 
-  static const String retry = 'Дахин оролдох';
+  static String get retry => L10n.current.commonRetry;
 
   /// A mark-read for a notification the server no longer has.
   static const String notFound = 'Мэдэгдэл олдсонгүй';

@@ -302,10 +302,7 @@ class _Failure extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppDimens.fieldGap),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text(ContractStrings.retry),
-            ),
+            TextButton(onPressed: onRetry, child: Text(ContractStrings.retry)),
           ],
         ),
       ),

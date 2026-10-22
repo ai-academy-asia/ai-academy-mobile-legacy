@@ -19,8 +19,9 @@ void main() {
         AppLocaleController.instance.setPreference(LocalePreference.mongolian),
   );
 
-  /// The pilot copy exactly as it was written before Issue #503 — Mongolian
-  /// must read the same, character for character.
+  /// Every message exactly as it was written before it moved to ARB — the
+  /// pilot (Issue #503) and the shared error and retry messages (Issue #507).
+  /// Mongolian must read the same, character for character.
   const mongolian = {
     'signOutTitle': 'Гарах уу?',
     'signOutMessage': 'Та бүртгэлээс гарахдаа итгэлтэй байна уу?',
@@ -29,7 +30,12 @@ void main() {
     'splashWordmarkLine1': 'AI academy',
     'splashWordmarkLine2': 'Asia',
     'splashNetworkError': 'Интернэт холболтоо шалгаад дахин оролдоно уу.',
-    'splashRetry': 'Дахин оролдох',
+    'commonNetworkError': 'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу',
+    'commonServerError':
+        'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу',
+    'commonUnexpectedError': 'Алдаа гарлаа. Дахин оролдоно уу',
+    'commonSessionExpired': 'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү',
+    'commonRetry': 'Дахин оролдох',
   };
 
   Map<String, String> messages(AppLocalizations strings) => {
@@ -40,7 +46,11 @@ void main() {
     'splashWordmarkLine1': strings.splashWordmarkLine1,
     'splashWordmarkLine2': strings.splashWordmarkLine2,
     'splashNetworkError': strings.splashNetworkError,
-    'splashRetry': strings.splashRetry,
+    'commonNetworkError': strings.commonNetworkError,
+    'commonServerError': strings.commonServerError,
+    'commonUnexpectedError': strings.commonUnexpectedError,
+    'commonSessionExpired': strings.commonSessionExpired,
+    'commonRetry': strings.commonRetry,
   };
 
   group('generated strings', () {
@@ -70,13 +80,35 @@ void main() {
       expect(english.splashWordmarkLine2, 'Asia');
     });
 
+    test('English: the approved shared error and retry messages (Issue '
+        '#507)', () {
+      final english = L10n.of(LocalePreference.english);
+      expect(
+        english.commonNetworkError,
+        'Could not connect to the network. Please try again.',
+      );
+      expect(
+        english.commonServerError,
+        'Something went wrong on the server. Please wait a moment and try '
+        'again.',
+      );
+      expect(
+        english.commonUnexpectedError,
+        'Something went wrong. Please try again.',
+      );
+      expect(
+        english.commonSessionExpired,
+        'Your session has expired. Please sign in again.',
+      );
+      expect(english.commonRetry, 'Try again.');
+    });
+
     test('English without approved copy falls back to the Mongolian, and is '
         'listed as untranslated', () {
       const untranslated = [
         'signOutTitle',
         'signOutMessage',
         'splashNetworkError',
-        'splashRetry',
       ];
       final english = messages(L10n.of(LocalePreference.english));
       for (final key in untranslated) {
@@ -153,7 +185,13 @@ void main() {
       await AppLocaleController.instance.setEnglish(true);
 
       expect(SplashStrings.wordmarkSemanticsLabel, 'AI academy Asia');
-      expect(SplashStrings.retry, L10n.current.splashRetry);
+      // Retry is the shared key (Issue #507); the network error still has
+      // no approved English.
+      expect(SplashStrings.retry, 'Try again.');
+      expect(
+        SplashStrings.networkError,
+        'Интернэт холболтоо шалгаад дахин оролдоно уу.',
+      );
     });
   });
 }

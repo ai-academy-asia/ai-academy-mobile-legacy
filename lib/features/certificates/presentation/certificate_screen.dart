@@ -176,7 +176,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
         message: message,
         action: TextButton(
           onPressed: _controller.load,
-          child: const Text(CertificateStrings.retry),
+          child: Text(CertificateStrings.retry),
         ),
       );
     }

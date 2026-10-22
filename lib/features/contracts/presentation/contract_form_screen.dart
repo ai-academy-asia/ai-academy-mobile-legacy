@@ -262,7 +262,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
         message: ContractStrings.messageFor(kind),
         action: TextButton(
           onPressed: _controller.load,
-          child: const Text(ContractStrings.retry),
+          child: Text(ContractStrings.retry),
         ),
       );
     }

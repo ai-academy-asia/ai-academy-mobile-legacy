@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../../../shared/widgets/app_back_button.dart';
 import '../domain/course_learning_failure.dart';
 
@@ -22,15 +23,12 @@ abstract final class CourseLearningStrings {
   // `HomeStrings`, `EnrollmentStrings`) — the same fact should read the same
   // wherever the student meets it.
 
-  static const String retry = 'Дахин оролдох';
+  static String get retry => L10n.current.commonRetry;
 
-  static const String sessionExpired =
-      'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
-  static const String networkError =
-      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
-  static const String serverError =
-      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
-  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+  static String get sessionExpired => L10n.current.commonSessionExpired;
+  static String get networkError => L10n.current.commonNetworkError;
+  static String get serverError => L10n.current.commonServerError;
+  static String get unexpectedError => L10n.current.commonUnexpectedError;
 
   /// The contract's `403 not_enrolled` — the student is signed in, but not on
   /// this course. Worded as its own case rather than folded into

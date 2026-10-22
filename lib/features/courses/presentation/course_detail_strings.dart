@@ -1,3 +1,5 @@
+import '../../../core/locale/l10n.dart';
+
 /// Every word on the course detail screen.
 ///
 /// No Figma reference exists for this screen either — same situation as
@@ -20,13 +22,11 @@ abstract final class CourseDetailStrings {
   // --- States ----------------------------------------------------------
 
   static const String notFound = 'Энэ хичээл олдсонгүй';
-  static const String retry = 'Дахин оролдох';
+  static String get retry => L10n.current.commonRetry;
 
-  static const String networkError =
-      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
-  static const String serverError =
-      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
-  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+  static String get networkError => L10n.current.commonNetworkError;
+  static String get serverError => L10n.current.commonServerError;
+  static String get unexpectedError => L10n.current.commonUnexpectedError;
 
   // The age/duration/date units are `CourseCatalogStrings.ageUnit`,
   // `.weeksUnit` and `.dateRange(...)` — reused directly rather than repeated

@@ -279,7 +279,7 @@ class _ContractPreviewScreenState extends State<ContractPreviewScreen> {
             setState(() => _result = null);
             _request();
           },
-          child: const Text(ContractStrings.retry),
+          child: Text(ContractStrings.retry),
         ),
       ),
     };

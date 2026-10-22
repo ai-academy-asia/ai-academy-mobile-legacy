@@ -1,3 +1,5 @@
+import '../../../core/locale/l10n.dart';
+
 /// Every word on the login screen, in one place.
 ///
 /// These are read off the Figma reference for the Adult login flow
@@ -65,10 +67,9 @@ abstract final class LoginStrings {
   // --- API failures --------------------------------------------------------
 
   static const String invalidCredentials = 'Утасны дугаар эсвэл нууц үг буруу байна';
-  static const String networkError = 'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
-  static const String serverError =
-      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
-  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+  static String get networkError => L10n.current.commonNetworkError;
+  static String get serverError => L10n.current.commonServerError;
+  static String get unexpectedError => L10n.current.commonUnexpectedError;
 
   // --- Accessibility labels ------------------------------------------------
 

@@ -24,7 +24,7 @@ abstract final class TeacherHomeStrings {
   /// wording for the same "nothing here yet" state.
   static const String empty = 'Одоогоор хичээл алга байна';
 
-  static const String retry = HomeStrings.retry;
+  static String get retry => HomeStrings.retry;
 
   /// One fixed string per [TeacherFailureKind]. A `rejected` request has no
   /// wording of its own on the student Home, so it reads as the generic
