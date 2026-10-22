@@ -20,9 +20,12 @@ import '../domain/junior_learning_map.dart';
 /// in English for the same reason `CourseLearningStrings` does: translating it
 /// would be inventing wording the design never specified.
 abstract final class JuniorHomeStrings {
-  static const String navHome = 'Нүүр';
-  static const String navProgress = 'Сурлагын явц';
-  static const String navProfile = 'Профайл';
+  /// The bottom navigation, in the selected language (Issue #511): Нүүр /
+  /// Home, Сурлагын явц / Progress, Профайл / Profile — the adult bar's own
+  /// Home and Profile keys.
+  static String get navHome => L10n.current.navHome;
+  static String get navProgress => L10n.current.navProgress;
+  static String get navProfile => L10n.current.navProfile;
 
   /// The map as a whole, for a screen reader arriving at the scroll view.
   static const String learningMap = 'Learning map';

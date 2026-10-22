@@ -195,6 +195,42 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Шинэ'**
   String get notificationUnread;
+
+  /// Bottom navigation, Adult and Junior: the tab that opens Home.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нүүр'**
+  String get navHome;
+
+  /// Bottom navigation, Adult: the tab that opens the student's courses.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээл'**
+  String get navCourses;
+
+  /// Bottom navigation, every role: the tab that opens Profile.
+  ///
+  /// In mn, this message translates to:
+  /// **'Профайл'**
+  String get navProfile;
+
+  /// Bottom navigation, Junior: the tab that opens the student's progress (attendance and results).
+  ///
+  /// In mn, this message translates to:
+  /// **'Сурлагын явц'**
+  String get navProgress;
+
+  /// Bottom navigation, Teacher: the tab that opens the teaching schedule.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хуваарь'**
+  String get navSchedule;
+
+  /// Bottom navigation, Teacher: the tab that opens the teacher's programs (classes, students and grades).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хөтөлбөрүүд'**
+  String get navPrograms;
 }
 
 class _AppLocalizationsDelegate

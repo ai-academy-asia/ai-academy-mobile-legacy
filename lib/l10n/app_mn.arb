@@ -67,5 +67,30 @@
   "notificationUnread": "Шинэ",
   "@notificationUnread": {
     "description": "Screen-reader label (never drawn): read first in an unread notification row's label, in place of the unread dot. The row reads '<this>, <title>, <body>, <age>'."
+  },
+
+  "navHome": "Нүүр",
+  "@navHome": {
+    "description": "Bottom navigation, Adult and Junior: the tab that opens Home."
+  },
+  "navCourses": "Хичээл",
+  "@navCourses": {
+    "description": "Bottom navigation, Adult: the tab that opens the student's courses."
+  },
+  "navProfile": "Профайл",
+  "@navProfile": {
+    "description": "Bottom navigation, every role: the tab that opens Profile."
+  },
+  "navProgress": "Сурлагын явц",
+  "@navProgress": {
+    "description": "Bottom navigation, Junior: the tab that opens the student's progress (attendance and results)."
+  },
+  "navSchedule": "Хуваарь",
+  "@navSchedule": {
+    "description": "Bottom navigation, Teacher: the tab that opens the teaching schedule."
+  },
+  "navPrograms": "Хөтөлбөрүүд",
+  "@navPrograms": {
+    "description": "Bottom navigation, Teacher: the tab that opens the teacher's programs (classes, students and grades)."
   }
 }

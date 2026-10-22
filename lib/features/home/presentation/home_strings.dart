@@ -94,10 +94,13 @@ abstract final class HomeStrings {
   };
 
   // --- Bottom navigation ----------------------------------------------------
+  //
+  // In the selected language (Issue #511): Нүүр / Home, Хичээл / Courses,
+  // Профайл / Profile.
 
-  static const String navHome = 'Нүүр';
-  static const String navCourses = 'Хичээл';
-  static const String navProfile = 'Профайл';
+  static String get navHome => L10n.current.navHome;
+  static String get navCourses => L10n.current.navCourses;
+  static String get navProfile => L10n.current.navProfile;
 }
 
 /// The dashboard's own icons, exported from the design.

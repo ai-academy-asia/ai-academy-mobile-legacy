@@ -16,5 +16,12 @@
   "commonBack": "Back",
   "videoPlay": "Play",
   "quizClose": "Close",
-  "notificationUnread": "Unread"
+  "notificationUnread": "Unread",
+
+  "navHome": "Home",
+  "navCourses": "Courses",
+  "navProfile": "Profile",
+  "navProgress": "Progress",
+  "navSchedule": "Schedule",
+  "navPrograms": "Programs"
 }
