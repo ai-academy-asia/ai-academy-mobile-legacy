@@ -1,0 +1,37 @@
+{
+  "@@locale": "mn",
+
+  "signOutTitle": "Гарах уу?",
+  "@signOutTitle": {
+    "description": "Sign-out confirmation dialog: the heading, asking whether to sign out."
+  },
+  "signOutMessage": "Та бүртгэлээс гарахдаа итгэлтэй байна уу?",
+  "@signOutMessage": {
+    "description": "Sign-out confirmation dialog: the supporting line under the heading."
+  },
+  "signOutCancel": "Цуцлах",
+  "@signOutCancel": {
+    "description": "Sign-out confirmation dialog: the outlined button that closes it and stays signed in."
+  },
+  "signOutConfirm": "Гарах",
+  "@signOutConfirm": {
+    "description": "Sign-out confirmation dialog: the filled button that signs out."
+  },
+
+  "splashWordmarkLine1": "AI academy",
+  "@splashWordmarkLine1": {
+    "description": "Splash: first line of the brand wordmark, read to screen readers. A brand name — the same in every language."
+  },
+  "splashWordmarkLine2": "Asia",
+  "@splashWordmarkLine2": {
+    "description": "Splash: second line of the brand wordmark, read to screen readers. A brand name — the same in every language."
+  },
+  "splashNetworkError": "Интернэт холболтоо шалгаад дахин оролдоно уу.",
+  "@splashNetworkError": {
+    "description": "Splash: shown when a held session could not be restored because there is no network."
+  },
+  "splashRetry": "Дахин оролдох",
+  "@splashRetry": {
+    "description": "Splash: the button under the network error that tries the restore again."
+  }
+}

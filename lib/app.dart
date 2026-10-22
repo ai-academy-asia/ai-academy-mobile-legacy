@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/api/api_config.dart';
 import 'core/api/api_override_banner.dart';
 import 'core/locale/app_locale_controller.dart';
+import 'core/locale/l10n.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_theme_controller.dart';
 import 'features/auth/presentation/home_route.dart';
@@ -57,9 +58,16 @@ class AiAcademyApp extends StatelessWidget {
     // and Splash — all draw in the same theme and language. `darkTheme` is
     // the candidate (Issue #276), unreachable: the controller stays light
     // and nothing sets another mode until Phase 10.
-    return ListenableBuilder(
-      listenable: Listenable.merge([controller, locale]),
-      builder: (context, _) => _app(controller.mode, locale.locale),
+    //
+    // Above all of it, the scope that redraws the app's own strings when the
+    // language changes (Issue #503). It follows `AppLocaleController.instance`
+    // — the controller `L10n.current` reads — whichever controller a test
+    // gives this widget.
+    return L10nRebuildScope(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([controller, locale]),
+        builder: (context, _) => _app(controller.mode, locale.locale),
+      ),
     );
   }
 
@@ -83,7 +91,8 @@ class AiAcademyApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
       // Flutter's own widgets in the chosen language (Issue #501). The app's
-      // own UI copy is not translated yet — see `docs/ai/PROJECT_CONTEXT.md`.
+      // own UI copy is read through `L10n.current` instead (Issue #503), so
+      // no delegate of its own is listed — see `docs/ai/PROJECT_CONTEXT.md`.
       locale: locale,
       supportedLocales: AppLocaleController.supportedLocales,
       localizationsDelegates: const [
