@@ -234,4 +234,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeEmpty => 'You are not enrolled in any class yet';
+
+  @override
+  String get learningNotEnrolled => 'You are not enrolled in this program';
+
+  @override
+  String get learningNotFound => 'Program not found';
+
+  @override
+  String get juniorContractTitle => 'Your contract is not signed yet';
+
+  @override
+  String get juniorShowParent => 'Please show this to your parents 😊';
+
+  @override
+  String get juniorExam => 'Exam results';
+
+  @override
+  String get juniorLegendTitle => 'Legend:';
+
+  @override
+  String get juniorLegendHint =>
+      'Attend your lessons actively and collect your stamps';
+
+  @override
+  String get juniorLessonDay => 'Lesson day';
+
+  @override
+  String get juniorLessonMissed => 'Missed lesson';
+
+  @override
+  String get juniorLessonAttended => 'Attended lesson';
 }

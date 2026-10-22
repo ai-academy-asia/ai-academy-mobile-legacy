@@ -75,5 +75,16 @@
   "homeAttendanceLabel": "Attendance",
   "homeDetails": "Details",
   "homeAttendanceMissed": "Missed class",
-  "homeEmpty": "You are not enrolled in any class yet"
+  "homeEmpty": "You are not enrolled in any class yet",
+
+  "learningNotEnrolled": "You are not enrolled in this program",
+  "learningNotFound": "Program not found",
+  "juniorContractTitle": "Your contract is not signed yet",
+  "juniorShowParent": "Please show this to your parents 😊",
+  "juniorExam": "Exam results",
+  "juniorLegendTitle": "Legend:",
+  "juniorLegendHint": "Attend your lessons actively and collect your stamps",
+  "juniorLessonDay": "Lesson day",
+  "juniorLessonMissed": "Missed lesson",
+  "juniorLessonAttended": "Attended lesson"
 }

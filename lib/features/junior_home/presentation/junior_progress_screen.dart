@@ -170,7 +170,7 @@ class _JuniorProgressScreenState extends State<JuniorProgressScreen> {
       return _StateMessage(message: message, onRetry: _controller.load);
     }
     if (_controller.isEmpty) {
-      return const _StateMessage(message: JuniorHomeStrings.empty);
+      return _StateMessage(message: JuniorHomeStrings.empty);
     }
     final progress = _controller.progress;
     if (progress == null) return const _Loading();
@@ -292,7 +292,7 @@ class _PaymentCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      JuniorProgressStrings.showParent,
+                      JuniorProgressStrings.paymentShowParent,
                       style: _bodyStyle.copyWith(color: palette.textStatLabel),
                     ),
                     const SizedBox(height: 4),

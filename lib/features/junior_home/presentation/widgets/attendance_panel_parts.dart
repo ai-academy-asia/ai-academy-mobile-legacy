@@ -143,15 +143,16 @@ class AttendanceMonthHeader extends StatelessWidget {
 /// [missedLabel] is the missed row's wording, which the two frames word
 /// differently: Junior "Хичээлээ тасалсан", Adult "Хичээлдээ суугаагүй".
 class AttendanceLegend extends StatelessWidget {
-  const AttendanceLegend({
-    super.key,
-    this.missedLabel = JuniorProgressStrings.lessonMissed,
-  });
+  const AttendanceLegend({super.key, this.missedLabel});
 
-  final String missedLabel;
+  /// Null is the Junior frame's own [JuniorProgressStrings.lessonMissed], in
+  /// the selected language — resolved here, as a translated string cannot be
+  /// a constant default (Issue #519).
+  final String? missedLabel;
 
   @override
   Widget build(BuildContext context) {
+    final missedLabel = this.missedLabel ?? JuniorProgressStrings.lessonMissed;
     Widget row(JuniorDayStatus status, String label) => Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(

@@ -1,4 +1,5 @@
 import '../../../core/locale/app_format.dart';
+import '../../../core/locale/l10n.dart';
 import '../../home/presentation/home_strings.dart';
 
 /// Every word on the Junior "Сурлагын явц" screen, verbatim from the frame.
@@ -19,11 +20,16 @@ import '../../home/presentation/home_strings.dart';
 abstract final class JuniorProgressStrings {
   // --- Contract banner ------------------------------------------------------
 
-  static const String contractTitle = 'Гэрээ хийгдээгүй байна';
+  static String get contractTitle => L10n.current.juniorContractTitle;
 
-  /// Shared by the contract banner and the payment card: both ask the child
-  /// to show the matter to a parent.
-  static const String showParent = 'Эцэг эхдээ үзүүлнэ үү 😊';
+  /// Under the contract banner's title: ask the child to show it to a parent.
+  /// In the selected language (Issue #519).
+  static String get showParent => L10n.current.juniorShowParent;
+
+  /// The payment card's identical line, kept apart from [showParent] so it
+  /// stays out of localization with the rest of the payment card's copy
+  /// (Issue #519): Mongolian in either language, for now.
+  static const String paymentShowParent = 'Эцэг эхдээ үзүүлнэ үү 😊';
 
   // --- Payment card ---------------------------------------------------------
 
@@ -37,15 +43,15 @@ abstract final class JuniorProgressStrings {
 
   // --- Summary --------------------------------------------------------------
 
-  static const String attendance = 'Хичээлийн ирц';
-  static const String exam = 'Шалгалтын дүн';
+  static String get attendance => L10n.current.homeAttendanceLabel;
+  static String get exam => L10n.current.juniorExam;
   static String attendanceValue(int attended, int total, int percent) =>
       '$attended/$total · $percent%';
   static String percent(int value) => '$value%';
 
   // --- Next lesson ----------------------------------------------------------
 
-  static const String nextLesson = 'Дараагийн хичээл:';
+  static String get nextLesson => L10n.current.homeNextLesson;
 
   /// "08/08 • 09:00 – 11:00" — month/day, then the lesson's hours;
   /// "Aug 8 • 09:00 – 11:00" in English ([AppFormat], Issue #505).
@@ -70,12 +76,11 @@ abstract final class JuniorProgressStrings {
 
   // --- Legend ---------------------------------------------------------------
 
-  static const String legendTitle = 'Тайлбар:';
-  static const String legendHint =
-      'Та хичээлдээ идэвхттэй суугаад тамгаа цуглуулаарай';
-  static const String lessonDay = 'Хичээлтэй өдөр';
-  static const String lessonMissed = 'Хичээлээ тасалсан';
-  static const String lessonAttended = 'Хичээлдээ суусан';
+  static String get legendTitle => L10n.current.juniorLegendTitle;
+  static String get legendHint => L10n.current.juniorLegendHint;
+  static String get lessonDay => L10n.current.juniorLessonDay;
+  static String get lessonMissed => L10n.current.juniorLessonMissed;
+  static String get lessonAttended => L10n.current.juniorLessonAttended;
 }
 
 /// The screen's exported artwork — the three day marks. [lessonDay] and

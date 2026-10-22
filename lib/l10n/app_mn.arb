@@ -291,5 +291,46 @@
   "homeEmpty": "Та одоогоор ямар нэг ангид бүртгүүлээгүй байна",
   "@homeEmpty": {
     "description": "Home: shown when the student is enrolled in no class."
+  },
+
+  "learningNotEnrolled": "Та энэ хөтөлбөрт бүртгэлгүй байна",
+  "@learningNotEnrolled": {
+    "description": "Learning (Junior Home): the error when the student is not enrolled in the course's program."
+  },
+  "learningNotFound": "Хөтөлбөр олдсонгүй",
+  "@learningNotFound": {
+    "description": "Learning (Junior Home): the error when the course's program could not be found."
+  },
+  "juniorContractTitle": "Гэрээ хийгдээгүй байна",
+  "@juniorContractTitle": {
+    "description": "Junior Progress contract banner: the title while the contract is unsigned."
+  },
+  "juniorShowParent": "Эцэг эхдээ үзүүлнэ үү 😊",
+  "@juniorShowParent": {
+    "description": "Junior Progress contract banner: the line under the title, asking the child to show the contract to a parent. Keep the emoji."
+  },
+  "juniorExam": "Шалгалтын дүн",
+  "@juniorExam": {
+    "description": "Junior Progress: the exam card's label."
+  },
+  "juniorLegendTitle": "Тайлбар:",
+  "@juniorLegendTitle": {
+    "description": "Junior Progress: the heading of the attendance calendar's legend."
+  },
+  "juniorLegendHint": "Та хичээлдээ идэвхттэй суугаад тамгаа цуглуулаарай",
+  "@juniorLegendHint": {
+    "description": "Junior Progress: the line under the legend heading (the design's own spelling, kept)."
+  },
+  "juniorLessonDay": "Хичээлтэй өдөр",
+  "@juniorLessonDay": {
+    "description": "Junior Progress legend and calendar: a day with a lesson."
+  },
+  "juniorLessonMissed": "Хичээлээ тасалсан",
+  "@juniorLessonMissed": {
+    "description": "Junior Progress legend and calendar: a lesson the student missed."
+  },
+  "juniorLessonAttended": "Хичээлдээ суусан",
+  "@juniorLessonAttended": {
+    "description": "Junior Progress legend and calendar: a lesson the student attended."
   }
 }

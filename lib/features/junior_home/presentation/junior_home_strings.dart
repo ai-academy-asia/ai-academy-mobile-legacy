@@ -42,14 +42,14 @@ abstract final class JuniorHomeStrings {
 
   /// Shown when the student is enrolled in nothing. `HomeStrings.empty`'s own
   /// wording, which the adult dashboard already uses for this exact case.
-  static const String empty = 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';
+  static String get empty => L10n.current.homeEmpty;
 
   static String get sessionExpired => L10n.current.commonSessionExpired;
   static String get networkError => L10n.current.commonNetworkError;
   static String get serverError => L10n.current.commonServerError;
   static String get unexpectedError => L10n.current.commonUnexpectedError;
-  static const String notEnrolled = 'Та энэ хөтөлбөрт бүртгэлгүй байна';
-  static const String notFound = 'Хөтөлбөр олдсонгүй';
+  static String get notEnrolled => L10n.current.learningNotEnrolled;
+  static String get notFound => L10n.current.learningNotFound;
 
   /// One fixed string per [CourseLearningFailureKind] — the family this
   /// screen's repository reports, because it reads the Course Learning

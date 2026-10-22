@@ -525,6 +525,66 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна'**
   String get homeEmpty;
+
+  /// Learning (Junior Home): the error when the student is not enrolled in the course's program.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та энэ хөтөлбөрт бүртгэлгүй байна'**
+  String get learningNotEnrolled;
+
+  /// Learning (Junior Home): the error when the course's program could not be found.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хөтөлбөр олдсонгүй'**
+  String get learningNotFound;
+
+  /// Junior Progress contract banner: the title while the contract is unsigned.
+  ///
+  /// In mn, this message translates to:
+  /// **'Гэрээ хийгдээгүй байна'**
+  String get juniorContractTitle;
+
+  /// Junior Progress contract banner: the line under the title, asking the child to show the contract to a parent. Keep the emoji.
+  ///
+  /// In mn, this message translates to:
+  /// **'Эцэг эхдээ үзүүлнэ үү 😊'**
+  String get juniorShowParent;
+
+  /// Junior Progress: the exam card's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шалгалтын дүн'**
+  String get juniorExam;
+
+  /// Junior Progress: the heading of the attendance calendar's legend.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тайлбар:'**
+  String get juniorLegendTitle;
+
+  /// Junior Progress: the line under the legend heading (the design's own spelling, kept).
+  ///
+  /// In mn, this message translates to:
+  /// **'Та хичээлдээ идэвхттэй суугаад тамгаа цуглуулаарай'**
+  String get juniorLegendHint;
+
+  /// Junior Progress legend and calendar: a day with a lesson.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээлтэй өдөр'**
+  String get juniorLessonDay;
+
+  /// Junior Progress legend and calendar: a lesson the student missed.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээлээ тасалсан'**
+  String get juniorLessonMissed;
+
+  /// Junior Progress legend and calendar: a lesson the student attended.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээлдээ суусан'**
+  String get juniorLessonAttended;
 }
 
 class _AppLocalizationsDelegate

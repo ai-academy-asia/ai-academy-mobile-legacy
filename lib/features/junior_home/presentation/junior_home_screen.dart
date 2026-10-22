@@ -165,7 +165,7 @@ class _JuniorHomeScreenState extends State<JuniorHomeScreen> {
       return _MapMessage(message: message, onRetry: () => _controller.load());
     }
     if (_controller.isEmpty) {
-      return const _MapMessage(message: JuniorHomeStrings.empty);
+      return _MapMessage(message: JuniorHomeStrings.empty);
     }
     final map = _controller.map;
     if (map == null) {
