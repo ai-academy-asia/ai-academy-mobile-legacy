@@ -20,18 +20,10 @@ const String _teacherRoleLabel = 'Lead Mentor';
 /// "Today, 14:20" — the contract's §0 example of what the client formats a
 /// timestamp as, and the sample's own label — for a time on [now]'s
 /// calendar day; "08/06, 14:20" otherwise, the `MM/dd` the module schedule
-/// label already uses.
-String _timestampLabel(DateTime local, {required DateTime now}) {
-  String two(int value) => value.toString().padLeft(2, '0');
-  final time = '${two(local.hour)}:${two(local.minute)}';
-  final sameDay =
-      local.year == now.year &&
-      local.month == now.month &&
-      local.day == now.day;
-  return sameDay
-      ? 'Today, $time'
-      : '${two(local.month)}/${two(local.day)}, $time';
-}
+/// label already uses. "Aug 6, 14:20" in English ([AppFormat.todayOrDate],
+/// Issue #505) — in the language selected when the response is parsed.
+String _timestampLabel(DateTime local, {required DateTime now}) =>
+    AppFormat.todayOrDate(local, now: now);
 
 /// A lesson's `duration_seconds` as its label (Issue #477): the key is
 /// always sent, and `null` when the lesson was authored without one — the
@@ -109,25 +101,12 @@ String _scheduleLabel(Object? schedule) {
     );
   }
 
-  final month = parsed.month.toString().padLeft(2, '0');
-  final day = parsed.day.toString().padLeft(2, '0');
-  // `DateTime.weekday` is 1 = Monday … 7 = Sunday.
-  final weekday = _mongolianWeekdays[parsed.weekday - 1];
   // Tolerates `"09:00:00"` as well as the contract's `"09:00"` — the card
   // draws hours and minutes either way.
   final time = startTime.length > 5 ? startTime.substring(0, 5) : startTime;
 
-  return '$month/$day • $weekday • $time';
+  // English: "Aug 6 • Thu • 09:00" ([AppFormat], Issue #505), in the
+  // language selected when the response is parsed.
+  return '${AppFormat.shortDate(parsed)} • '
+      '${AppFormat.weekday(parsed.weekday)} • $time';
 }
-
-/// Даваа, Мягмар, Лхагва, Пүрэв, Баасан, Бямба, Ням — Monday-first, matching
-/// `DateTime.weekday`.
-const List<String> _mongolianWeekdays = [
-  'Да',
-  'Мя',
-  'Лх',
-  'Пү',
-  'Ба',
-  'Бя',
-  'Ня',
-];

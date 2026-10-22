@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../domain/notification_failure.dart';
 
@@ -26,23 +27,19 @@ abstract final class NotificationStrings {
 
   /// A notification's age as the frame writes it: `1d`, `7d`. The frame
   /// shows days only; under a day reads `Nh`, under an hour `Nm` — the same
-  /// short form, a `PRODUCT DECISION` until a frame shows those.
-  static String age(DateTime createdAt, DateTime now) {
-    final elapsed = now.difference(createdAt);
-    if (elapsed.inDays >= 1) return '${elapsed.inDays}d';
-    if (elapsed.inHours >= 1) return '${elapsed.inHours}h';
-    final minutes = elapsed.inMinutes;
-    return '${minutes < 1 ? 1 : minutes}m';
-  }
+  /// short form, a `PRODUCT DECISION` until a frame shows those. The same in
+  /// either language ([AppFormat.age], Issue #505).
+  static String age(DateTime createdAt, DateTime now) =>
+      AppFormat.age(createdAt, now);
 
   /// When a notification was sent, as Notification Detail writes it (Issue
   /// #248): `2026.10.08 · 15:18`, in local time, 24-hour. No frame draws the
   /// detail screen, so the format is the product brief's own example.
+  /// English: `Oct 8, 2026 · 15:18` ([AppFormat], Issue #505).
   static String sentAt(DateTime createdAt) {
     final local = createdAt.toLocal();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${local.year}.${two(local.month)}.${two(local.day)} '
-        '· ${two(local.hour)}:${two(local.minute)}';
+    return '${AppFormat.dateWithYear(local, mongolianSeparator: '.')} '
+        '· ${AppFormat.time(local)}';
   }
 
   // --- Push notifications (Issue #398) -----------------------------------

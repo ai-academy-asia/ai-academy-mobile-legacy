@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import 'teacher_class.dart';
 
 /// One dated session of a teacher's cohort, from
@@ -64,8 +65,8 @@ class TeacherSession {
   };
 }
 
-String _clock((int, int) time) =>
-    '${time.$1.toString().padLeft(2, '0')}:${time.$2.toString().padLeft(2, '0')}';
+/// `09:00` — 24-hour in either language ([AppFormat], Issue #505).
+String _clock((int, int) time) => AppFormat.clock(time.$1, time.$2);
 
 /// A session placed on the calendar (Issue #231).
 ///

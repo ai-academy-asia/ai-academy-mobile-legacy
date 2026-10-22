@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import '../../cohorts/presentation/cohort_list_strings.dart';
 import '../../course_learning/presentation/course_learning_strings.dart';
 
@@ -18,10 +19,8 @@ abstract final class CertificateStrings {
 
   static const String retry = CourseLearningStrings.retry;
 
-  /// `issued_at` as the frame draws it: `2026/07/21`, in local time.
-  static String date(DateTime when) {
-    final local = when.toLocal();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${local.year}/${two(local.month)}/${two(local.day)}';
-  }
+  /// `issued_at` as the frame draws it: `2026/07/21`, in local time;
+  /// `Jul 21, 2026` in English ([AppFormat], Issue #505).
+  static String date(DateTime when) =>
+      AppFormat.dateWithYear(when.toLocal(), mongolianSeparator: '/');
 }

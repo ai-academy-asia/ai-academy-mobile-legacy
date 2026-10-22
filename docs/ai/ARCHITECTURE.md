@@ -124,6 +124,8 @@ Each feature owns a `presentation/<feature>_strings.dart` — an `abstract final
 - **A getter is not a constant:** a migrated string cannot appear in a `const` expression; drop the `const` from that widget.
 - **Not for API text:** the API's bilingual `{mn, en}` text stays on `preferredText` ([DATA_AND_API.md](DATA_AND_API.md) §6).
 
+**Dates, times and weekdays (Issue #505)** go through `AppFormat` (`core/locale/app_format.dart`), never through hand-built `padLeft`/month tables in a feature. It reads the same `AppLocaleController.instance` and needs no `BuildContext`, so the data layer can use it. Mongolian is the app's original output, kept byte for byte, including Home's day-first `dd/MM` against `MM/dd` elsewhere (`shortDate(dayFirst:)`). English is `intl`'s built-in `en_US` patterns (`Aug 6`, `November 17`, `August 2026`, `Aug 6, 2026`, `Sun`). Clocks are 24-hour `HH:mm` in both. `AppFormat` never converts time zones: a feature passes the instant it already chose (`toLocal()` where it always did). A value formatted while drawing follows a language change at once; one formatted while parsing (Course Learning's `scheduleLabel` and `timestampLabel`) follows it on the next load. Wire formats (ISO dates sent to the API) are not display formats and stay where they are.
+
 ## 7. Testing
 
 `test/` mirrors `lib/features/`. **46 Dart files: 37 `*_test.dart` suites plus 9 `fake_*` test doubles** (the doubles are shared helpers, not suites — one per feature that needs a repository stub).

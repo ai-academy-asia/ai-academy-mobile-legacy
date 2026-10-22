@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_config.dart';
 import '../../../core/api/api_failure.dart';
+import '../../../core/locale/app_format.dart';
 import '../../../core/models/localized_text.dart';
 import '../../auth/domain/auth_session_store.dart';
 import '../domain/course_certificate.dart';

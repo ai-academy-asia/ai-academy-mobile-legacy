@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/teacher_failure.dart';
 import '../domain/teacher_session.dart';
@@ -8,21 +9,16 @@ import 'teacher_home_strings.dart';
 /// Teacher Home's does ("Teacher" under a Mongolian name) and are carried
 /// through verbatim.
 abstract final class TeacherScheduleStrings {
-  /// The header's selected date — "11-р сарын 17".
-  static String headerDate(DateTime day) => '${day.month}-р сарын ${day.day}';
+  /// The header's selected date — "11-р сарын 17"; "November 17" in English
+  /// ([AppFormat], Issue #505).
+  static String headerDate(DateTime day) => AppFormat.longDate(day);
 
   /// The strip's weekday row, Sunday first: Ням, Даваа, Мягмар, Лхагва,
-  /// Пүрэв, Баасан, Бямба. The reference's own row is a mock-up that
-  /// repeats Ня and skips Ба, so the real seven are spelled out here.
-  static const List<String> weekdays = [
-    'Ня',
-    'Да',
-    'Мя',
-    'Лх',
-    'Пү',
-    'Ба',
-    'Бя',
-  ];
+  /// Пүрэв, Баасан, Бямба — Ня … Бя. The reference's own row is a mock-up
+  /// that repeats Ня and skips Ба, so the real seven are used. "Sun" …
+  /// "Sat" in English ([AppFormat], Issue #505).
+  static List<String> get weekdays =>
+      AppFormat.weekdays(first: DateTime.sunday);
 
   /// Accessibility label for the header's date control.
   static const String pickDate = 'Огноо сонгох';

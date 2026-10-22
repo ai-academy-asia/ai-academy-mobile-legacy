@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import '../domain/teacher_failure.dart';
 import 'teacher_home_strings.dart';
 import 'teacher_schedule_strings.dart';
@@ -101,18 +102,10 @@ abstract final class TeacherGradebookStrings {
   };
 
   /// "Today, 14:20" on [now]'s calendar day, "08/06, 14:20" otherwise — the
-  /// same rule Course Learning's feedback timestamps follow.
-  static String timestamp(DateTime local, {required DateTime now}) {
-    String two(int value) => value.toString().padLeft(2, '0');
-    final time = '${two(local.hour)}:${two(local.minute)}';
-    final sameDay =
-        local.year == now.year &&
-        local.month == now.month &&
-        local.day == now.day;
-    return sameDay
-        ? 'Today, $time'
-        : '${two(local.month)}/${two(local.day)}, $time';
-  }
+  /// same rule Course Learning's feedback timestamps follow; "Aug 6, 14:20"
+  /// in English ([AppFormat.todayOrDate], Issue #505).
+  static String timestamp(DateTime local, {required DateTime now}) =>
+      AppFormat.todayOrDate(local, now: now);
 
   static String _number(num value) =>
       value == value.roundToDouble() ? '${value.toInt()}' : '$value';
