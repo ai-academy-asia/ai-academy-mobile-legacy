@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import '../../home/presentation/home_strings.dart';
 
 /// Every word on the Junior "Сурлагын явц" screen, verbatim from the frame.
@@ -46,37 +47,23 @@ abstract final class JuniorProgressStrings {
 
   static const String nextLesson = 'Дараагийн хичээл:';
 
-  /// "08/08 • 09:00 – 11:00" — month/day, then the lesson's hours.
+  /// "08/08 • 09:00 – 11:00" — month/day, then the lesson's hours;
+  /// "Aug 8 • 09:00 – 11:00" in English ([AppFormat], Issue #505).
   static String nextLessonTime(DateTime start, DateTime end) =>
-      '${_two(start.month)}/${_two(start.day)} • '
-      '${_two(start.hour)}:${_two(start.minute)} – '
-      '${_two(end.hour)}:${_two(end.minute)}';
+      '${AppFormat.shortDate(start)} • '
+      '${AppFormat.time(start)} – ${AppFormat.time(end)}';
 
   // --- Calendar -------------------------------------------------------------
 
   /// "Наймдугаар сар, 2026". The frame draws August only; the other eleven
   /// are the standard Mongolian ordinal month names in the same form.
-  static String monthLabel(DateTime month) =>
-      '${_months[month.month - 1]} сар, ${month.year}';
-
-  static const List<String> _months = [
-    'Нэгдүгээр',
-    'Хоёрдугаар',
-    'Гуравдугаар',
-    'Дөрөвдүгээр',
-    'Тавдугаар',
-    'Зургаадугаар',
-    'Долоодугаар',
-    'Наймдугаар',
-    'Есдүгээр',
-    'Аравдугаар',
-    'Арван нэгдүгээр',
-    'Арван хоёрдугаар',
-  ];
+  /// "August 2026" in English ([AppFormat], Issue #505).
+  static String monthLabel(DateTime month) => AppFormat.monthYear(month);
 
   /// Sunday first, as the frame's header row runs. English letters, as the
-  /// frame draws them.
-  static const List<String> weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  /// frame draws them — in either language ([AppFormat], Issue #505).
+  static List<String> get weekdays =>
+      AppFormat.weekdayLetters(first: DateTime.sunday);
 
   static const String previousMonth = 'Previous month';
   static const String nextMonth = 'Next month';
@@ -89,8 +76,6 @@ abstract final class JuniorProgressStrings {
   static const String lessonDay = 'Хичээлтэй өдөр';
   static const String lessonMissed = 'Хичээлээ тасалсан';
   static const String lessonAttended = 'Хичээлдээ суусан';
-
-  static String _two(int value) => value.toString().padLeft(2, '0');
 }
 
 /// The screen's exported artwork — the three day marks. [lessonDay] and

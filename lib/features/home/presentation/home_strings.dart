@@ -1,3 +1,4 @@
+import '../../../core/locale/app_format.dart';
 import '../domain/home_failure.dart';
 import '../../../shared/widgets/track_badge.dart';
 import '../../payments/presentation/payment_strings.dart';
@@ -35,12 +36,12 @@ abstract final class HomeStrings {
 
   static const String attendanceAction = 'Ирц бүртгүүлэх';
 
-  /// `08/04 • 09:00 – 11:00`. Built by hand rather than with `intl`, which the
-  /// app does not depend on: the format is fixed, so a package for it would be
-  /// a dependency for one line.
+  /// `08/04 • 09:00 – 11:00` — day first (`dd/MM`) in Mongolian, as Home has
+  /// always written it; `Apr 8 • 09:00 – 11:00` in English ([AppFormat],
+  /// Issue #505).
   static String lessonWindow(DateTime startsAt, DateTime endsAt) =>
-      '${_two(startsAt.day)}/${_two(startsAt.month)} • '
-      '${_clock(startsAt)} – ${_clock(endsAt)}';
+      '${AppFormat.shortDate(startsAt, dayFirst: true)} • '
+      '${AppFormat.time(startsAt)} – ${AppFormat.time(endsAt)}';
 
   // --- Contract -------------------------------------------------------------
 
@@ -99,11 +100,6 @@ abstract final class HomeStrings {
   static const String navHome = 'Нүүр';
   static const String navCourses = 'Хичээл';
   static const String navProfile = 'Профайл';
-
-  static String _clock(DateTime time) =>
-      '${_two(time.hour)}:${_two(time.minute)}';
-
-  static String _two(int value) => value.toString().padLeft(2, '0');
 }
 
 /// The dashboard's own icons, exported from the design.

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session.dart';
 import 'package:aia_mobile/features/auth/domain/auth_session_store.dart';
 import 'package:aia_mobile/features/course_learning/data/http_course_learning_repository.dart';
@@ -477,6 +479,22 @@ void main() {
 
     test('a self-paced module (schedule: null) draws no date line', () async {
       expect(await labelFor(null), isEmpty);
+    });
+
+    test('in English when English is selected as it is parsed, and in the '
+        'new language from the next load (Issue #505)', () async {
+      addTearDown(
+        () => AppLocaleController.instance.setPreference(
+          LocalePreference.mongolian,
+        ),
+      );
+      const schedule = {'date': '2026-08-06', 'start_time': '09:00'};
+
+      await AppLocaleController.instance.setEnglish(true);
+      expect(await labelFor(schedule), 'Aug 6 • Thu • 09:00');
+
+      await AppLocaleController.instance.setEnglish(false);
+      expect(await labelFor(schedule), '08/06 • Пү • 09:00');
     });
 
     test('an unparseable date is a server fault, named', () async {
@@ -1619,6 +1637,35 @@ void main() {
         );
 
         expect(exercise.note!.timestampLabel, '08/01, 09:05');
+      });
+
+      test('in English, an older note is dated by the month\'s name '
+          '(Issue #505)', () async {
+        addTearDown(
+          () => AppLocaleController.instance.setPreference(
+            LocalePreference.mongolian,
+          ),
+        );
+        await AppLocaleController.instance.setEnglish(true);
+        final exercise = await exerciseFrom(
+          lessonBody(
+            note: {
+              'id': 51,
+              'content': 'Older',
+              'created_at': '2026-08-01T01:00:00+00:00',
+              'updated_at': DateTime(
+                2026,
+                8,
+                1,
+                9,
+                5,
+              ).toUtc().toIso8601String(),
+              'author': {'name': 'Болд Батаа', 'initials': 'ББ'},
+            },
+          ),
+        );
+
+        expect(exercise.note!.timestampLabel, 'Aug 1, 09:05');
       });
 
       test('a null note is no note', () async {

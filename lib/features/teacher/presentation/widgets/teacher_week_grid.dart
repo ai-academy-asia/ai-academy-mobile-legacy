@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/locale/app_format.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/teacher_session.dart';
@@ -26,8 +27,9 @@ abstract final class TeacherWeekGridMetrics {
   static const int lastHour = 23;
 }
 
-/// An hour's label, `07:00`.
-String hourLabel(int hour) => '${hour.toString().padLeft(2, '0')}:00';
+/// An hour's label, `07:00` — 24-hour in either language ([AppFormat],
+/// Issue #505).
+String hourLabel(int hour) => AppFormat.hour(hour);
 
 /// Between an hour label's right edge and the day columns.
 const double _hourLabelGap = 10;
