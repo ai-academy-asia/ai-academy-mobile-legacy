@@ -5,5 +5,11 @@
   "signOutConfirm": "Log out",
 
   "splashWordmarkLine1": "AI academy",
-  "splashWordmarkLine2": "Asia"
+  "splashWordmarkLine2": "Asia",
+
+  "commonNetworkError": "Could not connect to the network. Please try again.",
+  "commonServerError": "Something went wrong on the server. Please wait a moment and try again.",
+  "commonUnexpectedError": "Something went wrong. Please try again.",
+  "commonSessionExpired": "Your session has expired. Please sign in again.",
+  "commonRetry": "Try again."
 }

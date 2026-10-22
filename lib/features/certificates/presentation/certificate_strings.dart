@@ -17,7 +17,7 @@ abstract final class CertificateStrings {
   /// Enrolled in nothing — the Хичээл tab's own line for the same state.
   static const String empty = CohortListStrings.emptyMine;
 
-  static const String retry = CourseLearningStrings.retry;
+  static String get retry => CourseLearningStrings.retry;
 
   /// `issued_at` as the frame draws it: `2026/07/21`, in local time;
   /// `Jul 21, 2026` in English ([AppFormat], Issue #505).

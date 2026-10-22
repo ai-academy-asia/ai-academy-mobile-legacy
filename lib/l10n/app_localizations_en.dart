@@ -34,5 +34,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Интернэт холболтоо шалгаад дахин оролдоно уу.';
 
   @override
-  String get splashRetry => 'Дахин оролдох';
+  String get commonNetworkError =>
+      'Could not connect to the network. Please try again.';
+
+  @override
+  String get commonServerError =>
+      'Something went wrong on the server. Please wait a moment and try again.';
+
+  @override
+  String get commonUnexpectedError => 'Something went wrong. Please try again.';
+
+  @override
+  String get commonSessionExpired =>
+      'Your session has expired. Please sign in again.';
+
+  @override
+  String get commonRetry => 'Try again.';
 }

@@ -10,8 +10,8 @@ import '../../../core/locale/l10n.dart';
 ///
 /// In the selected language (Issue #503): the copy lives in
 /// `lib/l10n/app_*.arb` and is read through [L10n.current]. The wordmark is
-/// the brand, the same in both; the network error and Retry have no
-/// approved English yet, so English shows them in Mongolian.
+/// the brand, the same in both; the network error has no approved English
+/// yet, so English shows it in Mongolian.
 abstract final class SplashStrings {
   static String get wordmarkLine1 => L10n.current.splashWordmarkLine1;
   static String get wordmarkLine2 => L10n.current.splashWordmarkLine2;
@@ -24,8 +24,9 @@ abstract final class SplashStrings {
   /// (Issue #435) — the product's own copy.
   static String get networkError => L10n.current.splashNetworkError;
 
-  /// The app's retry label, as on every other error state.
-  static String get retry => L10n.current.splashRetry;
+  /// The app's retry label, as on every other error state — the shared
+  /// `commonRetry` key (Issue #507).
+  static String get retry => L10n.current.commonRetry;
 }
 
 /// The splash screen's own assets, both exported from the Figma Splash frame.

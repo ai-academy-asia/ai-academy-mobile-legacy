@@ -30,8 +30,25 @@
   "@splashNetworkError": {
     "description": "Splash: shown when a held session could not be restored because there is no network."
   },
-  "splashRetry": "Дахин оролдох",
-  "@splashRetry": {
-    "description": "Splash: the button under the network error that tries the restore again."
+
+  "commonNetworkError": "Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу",
+  "@commonNetworkError": {
+    "description": "Any screen's error state: a request failed because the network could not be reached."
+  },
+  "commonServerError": "Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу",
+  "@commonServerError": {
+    "description": "Any screen's error state: the server answered with an error."
+  },
+  "commonUnexpectedError": "Алдаа гарлаа. Дахин оролдоно уу",
+  "@commonUnexpectedError": {
+    "description": "Any screen's error state: a failure that fits no other message."
+  },
+  "commonSessionExpired": "Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү",
+  "@commonSessionExpired": {
+    "description": "Any screen's error state: the signed-in session has ended and the person must sign in again."
+  },
+  "commonRetry": "Дахин оролдох",
+  "@commonRetry": {
+    "description": "The button on any error state (Splash included) that tries the failed action again."
   }
 }

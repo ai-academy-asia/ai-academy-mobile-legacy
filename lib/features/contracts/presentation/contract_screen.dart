@@ -131,7 +131,7 @@ class _ContractScreenState extends State<ContractScreen> {
         message: message,
         action: TextButton(
           onPressed: _controller.load,
-          child: const Text(ContractStrings.retry),
+          child: Text(ContractStrings.retry),
         ),
       );
     }

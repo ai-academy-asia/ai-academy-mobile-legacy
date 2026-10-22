@@ -147,7 +147,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           message: message,
           action: TextButton(
             onPressed: _center.load,
-            child: const Text(NotificationStrings.retry),
+            child: Text(NotificationStrings.retry),
           ),
         );
       }

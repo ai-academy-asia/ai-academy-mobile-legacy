@@ -34,5 +34,20 @@ class AppLocalizationsMn extends AppLocalizations {
       'Интернэт холболтоо шалгаад дахин оролдоно уу.';
 
   @override
-  String get splashRetry => 'Дахин оролдох';
+  String get commonNetworkError =>
+      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
+
+  @override
+  String get commonServerError =>
+      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
+
+  @override
+  String get commonUnexpectedError => 'Алдаа гарлаа. Дахин оролдоно уу';
+
+  @override
+  String get commonSessionExpired =>
+      'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
+
+  @override
+  String get commonRetry => 'Дахин оролдох';
 }

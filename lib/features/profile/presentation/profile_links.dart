@@ -31,6 +31,6 @@ Future<void> openProfileLink(
   final opened = await (openUrl ?? openExternalUrl)(url);
   if (opened) return;
   messenger?.showSnackBar(
-    const SnackBar(content: Text(ProfileStrings.unexpectedError)),
+    SnackBar(content: Text(ProfileStrings.unexpectedError)),
   );
 }

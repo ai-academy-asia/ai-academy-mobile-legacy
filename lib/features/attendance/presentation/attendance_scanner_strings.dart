@@ -16,7 +16,7 @@ abstract final class AttendanceScannerStrings {
   static const String checkingIn = 'Ирц бүртгэж байна…';
   static const String rescan = 'Дахин уншуулах';
   static const String done = 'Ойлголоо';
-  static const String retryCamera = HomeStrings.retry;
+  static String get retryCamera => HomeStrings.retry;
 
   // --- The server's record (never a generic success) ---
 

@@ -42,7 +42,7 @@ void main() {
   });
 
   test('maps each EnrollmentFailureKind to its own message', () async {
-    const expected = {
+    final expected = {
       EnrollmentFailureKind.sessionExpired: EnrollmentStrings.sessionExpired,
       EnrollmentFailureKind.rejected: EnrollmentStrings.rejected,
       EnrollmentFailureKind.network: EnrollmentStrings.networkError,

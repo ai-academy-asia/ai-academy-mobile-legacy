@@ -2,7 +2,6 @@
   "en": [
     "signOutTitle",
     "signOutMessage",
-    "splashNetworkError",
-    "splashRetry"
+    "splashNetworkError"
   ]
 }

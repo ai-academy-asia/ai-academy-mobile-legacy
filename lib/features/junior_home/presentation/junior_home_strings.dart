@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../../course_learning/domain/course_learning_failure.dart';
 import '../domain/junior_learning_map.dart';
 
@@ -34,19 +35,16 @@ abstract final class JuniorHomeStrings {
   // the same situation elsewhere (`HomeStrings`, `CohortListStrings`) — the
   // same fact should read the same wherever the student meets it.
 
-  static const String retry = 'Дахин оролдох';
+  static String get retry => L10n.current.commonRetry;
 
   /// Shown when the student is enrolled in nothing. `HomeStrings.empty`'s own
   /// wording, which the adult dashboard already uses for this exact case.
   static const String empty = 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';
 
-  static const String sessionExpired =
-      'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү';
-  static const String networkError =
-      'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу';
-  static const String serverError =
-      'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу';
-  static const String unexpectedError = 'Алдаа гарлаа. Дахин оролдоно уу';
+  static String get sessionExpired => L10n.current.commonSessionExpired;
+  static String get networkError => L10n.current.commonNetworkError;
+  static String get serverError => L10n.current.commonServerError;
+  static String get unexpectedError => L10n.current.commonUnexpectedError;
   static const String notEnrolled = 'Та энэ хөтөлбөрт бүртгэлгүй байна';
   static const String notFound = 'Хөтөлбөр олдсонгүй';
 

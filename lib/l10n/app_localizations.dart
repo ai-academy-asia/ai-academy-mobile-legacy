@@ -142,11 +142,35 @@ abstract class AppLocalizations {
   /// **'Интернэт холболтоо шалгаад дахин оролдоно уу.'**
   String get splashNetworkError;
 
-  /// Splash: the button under the network error that tries the restore again.
+  /// Any screen's error state: a request failed because the network could not be reached.
+  ///
+  /// In mn, this message translates to:
+  /// **'Сүлжээнд холбогдож чадсангүй. Дахин оролдоно уу'**
+  String get commonNetworkError;
+
+  /// Any screen's error state: the server answered with an error.
+  ///
+  /// In mn, this message translates to:
+  /// **'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу'**
+  String get commonServerError;
+
+  /// Any screen's error state: a failure that fits no other message.
+  ///
+  /// In mn, this message translates to:
+  /// **'Алдаа гарлаа. Дахин оролдоно уу'**
+  String get commonUnexpectedError;
+
+  /// Any screen's error state: the signed-in session has ended and the person must sign in again.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү'**
+  String get commonSessionExpired;
+
+  /// The button on any error state (Splash included) that tries the failed action again.
   ///
   /// In mn, this message translates to:
   /// **'Дахин оролдох'**
-  String get splashRetry;
+  String get commonRetry;
 }
 
 class _AppLocalizationsDelegate
