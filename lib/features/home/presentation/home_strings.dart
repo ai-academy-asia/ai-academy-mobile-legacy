@@ -10,11 +10,16 @@ import '../../payments/presentation/payment_strings.dart';
 /// Profile frame does — the cohort card's progress line is English while
 /// everything around it is Mongolian — and that is carried through verbatim
 /// rather than translated, the same policy `ProfileStrings` follows.
+///
+/// In the selected language (Issue #517): the dashboard's Mongolian lines read
+/// `home*` ARB keys, besides the shared errors and nav keys. The design's own
+/// English (the logo, "Live", the progress lines) and the payment card's
+/// lines are still constants.
 abstract final class HomeStrings {
   // --- Header ---------------------------------------------------------------
 
   /// Accessibility label for the header's notification control.
-  static const String notifications = 'Мэдэгдэл';
+  static String get notifications => L10n.current.homeNotifications;
 
   /// Accessibility label for the brand lockup in the header — announced in
   /// place of the wordmark artwork, one line as the splash screen reads it.
@@ -27,15 +32,15 @@ abstract final class HomeStrings {
 
   static String percentComplete(int percent) => '$percent% complete';
 
-  static const String nextLesson = 'Дараагийн хичээл:';
+  static String get nextLesson => L10n.current.homeNextLesson;
 
   /// The badge beside [nextLesson] while the lesson is under way.
   static const String live = 'Live';
 
   /// The line the live state adds under the lesson's time.
-  static const String liveHint = 'Хичээл эхлсэн та ирцээ бүртгүүлээрэй';
+  static String get liveHint => L10n.current.homeLiveHint;
 
-  static const String attendanceAction = 'Ирц бүртгүүлэх';
+  static String get attendanceAction => L10n.current.homeAttendanceAction;
 
   /// `08/04 • 09:00 – 11:00` — day first (`dd/MM`) in Mongolian, as Home has
   /// always written it; `Apr 8 • 09:00 – 11:00` in English ([AppFormat],
@@ -46,8 +51,8 @@ abstract final class HomeStrings {
 
   // --- Contract -------------------------------------------------------------
 
-  static const String contractTitle = 'Та гэрээ хийгдээгүй байна';
-  static const String contractSupporting = 'Гэрээгээ хийгээрэй';
+  static String get contractTitle => L10n.current.homeContractTitle;
+  static String get contractSupporting => L10n.current.homeContractSupporting;
 
   // --- Payment --------------------------------------------------------------
 
@@ -61,7 +66,7 @@ abstract final class HomeStrings {
 
   // --- Attendance -----------------------------------------------------------
 
-  static const String attendanceLabel = 'Хичээлийн ирц';
+  static String get attendanceLabel => L10n.current.homeAttendanceLabel;
 
   /// `1/20  · 10%` — two spaces before the dot and one after, as the
   /// reference sets it.
@@ -69,15 +74,15 @@ abstract final class HomeStrings {
       '$attended/$total  · $percent%';
 
   /// The action on both statistic cards.
-  static const String details = 'Дэлгэрэнгүй';
+  static String get details => L10n.current.homeDetails;
 
   /// The Adult attendance screen's legend row for an `absent` session — the
   /// frame's own wording, unlike the Junior frame's "Хичээлээ тасалсан".
-  static const String attendanceMissed = 'Хичээлдээ суугаагүй';
+  static String get attendanceMissed => L10n.current.homeAttendanceMissed;
 
   // --- States ---------------------------------------------------------------
 
-  static const String empty = 'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна';
+  static String get empty => L10n.current.homeEmpty;
   static String get retry => L10n.current.commonRetry;
 
   static String get sessionExpired => L10n.current.commonSessionExpired;

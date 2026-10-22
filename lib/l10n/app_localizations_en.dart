@@ -204,4 +204,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetInvalidCurrentPassword => 'The current password is incorrect';
+
+  @override
+  String get homeNotifications => 'Notifications';
+
+  @override
+  String get homeNextLesson => 'Next lesson:';
+
+  @override
+  String get homeLiveHint => 'The lesson has started. Check in for attendance.';
+
+  @override
+  String get homeAttendanceAction => 'Check in';
+
+  @override
+  String get homeContractTitle => 'You don\'t have a contract yet';
+
+  @override
+  String get homeContractSupporting => 'Sign your contract';
+
+  @override
+  String get homeAttendanceLabel => 'Attendance';
+
+  @override
+  String get homeDetails => 'Details';
+
+  @override
+  String get homeAttendanceMissed => 'Missed class';
+
+  @override
+  String get homeEmpty => 'You are not enrolled in any class yet';
 }

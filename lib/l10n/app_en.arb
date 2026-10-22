@@ -64,5 +64,16 @@
   "resetConfirmPasswordMismatch": "Does not match the new password",
   "resetNewPasswordSameAsCurrent": "The new password must be different from the current one",
   "resetSuccess": "Your password has been changed",
-  "resetInvalidCurrentPassword": "The current password is incorrect"
+  "resetInvalidCurrentPassword": "The current password is incorrect",
+
+  "homeNotifications": "Notifications",
+  "homeNextLesson": "Next lesson:",
+  "homeLiveHint": "The lesson has started. Check in for attendance.",
+  "homeAttendanceAction": "Check in",
+  "homeContractTitle": "You don't have a contract yet",
+  "homeContractSupporting": "Sign your contract",
+  "homeAttendanceLabel": "Attendance",
+  "homeDetails": "Details",
+  "homeAttendanceMissed": "Missed class",
+  "homeEmpty": "You are not enrolled in any class yet"
 }

@@ -115,7 +115,7 @@ class _AttendanceDetailScreenState extends State<AttendanceDetailScreen> {
                 // A pushed page's shared header carries the title the frame
                 // drew on a card (Issue #368); the card's summary pill stays,
                 // first under it.
-                const BackTitleHeader(title: HomeStrings.attendanceLabel),
+                BackTitleHeader(title: HomeStrings.attendanceLabel),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
@@ -243,8 +243,8 @@ class _Panel extends StatelessWidget {
             height: AppDimens.borderWidth,
             color: context.palette.divider,
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
               _cardInset,
               14,
               _cardInset,

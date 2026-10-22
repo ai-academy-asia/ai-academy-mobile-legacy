@@ -23,22 +23,23 @@ import 'home_palette.dart';
 /// geometry, outline, tile and caret — with its own two lines, so the copy
 /// can be overridden; it defaults to the adult dashboard's.
 class ContractBanner extends StatelessWidget {
-  const ContractBanner({
-    super.key,
-    this.onTap,
-    this.title = HomeStrings.contractTitle,
-    this.supporting = HomeStrings.contractSupporting,
-  });
+  const ContractBanner({super.key, this.onTap, this.title, this.supporting});
 
   /// Where the banner leads. Null leaves it a notice with no destination.
   final VoidCallback? onTap;
 
-  final String title;
-  final String supporting;
+  /// The two lines; null is the adult dashboard's own, in the selected
+  /// language ([HomeStrings.contractTitle], [HomeStrings.contractSupporting],
+  /// Issue #517) — resolved here, as a translated string cannot be a
+  /// constant default.
+  final String? title;
+  final String? supporting;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(AppDimens.homeCardRadius);
+    final title = this.title ?? HomeStrings.contractTitle;
+    final supporting = this.supporting ?? HomeStrings.contractSupporting;
 
     return Semantics(
       button: onTap != null,
