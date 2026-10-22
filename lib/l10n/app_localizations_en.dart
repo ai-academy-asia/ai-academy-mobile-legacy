@@ -12,10 +12,11 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get signOutTitle => 'Гарах уу?';
+  String get signOutTitle => 'Log out?';
 
   @override
-  String get signOutMessage => 'Та бүртгэлээс гарахдаа итгэлтэй байна уу?';
+  String get signOutMessage =>
+      'Are you sure you want to log out of your account?';
 
   @override
   String get signOutCancel => 'Cancel';

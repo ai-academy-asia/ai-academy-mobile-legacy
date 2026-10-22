@@ -1,6 +1,8 @@
 {
   "@@locale": "en",
 
+  "signOutTitle": "Log out?",
+  "signOutMessage": "Are you sure you want to log out of your account?",
   "signOutCancel": "Cancel",
   "signOutConfirm": "Log out",
 
