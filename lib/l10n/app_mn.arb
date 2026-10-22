@@ -92,5 +92,86 @@
   "navPrograms": "Хөтөлбөрүүд",
   "@navPrograms": {
     "description": "Bottom navigation, Teacher: the tab that opens the teacher's programs (classes, students and grades)."
+  },
+
+  "loginTitle": "Нэвтрэх",
+  "@loginTitle": {
+    "description": "Login: the screen heading and the filled button that signs in."
+  },
+  "loginIdentifierPlaceholder": "Утасны дугаар / Email хаяг",
+  "@loginIdentifierPlaceholder": {
+    "description": "Login: the first field while empty, and its floating label while what is typed is neither recognisably a phone number nor an email address. \"Email\" is the product term."
+  },
+  "loginIdentifierPhoneLabel": "Утасны дугаар",
+  "@loginIdentifierPhoneLabel": {
+    "description": "Login: the first field's floating label once what is typed is recognisably a phone number."
+  },
+  "loginIdentifierEmailLabel": "Email хаяг",
+  "@loginIdentifierEmailLabel": {
+    "description": "Login: the first field's floating label once what is typed is recognisably an email address. \"Email\" is the product term."
+  },
+  "loginPasswordLabel": "Нууц үг",
+  "@loginPasswordLabel": {
+    "description": "Login: the password field's label."
+  },
+  "loginRememberMe": "Намайг сануулах",
+  "@loginRememberMe": {
+    "description": "Login: the checkbox under the fields that keeps the session."
+  },
+  "loginResetPassword": "Нууц үг сэргээх",
+  "@loginResetPassword": {
+    "description": "Login: the outlined button that starts resetting the password."
+  },
+  "loginContactSupporting": "Бүртгэлгүй эсвэл нууц үгээ мартсан бол",
+  "@loginContactSupporting": {
+    "description": "Login: the supporting line on the bottom card that opens the manager-contact sheet."
+  },
+  "loginContactManager": "Менежертэй холбогдоорой",
+  "@loginContactManager": {
+    "description": "Login: the bottom card's title, which opens the manager-contact sheet."
+  },
+  "loginContactSheetTitle": "Танд асуух зүйл байна уу?",
+  "@loginContactSheetTitle": {
+    "description": "Manager-contact sheet: its heading."
+  },
+  "loginContactMessage": "Сургалт болон бүртгэлтэй холбоотой мэдээлэл авах бол бидэнтэй холбогдоорой.",
+  "@loginContactMessage": {
+    "description": "Manager-contact sheet: the line under the heading, saying what the call and email options are for."
+  },
+  "loginContactCall": "Утасдах",
+  "@loginContactCall": {
+    "description": "Manager-contact sheet: the option that phones the manager."
+  },
+  "loginContactEmail": "Email бичих",
+  "@loginContactEmail": {
+    "description": "Manager-contact sheet: the option that writes the manager an email. \"Email\" is the product term."
+  },
+  "loginIdentifierRequired": "Утасны дугаар эсвэл имэйл хаягаа оруулна уу",
+  "@loginIdentifierRequired": {
+    "description": "Login validation: the first field is empty."
+  },
+  "loginIdentifierInvalid": "Утасны дугаар эсвэл имэйл хаяг буруу байна",
+  "@loginIdentifierInvalid": {
+    "description": "Login validation: what is typed in the first field is neither a valid phone number nor a valid email address."
+  },
+  "loginPasswordRequired": "Нууц үгээ оруулна уу",
+  "@loginPasswordRequired": {
+    "description": "Login validation: the password field is empty."
+  },
+  "loginPasswordTooShort": "Нууц үг дор хаяж 6 тэмдэгт байх ёстой",
+  "@loginPasswordTooShort": {
+    "description": "Login validation: the password is shorter than 6 characters."
+  },
+  "loginInvalidCredentials": "Утасны дугаар эсвэл нууц үг буруу байна",
+  "@loginInvalidCredentials": {
+    "description": "Login: the server refused the phone number (or email) and password."
+  },
+  "authShowPassword": "Нууц үг харуулах",
+  "@authShowPassword": {
+    "description": "Screen-reader label (never drawn) of a password field's eye button while the password is hidden. Shared by every password field."
+  },
+  "authHidePassword": "Нууц үг нуух",
+  "@authHidePassword": {
+    "description": "Screen-reader label (never drawn) of a password field's eye button while the password is shown. Shared by every password field."
   }
 }

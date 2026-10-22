@@ -80,4 +80,68 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get navPrograms => 'Хөтөлбөрүүд';
+
+  @override
+  String get loginTitle => 'Нэвтрэх';
+
+  @override
+  String get loginIdentifierPlaceholder => 'Утасны дугаар / Email хаяг';
+
+  @override
+  String get loginIdentifierPhoneLabel => 'Утасны дугаар';
+
+  @override
+  String get loginIdentifierEmailLabel => 'Email хаяг';
+
+  @override
+  String get loginPasswordLabel => 'Нууц үг';
+
+  @override
+  String get loginRememberMe => 'Намайг сануулах';
+
+  @override
+  String get loginResetPassword => 'Нууц үг сэргээх';
+
+  @override
+  String get loginContactSupporting => 'Бүртгэлгүй эсвэл нууц үгээ мартсан бол';
+
+  @override
+  String get loginContactManager => 'Менежертэй холбогдоорой';
+
+  @override
+  String get loginContactSheetTitle => 'Танд асуух зүйл байна уу?';
+
+  @override
+  String get loginContactMessage =>
+      'Сургалт болон бүртгэлтэй холбоотой мэдээлэл авах бол бидэнтэй холбогдоорой.';
+
+  @override
+  String get loginContactCall => 'Утасдах';
+
+  @override
+  String get loginContactEmail => 'Email бичих';
+
+  @override
+  String get loginIdentifierRequired =>
+      'Утасны дугаар эсвэл имэйл хаягаа оруулна уу';
+
+  @override
+  String get loginIdentifierInvalid =>
+      'Утасны дугаар эсвэл имэйл хаяг буруу байна';
+
+  @override
+  String get loginPasswordRequired => 'Нууц үгээ оруулна уу';
+
+  @override
+  String get loginPasswordTooShort => 'Нууц үг дор хаяж 6 тэмдэгт байх ёстой';
+
+  @override
+  String get loginInvalidCredentials =>
+      'Утасны дугаар эсвэл нууц үг буруу байна';
+
+  @override
+  String get authShowPassword => 'Нууц үг харуулах';
+
+  @override
+  String get authHidePassword => 'Нууц үг нуух';
 }
