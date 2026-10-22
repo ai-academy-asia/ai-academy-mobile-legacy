@@ -85,7 +85,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginTitle => 'Log in';
 
   @override
-  String get loginIdentifierPlaceholder => 'Phone number / Email address';
+  String get loginIdentifierPlaceholder => 'Phone or email';
 
   @override
   String get loginIdentifierPhoneLabel => 'Phone number';

@@ -28,7 +28,7 @@ void main() {
     'loginTitle': (mongolian: 'Нэвтрэх', english: 'Log in'),
     'loginIdentifierPlaceholder': (
       mongolian: 'Утасны дугаар / Email хаяг',
-      english: 'Phone number / Email address',
+      english: 'Phone or email',
     ),
     'loginIdentifierPhoneLabel': (
       mongolian: 'Утасны дугаар',
@@ -292,7 +292,7 @@ void main() {
 
     // The heading and the button are the one "Log in".
     expect(find.text('Log in'), findsNWidgets(2));
-    expect(find.text('Phone number / Email address'), findsOneWidget);
+    expect(find.text('Phone or email'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('Remember me'), findsOneWidget);
     expect(find.text('Reset password'), findsOneWidget);
@@ -458,6 +458,24 @@ void main() {
       },
     );
   }
+
+  testWidgets('in English at 1.5× text on a 393 pt phone, the empty field\'s '
+      'placeholder is whole', (tester) async {
+    // The longer "Phone number / Email address" was cut short here, where
+    // the Mongolian is not; "Phone or email" fits.
+    await locale.setEnglish(true);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpLogin(tester);
+
+    expect(tester.takeException(), isNull);
+    final placeholder = find.text('Phone or email');
+    expect(placeholder, findsOneWidget);
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.descendant(of: placeholder, matching: find.byType(RichText)),
+    );
+    expect(paragraph.didExceedMaxLines, isFalse);
+  });
 
   group('English at 2.0× text on a 320 pt phone', () {
     Future<void> pumpLarge(

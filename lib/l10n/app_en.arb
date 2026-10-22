@@ -26,7 +26,7 @@
   "navPrograms": "Programs",
 
   "loginTitle": "Log in",
-  "loginIdentifierPlaceholder": "Phone number / Email address",
+  "loginIdentifierPlaceholder": "Phone or email",
   "loginIdentifierPhoneLabel": "Phone number",
   "loginIdentifierEmailLabel": "Email address",
   "loginPasswordLabel": "Password",
