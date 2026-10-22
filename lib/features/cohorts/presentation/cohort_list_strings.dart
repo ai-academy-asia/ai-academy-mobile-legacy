@@ -12,8 +12,7 @@ abstract final class CohortListStrings {
   static const String empty = 'Одоогоор товлогдсон анги алга байна';
 
   /// Empty state for the student's own list — they are enrolled in nothing.
-  static const String emptyMine =
-      'Та одоогоор ямар ч ангид бүртгүүлээгүй байна';
+  static String get emptyMine => L10n.current.cohortEmptyMine;
 
   /// Same wording Home's program card uses for the same figure.
   static String percentComplete(int percent) => '$percent% complete';

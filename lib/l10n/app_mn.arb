@@ -332,5 +332,26 @@
   "juniorLessonAttended": "Хичээлдээ суусан",
   "@juniorLessonAttended": {
     "description": "Junior Progress legend and calendar: a lesson the student attended."
+  },
+
+  "notificationEmpty": "Одоогоор мэдэгдэл алга байна",
+  "@notificationEmpty": {
+    "description": "Notification Center: the line when the student or teacher has no notifications."
+  },
+  "notificationNotFound": "Мэдэгдэл олдсонгүй",
+  "@notificationNotFound": {
+    "description": "Notification Center: the server no longer has the notification (a 404 loading the list, or marking one read)."
+  },
+  "notificationPushReceived": "Шинэ мэдэгдэл ирлээ",
+  "@notificationPushReceived": {
+    "description": "Foreground push SnackBar: the text when the push itself carries no title or body."
+  },
+  "notificationPushOpen": "Харах",
+  "@notificationPushOpen": {
+    "description": "Foreground push SnackBar: the action that opens the push's notification."
+  },
+  "cohortEmptyMine": "Та одоогоор ямар ч ангид бүртгүүлээгүй байна",
+  "@cohortEmptyMine": {
+    "description": "Adult Courses tab: shown when the student is enrolled in no class. Its own Mongolian, distinct from Home's empty line."
   }
 }

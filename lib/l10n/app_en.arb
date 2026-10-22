@@ -8,6 +8,7 @@
 
   "splashWordmarkLine1": "AI academy",
   "splashWordmarkLine2": "Asia",
+  "splashNetworkError": "Check your internet connection and try again.",
 
   "commonNetworkError": "Could not connect to the network. Please try again.",
   "commonServerError": "Something went wrong on the server. Please wait a moment and try again.",
@@ -88,5 +89,11 @@
   "juniorLegendHint": "Attend your lessons actively and collect your stamps",
   "juniorLessonDay": "Lesson day",
   "juniorLessonMissed": "Missed lesson",
-  "juniorLessonAttended": "Attended lesson"
+  "juniorLessonAttended": "Attended lesson",
+
+  "notificationEmpty": "No notifications yet",
+  "notificationNotFound": "Notification not found",
+  "notificationPushReceived": "You have a new notification",
+  "notificationPushOpen": "View",
+  "cohortEmptyMine": "You are not enrolled in any class yet"
 }
