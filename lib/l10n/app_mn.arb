@@ -295,11 +295,11 @@
 
   "learningNotEnrolled": "Та энэ хөтөлбөрт бүртгэлгүй байна",
   "@learningNotEnrolled": {
-    "description": "Learning (Junior Home): the error when the student is not enrolled in the course's program."
+    "description": "Learning (Junior Home and Course Learning): the error when the student is not enrolled in the course's program (a Course Learning 403)."
   },
   "learningNotFound": "Хөтөлбөр олдсонгүй",
   "@learningNotFound": {
-    "description": "Learning (Junior Home): the error when the course's program could not be found."
+    "description": "Learning (Junior Home and Course Learning): the error when the course's program could not be found (a Course Learning 404)."
   },
   "juniorContractTitle": "Гэрээ хийгдээгүй байна",
   "@juniorContractTitle": {
@@ -353,5 +353,14 @@
   "cohortEmptyMine": "Та одоогоор ямар ч ангид бүртгүүлээгүй байна",
   "@cohortEmptyMine": {
     "description": "Adult Courses tab: shown when the student is enrolled in no class. Its own Mongolian, distinct from Home's empty line."
+  },
+
+  "learningLessonsEmpty": "Одоогоор хичээл алга байна",
+  "@learningLessonsEmpty": {
+    "description": "Course Learning: the course's lesson list when it has no lessons. Its own key: Teacher Home's empty line has the same Mongolian but means today's classes."
+  },
+  "learningContinueHere": "Эндээс үргэлжлүүлнэ",
+  "@learningContinueHere": {
+    "description": "Course Learning: the pill on the lesson the student should continue with — the one the Continue learning button opens."
   }
 }

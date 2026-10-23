@@ -281,4 +281,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cohortEmptyMine => 'You are not enrolled in any class yet';
+
+  @override
+  String get learningLessonsEmpty => 'No lessons yet';
+
+  @override
+  String get learningContinueHere => 'Continue here';
 }

@@ -279,4 +279,10 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get cohortEmptyMine => 'Та одоогоор ямар ч ангид бүртгүүлээгүй байна';
+
+  @override
+  String get learningLessonsEmpty => 'Одоогоор хичээл алга байна';
+
+  @override
+  String get learningContinueHere => 'Эндээс үргэлжлүүлнэ';
 }
