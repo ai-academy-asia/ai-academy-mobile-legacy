@@ -137,7 +137,7 @@ class _ContractScreenState extends State<ContractScreen> {
     }
     final contracts = _controller.contracts;
     if (contracts.isEmpty) {
-      return const ContractMessage(message: ContractStrings.empty);
+      return ContractMessage(message: ContractStrings.empty);
     }
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(

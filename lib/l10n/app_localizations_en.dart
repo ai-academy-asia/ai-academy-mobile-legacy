@@ -287,4 +287,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get learningContinueHere => 'Continue here';
+
+  @override
+  String get contractEmpty => 'No contracts yet';
+
+  @override
+  String get contractStatusSigned => 'Signed';
+
+  @override
+  String get contractStatusPending => 'Not signed yet';
+
+  @override
+  String get contractDownload => 'Download';
+
+  @override
+  String get contractSign => 'Sign contract';
 }

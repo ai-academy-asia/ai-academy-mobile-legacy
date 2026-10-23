@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../../notifications/presentation/notification_strings.dart';
 import '../../profile/presentation/profile_strings.dart';
 import '../domain/contract_detail.dart';
@@ -7,24 +8,30 @@ import '../domain/contract_failure.dart';
 /// actions are the Figma export's own words (`e-contract1.png`, Issue #312).
 /// The empty line is the app's plain wording — no frame draws an empty list
 /// (a `PRODUCT DECISION` until one does).
+///
+/// In the selected language (Issue #527): the empty line, both status pills
+/// and both actions. The bilingual title and the signing flow's own copy are
+/// still constants.
 abstract final class ContractStrings {
   /// The screen's title, as both E-Contract exports draw it.
   static const String title = 'Гэрээ · E-Contract';
 
   /// `{"contracts": []}`.
-  static const String empty = 'Одоогоор гэрээ алга байна';
+  static String get empty => L10n.current.contractEmpty;
 
   /// A `signed` contract's status pill.
-  static const String statusSigned = 'Гэрээ байгуулсан';
+  static String get statusSigned => L10n.current.contractStatusSigned;
 
-  /// A `pending` contract's status pill.
-  static const String statusPending = 'Гэрээ хийгдээгүй байна';
+  /// A `pending` contract's status pill. Its own key, not Junior Progress's
+  /// `juniorContractTitle`: the same Mongolian, but a short pill label in
+  /// English rather than the banner's sentence.
+  static String get statusPending => L10n.current.contractStatusPending;
 
   /// A signed contract's action — fetches the signed PDF.
-  static const String download = 'Гэрээ татах';
+  static String get download => L10n.current.contractDownload;
 
   /// A pending contract's action — leads to signing.
-  static const String sign = 'Гэрээ байгуулах';
+  static String get sign => L10n.current.contractSign;
 
   static String get retry => NotificationStrings.retry;
 

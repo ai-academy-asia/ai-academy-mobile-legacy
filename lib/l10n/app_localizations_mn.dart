@@ -285,4 +285,19 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get learningContinueHere => 'Эндээс үргэлжлүүлнэ';
+
+  @override
+  String get contractEmpty => 'Одоогоор гэрээ алга байна';
+
+  @override
+  String get contractStatusSigned => 'Гэрээ байгуулсан';
+
+  @override
+  String get contractStatusPending => 'Гэрээ хийгдээгүй байна';
+
+  @override
+  String get contractDownload => 'Гэрээ татах';
+
+  @override
+  String get contractSign => 'Гэрээ байгуулах';
 }

@@ -362,5 +362,26 @@
   "learningContinueHere": "Эндээс үргэлжлүүлнэ",
   "@learningContinueHere": {
     "description": "Course Learning: the pill on the lesson the student should continue with — the one the Continue learning button opens."
+  },
+
+  "contractEmpty": "Одоогоор гэрээ алга байна",
+  "@contractEmpty": {
+    "description": "E-Contract list: shown when the student has no contracts."
+  },
+  "contractStatusSigned": "Гэрээ байгуулсан",
+  "@contractStatusSigned": {
+    "description": "E-Contract list: the status pill on a signed contract's card."
+  },
+  "contractStatusPending": "Гэрээ хийгдээгүй байна",
+  "@contractStatusPending": {
+    "description": "E-Contract list: the status pill on a contract not yet signed. A short pill label, kept apart from juniorContractTitle (the banner's sentence) though the Mongolian is the same."
+  },
+  "contractDownload": "Гэрээ татах",
+  "@contractDownload": {
+    "description": "E-Contract: the action that downloads a signed contract's PDF (the list card's pill, and the button after signing)."
+  },
+  "contractSign": "Гэрээ байгуулах",
+  "@contractSign": {
+    "description": "E-Contract list: a pending contract's action that leads to signing. Drawn disabled while signing is off."
   }
 }
