@@ -627,6 +627,36 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Эндээс үргэлжлүүлнэ'**
   String get learningContinueHere;
+
+  /// E-Contract list: shown when the student has no contracts.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогоор гэрээ алга байна'**
+  String get contractEmpty;
+
+  /// E-Contract list: the status pill on a signed contract's card.
+  ///
+  /// In mn, this message translates to:
+  /// **'Гэрээ байгуулсан'**
+  String get contractStatusSigned;
+
+  /// E-Contract list: the status pill on a contract not yet signed. A short pill label, kept apart from juniorContractTitle (the banner's sentence) though the Mongolian is the same.
+  ///
+  /// In mn, this message translates to:
+  /// **'Гэрээ хийгдээгүй байна'**
+  String get contractStatusPending;
+
+  /// E-Contract: the action that downloads a signed contract's PDF (the list card's pill, and the button after signing).
+  ///
+  /// In mn, this message translates to:
+  /// **'Гэрээ татах'**
+  String get contractDownload;
+
+  /// E-Contract list: a pending contract's action that leads to signing. Drawn disabled while signing is off.
+  ///
+  /// In mn, this message translates to:
+  /// **'Гэрээ байгуулах'**
+  String get contractSign;
 }
 
 class _AppLocalizationsDelegate

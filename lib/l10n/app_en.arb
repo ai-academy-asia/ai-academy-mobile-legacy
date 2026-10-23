@@ -98,5 +98,11 @@
   "cohortEmptyMine": "You are not enrolled in any class yet",
 
   "learningLessonsEmpty": "No lessons yet",
-  "learningContinueHere": "Continue here"
+  "learningContinueHere": "Continue here",
+
+  "contractEmpty": "No contracts yet",
+  "contractStatusSigned": "Signed",
+  "contractStatusPending": "Not signed yet",
+  "contractDownload": "Download",
+  "contractSign": "Sign contract"
 }
