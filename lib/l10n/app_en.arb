@@ -104,5 +104,11 @@
   "contractStatusSigned": "Signed",
   "contractStatusPending": "Not signed yet",
   "contractDownload": "Download",
-  "contractSign": "Sign contract"
+  "contractSign": "Sign contract",
+
+  "paymentNext": "Next payment",
+  "juniorPaymentTitle": "Next payment:",
+  "paymentOverdue": "Overdue",
+  "paymentDueIn": "{days, plural, =1{1 day left} other{{days} days left}}",
+  "paymentPayAction": "Pay"
 }

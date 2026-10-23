@@ -26,20 +26,23 @@ abstract final class JuniorProgressStrings {
   /// In the selected language (Issue #519).
   static String get showParent => L10n.current.juniorShowParent;
 
-  /// The payment card's identical line, kept apart from [showParent] so it
-  /// stays out of localization with the rest of the payment card's copy
-  /// (Issue #519): Mongolian in either language, for now.
-  static const String paymentShowParent = 'Эцэг эхдээ үзүүлнэ үү 😊';
+  /// The payment card's identical line — [showParent]'s own key, since the
+  /// payment card is in the selected language too (Issue #529).
+  static String get paymentShowParent => L10n.current.juniorShowParent;
 
   // --- Payment card ---------------------------------------------------------
 
-  static const String paymentTitle = 'Дараанийн төлөлт:';
-  static String paymentDueIn(int days) => '$days хоног дутуу';
+  // In the selected language (Issue #529).
+
+  /// Its own key rather than `HomeStrings.paymentLabel` and a colon added
+  /// here, so each language keeps its own punctuation.
+  static String get paymentTitle => L10n.current.juniorPaymentTitle;
+  static String paymentDueIn(int days) => L10n.current.paymentDueIn(days);
 
   /// An overdue payment — a state the Junior frame does not draw, so this is
   /// the adult dashboard's own wording rather than new copy.
-  static const String paymentOverdue = HomeStrings.paymentOverdue;
-  static const String payAction = 'Төлбөр төлөх';
+  static String get paymentOverdue => HomeStrings.paymentOverdue;
+  static String get payAction => L10n.current.paymentPayAction;
 
   // --- Summary --------------------------------------------------------------
 

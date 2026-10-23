@@ -325,7 +325,8 @@ class _PaymentCard extends StatelessWidget {
   }
 }
 
-/// The frame's flat blue pill: 36 tall, white label, no depth band.
+/// The frame's flat blue pill: 36 tall (at least), white label, no depth
+/// band.
 class _PayButton extends StatelessWidget {
   const _PayButton({required this.onPressed});
 
@@ -350,8 +351,10 @@ class _PayButton extends StatelessWidget {
           // — `AppButton`'s own ripple.
           splashColor: palette.onPrimary.withAlpha(0x3D),
           highlightColor: palette.onPrimary.withAlpha(0x1A),
-          child: SizedBox(
-            height: 36,
+          // At least 36, as the frame draws it; taller only when larger text
+          // needs the room, so the label is never cropped (Issue #529).
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 36),
             child: Center(
               child: Text(
                 JuniorProgressStrings.payAction,

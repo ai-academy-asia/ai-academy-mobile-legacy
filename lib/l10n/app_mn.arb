@@ -383,5 +383,31 @@
   "contractSign": "Гэрээ байгуулах",
   "@contractSign": {
     "description": "E-Contract list: a pending contract's action that leads to signing. Drawn disabled while signing is off."
+  },
+
+  "paymentNext": "Дараанийн төлөлт",
+  "@paymentNext": {
+    "description": "Adult Home payment card: its heading, what the student owes next. The design's own spelling, kept as is."
+  },
+  "juniorPaymentTitle": "Дараанийн төлөлт:",
+  "@juniorPaymentTitle": {
+    "description": "Junior Progress payment card: its heading, with the frame's colon. Its own key so the colon is not added in code."
+  },
+  "paymentOverdue": "Хугацаа хэтэрсэн",
+  "@paymentOverdue": {
+    "description": "Payment card (Adult Home, Junior Progress): the status when the next payment's due date has passed."
+  },
+  "paymentDueIn": "{days} хоног дутуу",
+  "@paymentDueIn": {
+    "description": "Payment card (Adult Home, Junior Progress): whole calendar days until the next payment is due; 0 means it is due today.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "paymentPayAction": "Төлбөр төлөх",
+  "@paymentPayAction": {
+    "description": "Payment card (Adult Home, Junior Progress): the pay action's label."
   }
 }
