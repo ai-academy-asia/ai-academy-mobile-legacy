@@ -526,13 +526,13 @@ abstract class AppLocalizations {
   /// **'Та одоогоор ямар нэг ангид бүртгүүлээгүй байна'**
   String get homeEmpty;
 
-  /// Learning (Junior Home): the error when the student is not enrolled in the course's program.
+  /// Learning (Junior Home and Course Learning): the error when the student is not enrolled in the course's program (a Course Learning 403).
   ///
   /// In mn, this message translates to:
   /// **'Та энэ хөтөлбөрт бүртгэлгүй байна'**
   String get learningNotEnrolled;
 
-  /// Learning (Junior Home): the error when the course's program could not be found.
+  /// Learning (Junior Home and Course Learning): the error when the course's program could not be found (a Course Learning 404).
   ///
   /// In mn, this message translates to:
   /// **'Хөтөлбөр олдсонгүй'**
@@ -615,6 +615,18 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Та одоогоор ямар ч ангид бүртгүүлээгүй байна'**
   String get cohortEmptyMine;
+
+  /// Course Learning: the course's lesson list when it has no lessons. Its own key: Teacher Home's empty line has the same Mongolian but means today's classes.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогоор хичээл алга байна'**
+  String get learningLessonsEmpty;
+
+  /// Course Learning: the pill on the lesson the student should continue with — the one the Continue learning button opens.
+  ///
+  /// In mn, this message translates to:
+  /// **'Эндээс үргэлжлүүлнэ'**
+  String get learningContinueHere;
 }
 
 class _AppLocalizationsDelegate

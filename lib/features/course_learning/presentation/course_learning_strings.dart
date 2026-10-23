@@ -43,10 +43,15 @@ abstract final class CourseLearningStrings {
   /// this course. Worded as its own case rather than folded into
   /// [unexpectedError]: retrying will not fix it, and the student can act on
   /// knowing which of the two it is.
-  static const String notEnrolled = 'Та энэ хөтөлбөрт бүртгэлгүй байна';
+  ///
+  /// The same words Junior Home shows for the same endpoint's 403, so the
+  /// same key (`learningNotEnrolled`, Issue #525).
+  static String get notEnrolled => L10n.current.learningNotEnrolled;
 
   /// The contract's `404 course_not_found` — a slug that no longer resolves.
-  static const String notFound = 'Хөтөлбөр олдсонгүй';
+  ///
+  /// Junior Home's key for it, as with [notEnrolled] (Issue #525).
+  static String get notFound => L10n.current.learningNotFound;
 
   /// §2.4's `404 material_not_found` — worded after [notFound], which names
   /// the course rather than the file and so would read wrong under a
@@ -126,7 +131,9 @@ abstract final class CourseLearningStrings {
 
   /// The label on Course Detail's lesson to continue with (Issue #437) —
   /// the product's own copy.
-  static const String continueHere = 'Эндээс үргэлжлүүлнэ';
+  ///
+  /// In the selected language (Issue #525).
+  static String get continueHere => L10n.current.learningContinueHere;
 
   // --- Lesson List -------------------------------------------------------
 
@@ -134,7 +141,9 @@ abstract final class CourseLearningStrings {
   /// exists for it; Mongolian, like the failure lines above, and worded after
   /// the app's existing empty states (`CohortListStrings.empty`,
   /// `CourseCatalogStrings.empty`: "Одоогоор … алга байна").
-  static const String lessonsEmpty = 'Одоогоор хичээл алга байна';
+  ///
+  /// In the selected language (Issue #525).
+  static String get lessonsEmpty => L10n.current.learningLessonsEmpty;
 
   static const String certificationLabel = 'CERTIFICATION';
   static const String certificationTitle = 'Earn a Certificate of completion';

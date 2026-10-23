@@ -95,5 +95,8 @@
   "notificationNotFound": "Notification not found",
   "notificationPushReceived": "You have a new notification",
   "notificationPushOpen": "View",
-  "cohortEmptyMine": "You are not enrolled in any class yet"
+  "cohortEmptyMine": "You are not enrolled in any class yet",
+
+  "learningLessonsEmpty": "No lessons yet",
+  "learningContinueHere": "Continue here"
 }
