@@ -657,6 +657,36 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Гэрээ байгуулах'**
   String get contractSign;
+
+  /// Adult Home payment card: its heading, what the student owes next. The design's own spelling, kept as is.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дараанийн төлөлт'**
+  String get paymentNext;
+
+  /// Junior Progress payment card: its heading, with the frame's colon. Its own key so the colon is not added in code.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дараанийн төлөлт:'**
+  String get juniorPaymentTitle;
+
+  /// Payment card (Adult Home, Junior Progress): the status when the next payment's due date has passed.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хугацаа хэтэрсэн'**
+  String get paymentOverdue;
+
+  /// Payment card (Adult Home, Junior Progress): whole calendar days until the next payment is due; 0 means it is due today.
+  ///
+  /// In mn, this message translates to:
+  /// **'{days} хоног дутуу'**
+  String paymentDueIn(int days);
+
+  /// Payment card (Adult Home, Junior Progress): the pay action's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Төлбөр төлөх'**
+  String get paymentPayAction;
 }
 
 class _AppLocalizationsDelegate

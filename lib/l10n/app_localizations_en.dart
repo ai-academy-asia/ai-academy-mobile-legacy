@@ -302,4 +302,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contractSign => 'Sign contract';
+
+  @override
+  String get paymentNext => 'Next payment';
+
+  @override
+  String get juniorPaymentTitle => 'Next payment:';
+
+  @override
+  String get paymentOverdue => 'Overdue';
+
+  @override
+  String paymentDueIn(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days left',
+      one: '1 day left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get paymentPayAction => 'Pay';
 }

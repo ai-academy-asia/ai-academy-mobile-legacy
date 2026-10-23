@@ -19,8 +19,10 @@ import '../../features/junior_home/fake_junior_progress_repository.dart';
 import '../../support/screenshot.dart';
 
 /// Issue #519: Junior Home and Junior Progress in the selected language.
-/// Mongolian reads exactly as before; the payment card, the design's own
-/// English and the English-only screen-reader labels are untouched.
+/// Mongolian reads exactly as before; the design's own English and the
+/// English-only screen-reader labels are untouched. The payment card has
+/// been in the selected language since Issue #529
+/// (`payment_card_labels_test.dart`).
 void main() {
   setUpAll(loadAppFonts);
   final locale = AppLocaleController.instance;
@@ -91,9 +93,12 @@ void main() {
     'juniorLessonAttended': s.juniorLessonAttended,
   };
 
-  /// The payment card's own line: out of scope, Mongolian in either
-  /// language.
-  const paymentLine = 'Эцэг эхдээ үзүүлнэ үү 😊';
+  /// The payment card's parent line: since Issue #529, the banner's own
+  /// `juniorShowParent` key, so it follows the language too.
+  const paymentLine = (
+    mongolian: 'Эцэг эхдээ үзүүлнэ үү 😊',
+    english: 'Please show this to your parents 😊',
+  );
 
   group('the keys', () {
     for (final language in LocalePreference.values) {
@@ -191,11 +196,12 @@ void main() {
 
     test('what stays out of scope reads the same in English', () async {
       await locale.setEnglish(true);
-      // The payment card, Mongolian as before.
-      expect(JuniorProgressStrings.paymentShowParent, paymentLine);
-      expect(JuniorProgressStrings.paymentTitle, 'Дараанийн төлөлт:');
-      expect(JuniorProgressStrings.payAction, 'Төлбөр төлөх');
-      expect(JuniorProgressStrings.paymentDueIn(3), '3 хоног дутуу');
+      // The payment card: in English since Issue #529 (its full coverage is
+      // `payment_card_labels_test.dart`).
+      expect(JuniorProgressStrings.paymentShowParent, paymentLine.english);
+      expect(JuniorProgressStrings.paymentTitle, 'Next payment:');
+      expect(JuniorProgressStrings.payAction, 'Pay');
+      expect(JuniorProgressStrings.paymentDueIn(3), '3 days left');
       // The English-only screen-reader labels, unchanged.
       expect(JuniorHomeStrings.learningMap, 'Learning map');
       expect(JuniorProgressStrings.previousMonth, 'Previous month');
@@ -325,19 +331,20 @@ void main() {
       }
     });
 
-    testWidgets('the payment card\'s line stays Mongolian', (tester) async {
+    testWidgets('the payment card\'s parent line reads in English too, as '
+        'the banner\'s does (Issue #529)', (tester) async {
       await pumpProgress(tester);
 
-      // Under the banner, English; on the payment card, the Mongolian line,
-      // exactly as before.
-      expect(find.text(paymentLine), findsOneWidget);
+      // Once under the banner, once on the payment card; no Mongolian left.
+      expect(find.text(paymentLine.english), findsNWidgets(2));
       expect(
         find.descendant(
           of: find.byType(ContractBanner),
-          matching: find.text(paymentLine),
+          matching: find.text(paymentLine.english),
         ),
-        findsNothing,
+        findsOneWidget,
       );
+      expect(find.text(paymentLine.mongolian), findsNothing);
     });
 
     testWidgets('the calendar announces each marked day in English', (
@@ -405,13 +412,11 @@ void main() {
     await locale.setEnglish(true);
     await tester.pump();
 
-    // The payment card's identical Mongolian line stays, so the banner's own
-    // line is checked inside the banner.
+    // The payment card's parent line follows the language too (Issue #529),
+    // so no Mongolian line of this screen is left, and the banner's own line
+    // is still checked inside the banner.
     for (final key in copy.keys.where(
-      (k) =>
-          !k.startsWith('learning') &&
-          k != 'homeEmpty' &&
-          k != 'juniorShowParent',
+      (k) => !k.startsWith('learning') && k != 'homeEmpty',
     )) {
       expect(find.text(mn(key)), findsNothing, reason: key);
     }
@@ -424,8 +429,9 @@ void main() {
     );
     expect(find.text(en('juniorContractTitle')), findsOneWidget);
     expect(find.text(en('homeAttendanceLabel')), findsOneWidget);
-    // The payment card's line is still the Mongolian one.
-    expect(find.text(paymentLine), findsOneWidget);
+    // The payment card's line is now the English one (Issue #529).
+    expect(find.text(paymentLine.english), findsNWidgets(2));
+    expect(find.text(paymentLine.mongolian), findsNothing);
     expect(tester.state(find.byType(JuniorProgressScreen)), same(state));
     expect(scrollable.position.pixels, offset);
     expect(repository.callCount, loads);

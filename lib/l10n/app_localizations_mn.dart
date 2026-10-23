@@ -300,4 +300,21 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get contractSign => 'Гэрээ байгуулах';
+
+  @override
+  String get paymentNext => 'Дараанийн төлөлт';
+
+  @override
+  String get juniorPaymentTitle => 'Дараанийн төлөлт:';
+
+  @override
+  String get paymentOverdue => 'Хугацаа хэтэрсэн';
+
+  @override
+  String paymentDueIn(int days) {
+    return '$days хоног дутуу';
+  }
+
+  @override
+  String get paymentPayAction => 'Төлбөр төлөх';
 }

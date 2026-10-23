@@ -13,8 +13,8 @@ import '../../payments/presentation/payment_strings.dart';
 ///
 /// In the selected language (Issue #517): the dashboard's Mongolian lines read
 /// `home*` ARB keys, besides the shared errors and nav keys. The design's own
-/// English (the logo, "Live", the progress lines) and the payment card's
-/// lines are still constants.
+/// English (the logo, "Live", the progress lines) is still constant. The
+/// payment card reads `payment*` keys (Issue #529).
 abstract final class HomeStrings {
   // --- Header ---------------------------------------------------------------
 
@@ -56,13 +56,20 @@ abstract final class HomeStrings {
 
   // --- Payment --------------------------------------------------------------
 
-  static const String paymentLabel = 'Дараанийн төлөлт';
-  static const String paymentOverdue = 'Хугацаа хэтэрсэн';
-  static String paymentDueIn(int days) => '$days хоног дутуу';
+  // In the selected language (Issue #529). "Дараанийн" is the design's own
+  // spelling, kept as is.
 
-  /// [PaymentStrings.payAction] — the Payment feature owns the label; the
-  /// Home payment card shows the same words (Issue #331).
-  static const String payAction = PaymentStrings.payAction;
+  static String get paymentLabel => L10n.current.paymentNext;
+  static String get paymentOverdue => L10n.current.paymentOverdue;
+
+  /// `3 хоног дутуу` / `3 days left` — an ICU plural in English (`1 day
+  /// left`); 0 means due today.
+  static String paymentDueIn(int days) => L10n.current.paymentDueIn(days);
+
+  /// The card's pay action. The same Mongolian as [PaymentStrings.payAction],
+  /// which it used to alias (Issue #331); it now reads its own key, so the
+  /// debug-only Payment screen keeps its Mongolian constant (Issue #529).
+  static String get payAction => L10n.current.paymentPayAction;
 
   // --- Attendance -----------------------------------------------------------
 

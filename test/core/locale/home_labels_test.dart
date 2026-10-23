@@ -23,7 +23,8 @@ import '../../support/screenshot.dart';
 
 /// Issue #517: the Adult Home dashboard and its Attendance detail screen in
 /// the selected language. Mongolian reads exactly as before; the design's
-/// own English and the payment card are untouched.
+/// own English is untouched. The payment card has been in the selected
+/// language since Issue #529 (`payment_card_labels_test.dart`).
 void main() {
   setUpAll(loadAppFonts);
   final locale = AppLocaleController.instance;
@@ -142,19 +143,18 @@ void main() {
       });
     }
 
-    test(
-      'the design\'s own English and the payment card are untouched',
-      () async {
-        await locale.setEnglish(true);
-        expect(HomeStrings.logo, 'AI academy Asia');
-        expect(HomeStrings.live, 'Live');
-        expect(HomeStrings.modules(2, 5), 'Modules 2 of 5 complete');
-        expect(HomeStrings.percentComplete(40), '40% complete');
-        expect(HomeStrings.paymentLabel, 'Дараанийн төлөлт');
-        expect(HomeStrings.paymentOverdue, 'Хугацаа хэтэрсэн');
-        expect(HomeStrings.paymentDueIn(3), '3 хоног дутуу');
-      },
-    );
+    test('the design\'s own English is untouched; the payment card reads in '
+        'English since Issue #529', () async {
+      await locale.setEnglish(true);
+      expect(HomeStrings.logo, 'AI academy Asia');
+      expect(HomeStrings.live, 'Live');
+      expect(HomeStrings.modules(2, 5), 'Modules 2 of 5 complete');
+      expect(HomeStrings.percentComplete(40), '40% complete');
+      expect(HomeStrings.paymentLabel, 'Next payment');
+      expect(HomeStrings.paymentOverdue, 'Overdue');
+      expect(HomeStrings.paymentDueIn(3), '3 days left');
+      expect(HomeStrings.payAction, 'Pay');
+    });
   });
 
   Widget scoped(Widget child) => L10nRebuildScope(
