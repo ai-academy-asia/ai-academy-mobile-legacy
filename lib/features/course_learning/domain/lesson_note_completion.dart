@@ -17,8 +17,13 @@ bool noteCompletesLesson(CourseExerciseNote? note) =>
 /// A locked lesson is not asked for — its content, note included, answers
 /// `409 lesson_locked` — and so is never completed here; one that answers
 /// `locked` anyway (its class moved later meanwhile) is treated the same.
-/// Any other failure is rethrown, so a caller fails as a whole rather than
-/// showing a lesson completed — or not — on a guess.
+///
+/// One lesson's failed read is that lesson's alone (Issue #535, MOB-08):
+/// a lesson whose note cannot be read is not completed — completion is
+/// never shown unconfirmed — while every other lesson keeps what its own
+/// note says, and the caller loads. Only `sessionExpired` is rethrown: a
+/// refused session is the student's, not the lesson's, and the repository
+/// has already forgotten it, so the caller fails as a whole as before.
 Future<Set<int>> lessonsCompletedByNote(
   CourseLearningRepository repository,
   Iterable<({int id, bool locked})> lessons,
@@ -40,7 +45,7 @@ Future<bool> _completes(CourseLearningRepository repository, int id) async {
   try {
     return noteCompletesLesson(await repository.getLessonNote(id));
   } on CourseLearningFailure catch (failure) {
-    if (failure.kind == CourseLearningFailureKind.locked) return false;
-    rethrow;
+    if (failure.kind == CourseLearningFailureKind.sessionExpired) rethrow;
+    return false;
   }
 }

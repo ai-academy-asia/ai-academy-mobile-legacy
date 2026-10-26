@@ -98,8 +98,9 @@ class ApiJuniorHomeRepository implements JuniorHomeRepository {
       for (final module in path.modules) _learning.getLessons(module.id),
     ]);
     // Completion is a saved note (Issue #415): each unlocked lesson's note,
-    // read back from the backend. A failed read fails the map — a lesson is
-    // never shown completed, or not, on a guess.
+    // read back from the backend. A lesson whose note cannot be read is not
+    // completed, and the map still builds (Issue #535); only a refused
+    // session fails it (`lessonsCompletedByNote`).
     final completedByNote = await lessonsCompletedByNote(_learning, [
       for (final (i, module) in path.modules.indexed)
         for (final lesson in lessons[i])

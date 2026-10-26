@@ -79,24 +79,46 @@ void main() {
     expect(repository.noteCalls..sort(), [1, 2]);
   });
 
-  test(
-    'a failed note read fails the load — never completion on a guess',
-    () async {
-      final controller = LessonListController(
-        repository: FakeCourseLearningRepository(
-          noteFailure: const CourseLearningFailure(
-            CourseLearningFailureKind.network,
+  test('one lesson\'s failed note read: that lesson is not completed, the '
+      'load succeeds (Issue #535)', () async {
+    final lessons = sampleLessons(moduleId: 2);
+    final controller = LessonListController(
+      repository: FakeCourseLearningRepository(
+        lessons: lessons,
+        notesByLesson: {1: sampleNote(), 2: sampleNote()},
+        noteFailuresByLesson: {
+          1: const CourseLearningFailure(CourseLearningFailureKind.network),
+        },
+      ),
+      moduleId: 2,
+    );
+
+    await controller.load();
+
+    expect(controller.errorMessage, isNull);
+    expect(controller.lessons.map((l) => l.id), lessons.map((l) => l.id));
+    // 1 unconfirmed, 2 by its note, 3 locked.
+    expect(controller.lessons.map((l) => l.completed), [false, true, false]);
+  });
+
+  test('a refused session while reading notes still fails the load', () async {
+    final controller = LessonListController(
+      repository: FakeCourseLearningRepository(
+        notesByLesson: {2: sampleNote()},
+        noteFailuresByLesson: {
+          1: const CourseLearningFailure(
+            CourseLearningFailureKind.sessionExpired,
           ),
-        ),
-        moduleId: 2,
-      );
+        },
+      ),
+      moduleId: 2,
+    );
 
-      await controller.load();
+    await controller.load();
 
-      expect(controller.lessons, isEmpty);
-      expect(controller.errorMessage, isNotNull);
-    },
-  );
+    expect(controller.lessons, isEmpty);
+    expect(controller.errorMessage, CourseLearningStrings.sessionExpired);
+  });
 
   test('a failure becomes its own copy, with no lessons', () async {
     for (final kind in CourseLearningFailureKind.values) {

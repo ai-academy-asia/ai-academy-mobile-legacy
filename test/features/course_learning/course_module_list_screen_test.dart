@@ -250,18 +250,39 @@ void main() {
       expect(find.byType(CourseLessonCard), findsNWidgets(5));
     });
 
-    testWidgets('a note read that fails fails the page — completion is never '
-        'guessed', (tester) async {
+    testWidgets('one lesson\'s failed note read: the page loads, that lesson '
+        'is not completed, its neighbour still is (Issue #535)', (
+      tester,
+    ) async {
       await pumpScreen(
         tester,
         course()
-          ..noteFailure = const CourseLearningFailure(
+          ..noteFailuresByLesson[11] = const CourseLearningFailure(
             CourseLearningFailureKind.network,
           ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(CourseLearningStrings.networkError), findsOneWidget);
+      expect(find.text(CourseLearningStrings.networkError), findsNothing);
+      expect(find.byType(CourseLessonCard), findsNWidgets(5));
+      expect(cardFor(tester, 'Patterns').entry.lesson.completed, isFalse);
+      expect(cardFor(tester, 'Logic').entry.lesson.completed, isTrue);
+      expect(cardFor(tester, 'Deep nets').entry.locked, isTrue);
+    });
+
+    testWidgets('a refused session while reading notes still fails the page', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        course()
+          ..noteFailuresByLesson[12] = const CourseLearningFailure(
+            CourseLearningFailureKind.sessionExpired,
+          ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(CourseLearningStrings.sessionExpired), findsOneWidget);
       expect(find.byType(CourseLessonCard), findsNothing);
     });
   });

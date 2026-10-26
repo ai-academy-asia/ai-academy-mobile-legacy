@@ -161,6 +161,60 @@ void main() {
     expect(controller.path, path);
   });
 
+  group('one lesson\'s note read failing (Issue #535)', () {
+    FakeCourseLearningRepository courseWith(
+      Map<int, CourseLearningFailure> noteFailures,
+    ) => FakeCourseLearningRepository(
+      lessons: const [],
+      lessonsByModule: {
+        1: [
+          sampleLesson(id: 11, moduleId: 1, order: 1),
+          sampleLesson(id: 12, moduleId: 1, order: 2),
+        ],
+        2: [sampleLesson(id: 21, moduleId: 2, order: 1)],
+      },
+      notesByLesson: {11: sampleNote(), 12: sampleNote(), 21: sampleNote()},
+      noteFailuresByLesson: noteFailures,
+    );
+
+    test('still loads: that lesson is not completed, the others by their '
+        'notes, in course order', () async {
+      final controller = CourseLearningController(
+        repository: courseWith({
+          12: const CourseLearningFailure(CourseLearningFailureKind.server),
+        }),
+        courseSlug: 'summer-bootcamp-2027',
+      );
+
+      await controller.load();
+
+      expect(controller.errorMessage, isNull);
+      expect(controller.path, isNotNull);
+      expect([for (final l in controller.lessons) l.lesson.id], [11, 12, 21]);
+      expect(
+        [for (final l in controller.lessons) l.lesson.completed],
+        [true, false, true],
+      );
+    });
+
+    test('a refused session still fails the load as a whole', () async {
+      final controller = CourseLearningController(
+        repository: courseWith({
+          12: const CourseLearningFailure(
+            CourseLearningFailureKind.sessionExpired,
+          ),
+        }),
+        courseSlug: 'summer-bootcamp-2027',
+      );
+
+      await controller.load();
+
+      expect(controller.path, isNull);
+      expect(controller.lessons, isEmpty);
+      expect(controller.errorMessage, CourseLearningStrings.sessionExpired);
+    });
+  });
+
   group('a failed load', () {
     CourseLearningController controllerFailingWith(
       CourseLearningFailureKind kind,

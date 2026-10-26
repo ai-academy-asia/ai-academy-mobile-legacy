@@ -53,7 +53,8 @@ class LessonListController extends ChangeNotifier {
     try {
       final lessons = await _repository.getLessons(moduleId);
       // Completion is a saved note (Issue #415), read back for every
-      // unlocked lesson; a failed read fails the load, never a guess.
+      // unlocked lesson; one that cannot be read is not completed, and the
+      // rest still loads (Issue #535).
       final completedByNote = await lessonsCompletedByNote(_repository, [
         for (final lesson in lessons) (id: lesson.id, locked: lesson.locked),
       ]);

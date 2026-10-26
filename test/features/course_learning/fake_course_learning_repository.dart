@@ -37,6 +37,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.exerciseFailure,
     Map<int, CourseExerciseNote>? notesByLesson,
     this.noteFailure,
+    Map<int, CourseLearningFailure>? noteFailuresByLesson,
     this.savedNote,
     this.holdSave = false,
     this.saveFailure,
@@ -62,7 +63,8 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
     this.finishFailure,
     this.attemptResult,
     this.attemptReadFailure,
-  }) : notesByLesson = notesByLesson ?? {};
+  }) : notesByLesson = notesByLesson ?? {},
+       noteFailuresByLesson = noteFailuresByLesson ?? {};
 
   // --- getCourseLearning ---------------------------------------------------
 
@@ -190,6 +192,10 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   /// Thrown by [getLessonNote] instead of answering, when set.
   CourseLearningFailure? noteFailure;
 
+  /// Thrown by [getLessonNote] for that lesson only (Issue #535), when
+  /// [noteFailure] is not set: one lesson's failed read among others.
+  final Map<int, CourseLearningFailure> noteFailuresByLesson;
+
   /// Every lesson id [getLessonNote] was asked for, in order.
   final List<int> noteCalls = [];
 
@@ -197,6 +203,7 @@ class FakeCourseLearningRepository implements CourseLearningRepository {
   Future<CourseExerciseNote?> getLessonNote(int lessonId) async {
     noteCalls.add(lessonId);
     if (noteFailure case final failure?) throw failure;
+    if (noteFailuresByLesson[lessonId] case final failure?) throw failure;
     return notesByLesson[lessonId];
   }
 

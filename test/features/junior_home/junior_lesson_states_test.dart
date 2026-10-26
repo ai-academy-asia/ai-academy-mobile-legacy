@@ -139,7 +139,7 @@ void main() {
     });
 
     test('reads only unlocked lessons; a lesson that answers locked is not '
-        'completed; any other failure fails the read', () async {
+        'completed', () async {
       final repository = FakeCourseLearningRepository(
         notesByLesson: {1: note('done'), 2: note(' ')},
       );
@@ -161,13 +161,75 @@ void main() {
         await lessonsCompletedByNote(repository, [(id: 1, locked: false)]),
         isEmpty,
       );
+    });
 
-      repository.noteFailure = const CourseLearningFailure(
-        CourseLearningFailureKind.network,
+    // Issue #535 (MOB-08): one lesson's failed read is that lesson's alone.
+    for (final kind in [
+      CourseLearningFailureKind.network,
+      CourseLearningFailureKind.server,
+      CourseLearningFailureKind.notFound,
+      CourseLearningFailureKind.notEnrolled,
+      CourseLearningFailureKind.unexpected,
+    ]) {
+      test('one lesson\'s ${kind.name} read: that lesson is not completed; '
+          'the others keep what their own notes say; a locked one is still '
+          'not asked for', () async {
+        final repository = FakeCourseLearningRepository(
+          notesByLesson: {1: note('done'), 2: note('done'), 3: note('done')},
+          noteFailuresByLesson: {2: CourseLearningFailure(kind)},
+        );
+        expect(
+          await lessonsCompletedByNote(repository, [
+            (id: 1, locked: false),
+            (id: 2, locked: false),
+            (id: 3, locked: false),
+            (id: 4, locked: true),
+          ]),
+          {1, 3},
+        );
+        expect(repository.noteCalls..sort(), [1, 2, 3]);
+      });
+    }
+
+    test('every read failing completes nothing — and still answers', () async {
+      final repository = FakeCourseLearningRepository(
+        notesByLesson: {1: note('done')},
+        noteFailure: const CourseLearningFailure(
+          CourseLearningFailureKind.network,
+        ),
+      );
+      expect(
+        await lessonsCompletedByNote(repository, [
+          (id: 1, locked: false),
+          (id: 2, locked: false),
+        ]),
+        isEmpty,
+      );
+    });
+
+    test('a refused session still fails the read as a whole — it is the '
+        'student\'s session, not one lesson', () async {
+      final repository = FakeCourseLearningRepository(
+        notesByLesson: {1: note('done'), 3: note('done')},
+        noteFailuresByLesson: {
+          2: const CourseLearningFailure(
+            CourseLearningFailureKind.sessionExpired,
+          ),
+        },
       );
       await expectLater(
-        lessonsCompletedByNote(repository, [(id: 1, locked: false)]),
-        throwsA(isA<CourseLearningFailure>()),
+        lessonsCompletedByNote(repository, [
+          (id: 1, locked: false),
+          (id: 2, locked: false),
+          (id: 3, locked: false),
+        ]),
+        throwsA(
+          isA<CourseLearningFailure>().having(
+            (f) => f.kind,
+            'kind',
+            CourseLearningFailureKind.sessionExpired,
+          ),
+        ),
       );
     });
   });
@@ -785,16 +847,36 @@ void main() {
       expect(stateOf(tester, 101), JuniorNodeState.attendanceCompleted);
     });
 
-    testWidgets('a failed note read fails the map with retry — never a '
-        'guessed state', (tester) async {
-      final learning = learningFor()
-        ..noteFailure = const CourseLearningFailure(
-          CourseLearningFailureKind.network,
+    testWidgets('one lesson\'s failed note read: the map still draws, that '
+        'lesson is not completed, the others go by their notes (Issue #535)', (
+      tester,
+    ) async {
+      final learning =
+          learningFor(notes: {101: sampleNote(), 102: sampleNote()})
+            ..noteFailuresByLesson[101] = const CourseLearningFailure(
+              CourseLearningFailureKind.network,
+            );
+      await pumpHome(tester, learning);
+
+      expect(find.byType(JuniorMapNodeTile), findsNWidgets(3));
+      expect(find.text(JuniorHomeStrings.retry), findsNothing);
+      // 101's note exists but could not be read: not completed.
+      expect(stateOf(tester, 101), isNot(JuniorNodeState.completed));
+      expect(stateOf(tester, 102), JuniorNodeState.completed);
+      expect(stateOf(tester, 201), JuniorNodeState.locked);
+      expect(learning.noteCalls, isNot(contains(201)));
+    });
+
+    testWidgets('a refused session while reading notes still fails the map, '
+        'with retry', (tester) async {
+      final learning = learningFor(notes: {102: sampleNote()})
+        ..noteFailuresByLesson[101] = const CourseLearningFailure(
+          CourseLearningFailureKind.sessionExpired,
         );
       await pumpHome(tester, learning);
 
       expect(find.byType(JuniorMapNodeTile), findsNothing);
-      expect(find.text(JuniorHomeStrings.retry), findsOneWidget);
+      expect(find.text(JuniorHomeStrings.sessionExpired), findsOneWidget);
     });
 
     testWidgets('the locked module\'s lesson is never read and never opens', (
