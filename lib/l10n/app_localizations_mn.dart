@@ -317,4 +317,65 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get paymentPayAction => 'Төлбөр төлөх';
+
+  @override
+  String get scannerHint => 'QR кодыг хүрээн дотор хөдөлгөөнгүй уншуулна уу.';
+
+  @override
+  String get scannerWindow => 'QR код уншуулах хүрээ';
+
+  @override
+  String get scannerCheckingIn => 'Ирц бүртгэж байна…';
+
+  @override
+  String get scannerRescan => 'Дахин уншуулах';
+
+  @override
+  String get scannerDone => 'Ойлголоо';
+
+  @override
+  String get scannerResultPresent => 'Ирц бүртгэгдлээ';
+
+  @override
+  String get scannerResultLate => 'Хоцорсон гэж бүртгэгдлээ';
+
+  @override
+  String get scannerResultAbsent => 'Ирээгүй гэж бүртгэгдсэн байна';
+
+  @override
+  String get scannerResultExcused => 'Чөлөөтэй гэж бүртгэгдсэн байна';
+
+  @override
+  String scannerResultOther(String status) {
+    return 'Ирцийн төлөв: $status';
+  }
+
+  @override
+  String get scannerTeacherRecorded =>
+      'Багш таны ирцийг өмнө нь бүртгэсэн байна. Асуух зүйл байвал багшдаа хандана уу.';
+
+  @override
+  String get scannerAlreadyCheckedIn =>
+      'Та энэ хичээлд өмнө нь бүртгэгдсэн байна.';
+
+  @override
+  String get scannerInvalidToken =>
+      'QR код хүчингүй эсвэл хугацаа нь дууссан байна. Багшийн дэлгэц дээрх шинэ кодыг уншуулна уу.';
+
+  @override
+  String get scannerTokenRequired => 'QR код уншигдсангүй. Дахин уншуулна уу.';
+
+  @override
+  String get scannerNotEnrolled => 'Та энэ хичээлд бүртгэлгүй байна.';
+
+  @override
+  String get scannerCameraDenied =>
+      'Камер ашиглах зөвшөөрөл олгоогүй байна. Утасны тохиргооноос камерын зөвшөөрлийг идэвхжүүлээд дахин оролдоно уу.';
+
+  @override
+  String get scannerCameraUnsupported =>
+      'Энэ төхөөрөмж дээр камер ашиглах боломжгүй.';
+
+  @override
+  String get scannerCameraFailed => 'Камерыг асаах үед алдаа гарлаа.';
 }

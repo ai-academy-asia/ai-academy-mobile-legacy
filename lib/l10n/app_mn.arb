@@ -409,5 +409,83 @@
   "paymentPayAction": "Төлбөр төлөх",
   "@paymentPayAction": {
     "description": "Payment card (Adult Home, Junior Progress): the pay action's label."
+  },
+
+  "scannerHint": "QR кодыг хүрээн дотор хөдөлгөөнгүй уншуулна уу.",
+  "@scannerHint": {
+    "description": "Attendance scanner: under the scan window while the camera is live. The design's own Mongolian."
+  },
+  "scannerWindow": "QR код уншуулах хүрээ",
+  "@scannerWindow": {
+    "description": "Attendance scanner: the scan window's screen-reader label (never drawn). The design's own Mongolian."
+  },
+  "scannerCheckingIn": "Ирц бүртгэж байна…",
+  "@scannerCheckingIn": {
+    "description": "Attendance scanner: under the spinner while the scanned code is being checked in."
+  },
+  "scannerRescan": "Дахин уншуулах",
+  "@scannerRescan": {
+    "description": "Attendance scanner: the button that scans again after a refused check-in."
+  },
+  "scannerDone": "Ойлголоо",
+  "@scannerDone": {
+    "description": "Attendance scanner: the button on a check-in result; it closes the scanner."
+  },
+  "scannerResultPresent": "Ирц бүртгэгдлээ",
+  "@scannerResultPresent": {
+    "description": "Attendance scanner: result heading when the server recorded the student as present."
+  },
+  "scannerResultLate": "Хоцорсон гэж бүртгэгдлээ",
+  "@scannerResultLate": {
+    "description": "Attendance scanner: result heading when the server recorded the student as late."
+  },
+  "scannerResultAbsent": "Ирээгүй гэж бүртгэгдсэн байна",
+  "@scannerResultAbsent": {
+    "description": "Attendance scanner: result heading on a repeat scan when the teacher had recorded the student as absent."
+  },
+  "scannerResultExcused": "Чөлөөтэй гэж бүртгэгдсэн байна",
+  "@scannerResultExcused": {
+    "description": "Attendance scanner: result heading on a repeat scan when the teacher had recorded the student as excused."
+  },
+  "scannerResultOther": "Ирцийн төлөв: {status}",
+  "@scannerResultOther": {
+    "description": "Attendance scanner: result heading for a status the app does not know; the server's status is shown as returned.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "scannerTeacherRecorded": "Багш таны ирцийг өмнө нь бүртгэсэн байна. Асуух зүйл байвал багшдаа хандана уу.",
+  "@scannerTeacherRecorded": {
+    "description": "Attendance scanner: result body when the teacher had already recorded absent or excused."
+  },
+  "scannerAlreadyCheckedIn": "Та энэ хичээлд өмнө нь бүртгэгдсэн байна.",
+  "@scannerAlreadyCheckedIn": {
+    "description": "Attendance scanner: result body on a repeat scan; the record shown is the earlier one."
+  },
+  "scannerInvalidToken": "QR код хүчингүй эсвэл хугацаа нь дууссан байна. Багшийн дэлгэц дээрх шинэ кодыг уншуулна уу.",
+  "@scannerInvalidToken": {
+    "description": "Attendance scanner: the server refused the code as unknown, replaced or expired (invalid_token)."
+  },
+  "scannerTokenRequired": "QR код уншигдсангүй. Дахин уншуулна уу.",
+  "@scannerTokenRequired": {
+    "description": "Attendance scanner: the server received no code (token_required)."
+  },
+  "scannerNotEnrolled": "Та энэ хичээлд бүртгэлгүй байна.",
+  "@scannerNotEnrolled": {
+    "description": "Attendance scanner: the student is not enrolled for this session (403 not_enrolled). Its own Mongolian, distinct from learningNotEnrolled."
+  },
+  "scannerCameraDenied": "Камер ашиглах зөвшөөрөл олгоогүй байна. Утасны тохиргооноос камерын зөвшөөрлийг идэвхжүүлээд дахин оролдоно уу.",
+  "@scannerCameraDenied": {
+    "description": "Attendance scanner: camera permission was not granted."
+  },
+  "scannerCameraUnsupported": "Энэ төхөөрөмж дээр камер ашиглах боломжгүй.",
+  "@scannerCameraUnsupported": {
+    "description": "Attendance scanner: this device has no usable camera (e.g. the simulator)."
+  },
+  "scannerCameraFailed": "Камерыг асаах үед алдаа гарлаа.",
+  "@scannerCameraFailed": {
+    "description": "Attendance scanner: the camera failed to start."
   }
 }

@@ -1,3 +1,4 @@
+import '../../../core/locale/l10n.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/attendance_check_in.dart';
 import '../domain/attendance_failure.dart';
@@ -7,37 +8,41 @@ import 'qr_scan_view.dart';
 /// the Figma reference's; the result, error and camera messages are not
 /// drawn by any reference (`PRODUCT DECISION` on their final wording,
 /// Issue #384).
+///
+/// In the selected language (Issue #531): every line reads a `scanner*` ARB
+/// key; the shared errors and the camera retry read the common keys through
+/// [HomeStrings]. The refusal and camera messages are text the controller
+/// stores when they happen, so they keep their language until the next scan
+/// or retry; everything else switches at once.
 abstract final class AttendanceScannerStrings {
-  static const String hint = 'QR кодыг хүрээн дотор хөдөлгөөнгүй уншуулна уу.';
+  static String get hint => L10n.current.scannerHint;
 
   /// Read out for the scan window, which draws no text.
-  static const String window = 'QR код уншуулах хүрээ';
+  static String get window => L10n.current.scannerWindow;
 
-  static const String checkingIn = 'Ирц бүртгэж байна…';
-  static const String rescan = 'Дахин уншуулах';
-  static const String done = 'Ойлголоо';
+  static String get checkingIn => L10n.current.scannerCheckingIn;
+  static String get rescan => L10n.current.scannerRescan;
+  static String get done => L10n.current.scannerDone;
   static String get retryCamera => HomeStrings.retry;
 
   // --- The server's record (never a generic success) ---
 
-  /// The headline for the status the server returned.
+  /// The headline for the status the server returned. A status the app does
+  /// not know is shown as returned.
   static String resultTitle(String status) => switch (status) {
-    'present' => 'Ирц бүртгэгдлээ',
-    'late' => 'Хоцорсон гэж бүртгэгдлээ',
-    'absent' => 'Ирээгүй гэж бүртгэгдсэн байна',
-    'excused' => 'Чөлөөтэй гэж бүртгэгдсэн байна',
-    _ => 'Ирцийн төлөв: $status',
+    'present' => L10n.current.scannerResultPresent,
+    'late' => L10n.current.scannerResultLate,
+    'absent' => L10n.current.scannerResultAbsent,
+    'excused' => L10n.current.scannerResultExcused,
+    _ => L10n.current.scannerResultOther(status),
   };
 
   /// What else the student should know: a repeat says the record is the
   /// earlier one; a teacher's absent/excused points them to the teacher.
   static String? resultBody(AttendanceCheckIn result) =>
       switch (result.status) {
-        'absent' || 'excused' =>
-          'Багш таны ирцийг өмнө нь бүртгэсэн байна. Асуух зүйл байвал багшдаа '
-              'хандана уу.',
-        _ when !result.firstCheckIn =>
-          'Та энэ хичээлд өмнө нь бүртгэгдсэн байна.',
+        'absent' || 'excused' => L10n.current.scannerTeacherRecorded,
+        _ when !result.firstCheckIn => L10n.current.scannerAlreadyCheckedIn,
         _ => null,
       };
 
@@ -45,11 +50,9 @@ abstract final class AttendanceScannerStrings {
 
   static String failureMessage(AttendanceFailure failure) =>
       switch (failure.code) {
-        'invalid_token' =>
-          'QR код хүчингүй эсвэл хугацаа нь дууссан байна. Багшийн дэлгэц '
-              'дээрх шинэ кодыг уншуулна уу.',
-        'token_required' => 'QR код уншигдсангүй. Дахин уншуулна уу.',
-        'not_enrolled' => 'Та энэ хичээлд бүртгэлгүй байна.',
+        'invalid_token' => L10n.current.scannerInvalidToken,
+        'token_required' => L10n.current.scannerTokenRequired,
+        'not_enrolled' => L10n.current.scannerNotEnrolled,
         _ => switch (failure.kind) {
           AttendanceFailureKind.sessionExpired => HomeStrings.sessionExpired,
           AttendanceFailureKind.network => HomeStrings.networkError,
@@ -63,11 +66,8 @@ abstract final class AttendanceScannerStrings {
 
   static String unavailableMessage(QrScanUnavailable reason) =>
       switch (reason) {
-        QrScanUnavailable.permissionDenied =>
-          'Камер ашиглах зөвшөөрөл олгоогүй байна. Утасны тохиргооноос '
-              'камерын зөвшөөрлийг идэвхжүүлээд дахин оролдоно уу.',
-        QrScanUnavailable.unsupported =>
-          'Энэ төхөөрөмж дээр камер ашиглах боломжгүй.',
-        QrScanUnavailable.failed => 'Камерыг асаах үед алдаа гарлаа.',
+        QrScanUnavailable.permissionDenied => L10n.current.scannerCameraDenied,
+        QrScanUnavailable.unsupported => L10n.current.scannerCameraUnsupported,
+        QrScanUnavailable.failed => L10n.current.scannerCameraFailed,
       };
 }

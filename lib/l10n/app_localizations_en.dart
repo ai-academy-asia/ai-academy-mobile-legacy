@@ -325,4 +325,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentPayAction => 'Pay';
+
+  @override
+  String get scannerHint => 'Hold the QR code still inside the frame.';
+
+  @override
+  String get scannerWindow => 'QR code scanning area';
+
+  @override
+  String get scannerCheckingIn => 'Checking you in…';
+
+  @override
+  String get scannerRescan => 'Scan again';
+
+  @override
+  String get scannerDone => 'Got it';
+
+  @override
+  String get scannerResultPresent => 'Attendance recorded';
+
+  @override
+  String get scannerResultLate => 'Recorded as late';
+
+  @override
+  String get scannerResultAbsent => 'Recorded as absent';
+
+  @override
+  String get scannerResultExcused => 'Recorded as excused';
+
+  @override
+  String scannerResultOther(String status) {
+    return 'Attendance status: $status';
+  }
+
+  @override
+  String get scannerTeacherRecorded =>
+      'Your teacher has already recorded your attendance. If you have any questions, please ask your teacher.';
+
+  @override
+  String get scannerAlreadyCheckedIn =>
+      'You were already checked in for this lesson.';
+
+  @override
+  String get scannerInvalidToken =>
+      'This QR code is invalid or has expired. Scan the new code on your teacher\'s screen.';
+
+  @override
+  String get scannerTokenRequired =>
+      'The QR code couldn\'t be read. Please scan it again.';
+
+  @override
+  String get scannerNotEnrolled => 'You are not enrolled in this course.';
+
+  @override
+  String get scannerCameraDenied =>
+      'Camera access isn\'t allowed. Turn on camera access in your phone\'s settings, then try again.';
+
+  @override
+  String get scannerCameraUnsupported =>
+      'The camera can\'t be used on this device.';
+
+  @override
+  String get scannerCameraFailed =>
+      'Something went wrong while starting the camera.';
 }

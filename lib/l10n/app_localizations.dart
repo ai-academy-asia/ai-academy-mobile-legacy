@@ -687,6 +687,114 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Төлбөр төлөх'**
   String get paymentPayAction;
+
+  /// Attendance scanner: under the scan window while the camera is live. The design's own Mongolian.
+  ///
+  /// In mn, this message translates to:
+  /// **'QR кодыг хүрээн дотор хөдөлгөөнгүй уншуулна уу.'**
+  String get scannerHint;
+
+  /// Attendance scanner: the scan window's screen-reader label (never drawn). The design's own Mongolian.
+  ///
+  /// In mn, this message translates to:
+  /// **'QR код уншуулах хүрээ'**
+  String get scannerWindow;
+
+  /// Attendance scanner: under the spinner while the scanned code is being checked in.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирц бүртгэж байна…'**
+  String get scannerCheckingIn;
+
+  /// Attendance scanner: the button that scans again after a refused check-in.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дахин уншуулах'**
+  String get scannerRescan;
+
+  /// Attendance scanner: the button on a check-in result; it closes the scanner.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ойлголоо'**
+  String get scannerDone;
+
+  /// Attendance scanner: result heading when the server recorded the student as present.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирц бүртгэгдлээ'**
+  String get scannerResultPresent;
+
+  /// Attendance scanner: result heading when the server recorded the student as late.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хоцорсон гэж бүртгэгдлээ'**
+  String get scannerResultLate;
+
+  /// Attendance scanner: result heading on a repeat scan when the teacher had recorded the student as absent.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирээгүй гэж бүртгэгдсэн байна'**
+  String get scannerResultAbsent;
+
+  /// Attendance scanner: result heading on a repeat scan when the teacher had recorded the student as excused.
+  ///
+  /// In mn, this message translates to:
+  /// **'Чөлөөтэй гэж бүртгэгдсэн байна'**
+  String get scannerResultExcused;
+
+  /// Attendance scanner: result heading for a status the app does not know; the server's status is shown as returned.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирцийн төлөв: {status}'**
+  String scannerResultOther(String status);
+
+  /// Attendance scanner: result body when the teacher had already recorded absent or excused.
+  ///
+  /// In mn, this message translates to:
+  /// **'Багш таны ирцийг өмнө нь бүртгэсэн байна. Асуух зүйл байвал багшдаа хандана уу.'**
+  String get scannerTeacherRecorded;
+
+  /// Attendance scanner: result body on a repeat scan; the record shown is the earlier one.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та энэ хичээлд өмнө нь бүртгэгдсэн байна.'**
+  String get scannerAlreadyCheckedIn;
+
+  /// Attendance scanner: the server refused the code as unknown, replaced or expired (invalid_token).
+  ///
+  /// In mn, this message translates to:
+  /// **'QR код хүчингүй эсвэл хугацаа нь дууссан байна. Багшийн дэлгэц дээрх шинэ кодыг уншуулна уу.'**
+  String get scannerInvalidToken;
+
+  /// Attendance scanner: the server received no code (token_required).
+  ///
+  /// In mn, this message translates to:
+  /// **'QR код уншигдсангүй. Дахин уншуулна уу.'**
+  String get scannerTokenRequired;
+
+  /// Attendance scanner: the student is not enrolled for this session (403 not_enrolled). Its own Mongolian, distinct from learningNotEnrolled.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та энэ хичээлд бүртгэлгүй байна.'**
+  String get scannerNotEnrolled;
+
+  /// Attendance scanner: camera permission was not granted.
+  ///
+  /// In mn, this message translates to:
+  /// **'Камер ашиглах зөвшөөрөл олгоогүй байна. Утасны тохиргооноос камерын зөвшөөрлийг идэвхжүүлээд дахин оролдоно уу.'**
+  String get scannerCameraDenied;
+
+  /// Attendance scanner: this device has no usable camera (e.g. the simulator).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ төхөөрөмж дээр камер ашиглах боломжгүй.'**
+  String get scannerCameraUnsupported;
+
+  /// Attendance scanner: the camera failed to start.
+  ///
+  /// In mn, this message translates to:
+  /// **'Камерыг асаах үед алдаа гарлаа.'**
+  String get scannerCameraFailed;
 }
 
 class _AppLocalizationsDelegate
