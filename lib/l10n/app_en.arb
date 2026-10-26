@@ -110,5 +110,24 @@
   "juniorPaymentTitle": "Next payment:",
   "paymentOverdue": "Overdue",
   "paymentDueIn": "{days, plural, =1{1 day left} other{{days} days left}}",
-  "paymentPayAction": "Pay"
+  "paymentPayAction": "Pay",
+
+  "scannerHint": "Hold the QR code still inside the frame.",
+  "scannerWindow": "QR code scanning area",
+  "scannerCheckingIn": "Checking you in…",
+  "scannerRescan": "Scan again",
+  "scannerDone": "Got it",
+  "scannerResultPresent": "Attendance recorded",
+  "scannerResultLate": "Recorded as late",
+  "scannerResultAbsent": "Recorded as absent",
+  "scannerResultExcused": "Recorded as excused",
+  "scannerResultOther": "Attendance status: {status}",
+  "scannerTeacherRecorded": "Your teacher has already recorded your attendance. If you have any questions, please ask your teacher.",
+  "scannerAlreadyCheckedIn": "You were already checked in for this lesson.",
+  "scannerInvalidToken": "This QR code is invalid or has expired. Scan the new code on your teacher's screen.",
+  "scannerTokenRequired": "The QR code couldn't be read. Please scan it again.",
+  "scannerNotEnrolled": "You are not enrolled in this course.",
+  "scannerCameraDenied": "Camera access isn't allowed. Turn on camera access in your phone's settings, then try again.",
+  "scannerCameraUnsupported": "The camera can't be used on this device.",
+  "scannerCameraFailed": "Something went wrong while starting the camera."
 }
