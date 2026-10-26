@@ -1,15 +1,18 @@
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/course_learning/domain/course_exercise.dart';
+import 'package:aia_mobile/features/course_learning/presentation/course_exercise_detail_screen.dart';
 import 'package:aia_mobile/features/course_learning/presentation/course_learning_strings.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_attachment_card.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/assignment_upload_dropzone.dart';
 import 'package:aia_mobile/features/course_learning/presentation/widgets/course_material_card.dart';
+import 'package:aia_mobile/features/course_learning/presentation/widgets/exercise_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
+import 'fake_course_learning_repository.dart';
 
 /// Exercise Detail's file rows and upload area at larger system text sizes
 /// (Issue #363). Each drew its content in a fixed height — the material and
@@ -276,5 +279,138 @@ void main() {
         moreOrLessEquals(area.bottom - types.bottom, epsilon: 0.01),
       );
     });
+  });
+
+  // Issue #540: the link field held its placeholder to one line in a fixed
+  // 53, so at 2.0× on a 320pt phone "Link оруулна уу" was cut short.
+  group('the single-line link field (Issue #540)', () {
+    for (final hint in ['Link оруулна уу', 'Enter a link']) {
+      for (final width in widths) {
+        for (final scale in scales) {
+          testWidgets('"$hint", ${width.toInt()} wide, text ×$scale: the '
+              'placeholder whole, inside the field', (tester) async {
+            final errors = await pump(
+              tester,
+              ExerciseTextField(
+                controller: TextEditingController(),
+                placeholder: hint,
+                height: 53,
+              ),
+              width: width,
+              scale: scale,
+            );
+            expect(errors, isEmpty);
+
+            final label = find.text(hint);
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.descendant(of: label, matching: find.byType(RichText)).first,
+            );
+            expect(paragraph.didExceedMaxLines, isFalse);
+            expect(
+              paragraph.size.height,
+              greaterThanOrEqualTo(
+                paragraph.getMaxIntrinsicHeight(paragraph.size.width) - 0.01,
+              ),
+            );
+            final field = tester.getRect(find.byType(InputDecorator));
+            final text = tester.getRect(label);
+            expect(text.left, greaterThanOrEqualTo(field.left));
+            expect(text.right, lessThanOrEqualTo(field.right));
+            expect(text.bottom, lessThanOrEqualTo(field.bottom));
+            final height = tester
+                .getSize(find.byType(ExerciseTextField))
+                .height;
+            if (scale == 1.0) {
+              expect(height, 53);
+            } else {
+              expect(height, greaterThanOrEqualTo(53));
+            }
+          });
+        }
+      }
+    }
+
+    testWidgets('a multiline field keeps its exact box at large text', (
+      tester,
+    ) async {
+      final errors = await pump(
+        tester,
+        ExerciseTextField(
+          controller: TextEditingController(),
+          placeholder: 'Энд бичнэ үү...',
+          floatingLabel: 'Тайлбар',
+          height: 104,
+          multiline: true,
+        ),
+        width: 320,
+        scale: 2,
+      );
+      expect(errors, isEmpty);
+      expect(tester.getSize(find.byType(ExerciseTextField)).height, 104);
+    });
+  });
+
+  // Issue #540: the saved note's author row gave its name column no width,
+  // so at 2.0× on a 320pt phone the row overflowed.
+  group('the saved note\'s author row (Issue #540)', () {
+    for (final name in ['Болд Батаа', 'Батбаяр Энхтүвшин Ганбаатар']) {
+      for (final width in widths) {
+        for (final scale in scales) {
+          testWidgets('"$name", ${width.toInt()} wide, text ×$scale: no '
+              'overflow, the name whole and beside the avatar', (tester) async {
+            useLogicalViewport(
+              tester,
+              Size(width, 2400),
+              padding: iPhonePadding,
+            );
+            tester.platformDispatcher.textScaleFactorTestValue = scale;
+            addTearDown(
+              tester.platformDispatcher.clearTextScaleFactorTestValue,
+            );
+            final errors = <String>[];
+            final previous = FlutterError.onError;
+            FlutterError.onError = (details) => errors.add(details.toString());
+            try {
+              await tester.pumpWidget(
+                MaterialApp(
+                  theme: AppTheme.light,
+                  home: CourseExerciseDetailScreen(
+                    lessonId: 204,
+                    repository: FakeCourseLearningRepository(
+                      exercise: sampleExercise(
+                        lessonId: 204,
+                        note: sampleNote(authorName: name),
+                        assignmentFeedback: const [],
+                        simulatesWrites: false,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              await tester.pumpAndSettle();
+            } finally {
+              FlutterError.onError = previous;
+            }
+            expect(errors.where((e) => e.contains('overflowed')), isEmpty);
+
+            final label = find.text(name);
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.descendant(of: label, matching: find.byType(RichText)).first,
+            );
+            expect(paragraph.didExceedMaxLines, isFalse);
+            expect(
+              paragraph.size.height,
+              greaterThanOrEqualTo(
+                paragraph.getMaxIntrinsicHeight(paragraph.size.width) - 0.01,
+              ),
+            );
+            final text = tester.getRect(label);
+            expect(text.right, lessThanOrEqualTo(width));
+            final avatar = tester.getRect(find.byType(CircleAvatar).first);
+            expect(text.left, greaterThan(avatar.right));
+          });
+        }
+      }
+    }
   });
 }

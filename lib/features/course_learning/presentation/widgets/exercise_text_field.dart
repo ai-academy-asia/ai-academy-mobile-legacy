@@ -32,6 +32,11 @@ import '../../../../shared/widgets/keyboard_reveal.dart';
 /// and Assignment forms wrap their fields and Submit in a
 /// [KeyboardRevealArea].
 
+/// How many lines a single-line field's placeholder may take (Issue #540):
+/// the link field's "Link оруулна уу" takes 3 at 3.0× text on a 320pt
+/// phone, 2 at 2.0×, and 1 at the default size.
+const int _singleLineHintMaxLines = 3;
+
 class ExerciseTextField extends StatelessWidget {
   const ExerciseTextField({
     required this.controller,
@@ -71,43 +76,53 @@ class ExerciseTextField extends StatelessWidget {
     // identical box height (the outer `SizedBox`'s tight constraint forces
     // it regardless of how many lines are actually typed) through the
     // ordinary bounded-`TextField` code path instead.
-    return KeyboardRevealField(
-      child: SizedBox(
-        height: height,
-        child: TextField(
-          controller: controller,
-          enabled: enabled,
-          maxLines: multiline ? 6 : 1,
-          textAlignVertical: TextAlignVertical.top,
-          style: AppTypography.fieldText.copyWith(color: palette.textPrimary),
-          cursorColor: palette.borderFocused,
-          decoration: InputDecoration(
-            hintText: placeholder,
-            hintStyle: AppTypography.fieldText.copyWith(
-              color: palette.textSecondary,
-            ),
-            labelText: label,
-            labelStyle: AppTypography.fieldText.copyWith(
-              color: palette.textSecondary,
-            ),
-            floatingLabelStyle: AppTypography.fieldLabel.copyWith(
-              color: palette.textSecondary,
-            ),
-            floatingLabelBehavior: label == null
-                ? FloatingLabelBehavior.never
-                : FloatingLabelBehavior.always,
-            filled: true,
-            fillColor: palette.surface,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: _border(palette.outline),
-            enabledBorder: _border(palette.outline),
-            focusedBorder: _border(palette.borderFocused),
-          ),
+    final field = TextField(
+      controller: controller,
+      enabled: enabled,
+      maxLines: multiline ? 6 : 1,
+      textAlignVertical: TextAlignVertical.top,
+      style: AppTypography.fieldText.copyWith(color: palette.textPrimary),
+      cursorColor: palette.borderFocused,
+      decoration: InputDecoration(
+        hintText: placeholder,
+        // A single-line field's placeholder may wrap rather than be cut
+        // short at large text (Issue #540); the input itself stays one
+        // line. A multiline field's follows its own lines, as before.
+        hintMaxLines: multiline ? null : _singleLineHintMaxLines,
+        hintStyle: AppTypography.fieldText.copyWith(
+          color: palette.textSecondary,
         ),
+        labelText: label,
+        labelStyle: AppTypography.fieldText.copyWith(
+          color: palette.textSecondary,
+        ),
+        floatingLabelStyle: AppTypography.fieldLabel.copyWith(
+          color: palette.textSecondary,
+        ),
+        floatingLabelBehavior: label == null
+            ? FloatingLabelBehavior.never
+            : FloatingLabelBehavior.always,
+        filled: true,
+        fillColor: palette.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        border: _border(palette.outline),
+        enabledBorder: _border(palette.outline),
+        focusedBorder: _border(palette.borderFocused),
       ),
+    );
+    return KeyboardRevealField(
+      // The multiline fields keep their exact box (see above). The
+      // single-line link field is [height] at least, growing only when
+      // larger text needs the room (Issue #540).
+      child: multiline
+          ? SizedBox(height: height, child: field)
+          : ConstrainedBox(
+              constraints: BoxConstraints(minHeight: height),
+              child: field,
+            ),
     );
   }
 
