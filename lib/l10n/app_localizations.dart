@@ -898,10 +898,10 @@ abstract class AppLocalizations {
   /// **'Үргэлжлүүлэх'**
   String get quizContinue;
 
-  /// Quiz question screen: feedback title for a correct answer. The Mongolian keeps its existing spelling ("Хариул"), fixed separately (Issue #539, D2).
+  /// Quiz question screen: feedback title for a correct answer. Spelled "Хариулт" since Issue #545 (it read "Хариул" before).
   ///
   /// In mn, this message translates to:
-  /// **'Хариул зөв байна.'**
+  /// **'Хариулт зөв байна.'**
   String get quizCorrectTitle;
 
   /// Quiz question screen: feedback title for a wrong answer.

@@ -557,9 +557,9 @@
   "@quizContinue": {
     "description": "Quiz question screen: the button to the next question."
   },
-  "quizCorrectTitle": "Хариул зөв байна.",
+  "quizCorrectTitle": "Хариулт зөв байна.",
   "@quizCorrectTitle": {
-    "description": "Quiz question screen: feedback title for a correct answer. The Mongolian keeps its existing spelling (\"Хариул\"), fixed separately (Issue #539, D2)."
+    "description": "Quiz question screen: feedback title for a correct answer. Spelled \"Хариулт\" since Issue #545 (it read \"Хариул\" before)."
   },
   "quizWrongTitle": "Хариулт буруу байна.",
   "@quizWrongTitle": {
