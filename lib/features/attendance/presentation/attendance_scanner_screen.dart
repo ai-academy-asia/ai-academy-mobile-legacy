@@ -252,6 +252,9 @@ class CheckInPanel extends StatelessWidget {
                   ? AttendanceScannerStrings.retryCamera
                   : AttendanceScannerStrings.rescan,
               height: 44,
+              // "Дахин уншуулах" needs more than one line of a 320pt phone at
+              // 2.0× text (Issue #532).
+              wrapLabel: true,
               onPressed: controller.rescan,
             ),
           ],

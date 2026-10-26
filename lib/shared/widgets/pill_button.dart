@@ -22,6 +22,10 @@ const double _depth = 4;
 /// The secondary pill's much fainter band.
 const double _secondaryDepth = 1.5;
 
+/// Above and below a wrapped label ([PillButton.wrapLabel]), inside the
+/// pill's edge — `TeacherPillButton`'s own.
+const double _wrapVerticalPadding = 10;
+
 /// A full-width pill button, as every action on the Home frames is drawn —
 /// and the Payment, payment-flow and attendance-scanner screens' actions too.
 /// Moved here from `home/presentation/widgets/home_pill_button.dart` and
@@ -51,6 +55,7 @@ class PillButton extends StatelessWidget {
     this.raised = true,
     this.labelSize = 16,
     this.labelWeight = FontWeight.w600,
+    this.wrapLabel = false,
   });
 
   final String label;
@@ -77,6 +82,13 @@ class PillButton extends StatelessWidget {
   final double labelSize;
 
   final FontWeight labelWeight;
+
+  /// Lets a label too long for one line wrap, centred, the pill growing past
+  /// [height] to hold it, instead of cutting it short (Issue #532) — for a
+  /// pill given its full width, as the attendance scanner's actions are,
+  /// like `TeacherPillButton.wrapLabel`. Off, every pill draws exactly as
+  /// before: one line, ending in an ellipsis when it does not fit.
+  final bool wrapLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +135,39 @@ class PillButton extends StatelessWidget {
 
     final radius = BorderRadius.circular(height / 2);
 
+    final style = AppTypography.buttonLabel.copyWith(
+      fontSize: labelSize,
+      fontWeight: labelWeight,
+      color: ink,
+    );
+
+    final content = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon case final icon?) ...[
+          // White on the muted pill too: all three frames that
+          // draw the attendance action disabled leave its QR glyph
+          // in the live state's white, barely there on the grey.
+          Icon(
+            icon,
+            size: 20,
+            color: secondary ? ink : context.palette.onPrimary,
+          ),
+          const SizedBox(width: 6),
+        ],
+        Flexible(
+          child: wrapLabel
+              ? _WrappingLabel(label: label, style: style)
+              : Text(
+                  label,
+                  style: style,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+        ),
+      ],
+    );
+
     return Semantics(
       button: true,
       enabled: enabled,
@@ -154,39 +199,58 @@ class PillButton extends StatelessWidget {
                   borderRadius: radius,
                   border: outline == null ? null : Border.all(color: outline),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (icon case final icon?) ...[
-                      // White on the muted pill too: all three frames that
-                      // draw the attendance action disabled leave its QR glyph
-                      // in the live state's white, barely there on the grey.
-                      Icon(
-                        icon,
-                        size: 20,
-                        color: secondary ? ink : context.palette.onPrimary,
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                    Flexible(
-                      child: Text(
-                        label,
-                        style: AppTypography.buttonLabel.copyWith(
-                          fontSize: labelSize,
-                          fontWeight: labelWeight,
-                          color: ink,
+                // A wrapped label keeps air above and below it, inside the
+                // edge, as `TeacherPillButton`'s does.
+                child: wrapLabel
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: _wrapVerticalPadding,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+                        child: content,
+                      )
+                    : content,
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// [PillButton.wrapLabel]'s label: one line, as every pill draws it, while
+/// it fits; centred over as many lines as it needs once it does not.
+///
+/// Centring only then, not always: a centred paragraph is painted at a
+/// sub-pixel offset even when it fits, which moves a single-line label's
+/// pixels and would change every existing golden (Issue #532).
+class _WrappingLabel extends StatelessWidget {
+  const _WrappingLabel({required this.label, required this.style});
+
+  final String label;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: DefaultTextStyle.of(context).style.merge(style),
+          ),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout(maxWidth: constraints.maxWidth);
+        final wraps = painter.didExceedMaxLines;
+        painter.dispose();
+        return Text(
+          label,
+          style: style,
+          textAlign: wraps ? TextAlign.center : null,
+        );
+      },
     );
   }
 }
