@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
 import 'package:aia_mobile/features/attendance/domain/attendance_check_in.dart';
 import 'package:aia_mobile/features/attendance/domain/attendance_failure.dart';
@@ -10,6 +12,7 @@ import 'package:aia_mobile/features/home/presentation/home_strings.dart';
 import 'package:aia_mobile/shared/widgets/app_back_button.dart';
 import 'package:aia_mobile/shared/widgets/pill_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/screenshot.dart';
@@ -418,6 +421,144 @@ void main() {
         });
       }
     }
+  });
+
+  // Issue #532: the refusal and camera pill held "Дахин уншуулах" to one line
+  // and cut it short at 2.0× text on a 320pt phone; it now wraps.
+  group('large text, strict: the action pill whole at 2.0× on 320pt', () {
+    tearDown(
+      () => AppLocaleController.instance.setPreference(
+        LocalePreference.mongolian,
+      ),
+    );
+
+    final cases =
+        <
+          (
+            String,
+            void Function(FakeScanSource),
+            FakeAttendanceRepository Function(),
+          )
+        >[
+          for (final code in [
+            'invalid_token',
+            'token_required',
+            'not_enrolled',
+          ])
+            (
+              'refusal $code',
+              (s) => s.read(token),
+              () => FakeAttendanceRepository()
+                ..checkInFailure = AttendanceFailure(
+                  AttendanceFailureKind.rejected,
+                  code: code,
+                ),
+            ),
+          for (final reason in [
+            QrScanUnavailable.permissionDenied,
+            QrScanUnavailable.failed,
+          ])
+            (
+              'camera ${reason.name}',
+              (s) => s.fail(reason),
+              FakeAttendanceRepository.new,
+            ),
+        ];
+
+    for (final (name, act, repository) in cases) {
+      for (final language in LocalePreference.values) {
+        testWidgets('$name, ${language.name}: the pill\'s label is whole, '
+            'inside the pill, the panel and the screen', (tester) async {
+          await AppLocaleController.instance.setPreference(language);
+          final errors = <String>[];
+          final (source, _) = await pumpScanner(
+            tester,
+            repository: repository(),
+            width: 320,
+            scale: 2,
+            errors: errors,
+          );
+          act(source);
+          await tester.pumpAndSettle();
+
+          final pill = find.byType(PillButton);
+          expect(pill, findsOneWidget);
+          final label = find.descendant(
+            of: pill,
+            matching: find.byType(RichText),
+          );
+          await tester.ensureVisible(pill);
+          await tester.pumpAndSettle();
+          final paragraph = tester.renderObject<RenderParagraph>(label);
+          final text = paragraph.text.toPlainText();
+          // Not cut short, and drawn at its full height.
+          expect(paragraph.didExceedMaxLines, isFalse, reason: text);
+          expect(
+            paragraph.size.height,
+            greaterThanOrEqualTo(
+              paragraph.getMaxIntrinsicHeight(paragraph.size.width) - 0.01,
+            ),
+            reason: text,
+          );
+          final box = tester.getRect(label);
+          final pillRect = tester.getRect(pill);
+          expect(box.left, greaterThanOrEqualTo(pillRect.left), reason: text);
+          expect(box.right, lessThanOrEqualTo(pillRect.right), reason: text);
+          expect(box.top, greaterThanOrEqualTo(pillRect.top), reason: text);
+          expect(box.bottom, lessThanOrEqualTo(pillRect.bottom), reason: text);
+          final viewport = tester.getRect(
+            find.ancestor(of: pill, matching: find.byType(Scrollable)).first,
+          );
+          expect(pillRect.top, greaterThanOrEqualTo(viewport.top - 0.01));
+          expect(pillRect.bottom, lessThanOrEqualTo(viewport.bottom + 0.01));
+          expect(pillRect.left, greaterThanOrEqualTo(0));
+          expect(pillRect.right, lessThanOrEqualTo(320));
+          expect(pillRect.bottom, lessThanOrEqualTo(852));
+          expect(tester.takeException(), isNull);
+          expect(errors, isEmpty);
+        });
+      }
+    }
+
+    testWidgets('at the default size the rescan pill is still 44 tall, one '
+        'line', (tester) async {
+      final (source, _) = await pumpScanner(
+        tester,
+        repository: FakeAttendanceRepository()
+          ..checkInFailure = const AttendanceFailure(
+            AttendanceFailureKind.rejected,
+            code: 'invalid_token',
+          ),
+        width: 320,
+      );
+      source.read(token);
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(PillButton)).height, 44);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: find.byType(PillButton),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(
+        paragraph.size.height,
+        paragraph.getMaxIntrinsicHeight(double.infinity),
+      );
+    });
+
+    testWidgets('the result\'s "Ойлголоо" pill is unchanged: one line', (
+      tester,
+    ) async {
+      final (source, _) = await pumpScanner(
+        tester,
+        repository: FakeAttendanceRepository()
+          ..checkInResult = record('present'),
+      );
+      source.read(token);
+      await tester.pumpAndSettle();
+      final pill = tester.widget<PillButton>(find.byType(PillButton));
+      expect(pill.wrapLabel, isFalse);
+    });
   });
 
   group('goldens', () {
