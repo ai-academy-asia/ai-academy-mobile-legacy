@@ -278,9 +278,12 @@ class CourseExerciseNote {
     required this.timestampLabel,
   });
 
-  /// e.g. "БП", drawn inside the avatar circle.
+  /// e.g. "БП", drawn inside the avatar circle. Empty when the server sent
+  /// it blank (Issue #537).
   final String authorInitials;
 
+  /// Empty when the server sent a blank name (Issue #537): the note card
+  /// then leaves the name line out, keeping the avatar and [authorLabel].
   final String authorName;
 
   /// e.g. "Me" — the reference shows the note as the student's own, labelled

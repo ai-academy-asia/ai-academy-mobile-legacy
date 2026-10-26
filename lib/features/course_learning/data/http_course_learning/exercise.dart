@@ -240,8 +240,10 @@ CourseExerciseNote? _noteFrom(Object? note, {required DateTime now}) {
   }
 
   return CourseExerciseNote(
-    authorInitials: _requireString(author, 'note.author.initials'),
-    authorName: _requireString(author, 'note.author.name'),
+    // Blank-tolerant (Issue #537): a blank name hides the name line, and
+    // never fails the lesson or a save the server has already made.
+    authorInitials: _requirePersonText(author, 'note.author.initials'),
+    authorName: _requirePersonText(author, 'note.author.name'),
     authorLabel: _noteAuthorLabel,
     message: _requireString(note, 'note.content'),
     timestampLabel: _timestampLabel(parsed.toLocal(), now: now),

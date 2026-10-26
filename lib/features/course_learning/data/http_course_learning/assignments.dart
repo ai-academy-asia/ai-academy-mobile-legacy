@@ -115,13 +115,17 @@ AssignmentMentorFeedback? _feedbackFrom(
   final role = mentor == null
       ? null
       : _requireString(mentor, 'feedback.mentor.role');
+  // A mentor whose name is blank (Issue #537) is shown as no mentor — the
+  // staff-review layout above — rather than failing the assignment.
+  final mentorName = mentor == null
+      ? ''
+      : _requirePersonText(mentor, 'feedback.mentor.name');
+  final mentorInitials = mentor == null
+      ? ''
+      : _requirePersonText(mentor, 'feedback.mentor.initials');
   return AssignmentMentorFeedback(
-    mentorInitials: mentor == null
-        ? null
-        : _requireString(mentor, 'feedback.mentor.initials'),
-    mentorName: mentor == null
-        ? null
-        : _requireString(mentor, 'feedback.mentor.name'),
+    mentorInitials: mentorInitials.isEmpty ? null : mentorInitials,
+    mentorName: mentorName.isEmpty ? null : mentorName,
     mentorRole: role == null
         ? null
         : (role == 'teacher' ? _teacherRoleLabel : ''),

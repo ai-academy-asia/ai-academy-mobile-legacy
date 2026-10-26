@@ -54,6 +54,22 @@ String _requireString(Map<String, dynamic> json, String label) {
   return value;
 }
 
+/// A person's display text — a `name` or its `initials` — which must be a
+/// string but may be blank (Issue #537, MOB-07): the backend can hold a
+/// blank name, and one person's name must not fail the read it is part of.
+/// A blank or whitespace-only value reads as `''`; anything not a string is
+/// still the API misbehaving.
+String _requirePersonText(Map<String, dynamic> json, String label) {
+  final value = json[label.split('.').last];
+  if (value is! String) {
+    throw CourseLearningFailure(
+      CourseLearningFailureKind.server,
+      detail: '$label: expected a string, got ${value.runtimeType}',
+    );
+  }
+  return value.trim().isEmpty ? '' : value;
+}
+
 int _requireInt(Map<String, dynamic> json, String label) {
   final value = json[label.split('.').last];
   if (value is! num) {

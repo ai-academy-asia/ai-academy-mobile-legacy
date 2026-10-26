@@ -142,9 +142,9 @@ void main() {
             {'id': '5', 'name': 'Болд', 'photo_url': null},
           ],
         ),
-        'a blank name': eligibleBody(
+        'a numeric name': eligibleBody(
           items: [
-            {'id': 5, 'name': ' ', 'photo_url': null},
+            {'id': 5, 'name': 5, 'photo_url': null},
           ],
         ),
         'a numeric photo_url': eligibleBody(
@@ -161,6 +161,27 @@ void main() {
         );
         expect(failure.kind, TeacherFailureKind.server, reason: entry.key);
       }
+    });
+
+    test('a teacher whose name is blank is left out; the rest still load '
+        '(Issue #537)', () async {
+      final repository = repositoryReturning(
+        (_) async => jsonResponse(
+          eligibleBody(
+            items: [
+              {'id': 5, 'name': 'Болд', 'photo_url': null},
+              {'id': 6, 'name': '', 'photo_url': null},
+              {'id': 7, 'name': '   ', 'photo_url': null},
+              {'id': 8, 'name': 'Сараа', 'photo_url': null},
+            ],
+          ),
+          200,
+        ),
+      );
+
+      final teachers = await repository.getEligibleTeachers(41);
+      expect([for (final t in teachers) t.id], [5, 8]);
+      expect([for (final t in teachers) t.name], ['Болд', 'Сараа']);
     });
 
     test('the documented refusals keep their code', () async {
@@ -419,8 +440,8 @@ void main() {
         'another request': base()..['id'] = 13,
         'an unknown status': base()..['status'] = 'approved',
         'no sender': base()..remove('sender'),
-        'a blank sender name': base()
-          ..['sender'] = {'id': 3, 'name': ' ', 'photo_url': null},
+        'a sender name that is not a string': base()
+          ..['sender'] = {'id': 3, 'name': null, 'photo_url': null},
         'no session': base()..remove('session'),
         'a session date that is not a date': base()
           ..['session'] = {...(base()['session'] as Map), 'date': 'soon'},
@@ -458,6 +479,38 @@ void main() {
         expect(noRoute.code, isNull);
       },
     );
+
+    test('a blank sender name still opens the request, every other field '
+        'kept (Issue #537)', () async {
+      for (final blank in ['', '   ']) {
+        final body = jsonDecode(requestBody()) as Map<String, dynamic>
+          ..['sender'] = {'id': 3, 'name': blank, 'photo_url': null};
+        final request = await repositoryReturning(
+          (_) async => jsonResponse(jsonEncode(body), 200),
+        ).getRequest(12);
+
+        expect(request.senderName, '', reason: '"$blank"');
+        expect(request.id, 12);
+        expect(request.sessionId, 41);
+        expect(request.status, 'pending');
+        expect(request.room, 'Room 204');
+        expect(request.courseTitle, 'Corporate Leaders');
+      }
+    });
+
+    test('an accept the server made stays a success when its answer names a '
+        'blank sender (Issue #537)', () async {
+      final body =
+          jsonDecode(requestBody(status: 'accepted')) as Map<String, dynamic>
+            ..['sender'] = {'id': 3, 'name': ' ', 'photo_url': null};
+
+      final request = await repositoryReturning(
+        (_) async => jsonResponse(jsonEncode(body), 200),
+      ).acceptRequest(12);
+
+      expect(request.status, 'accepted');
+      expect(request.senderName, '');
+    });
 
     test('accept POSTs to …/accept with an empty object and needs the answer '
         'to be accepted', () async {

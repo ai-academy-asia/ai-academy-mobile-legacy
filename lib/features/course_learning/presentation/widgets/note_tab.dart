@@ -220,12 +220,15 @@ class _ExistingNoteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    note.authorName,
-                    style: AppTypography.itemTitle.copyWith(
-                      color: palette.textPrimary,
+                  // A blank name has no line (Issue #537); the avatar and
+                  // "Me" stay.
+                  if (note.authorName.isNotEmpty)
+                    Text(
+                      note.authorName,
+                      style: AppTypography.itemTitle.copyWith(
+                        color: palette.textPrimary,
+                      ),
                     ),
-                  ),
                   Text(
                     note.authorLabel,
                     style: AppTypography.caption.copyWith(

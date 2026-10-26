@@ -200,21 +200,23 @@ List<EligibleTeacher> eligibleTeachersFromJson(
       if (item is! Map<String, dynamic>)
         throw _shape('items[]: expected an object')
       else
-        _eligibleTeacher(item),
+        ?_eligibleTeacher(item),
   ];
 }
 
-EligibleTeacher _eligibleTeacher(Map<String, dynamic> json) {
+/// One eligible teacher, or null for one whose name is blank: the picker
+/// leaves them out rather than offering a nameless row (Issue #537, product
+/// decision) — the rest of the list still loads.
+EligibleTeacher? _eligibleTeacher(Map<String, dynamic> json) {
   final id = json['id'];
   final name = json['name'];
   final photoUrl = json['photo_url'];
   if (id is! int) throw _shape('items[].id: not an integer');
-  if (name is! String || name.trim().isEmpty) {
-    throw _shape('items[].name: not a non-empty string');
-  }
+  if (name is! String) throw _shape('items[].name: not a string');
   if (photoUrl != null && photoUrl is! String) {
     throw _shape('items[].photo_url: neither null nor a string');
   }
+  if (name.trim().isEmpty) return null;
   return EligibleTeacher(id: id, name: name);
 }
 
@@ -270,9 +272,9 @@ ScheduleChangeRequest scheduleChangeRequestFromJson(
     throw _shape('sender: expected an object');
   }
   final senderName = sender['name'];
-  if (senderName is! String || senderName.trim().isEmpty) {
-    throw _shape('sender.name: not a non-empty string');
-  }
+  // A blank name is the backend's data (Issue #537): read as `''`, so the
+  // sheet still opens and a decision the server made is not reported failed.
+  if (senderName is! String) throw _shape('sender.name: not a string');
   if (session is! Map<String, dynamic>) {
     throw _shape('session: expected an object');
   }
@@ -283,7 +285,7 @@ ScheduleChangeRequest scheduleChangeRequestFromJson(
     id: requestId,
     sessionId: sessionId,
     status: status,
-    senderName: senderName,
+    senderName: senderName.trim().isEmpty ? '' : senderName,
     sessionDate: DateTime(day.year, day.month, day.day),
     startTime: _optionalText(session, 'start_time'),
     endTime: _optionalText(session, 'end_time'),
