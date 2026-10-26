@@ -795,6 +795,156 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Камерыг асаах үед алдаа гарлаа.'**
   String get scannerCameraFailed;
+
+  /// Exercise Detail, Assignment: the link field's placeholder, and the error for a submission with no link.
+  ///
+  /// In mn, this message translates to:
+  /// **'Link оруулна уу'**
+  String get learningLinkPlaceholder;
+
+  /// Exercise Detail: the description field's floating label (Note and Assignment).
+  ///
+  /// In mn, this message translates to:
+  /// **'Тайлбар'**
+  String get learningDescriptionLabel;
+
+  /// Exercise Detail: the description field's placeholder (Note and Assignment).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энд бичнэ үү...'**
+  String get learningDescriptionPlaceholder;
+
+  /// Exercise Detail, Note: the button that edits a saved note.
+  ///
+  /// In mn, this message translates to:
+  /// **'Засах'**
+  String get learningEditNote;
+
+  /// Exercise Detail: over the video area when the lesson's recording is not up yet.
+  ///
+  /// In mn, this message translates to:
+  /// **'Бичлэг хараахан оруугүй байна'**
+  String get learningVideoUnavailable;
+
+  /// Exercise Detail: a course material that no longer exists (404 material_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Файл олдсонгүй'**
+  String get learningMaterialNotFound;
+
+  /// Exercise Detail: an assignment that no longer exists (404 assignment_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Даалгавар олдсонгүй'**
+  String get learningAssignmentNotFound;
+
+  /// Exercise Detail, Note: saving an empty note (400 content_required).
+  ///
+  /// In mn, this message translates to:
+  /// **'Тэмдэглэлээ оруулна уу'**
+  String get learningNoteRequired;
+
+  /// Exercise Detail, Note: a note over 5000 characters (400 content_too_long).
+  ///
+  /// In mn, this message translates to:
+  /// **'Тэмдэглэл 5000 тэмдэгтээс ихгүй байх ёстой'**
+  String get learningNoteTooLong;
+
+  /// Exercise Detail, Assignment: a submission link that is not valid.
+  ///
+  /// In mn, this message translates to:
+  /// **'Зөв link оруулна уу'**
+  String get learningInvalidLink;
+
+  /// Exercise Detail, Assignment: a description over 5000 characters.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тайлбар 5000 тэмдэгтээс ихгүй байх ёстой'**
+  String get learningDescriptionTooLong;
+
+  /// Exercise Detail, Assignment: submitting after the due date (409 past_due).
+  ///
+  /// In mn, this message translates to:
+  /// **'Даалгавар илгээх хугацаа дууссан'**
+  String get learningPastDue;
+
+  /// Exercise Detail, Assignment: an upload whose file type is not accepted.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ төрлийн файл оруулах боломжгүй'**
+  String get learningUnsupportedFileType;
+
+  /// Exercise Detail, Assignment: an upload over 20 MB (413 file_too_large).
+  ///
+  /// In mn, this message translates to:
+  /// **'Файлын хэмжээ 20 MB-аас ихгүй байх ёстой'**
+  String get learningFileTooLarge;
+
+  /// Exercise Detail, quiz card: the action that takes the quiz again.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дахин quiz өгөх'**
+  String get quizRetake;
+
+  /// Quiz card and result screen: the label over the student's score.
+  ///
+  /// In mn, this message translates to:
+  /// **'Таны оноо'**
+  String get quizYourScore;
+
+  /// Quiz question screen: the button to the next question.
+  ///
+  /// In mn, this message translates to:
+  /// **'Үргэлжлүүлэх'**
+  String get quizContinue;
+
+  /// Quiz question screen: feedback title for a correct answer. The Mongolian keeps its existing spelling ("Хариул"), fixed separately (Issue #539, D2).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хариул зөв байна.'**
+  String get quizCorrectTitle;
+
+  /// Quiz question screen: feedback title for a wrong answer.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хариулт буруу байна.'**
+  String get quizWrongTitle;
+
+  /// Quiz question screen: the correct option's letter, after a wrong answer.
+  ///
+  /// In mn, this message translates to:
+  /// **'Зөв хариулт нь \'{letter}\'.'**
+  String quizCorrectAnswerIs(String letter);
+
+  /// Quiz result screen: how many of the quiz's questions the student answered correctly.
+  ///
+  /// In mn, this message translates to:
+  /// **'Та {total} асуултаас {correct}-д зөв хариуллаа'**
+  String quizResultSummary(int total, int correct);
+
+  /// Quiz result screen: the label in front of each question's number.
+  ///
+  /// In mn, this message translates to:
+  /// **'Асуулт'**
+  String get quizResultQuestion;
+
+  /// Quiz result screen: the button that closes the result.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дуусгах'**
+  String get quizFinish;
+
+  /// Quiz: a quiz or attempt that no longer exists (404 quiz_not_found / attempt_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Quiz олдсонгүй'**
+  String get quizNotFound;
+
+  /// Quiz: starting a quiz with no attempts left (409 no_attempts_left).
+  ///
+  /// In mn, this message translates to:
+  /// **'Quiz өгөх оролдлого дууссан'**
+  String get quizNoAttemptsLeft;
 }
 
 class _AppLocalizationsDelegate

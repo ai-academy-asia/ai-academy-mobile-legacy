@@ -10,6 +10,13 @@ import '../domain/course_learning_failure.dart';
 /// which were all built against Mongolian copy. Shown verbatim from the
 /// reference rather than translated, since translating would be inventing
 /// copy the design never specified.
+///
+/// The app's own lines — the failure and validation messages, and the
+/// Exercise Detail and Quiz copy the reference drew in Mongolian — follow
+/// the selected language (Issues #525, #539), read from `learning*` and
+/// `quiz*` ARB keys. Messages a controller stores when they happen (a note
+/// save's, a file's, a lesson completion's) keep their language until the
+/// next action.
 abstract final class CourseLearningStrings {
   /// The back control's label — [AppBackButton.label] (Issue #327), the
   /// shared `commonBack` (Issue #509).
@@ -25,12 +32,11 @@ abstract final class CourseLearningStrings {
 
   // --- Failures ----------------------------------------------------------
   //
-  // Mongolian, unlike the rest of this file: these are not design copy. The
-  // Figma pack has no error state for this screen, so rather than invent
-  // English wording for one, each line is the **verbatim** string the app
-  // already shows for the same failure elsewhere (`CohortListStrings`,
-  // `HomeStrings`, `EnrollmentStrings`) — the same fact should read the same
-  // wherever the student meets it.
+  // Not design copy: the Figma pack has no error state for this screen, so
+  // each Mongolian line is the **verbatim** string the app already shows for
+  // the same failure elsewhere (`CohortListStrings`, `HomeStrings`,
+  // `EnrollmentStrings`) — the same fact should read the same wherever the
+  // student meets it. In the selected language (Issues #507, #525, #539).
 
   static String get retry => L10n.current.commonRetry;
 
@@ -56,41 +62,41 @@ abstract final class CourseLearningStrings {
   /// §2.4's `404 material_not_found` — worded after [notFound], which names
   /// the course rather than the file and so would read wrong under a
   /// material row.
-  static const String materialNotFound = 'Файл олдсонгүй';
+  static String get materialNotFound => L10n.current.learningMaterialNotFound;
 
   /// §2.5's two note-save rules. The Figma pack has no copy for either, so
   /// both follow the Login screen's own validation wording
   /// (`LoginStrings.passwordRequired`, `LoginStrings.passwordTooShort`).
-  static const String noteContentRequired = 'Тэмдэглэлээ оруулна уу';
-  static const String noteContentTooLong =
-      'Тэмдэглэл 5000 тэмдэгтээс ихгүй байх ёстой';
+  static String get noteContentRequired => L10n.current.learningNoteRequired;
+  static String get noteContentTooLong => L10n.current.learningNoteTooLong;
 
   /// §2.6's submission rules. No Figma copy exists for any of them either:
   /// the empty case repeats the link field's own placeholder, [linkPlaceholder],
   /// and the rest follow the note rules' wording above.
-  static const String submissionEmpty = linkPlaceholder;
-  static const String invalidLink = 'Зөв link оруулна уу';
-  static const String descriptionTooLong =
-      'Тайлбар 5000 тэмдэгтээс ихгүй байх ёстой';
-  static const String pastDue = 'Даалгавар илгээх хугацаа дууссан';
+  static String get submissionEmpty => linkPlaceholder;
+  static String get invalidLink => L10n.current.learningInvalidLink;
+  static String get descriptionTooLong =>
+      L10n.current.learningDescriptionTooLong;
+  static String get pastDue => L10n.current.learningPastDue;
 
   /// §2.8's two upload rules. No Figma copy exists for either; both follow
   /// the wording of the other rules above.
-  static const String unsupportedFileType =
-      'Энэ төрлийн файл оруулах боломжгүй';
-  static const String fileTooLarge = 'Файлын хэмжээ 20 MB-аас ихгүй байх ёстой';
+  static String get unsupportedFileType =>
+      L10n.current.learningUnsupportedFileType;
+  static String get fileTooLarge => L10n.current.learningFileTooLarge;
 
   /// §2.6's `404 assignment_not_found` — worded after [materialNotFound], for
   /// the same reason: [notFound] names the course.
-  static const String assignmentNotFound = 'Даалгавар олдсонгүй';
+  static String get assignmentNotFound =>
+      L10n.current.learningAssignmentNotFound;
 
   /// §2.7's `404 quiz_not_found`/`attempt_not_found` — worded after
   /// [materialNotFound], for the same reason.
-  static const String quizNotFound = 'Quiz олдсонгүй';
+  static String get quizNotFound => L10n.current.quizNotFound;
 
   /// §2.7's `409 no_attempts_left`. No Figma copy exists; worded after
   /// [pastDue], the other "this can no longer be done" rule.
-  static const String quizNoAttemptsLeft = 'Quiz өгөх оролдлого дууссан';
+  static String get quizNoAttemptsLeft => L10n.current.quizNoAttemptsLeft;
 
   /// One fixed string per [CourseLearningFailureKind], the same shape
   /// `HomeStrings.messageFor` and `EnrollmentStrings.messageFor` use.
@@ -152,7 +158,9 @@ abstract final class CourseLearningStrings {
   //
   // Mixed English/Mongolian, not a translation inconsistency: the Figma
   // reference itself mixes them this way (English tab labels, Mongolian
-  // field copy), and every string below is shown verbatim from it.
+  // field copy), and every string below is shown verbatim from it. The
+  // Mongolian lines follow the selected language (Issue #539); the
+  // reference's English ones stay as drawn.
 
   static const String readMore = 'Read more';
   static const String readLess = 'Read less';
@@ -161,9 +169,11 @@ abstract final class CourseLearningStrings {
   static const String courseMaterialsTab = 'Course materials';
   static const String noteTab = 'Note';
 
-  static const String linkPlaceholder = 'Link оруулна уу';
-  static const String descriptionFloatingLabel = 'Тайлбар';
-  static const String descriptionPlaceholder = 'Энд бичнэ үү...';
+  static String get linkPlaceholder => L10n.current.learningLinkPlaceholder;
+  static String get descriptionFloatingLabel =>
+      L10n.current.learningDescriptionLabel;
+  static String get descriptionPlaceholder =>
+      L10n.current.learningDescriptionPlaceholder;
   static const String submit = 'Submit';
   static const String submitted = 'Submitted';
   static const String resubmit = 'Resubmit';
@@ -173,11 +183,11 @@ abstract final class CourseLearningStrings {
   static const String mentorFeedbackTitle = 'Mentor Feedback';
   static const String noFeedbackYet = 'No feedback yet';
 
-  static const String editNote = 'Засах';
+  static String get editNote => L10n.current.learningEditNote;
 
   /// Shown centred over the video area when a recording is not up yet —
   /// the reference's own wording.
-  static const String videoUnavailable = 'Бичлэг хараахан оруугүй байна';
+  static String get videoUnavailable => L10n.current.learningVideoUnavailable;
 
   // --- Assignment attachment ---------------------------------------------
 
@@ -223,8 +233,8 @@ abstract final class CourseLearningStrings {
   // --- Quiz preview/result card (Exercise Detail) ---------------------------
 
   static const String startQuiz = 'Start quiz';
-  static const String retakeQuiz = 'Дахин quiz өгөх';
-  static const String yourScoreLabel = 'Таны оноо';
+  static String get retakeQuiz => L10n.current.quizRetake;
+  static String get yourScoreLabel => L10n.current.quizYourScore;
 
   static String quizQuestionCount(int count) =>
       count == 1 ? 'Total 1 question' : 'Total $count questions';
@@ -234,18 +244,19 @@ abstract final class CourseLearningStrings {
   static String quizProgressCounter(int current, int total) =>
       '$current/$total';
 
-  static const String quizContinue = 'Үргэлжлүүлэх';
-  static const String quizCorrectTitle = 'Хариул зөв байна.';
-  static const String quizWrongTitle = 'Хариулт буруу байна.';
+  static String get quizContinue => L10n.current.quizContinue;
+  static String get quizCorrectTitle => L10n.current.quizCorrectTitle;
+  static String get quizWrongTitle => L10n.current.quizWrongTitle;
 
   static String quizCorrectAnswerIs(String letter) =>
-      "Зөв хариулт нь '$letter'.";
+      L10n.current.quizCorrectAnswerIs(letter);
 
   // --- Quiz result screen ----------------------------------------------------
 
+  /// An English plural on [total] (Issue #539): "1 question" / "N questions".
   static String quizResultSummary(int total, int correct) =>
-      'Та $total асуултаас $correct-д зөв хариуллаа';
+      L10n.current.quizResultSummary(total, correct);
 
-  static const String quizResultQuestionLabel = 'Асуулт';
-  static const String quizFinish = 'Дуусгах';
+  static String get quizResultQuestionLabel => L10n.current.quizResultQuestion;
+  static String get quizFinish => L10n.current.quizFinish;
 }

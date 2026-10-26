@@ -487,5 +487,119 @@
   "scannerCameraFailed": "Камерыг асаах үед алдаа гарлаа.",
   "@scannerCameraFailed": {
     "description": "Attendance scanner: the camera failed to start."
+  },
+
+  "learningLinkPlaceholder": "Link оруулна уу",
+  "@learningLinkPlaceholder": {
+    "description": "Exercise Detail, Assignment: the link field's placeholder, and the error for a submission with no link."
+  },
+  "learningDescriptionLabel": "Тайлбар",
+  "@learningDescriptionLabel": {
+    "description": "Exercise Detail: the description field's floating label (Note and Assignment)."
+  },
+  "learningDescriptionPlaceholder": "Энд бичнэ үү...",
+  "@learningDescriptionPlaceholder": {
+    "description": "Exercise Detail: the description field's placeholder (Note and Assignment)."
+  },
+  "learningEditNote": "Засах",
+  "@learningEditNote": {
+    "description": "Exercise Detail, Note: the button that edits a saved note."
+  },
+  "learningVideoUnavailable": "Бичлэг хараахан оруугүй байна",
+  "@learningVideoUnavailable": {
+    "description": "Exercise Detail: over the video area when the lesson's recording is not up yet."
+  },
+  "learningMaterialNotFound": "Файл олдсонгүй",
+  "@learningMaterialNotFound": {
+    "description": "Exercise Detail: a course material that no longer exists (404 material_not_found)."
+  },
+  "learningAssignmentNotFound": "Даалгавар олдсонгүй",
+  "@learningAssignmentNotFound": {
+    "description": "Exercise Detail: an assignment that no longer exists (404 assignment_not_found)."
+  },
+  "learningNoteRequired": "Тэмдэглэлээ оруулна уу",
+  "@learningNoteRequired": {
+    "description": "Exercise Detail, Note: saving an empty note (400 content_required)."
+  },
+  "learningNoteTooLong": "Тэмдэглэл 5000 тэмдэгтээс ихгүй байх ёстой",
+  "@learningNoteTooLong": {
+    "description": "Exercise Detail, Note: a note over 5000 characters (400 content_too_long)."
+  },
+  "learningInvalidLink": "Зөв link оруулна уу",
+  "@learningInvalidLink": {
+    "description": "Exercise Detail, Assignment: a submission link that is not valid."
+  },
+  "learningDescriptionTooLong": "Тайлбар 5000 тэмдэгтээс ихгүй байх ёстой",
+  "@learningDescriptionTooLong": {
+    "description": "Exercise Detail, Assignment: a description over 5000 characters."
+  },
+  "learningPastDue": "Даалгавар илгээх хугацаа дууссан",
+  "@learningPastDue": {
+    "description": "Exercise Detail, Assignment: submitting after the due date (409 past_due)."
+  },
+  "learningUnsupportedFileType": "Энэ төрлийн файл оруулах боломжгүй",
+  "@learningUnsupportedFileType": {
+    "description": "Exercise Detail, Assignment: an upload whose file type is not accepted."
+  },
+  "learningFileTooLarge": "Файлын хэмжээ 20 MB-аас ихгүй байх ёстой",
+  "@learningFileTooLarge": {
+    "description": "Exercise Detail, Assignment: an upload over 20 MB (413 file_too_large)."
+  },
+  "quizRetake": "Дахин quiz өгөх",
+  "@quizRetake": {
+    "description": "Exercise Detail, quiz card: the action that takes the quiz again."
+  },
+  "quizYourScore": "Таны оноо",
+  "@quizYourScore": {
+    "description": "Quiz card and result screen: the label over the student's score."
+  },
+  "quizContinue": "Үргэлжлүүлэх",
+  "@quizContinue": {
+    "description": "Quiz question screen: the button to the next question."
+  },
+  "quizCorrectTitle": "Хариул зөв байна.",
+  "@quizCorrectTitle": {
+    "description": "Quiz question screen: feedback title for a correct answer. The Mongolian keeps its existing spelling (\"Хариул\"), fixed separately (Issue #539, D2)."
+  },
+  "quizWrongTitle": "Хариулт буруу байна.",
+  "@quizWrongTitle": {
+    "description": "Quiz question screen: feedback title for a wrong answer."
+  },
+  "quizCorrectAnswerIs": "Зөв хариулт нь '{letter}'.",
+  "@quizCorrectAnswerIs": {
+    "description": "Quiz question screen: the correct option's letter, after a wrong answer.",
+    "placeholders": {
+      "letter": {
+        "type": "String"
+      }
+    }
+  },
+  "quizResultSummary": "Та {total} асуултаас {correct}-д зөв хариуллаа",
+  "@quizResultSummary": {
+    "description": "Quiz result screen: how many of the quiz's questions the student answered correctly.",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "correct": {
+        "type": "int"
+      }
+    }
+  },
+  "quizResultQuestion": "Асуулт",
+  "@quizResultQuestion": {
+    "description": "Quiz result screen: the label in front of each question's number."
+  },
+  "quizFinish": "Дуусгах",
+  "@quizFinish": {
+    "description": "Quiz result screen: the button that closes the result."
+  },
+  "quizNotFound": "Quiz олдсонгүй",
+  "@quizNotFound": {
+    "description": "Quiz: a quiz or attempt that no longer exists (404 quiz_not_found / attempt_not_found)."
+  },
+  "quizNoAttemptsLeft": "Quiz өгөх оролдлого дууссан",
+  "@quizNoAttemptsLeft": {
+    "description": "Quiz: starting a quiz with no attempts left (409 no_attempts_left)."
   }
 }
