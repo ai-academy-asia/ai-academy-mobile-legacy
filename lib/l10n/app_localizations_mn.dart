@@ -434,7 +434,7 @@ class AppLocalizationsMn extends AppLocalizations {
   String get quizContinue => 'Үргэлжлүүлэх';
 
   @override
-  String get quizCorrectTitle => 'Хариул зөв байна.';
+  String get quizCorrectTitle => 'Хариулт зөв байна.';
 
   @override
   String get quizWrongTitle => 'Хариулт буруу байна.';

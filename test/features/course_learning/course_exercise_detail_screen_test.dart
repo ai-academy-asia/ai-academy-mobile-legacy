@@ -1150,7 +1150,7 @@ void main() {
 
       await tester.tap(find.text('Right'));
       await tester.pumpAndSettle();
-      expect(find.text('Хариул зөв байна.'), findsOneWidget);
+      expect(find.text('Хариулт зөв байна.'), findsOneWidget);
       await tester.tap(find.text('Үргэлжлүүлэх'));
       await tester.pumpAndSettle();
 

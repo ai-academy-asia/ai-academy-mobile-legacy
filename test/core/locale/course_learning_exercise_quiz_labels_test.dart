@@ -17,9 +17,9 @@ import '../../features/course_learning/fake_course_learning_repository.dart';
 import '../../support/screenshot.dart';
 
 /// Issue #539 (L16): Course Learning's Exercise Detail and Quiz in the
-/// selected language. Mongolian reads exactly as before — "Хариул зөв
-/// байна." keeps its existing spelling (D2) — and the reference's own
-/// English ("Submit", "Start quiz", …) is untouched.
+/// selected language. Mongolian reads exactly as before — apart from
+/// "Хариулт зөв байна.", spelled right since Issue #545 — and the
+/// reference's own English ("Submit", "Start quiz", …) is untouched.
 void main() {
   setUpAll(loadAppFonts);
   final locale = AppLocaleController.instance;
@@ -82,7 +82,7 @@ void main() {
     'quizYourScore': (mongolian: 'Таны оноо', english: 'Your score'),
     'quizContinue': (mongolian: 'Үргэлжлүүлэх', english: 'Continue'),
     'quizCorrectTitle': (
-      mongolian: 'Хариул зөв байна.',
+      mongolian: 'Хариулт зөв байна.',
       english: 'Correct answer.',
     ),
     'quizWrongTitle': (
@@ -117,6 +117,18 @@ void main() {
       : total == 1
       ? 'You answered $correct of 1 question correctly'
       : 'You answered $correct of $total questions correctly';
+
+  test('the correct-answer title reads "Хариулт", like the wrong-answer '
+      'one; the English is unchanged (Issue #545)', () {
+    final mongolian = L10n.of(LocalePreference.mongolian);
+    expect(mongolian.quizCorrectTitle, 'Хариулт зөв байна.');
+    expect(mongolian.quizCorrectTitle, isNot(contains('Хариул ')));
+    expect(mongolian.quizWrongTitle, 'Хариулт буруу байна.');
+    expect(
+      L10n.of(LocalePreference.english).quizCorrectTitle,
+      'Correct answer.',
+    );
+  });
 
   group('the keys', () {
     for (final language in LocalePreference.values) {
