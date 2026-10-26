@@ -216,26 +216,31 @@ class _ExistingNoteCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // A blank name has no line (Issue #537); the avatar and
-                  // "Me" stay.
-                  if (note.authorName.isNotEmpty)
+              // The rest of the row, so a long name wraps rather than
+              // overflowing at large text (Issue #540) — as the mentor
+              // card's own column does.
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // A blank name has no line (Issue #537); the avatar and
+                    // "Me" stay.
+                    if (note.authorName.isNotEmpty)
+                      Text(
+                        note.authorName,
+                        style: AppTypography.itemTitle.copyWith(
+                          color: palette.textPrimary,
+                        ),
+                      ),
                     Text(
-                      note.authorName,
-                      style: AppTypography.itemTitle.copyWith(
-                        color: palette.textPrimary,
+                      note.authorLabel,
+                      style: AppTypography.caption.copyWith(
+                        color: palette.textSecondary,
                       ),
                     ),
-                  Text(
-                    note.authorLabel,
-                    style: AppTypography.caption.copyWith(
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
