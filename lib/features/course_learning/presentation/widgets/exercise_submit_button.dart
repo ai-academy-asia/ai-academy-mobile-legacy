@@ -77,7 +77,10 @@ class ExerciseSubmitButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           child: Container(
             width: width,
-            height: 44,
+            // 44 at least, as the frames draw it; taller only when larger
+            // text needs the room, so the label is never cropped
+            // (Issue #541).
+            constraints: const BoxConstraints(minHeight: 44),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: _filled ? palette.accent : palette.surfaceSubtle,

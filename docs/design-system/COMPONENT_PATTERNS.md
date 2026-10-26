@@ -38,7 +38,7 @@ Equally: **do not widen a shared widget's contract for one screen.** That reason
 | Widget | Where | Shape | Notes |
 |---|---|---|---|
 | `AppButton` | `shared/widgets` | Full-width, 44pt | Variants `filled` (blue) / `outlined` (white + thin border). Three states: pressable, disabled (flat, no ripple), **loading** (spinner replaces label, width unchanged so layout does not jump) |
-| `ExerciseSubmitButton` | `course_learning` | 329 × 44 pill | Blue + blue-tinted shadow when enabled; `surfaceMuted` + subtle shadow when disabled. Disabled = `onPressed == null` |
+| `ExerciseSubmitButton` | `course_learning` | 329 × 44 pill (44 a minimum: it grows only when larger text needs it, Issue #541) | Blue + blue-tinted shadow when enabled; `surfaceMuted` + subtle shadow when disabled. Disabled = `onPressed == null` |
 | `_ResubmitButton` | `course_learning/assignment_tab` | 329 × 44 pill | **Outlined**, with a leading refresh icon — an outlined action, deliberately not primary blue |
 | `_ContinueLearningButton` | `course_learning/module_list` | 164.5 × 40 pill | Sits *beside* a progress bar; blue shadow painted on a wrapping `DecoratedBox` |
 | `_CancelButton` | `course_learning/attachment_card` | 80 × 40 pill | White, bordered |

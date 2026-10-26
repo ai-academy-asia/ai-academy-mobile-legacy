@@ -36,7 +36,7 @@ const double _wrapVerticalPadding = 10;
 /// band of [AppColors.primaryDepth] under a blue pill that
 /// `ExerciseSubmitButton` and "Continue learning" use, and the same muted
 /// fill/outline/ink with [AppColors.mutedDepth] when it cannot be pressed.
-/// Not `ExerciseSubmitButton` itself: that pill is fixed at 44 tall with a
+/// Not `ExerciseSubmitButton` itself: that pill is 44 tall (at least) with a
 /// 16pt label and no leading glyph, while the Home frames draw 40 (the
 /// attendance action) and 36 (the statistic cards) with a 14pt label, and
 /// put a QR glyph in front of one of them.
