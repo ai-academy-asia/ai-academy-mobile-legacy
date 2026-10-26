@@ -57,19 +57,25 @@ class QuizPreviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Each side flexes, so larger text wraps them rather than the row
+          // overflowing (Issue #541); at the default size both fit as before.
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                moduleCaption,
-                style: AppTypography.caption.copyWith(
-                  color: palette.textSecondary,
+              Flexible(
+                child: Text(
+                  moduleCaption,
+                  style: AppTypography.caption.copyWith(
+                    color: palette.textSecondary,
+                  ),
                 ),
               ),
-              Text(
-                CourseLearningStrings.quizQuestionCount(quiz.questionCount),
-                style: AppTypography.caption.copyWith(
-                  color: palette.textSecondary,
+              Flexible(
+                child: Text(
+                  CourseLearningStrings.quizQuestionCount(quiz.questionCount),
+                  style: AppTypography.caption.copyWith(
+                    color: palette.textSecondary,
+                  ),
                 ),
               ),
             ],
