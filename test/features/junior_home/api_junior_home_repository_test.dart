@@ -629,6 +629,64 @@ void main() {
       expect(learning.lessonCalls..sort(), [3, 4]);
     });
 
+    FakeCourseLearningRepository withNotes(
+      Map<int, CourseLearningFailure> noteFailures,
+    ) => FakeCourseLearningRepository(
+      path: samplePath(
+        modules: [
+          sampleModule(id: 1, order: 1),
+          sampleModule(id: 2, order: 2, locked: true),
+        ],
+      ),
+      lessonsByModule: {
+        1: [
+          sampleLesson(id: 11, moduleId: 1, order: 1),
+          sampleLesson(id: 12, moduleId: 1, order: 2),
+        ],
+        2: [sampleLesson(id: 21, moduleId: 2, order: 1, locked: true)],
+      },
+      notesByLesson: {11: sampleNote(), 12: sampleNote()},
+      noteFailuresByLesson: noteFailures,
+    );
+
+    test('one lesson\'s failed note read still builds the map: that lesson '
+        'is not completed, the other is (Issue #535)', () async {
+      final learning = withNotes({
+        11: const CourseLearningFailure(CourseLearningFailureKind.notFound),
+      });
+      final map = await repositoryFor(learning: learning).getLearningMap();
+
+      expect(map, isNotNull);
+      expect([for (final n in map!.nodes) n.id], [11, 12, 21]);
+      expect(
+        map.nodes.firstWhere((n) => n.id == 11).state,
+        isNot(JuniorNodeState.completed),
+      );
+      expect(
+        map.nodes.firstWhere((n) => n.id == 12).state,
+        JuniorNodeState.completed,
+      );
+      expect(
+        map.nodes.firstWhere((n) => n.id == 21).state,
+        JuniorNodeState.locked,
+      );
+      expect(learning.noteCalls, isNot(contains(21)));
+    });
+
+    test('a refused session while reading notes still fails the map', () async {
+      final failure = await failureFrom(
+        repositoryFor(
+          learning: withNotes({
+            12: const CourseLearningFailure(
+              CourseLearningFailureKind.sessionExpired,
+            ),
+          }),
+        ),
+      );
+
+      expect(failure.kind, CourseLearningFailureKind.sessionExpired);
+    });
+
     test('a lessons failure fails the map — never a partial path', () async {
       final failure = await failureFrom(
         repositoryFor(

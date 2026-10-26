@@ -10,8 +10,10 @@ import 'course_learning_strings.dart';
 /// Loads one course's learning overview, and every lesson of it (Issue #437):
 /// each module's `GET /me/modules/{module_id}/lessons`, all at once, with
 /// each unlocked lesson's completion read back from its note (Issue #415) —
-/// the reads Junior Home's lesson path makes. Any failure fails the load, so
-/// a lesson is never shown completed, or not, on a guess.
+/// the reads Junior Home's lesson path makes. A failed path or lessons read
+/// fails the load; a lesson whose note cannot be read is not completed, and
+/// the rest still loads (Issue #535) — unless the session itself was refused
+/// (`lessonsCompletedByNote`).
 ///
 /// Same `ChangeNotifier`/`_disposed`-guard shape as `CourseDetailController`,
 /// [errorMessage] included: `GET /me/courses/{course_slug}/learning` is a real
