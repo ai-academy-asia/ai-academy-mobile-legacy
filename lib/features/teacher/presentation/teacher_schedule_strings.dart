@@ -130,8 +130,10 @@ abstract final class TeacherScheduleStrings {
   /// A session the signed-in teacher covers for someone else.
   static const String covering = 'Орлон заах';
 
-  /// An own session another teacher covers, with that teacher's name.
-  static String coveredBy(String name) => 'Орлон заагдсан · $name';
+  /// An own session another teacher covers, with that teacher's name — or
+  /// without it, when the backend holds a blank one (Issue #537).
+  static String coveredBy(String name) =>
+      name.trim().isEmpty ? 'Орлон заагдсан' : 'Орлон заагдсан · $name';
 
   /// The line a scheduled [entry] carries on its block, card and sheet:
   /// [covering], [coveredBy], or null for an ordinary session.

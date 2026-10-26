@@ -2232,6 +2232,35 @@ void main() {
       expect(find.text(sampleNote().message), findsNothing);
     });
 
+    testWidgets('a note whose author name is blank: no name line; the avatar '
+        'and "Me" stay (Issue #537)', (tester) async {
+      await pumpScreen(
+        tester,
+        backendLesson(
+          note: sampleNote(authorName: '', authorInitials: 'ББ'),
+        ),
+        lessonId: 204,
+      );
+      await tester.pumpAndSettle();
+      await openNoteTab(tester);
+
+      expect(find.text(sampleNote().message), findsOneWidget);
+      expect(find.text('Me'), findsOneWidget);
+      expect(find.text('ББ'), findsOneWidget);
+      expect(find.byType(CircleAvatar), findsWidgets);
+      // The name line is left out, not drawn empty.
+      final noteTexts = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byType(NoteTab),
+              matching: find.byType(Text),
+            ),
+          )
+          .map((t) => t.data);
+      expect(noteTexts, isNot(contains('')));
+      expect(find.text(sampleNote().authorName), findsNothing);
+    });
+
     testWidgets('with no note, a first note can be written and saved', (
       tester,
     ) async {

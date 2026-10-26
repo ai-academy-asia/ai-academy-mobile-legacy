@@ -1672,6 +1672,56 @@ void main() {
         expect((await exerciseFrom(lessonBody())).note, isNull);
       });
 
+      test('a note whose author has a blank name still reads, the lesson '
+          'with it (Issue #537)', () async {
+        for (final author in [
+          {'name': '', 'initials': ''},
+          {'name': '   ', 'initials': ' '},
+          {'name': ' ', 'initials': 'ББ'},
+        ]) {
+          final exercise = await exerciseFrom(
+            lessonBody(
+              note: {
+                'id': 51,
+                'content': 'Remember the base case',
+                'created_at': '2026-08-06T01:00:00+00:00',
+                'updated_at': '2026-08-06T01:00:00+00:00',
+                'author': author,
+              },
+            ),
+          );
+          final note = exercise.note!;
+          expect(note.authorName, '', reason: '$author');
+          expect(
+            note.authorInitials,
+            author['initials']!.trim().isEmpty ? '' : 'ББ',
+            reason: '$author',
+          );
+          expect(note.authorLabel, 'Me');
+          expect(note.message, 'Remember the base case');
+        }
+      });
+
+      test('a note author name that is not a string is still a server '
+          'fault', () async {
+        try {
+          await exerciseFrom(
+            lessonBody(
+              note: {
+                'id': 51,
+                'content': 'x',
+                'created_at': '2026-08-06T01:00:00+00:00',
+                'updated_at': '2026-08-06T01:00:00+00:00',
+                'author': {'name': 5, 'initials': 'ББ'},
+              },
+            ),
+          );
+          fail('expected a CourseLearningFailure');
+        } on CourseLearningFailure catch (failure) {
+          expect(failure.kind, CourseLearningFailureKind.server);
+        }
+      });
+
       test('a backend lesson simulates no writes, and carries no quiz', () {
         return exerciseFrom(lessonBody()).then((exercise) {
           expect(exercise.simulatesWrites, isFalse);
@@ -1900,6 +1950,27 @@ void main() {
         expect(feedback.mentorInitials, 'ДБ');
         expect(feedback.mentorName, 'Дорж Бат');
         expect(feedback.mentorRole, 'Lead Mentor');
+        expect(feedback.message, 'Сайн ажил — баталгаажуулалтыг сайжруул.');
+        expect(feedback.timestampLabel, 'Today, 14:20');
+      });
+
+      test('a mentor with a blank name is shown as no mentor; the feedback '
+          'still reads (Issue #537)', () async {
+        final exercise = await withAssignment(
+          assignmentBody(
+            submission: submissionBody(
+              status: 'reviewed',
+              feedback: feedbackBody(
+                mentor: {'name': '  ', 'initials': '', 'role': 'teacher'},
+              ),
+            ),
+          ),
+        );
+
+        final feedback = exercise.assignment!.submission!.feedback!;
+        expect(feedback.hasMentor, isFalse);
+        expect(feedback.mentorName, isNull);
+        expect(feedback.mentorInitials, isNull);
         expect(feedback.message, 'Сайн ажил — баталгаажуулалтыг сайжруул.');
         expect(feedback.timestampLabel, 'Today, 14:20');
       });
@@ -2590,6 +2661,19 @@ void main() {
         expect(note.authorName, 'Сараа Дорж');
         expect(note.authorInitials, 'СД');
         expect(note.authorLabel, 'Me');
+      });
+
+      test('a save the server made stays a success when its note names a '
+          'blank author (Issue #537)', () async {
+        for (final status in [201, 200]) {
+          final note = await savedFrom(
+            noteBody(author: const {'name': ' ', 'initials': ''}),
+            status,
+          );
+          expect(note.message, 'Суурь тохиолдлыг санах', reason: '$status');
+          expect(note.authorName, '', reason: '$status');
+          expect(note.authorLabel, 'Me');
+        }
       });
 
       test('200 (an update) reads the same way', () async {

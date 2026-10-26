@@ -403,6 +403,45 @@ void main() {
       expect(covering.covering!.originalTeacher, 'Анар Бат');
     });
 
+    test('a blank name keeps a covered session covered, unnamed; a blank '
+        'original teacher reads as none (Issue #537)', () async {
+      final repo = repositoryReturning(
+        (_) async => jsonResponse(
+          assignedBody([
+            assignedItem(
+              id: 42,
+              coveredBy: {'id': 5, 'name': '  ', 'photo_url': null},
+            ),
+            assignedItem(
+              id: 77,
+              type: 'covering',
+              requestId: 12,
+              originalTeacher: {'id': 3, 'name': '', 'photo_url': null},
+            ),
+            assignedItem(
+              id: 43,
+              coveredBy: {'id': 6, 'name': 'Болд Бат', 'photo_url': null},
+            ),
+          ]),
+          200,
+        ),
+      );
+
+      final items = await repo.getAssignedSessions(
+        from: DateTime(2026, 10, 4),
+        to: DateTime(2026, 10, 10),
+      );
+
+      expect([for (final i in items) i.sessionId], [42, 77, 43]);
+      // Still covered: `coveredBy != null` is what marks it.
+      expect(items[0].coveredBy, isNotNull);
+      expect(items[0].coveredBy, '');
+      expect(items[1].covering!.originalTeacher, isNull);
+      expect(items[1].covering!.requestId, 12);
+      expect(items[1].covering!.room, 'Room 204');
+      expect(items[2].coveredBy, 'Болд Бат');
+    });
+
     test('a covering item may name no course or original teacher', () async {
       final repo = repositoryReturning(
         (_) async => jsonResponse(
@@ -451,6 +490,9 @@ void main() {
         ]),
         'covered_by without a name': assignedBody([
           assignedItem(coveredBy: {'id': 5}),
+        ]),
+        'covered_by with a numeric name': assignedBody([
+          assignedItem(coveredBy: {'id': 5, 'name': 5}),
         ]),
         'covering without request_id': assignedBody([
           assignedItem(type: 'covering'),

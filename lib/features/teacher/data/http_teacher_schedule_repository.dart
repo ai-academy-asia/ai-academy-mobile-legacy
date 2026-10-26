@@ -168,7 +168,8 @@ TeacherSession _session(Object? entry) {
 /// date, both times, and an integer `request_id` — it is placed on the grid
 /// from them, and no time is invented; its `original_teacher` is an object
 /// with a name, or null. A `regular` item's `covered_by` is an object with a
-/// non-blank name, or null. Anything else is a `server` failure.
+/// name, or null. A blank name is read, not refused (Issue #537); anything
+/// else is a `server` failure.
 List<AssignedSession> assignedSessionsFromJson(Map<String, dynamic> json) {
   final items = json['items'];
   if (items is! List) {
@@ -190,6 +191,8 @@ AssignedSession _assignedSession(Object? item) {
       // places it: only its id and `covered_by` are read.
       return AssignedSession.regular(
         sessionId: id,
+        // Covered even when the cover's name is blank (Issue #537):
+        // `coveredBy != null` is what marks the session covered.
         coveredBy: _personName(item, 'covered_by', id),
       );
     case 'covering':
@@ -221,7 +224,7 @@ AssignedSession _assignedSession(Object? item) {
           courseTitle: _optionalText(item, 'title', id),
           cohortName: _optionalText(item, 'cohort_name', id),
           room: _optionalText(item, 'room', id),
-          originalTeacher: _personName(item, 'original_teacher', id),
+          originalTeacher: _nonBlank(_personName(item, 'original_teacher', id)),
         ),
       );
     default:
@@ -230,16 +233,20 @@ AssignedSession _assignedSession(Object? item) {
 }
 
 /// `[key].name` of an `{id, name, photo_url}` object, or null when [key] is
-/// null. A present object without a non-blank name is a `server` failure.
+/// null; `''` when the name is blank. A present object whose name is not a
+/// string is a `server` failure.
 String? _personName(Map<String, dynamic> item, String key, int id) {
   final value = item[key];
   if (value == null) return null;
   final name = value is Map<String, dynamic> ? value['name'] : null;
-  if (name is! String || name.trim().isEmpty) {
-    throw _shape('item $id: $key.name');
-  }
-  return name;
+  if (name is! String) throw _shape('item $id: $key.name');
+  // A blank name is the backend's data, not a broken response (Issue #537):
+  // `''`, so the person is still there — only unnamed.
+  return name.trim().isEmpty ? '' : name;
 }
+
+/// [name], or null when it is blank.
+String? _nonBlank(String? name) => name == null || name.isEmpty ? null : name;
 
 String? _optionalText(Map<String, dynamic> item, String key, int id) {
   final value = item[key];

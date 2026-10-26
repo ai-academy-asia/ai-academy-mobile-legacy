@@ -324,6 +324,34 @@ void main() {
       );
     });
 
+    testWidgets('a session covered by a teacher with a blank name: '
+        '"Орлон заагдсан" alone, still no "Цаг солих" (Issue #537)', (
+      tester,
+    ) async {
+      expect(TeacherScheduleStrings.coveredBy(''), 'Орлон заагдсан');
+      expect(TeacherScheduleStrings.coveredBy('   '), 'Орлон заагдсан');
+      await pumpScreen(
+        tester,
+        week(
+          assigned: [
+            const AssignedSession.regular(sessionId: 41, coveredBy: ''),
+          ],
+        ),
+      );
+
+      await tester.tap(
+        find.bySemanticsLabel('Орлон заагдсан, AI Engineer, 14:00-17:00'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(inSheet(find.text('Орлон заагдсан')), findsOneWidget);
+      expect(find.text(TeacherScheduleStrings.changeTime), findsNothing);
+      expect(
+        inSheet(find.text(TeacherScheduleStrings.registerAttendance)),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('an ordinary session\'s sheet keeps both its actions', (
       tester,
     ) async {
