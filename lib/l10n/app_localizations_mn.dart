@@ -378,4 +378,86 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get scannerCameraFailed => 'Камерыг асаах үед алдаа гарлаа.';
+
+  @override
+  String get learningLinkPlaceholder => 'Link оруулна уу';
+
+  @override
+  String get learningDescriptionLabel => 'Тайлбар';
+
+  @override
+  String get learningDescriptionPlaceholder => 'Энд бичнэ үү...';
+
+  @override
+  String get learningEditNote => 'Засах';
+
+  @override
+  String get learningVideoUnavailable => 'Бичлэг хараахан оруугүй байна';
+
+  @override
+  String get learningMaterialNotFound => 'Файл олдсонгүй';
+
+  @override
+  String get learningAssignmentNotFound => 'Даалгавар олдсонгүй';
+
+  @override
+  String get learningNoteRequired => 'Тэмдэглэлээ оруулна уу';
+
+  @override
+  String get learningNoteTooLong =>
+      'Тэмдэглэл 5000 тэмдэгтээс ихгүй байх ёстой';
+
+  @override
+  String get learningInvalidLink => 'Зөв link оруулна уу';
+
+  @override
+  String get learningDescriptionTooLong =>
+      'Тайлбар 5000 тэмдэгтээс ихгүй байх ёстой';
+
+  @override
+  String get learningPastDue => 'Даалгавар илгээх хугацаа дууссан';
+
+  @override
+  String get learningUnsupportedFileType =>
+      'Энэ төрлийн файл оруулах боломжгүй';
+
+  @override
+  String get learningFileTooLarge => 'Файлын хэмжээ 20 MB-аас ихгүй байх ёстой';
+
+  @override
+  String get quizRetake => 'Дахин quiz өгөх';
+
+  @override
+  String get quizYourScore => 'Таны оноо';
+
+  @override
+  String get quizContinue => 'Үргэлжлүүлэх';
+
+  @override
+  String get quizCorrectTitle => 'Хариул зөв байна.';
+
+  @override
+  String get quizWrongTitle => 'Хариулт буруу байна.';
+
+  @override
+  String quizCorrectAnswerIs(String letter) {
+    return 'Зөв хариулт нь \'$letter\'.';
+  }
+
+  @override
+  String quizResultSummary(int total, int correct) {
+    return 'Та $total асуултаас $correct-д зөв хариуллаа';
+  }
+
+  @override
+  String get quizResultQuestion => 'Асуулт';
+
+  @override
+  String get quizFinish => 'Дуусгах';
+
+  @override
+  String get quizNotFound => 'Quiz олдсонгүй';
+
+  @override
+  String get quizNoAttemptsLeft => 'Quiz өгөх оролдлого дууссан';
 }

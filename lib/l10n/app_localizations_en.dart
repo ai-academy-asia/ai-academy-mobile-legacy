@@ -388,4 +388,91 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get scannerCameraFailed =>
       'Something went wrong while starting the camera.';
+
+  @override
+  String get learningLinkPlaceholder => 'Enter a link';
+
+  @override
+  String get learningDescriptionLabel => 'Description';
+
+  @override
+  String get learningDescriptionPlaceholder => 'Write here...';
+
+  @override
+  String get learningEditNote => 'Edit';
+
+  @override
+  String get learningVideoUnavailable => 'The recording isn\'t available yet';
+
+  @override
+  String get learningMaterialNotFound => 'File not found';
+
+  @override
+  String get learningAssignmentNotFound => 'Assignment not found';
+
+  @override
+  String get learningNoteRequired => 'Enter your note';
+
+  @override
+  String get learningNoteTooLong =>
+      'Your note must be 5,000 characters or fewer';
+
+  @override
+  String get learningInvalidLink => 'Enter a valid link';
+
+  @override
+  String get learningDescriptionTooLong =>
+      'Your description must be 5,000 characters or fewer';
+
+  @override
+  String get learningPastDue => 'The submission deadline has passed';
+
+  @override
+  String get learningUnsupportedFileType => 'This file type can\'t be uploaded';
+
+  @override
+  String get learningFileTooLarge => 'The file must be 20 MB or smaller';
+
+  @override
+  String get quizRetake => 'Retake quiz';
+
+  @override
+  String get quizYourScore => 'Your score';
+
+  @override
+  String get quizContinue => 'Continue';
+
+  @override
+  String get quizCorrectTitle => 'Correct answer.';
+
+  @override
+  String get quizWrongTitle => 'Wrong answer.';
+
+  @override
+  String quizCorrectAnswerIs(String letter) {
+    return 'The correct answer is \'$letter\'.';
+  }
+
+  @override
+  String quizResultSummary(int total, int correct) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'You answered $correct of $total questions correctly',
+      one: 'You answered $correct of 1 question correctly',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get quizResultQuestion => 'Question';
+
+  @override
+  String get quizFinish => 'Finish';
+
+  @override
+  String get quizNotFound => 'Quiz not found';
+
+  @override
+  String get quizNoAttemptsLeft => 'No quiz attempts left';
 }

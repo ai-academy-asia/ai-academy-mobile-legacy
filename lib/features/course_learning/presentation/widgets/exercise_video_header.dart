@@ -100,7 +100,7 @@ class ExerciseVideoHeader extends StatelessWidget {
                   ),
                 ),
             ] else
-              const Center(
+              Center(
                 child: _RecordingBadge(
                   label: CourseLearningStrings.videoUnavailable,
                 ),
