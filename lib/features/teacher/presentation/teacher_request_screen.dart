@@ -314,6 +314,13 @@ class _Message extends StatelessWidget {
 /// the row has an id; every other pill, and any without [onSend], is inert.
 /// The contract's `photo_url` is always null, so the avatar stays a neutral
 /// placeholder.
+///
+/// Where enlarged text leaves any of the row's three labels wider than the
+/// trailing pill's cap, the row stacks — the identity, then the pill at the
+/// row's full width, its label wrapping — rather than cutting the label
+/// short (Issue #548), as [TeacherPillPair] does. All three labels decide,
+/// so every row of the list lays out alike and a row keeps its layout when
+/// its pill changes after a send.
 class TeacherRequestRow extends StatelessWidget {
   const TeacherRequestRow({required this.candidate, super.key, this.onSend});
 
@@ -322,43 +329,62 @@ class TeacherRequestRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, variant) = switch (candidate.status) {
-      TeacherRequestStatus.notSent => (
-        TeacherScheduleStrings.requestSend,
-        TeacherPillVariant.outlined,
-      ),
-      TeacherRequestStatus.pending => (
-        TeacherScheduleStrings.requestPending,
-        TeacherPillVariant.filled,
-      ),
-      TeacherRequestStatus.rejected => (
-        TeacherScheduleStrings.requestRejected,
-        TeacherPillVariant.danger,
-      ),
-    };
+    TeacherPillButton pill(
+      TeacherRequestStatus status, {
+      bool wrapLabel = false,
+    }) => TeacherPillButton(
+      label: switch (status) {
+        TeacherRequestStatus.notSent => TeacherScheduleStrings.requestSend,
+        TeacherRequestStatus.pending => TeacherScheduleStrings.requestPending,
+        TeacherRequestStatus.rejected => TeacherScheduleStrings.requestRejected,
+      },
+      variant: switch (status) {
+        TeacherRequestStatus.notSent => TeacherPillVariant.outlined,
+        TeacherRequestStatus.pending => TeacherPillVariant.filled,
+        TeacherRequestStatus.rejected => TeacherPillVariant.danger,
+      },
+      onPressed:
+          status == TeacherRequestStatus.notSent &&
+              candidate.id != null &&
+              onSend != null
+          ? () => onSend!(candidate)
+          : null,
+      height: 40,
+      fontSize: AppTypography.buttonSmall.fontSize!,
+      wrapLabel: wrapLabel,
+    );
 
+    final sideBySide = TeacherRequestStatus.values.every(
+      (status) => pill(status).oneLineWidth(context) <= _rowPillMaxWidth,
+    );
+    if (!sideBySide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TeacherIdentity(name: candidate.name),
+          const SizedBox(height: _stackedPillGap),
+          pill(candidate.status, wrapLabel: true),
+        ],
+      );
+    }
     return Row(
       children: [
         Expanded(child: TeacherIdentity(name: candidate.name)),
         const SizedBox(width: 8),
-        // Wide enough for the reference's longest label; a longer one is
-        // cut short rather than pushing the row past the screen.
+        // Wide enough for the reference's longest label, leaving the name
+        // its room; a label that needs more stacks the row (above).
         ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 180),
-          child: TeacherPillButton(
-            label: label,
-            variant: variant,
-            onPressed:
-                candidate.status == TeacherRequestStatus.notSent &&
-                    candidate.id != null &&
-                    onSend != null
-                ? () => onSend!(candidate)
-                : null,
-            height: 40,
-            fontSize: AppTypography.buttonSmall.fontSize!,
-          ),
+          constraints: const BoxConstraints(maxWidth: _rowPillMaxWidth),
+          child: pill(candidate.status),
         ),
       ],
     );
   }
 }
+
+/// The trailing pill's widest, beside the name.
+const double _rowPillMaxWidth = 180;
+
+/// Between a stacked row's identity and its pill — the app's own spacing:
+/// no frame draws the stacked row.
+const double _stackedPillGap = 12;
