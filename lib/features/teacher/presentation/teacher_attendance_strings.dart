@@ -73,4 +73,9 @@ abstract final class TeacherAttendanceStrings {
   // --- Success ---
   /// The success reference's exact title.
   static const String successTitle = 'Амжилттай баталгаажлаа';
+
+  /// The success card's dismiss button — the reference's "Ойлголоо", kept
+  /// Mongolian here while Teacher Schedule's own follows the language (Issue
+  /// #547).
+  static const String successDismiss = 'Ойлголоо';
 }

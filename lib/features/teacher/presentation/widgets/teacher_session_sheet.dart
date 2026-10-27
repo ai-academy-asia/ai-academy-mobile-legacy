@@ -137,7 +137,7 @@ class _TeacherSessionSheetState extends State<TeacherSessionSheet> {
             ),
           ),
         )
-      : const TeacherPillButton(
+      : TeacherPillButton(
           label: TeacherScheduleStrings.registerAttendance,
           wrapLabel: true,
           variant: TeacherPillVariant.disabled,

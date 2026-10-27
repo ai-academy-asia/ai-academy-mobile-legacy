@@ -475,4 +475,132 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quizNoAttemptsLeft => 'No quiz attempts left';
+
+  @override
+  String get teacherHomeEmpty => 'No classes yet';
+
+  @override
+  String get teacherSchedulePickDate => 'Choose a date';
+
+  @override
+  String get teacherScheduleEmptyDay => 'No classes on this day.';
+
+  @override
+  String get teacherSchedulePreviousDay => 'Previous day';
+
+  @override
+  String get teacherScheduleNextDay => 'Next day';
+
+  @override
+  String get teacherScheduleFinished => 'Finished';
+
+  @override
+  String get teacherScheduleChangeTime => 'Change time';
+
+  @override
+  String get teacherScheduleTakeAttendance => 'Take attendance';
+
+  @override
+  String get teacherScheduleAttendedCaption => 'students checked in';
+
+  @override
+  String get teacherClassRoom => 'Room';
+
+  @override
+  String get teacherClassTime => 'Time';
+
+  @override
+  String get teacherRequestTeachersTitle => 'Teachers';
+
+  @override
+  String get teacherRequestSend => 'Send request';
+
+  @override
+  String get teacherRequestPending => 'Pending';
+
+  @override
+  String get teacherRequestDeclined => 'Declined';
+
+  @override
+  String get teacherRequestsEmpty =>
+      'No teacher is available to cover at this time';
+
+  @override
+  String get teacherRequestsUnavailable =>
+      'Time-change requests can\'t be sent right now. Please try again later.';
+
+  @override
+  String get teacherRequestDecline => 'Decline';
+
+  @override
+  String get teacherRequestAccept => 'Accept';
+
+  @override
+  String get teacherRequestSentTitle => 'Request sent';
+
+  @override
+  String get teacherConfirmationDismiss => 'Got it';
+
+  @override
+  String get teacherSessionUntitled => 'Class';
+
+  @override
+  String get teacherSessionCovering => 'Covering';
+
+  @override
+  String get teacherSessionCovered => 'Covered';
+
+  @override
+  String teacherSessionCoveredBy(String name) {
+    return 'Covered · $name';
+  }
+
+  @override
+  String get teacherRequestAccepted => 'Request accepted';
+
+  @override
+  String get teacherRequestRejected => 'Request declined';
+
+  @override
+  String get teacherRequestCancelled => 'Request cancelled';
+
+  @override
+  String get teacherRequestExpired => 'Request expired';
+
+  @override
+  String get teacherRequestRecipientBusy =>
+      'This teacher has another class at that time';
+
+  @override
+  String get teacherRequestAlreadyPending =>
+      'A request for this class is already pending';
+
+  @override
+  String get teacherRequestSessionCovered =>
+      'Another teacher is already covering this class';
+
+  @override
+  String get teacherRequestSessionStarted =>
+      'This class has started, so its time can\'t be changed';
+
+  @override
+  String get teacherRequestSessionNotFound => 'Class not found';
+
+  @override
+  String get teacherRequestRecipientNotFound => 'Teacher not found';
+
+  @override
+  String get teacherRequestScheduleConflict =>
+      'You have another class at that time, so you can\'t accept';
+
+  @override
+  String get teacherRequestAlreadyResolved =>
+      'This request has already been resolved';
+
+  @override
+  String get teacherRequestNotFound => 'Request not found';
+
+  @override
+  String get teacherRequestNotRecipient =>
+      'You don\'t have permission to answer this request';
 }

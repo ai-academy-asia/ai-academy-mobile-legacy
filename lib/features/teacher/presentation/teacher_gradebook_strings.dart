@@ -11,8 +11,10 @@ abstract final class TeacherGradebookStrings {
   /// The tab and screen title (Issue #390) — formerly "Дүнгийн хуудас".
   static const String title = 'Хөтөлбөрүүд';
 
-  /// No class to list. Not drawn by the reference — Teacher Home's wording.
-  static const String empty = TeacherHomeStrings.empty;
+  /// No class to list. Not drawn by the reference — Teacher Home's wording,
+  /// and so in the selected language since Issue #547, ahead of the rest of
+  /// this screen.
+  static String get empty => TeacherHomeStrings.empty;
 
   // --- Program card --------------------------------------------------------
 

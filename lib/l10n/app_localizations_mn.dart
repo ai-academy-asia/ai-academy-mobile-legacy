@@ -460,4 +460,131 @@ class AppLocalizationsMn extends AppLocalizations {
 
   @override
   String get quizNoAttemptsLeft => 'Quiz өгөх оролдлого дууссан';
+
+  @override
+  String get teacherHomeEmpty => 'Одоогоор хичээл алга байна';
+
+  @override
+  String get teacherSchedulePickDate => 'Огноо сонгох';
+
+  @override
+  String get teacherScheduleEmptyDay => 'Энэ өдөр хичээл байхгүй байна.';
+
+  @override
+  String get teacherSchedulePreviousDay => 'Өмнөх өдөр';
+
+  @override
+  String get teacherScheduleNextDay => 'Дараагийн өдөр';
+
+  @override
+  String get teacherScheduleFinished => 'Дууссан';
+
+  @override
+  String get teacherScheduleChangeTime => 'Цаг солих';
+
+  @override
+  String get teacherScheduleTakeAttendance => 'Ирц бүртгэх';
+
+  @override
+  String get teacherScheduleAttendedCaption => 'оюутан ирцэд бүртгэгдсэн';
+
+  @override
+  String get teacherClassRoom => 'Анги';
+
+  @override
+  String get teacherClassTime => 'Цаг';
+
+  @override
+  String get teacherRequestTeachersTitle => 'Багш нар';
+
+  @override
+  String get teacherRequestSend => 'Хүсэлт илгээх';
+
+  @override
+  String get teacherRequestPending => 'Хүлээгдэж байна';
+
+  @override
+  String get teacherRequestDeclined => 'Татгалзсан';
+
+  @override
+  String get teacherRequestsEmpty => 'Энэ цагт орлон заах боломжтой багш алга';
+
+  @override
+  String get teacherRequestsUnavailable =>
+      'Одоогоор цаг солих хүсэлт илгээх боломжгүй байна. Дараа дахин оролдоно уу.';
+
+  @override
+  String get teacherRequestDecline => 'Татгалзах';
+
+  @override
+  String get teacherRequestAccept => 'Зөвшөөрөх';
+
+  @override
+  String get teacherRequestSentTitle => 'Хүсэлт илгээгдлээ';
+
+  @override
+  String get teacherConfirmationDismiss => 'Ойлголоо';
+
+  @override
+  String get teacherSessionUntitled => 'Хичээл';
+
+  @override
+  String get teacherSessionCovering => 'Орлон заах';
+
+  @override
+  String get teacherSessionCovered => 'Орлон заагдсан';
+
+  @override
+  String teacherSessionCoveredBy(String name) {
+    return 'Орлон заагдсан · $name';
+  }
+
+  @override
+  String get teacherRequestAccepted => 'Хүсэлтийг зөвшөөрсөн';
+
+  @override
+  String get teacherRequestRejected => 'Хүсэлтээс татгалзсан';
+
+  @override
+  String get teacherRequestCancelled => 'Хүсэлт цуцлагдсан';
+
+  @override
+  String get teacherRequestExpired => 'Хүсэлтийн хугацаа дууссан';
+
+  @override
+  String get teacherRequestRecipientBusy =>
+      'Энэ багш тухайн цагт өөр хичээлтэй байна';
+
+  @override
+  String get teacherRequestAlreadyPending =>
+      'Энэ хичээлд илгээсэн хүсэлт хүлээгдэж байна';
+
+  @override
+  String get teacherRequestSessionCovered =>
+      'Энэ хичээлийг өөр багш орлон заахаар болсон байна';
+
+  @override
+  String get teacherRequestSessionStarted =>
+      'Хичээл эхэлсэн тул цаг солих боломжгүй';
+
+  @override
+  String get teacherRequestSessionNotFound => 'Хичээл олдсонгүй';
+
+  @override
+  String get teacherRequestRecipientNotFound => 'Багш олдсонгүй';
+
+  @override
+  String get teacherRequestScheduleConflict =>
+      'Тухайн цагт танд өөр хичээл байгаа тул зөвшөөрөх боломжгүй';
+
+  @override
+  String get teacherRequestAlreadyResolved =>
+      'Хүсэлт аль хэдийн шийдвэрлэгдсэн байна';
+
+  @override
+  String get teacherRequestNotFound => 'Хүсэлт олдсонгүй';
+
+  @override
+  String get teacherRequestNotRecipient =>
+      'Энэ хүсэлтэд хариулах эрх танд алга';
 }

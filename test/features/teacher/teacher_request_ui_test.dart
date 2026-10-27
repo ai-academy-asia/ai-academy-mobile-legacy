@@ -245,6 +245,7 @@ void main() {
           padding: const EdgeInsets.all(16),
           child: TeacherConfirmationCard(
             title: TeacherScheduleStrings.requestSentTitle,
+            dismissLabel: TeacherScheduleStrings.requestSentDismiss,
             onDismiss: () => dismissed++,
           ),
         ),
@@ -266,10 +267,11 @@ void main() {
       final semantics = tester.ensureSemantics();
       await pumpSheet(
         tester,
-        const Padding(
-          padding: EdgeInsets.all(16),
+        Padding(
+          padding: const EdgeInsets.all(16),
           child: TeacherConfirmationCard(
             title: TeacherScheduleStrings.requestSentTitle,
+            dismissLabel: TeacherScheduleStrings.requestSentDismiss,
             onDismiss: null,
           ),
         ),
@@ -451,6 +453,7 @@ void main() {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 50),
             child: TeacherConfirmationCard(
               title: TeacherScheduleStrings.requestSentTitle,
+              dismissLabel: TeacherScheduleStrings.requestSentDismiss,
               onDismiss: () {},
             ),
           ),

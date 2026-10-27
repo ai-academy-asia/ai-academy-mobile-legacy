@@ -1,13 +1,15 @@
 import '../../../core/locale/app_format.dart';
+import '../../../core/locale/l10n.dart';
 import '../../home/presentation/home_strings.dart';
 import '../domain/teacher_failure.dart';
 import '../domain/teacher_session.dart';
 import 'teacher_home_strings.dart';
 
 /// Every word on Teacher Schedule, its session sheets and the "Багш нар"
-/// screen (Issue #231), read off the four references. They mix languages as
-/// Teacher Home's does ("Teacher" under a Mongolian name) and are carried
-/// through verbatim.
+/// screen (Issue #231), read off the four references, in the selected
+/// language since Issue #547 (L17). The Mongolian is unchanged; the English
+/// is approved copy, not Figma wording. "Teacher" stays English in both, as
+/// the references draw it under a Mongolian name.
 abstract final class TeacherScheduleStrings {
   /// The header's selected date — "11-р сарын 17"; "November 17" in English
   /// ([AppFormat], Issue #505).
@@ -21,7 +23,7 @@ abstract final class TeacherScheduleStrings {
       AppFormat.weekdays(first: DateTime.sunday);
 
   /// Accessibility label for the header's date control.
-  static const String pickDate = 'Огноо сонгох';
+  static String get pickDate => L10n.current.teacherSchedulePickDate;
 
   /// Accessibility label for the header's bell, the student Home's own. It
   /// opens the shared Notification Center (Issue #246).
@@ -29,60 +31,65 @@ abstract final class TeacherScheduleStrings {
 
   /// No session in the week. Not drawn by the reference — Teacher Home's
   /// wording for the same state.
-  static const String empty = TeacherHomeStrings.empty;
+  static String get empty => TeacherHomeStrings.empty;
 
   /// No session on the selected day, in the large-text day list (Issue
   /// #357). The week grid keeps [empty].
-  static const String emptyDay = 'Энэ өдөр хичээл байхгүй байна.';
+  static String get emptyDay => L10n.current.teacherScheduleEmptyDay;
 
   /// Accessibility labels for the day list's previous- and next-day
   /// controls (Issue #357).
-  static const String previousDay = 'Өмнөх өдөр';
-  static const String nextDay = 'Дараагийн өдөр';
+  static String get previousDay => L10n.current.teacherSchedulePreviousDay;
+  static String get nextDay => L10n.current.teacherScheduleNextDay;
 
   /// A finished session in the day list (Issue #357) — said in words, not
   /// only by the muted card.
-  static const String finished = 'Дууссан';
+  static String get finished => L10n.current.teacherScheduleFinished;
 
   /// The upcoming session sheet's actions.
-  static const String changeTime = 'Цаг солих';
+  static String get changeTime => L10n.current.teacherScheduleChangeTime;
 
   /// Opens attendance registration (Issue #374) — live only on the
   /// session's date in Ulaanbaatar, drawn disabled any other day.
-  static const String registerAttendance = 'Ирц бүртгэх';
+  static String get registerAttendance =>
+      L10n.current.teacherScheduleTakeAttendance;
 
   /// Under the held session's "14 / 24".
-  static const String attendedCaption = 'оюутан ирцэд бүртгэгдсэн';
+  static String get attendedCaption =>
+      L10n.current.teacherScheduleAttendedCaption;
 
   // --- "Багш нар" -----------------------------------------------------------
 
-  static const String teachersTitle = 'Багш нар';
+  static String get teachersTitle => L10n.current.teacherRequestTeachersTitle;
 
   /// The line under each teacher's name.
   static const String teacherRole = 'Teacher';
 
-  static const String requestSend = 'Хүсэлт илгээх';
-  static const String requestPending = 'Хүлээгдэж байна';
-  static const String requestRejected = 'Татгалзсан';
+  static String get requestSend => L10n.current.teacherRequestSend;
+  static String get requestPending => L10n.current.teacherRequestPending;
+  static String get requestRejected => L10n.current.teacherRequestDeclined;
 
   // --- The request's sheets (Issue #372) -----------------------------------
   //
   // UI only: nothing in the app opens them until a request contract exists.
 
-  /// The acknowledgement once a request is confirmed sent.
-  static const String requestSentTitle = 'Хүсэлт илгээгдлээ';
-  static const String requestSentDismiss = 'Ойлголоо';
+  /// The acknowledgement once a request is confirmed sent, and the button
+  /// that closes it — passed to `TeacherConfirmationCard` as its
+  /// `dismissLabel`.
+  static String get requestSentTitle => L10n.current.teacherRequestSentTitle;
+  static String get requestSentDismiss =>
+      L10n.current.teacherConfirmationDismiss;
 
   /// The receiving teacher's two answers.
-  static const String requestDecline = 'Татгалзах';
-  static const String requestAccept = 'Зөвшөөрөх';
+  static String get requestDecline => L10n.current.teacherRequestDecline;
+  static String get requestAccept => L10n.current.teacherRequestAccept;
 
   /// What "Багш нар" shows when the backend does not serve the request
   /// endpoints (Issue #449): a refusal with no documented error code — what a
   /// backend without these routes answers. Not drawn by the reference —
   /// PRODUCT DECISION on the final wording.
-  static const String requestsUnavailable =
-      'Одоогоор цаг солих хүсэлт илгээх боломжгүй байна. Дараа дахин оролдоно уу.';
+  static String get requestsUnavailable =>
+      L10n.current.teacherRequestsUnavailable;
 
   // --- Sending a request (Issue #449) ---------------------------------------
   //
@@ -92,29 +99,31 @@ abstract final class TeacherScheduleStrings {
 
   /// "Багш нар" with no row: no other teacher is free at the session's time
   /// (the contract's eligible list: active teachers not teaching then).
-  static const String requestsEmpty = 'Энэ цагт орлон заах боломжтой багш алга';
+  static String get requestsEmpty => L10n.current.teacherRequestsEmpty;
 
   /// `409 recipient_busy`: the teacher teaches at that time.
-  static const String requestRecipientBusy =
-      'Энэ багш тухайн цагт өөр хичээлтэй байна';
+  static String get requestRecipientBusy =>
+      L10n.current.teacherRequestRecipientBusy;
 
   /// `409 request_pending`: the session already has a pending request.
-  static const String requestAlreadyPending =
-      'Энэ хичээлд илгээсэн хүсэлт хүлээгдэж байна';
+  static String get requestAlreadyPending =>
+      L10n.current.teacherRequestAlreadyPending;
 
   /// `409 session_already_covered`: another teacher has accepted it.
-  static const String requestSessionCovered =
-      'Энэ хичээлийг өөр багш орлон заахаар болсон байна';
+  static String get requestSessionCovered =>
+      L10n.current.teacherRequestSessionCovered;
 
   /// `409 session_started`: the session's start time has passed.
-  static const String requestSessionStarted =
-      'Хичээл эхэлсэн тул цаг солих боломжгүй';
+  static String get requestSessionStarted =>
+      L10n.current.teacherRequestSessionStarted;
 
   /// `404 session_not_found`.
-  static const String requestSessionNotFound = 'Хичээл олдсонгүй';
+  static String get requestSessionNotFound =>
+      L10n.current.teacherRequestSessionNotFound;
 
   /// `404 recipient_not_found`: unknown or deactivated teacher.
-  static const String requestRecipientNotFound = 'Багш олдсонгүй';
+  static String get requestRecipientNotFound =>
+      L10n.current.teacherRequestRecipientNotFound;
 
   // --- Answering a request (Issue #453) -------------------------------------
   //
@@ -123,17 +132,18 @@ abstract final class TeacherScheduleStrings {
 
   /// The card's title when the request's session names neither its course
   /// nor its cohort — also a covered session's (Issue #455).
-  static const String incomingUntitled = 'Хичээл';
+  static String get incomingUntitled => L10n.current.teacherSessionUntitled;
 
   // --- Covered sessions (Issue #455) ----------------------------------------
 
   /// A session the signed-in teacher covers for someone else.
-  static const String covering = 'Орлон заах';
+  static String get covering => L10n.current.teacherSessionCovering;
 
   /// An own session another teacher covers, with that teacher's name — or
   /// without it, when the backend holds a blank one (Issue #537).
-  static String coveredBy(String name) =>
-      name.trim().isEmpty ? 'Орлон заагдсан' : 'Орлон заагдсан · $name';
+  static String coveredBy(String name) => name.trim().isEmpty
+      ? L10n.current.teacherSessionCovered
+      : L10n.current.teacherSessionCoveredBy(name);
 
   /// The line a scheduled [entry] carries on its block, card and sheet:
   /// [covering], [coveredBy], or null for an ordinary session.
@@ -149,10 +159,10 @@ abstract final class TeacherScheduleStrings {
       entry.title ?? incomingUntitled;
 
   /// Where an incoming request stands once it is no longer `pending`.
-  static const String incomingAccepted = 'Хүсэлтийг зөвшөөрсөн';
-  static const String incomingRejected = 'Хүсэлтээс татгалзсан';
-  static const String incomingCancelled = 'Хүсэлт цуцлагдсан';
-  static const String incomingExpired = 'Хүсэлтийн хугацаа дууссан';
+  static String get incomingAccepted => L10n.current.teacherRequestAccepted;
+  static String get incomingRejected => L10n.current.teacherRequestRejected;
+  static String get incomingCancelled => L10n.current.teacherRequestCancelled;
+  static String get incomingExpired => L10n.current.teacherRequestExpired;
 
   /// The line for a resolved request's [status]; null while it is pending.
   static String? incomingStatus(String status) => switch (status) {
@@ -164,19 +174,19 @@ abstract final class TeacherScheduleStrings {
   };
 
   /// `409 schedule_conflict`: the recipient teaches at that time.
-  static const String requestScheduleConflict =
-      'Тухайн цагт танд өөр хичээл байгаа тул зөвшөөрөх боломжгүй';
+  static String get requestScheduleConflict =>
+      L10n.current.teacherRequestScheduleConflict;
 
   /// `409 request_already_resolved`.
-  static const String requestAlreadyResolved =
-      'Хүсэлт аль хэдийн шийдвэрлэгдсэн байна';
+  static String get requestAlreadyResolved =>
+      L10n.current.teacherRequestAlreadyResolved;
 
   /// `404 request_not_found`: unknown, or the caller is not a party.
-  static const String requestNotFound = 'Хүсэлт олдсонгүй';
+  static String get requestNotFound => L10n.current.teacherRequestNotFound;
 
   /// `403 not_recipient`: only the recipient can answer.
-  static const String requestNotRecipient =
-      'Энэ хүсэлтэд хариулах эрх танд алга';
+  static String get requestNotRecipient =>
+      L10n.current.teacherRequestNotRecipient;
 
   /// The line for a failed read, send or answer: the documented code's own
   /// copy; [requestsUnavailable] for a refusal carrying no code (a backend

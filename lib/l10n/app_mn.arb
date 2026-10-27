@@ -601,5 +601,166 @@
   "quizNoAttemptsLeft": "Quiz өгөх оролдлого дууссан",
   "@quizNoAttemptsLeft": {
     "description": "Quiz: starting a quiz with no attempts left (409 no_attempts_left)."
+  },
+  "teacherHomeEmpty": "Одоогоор хичээл алга байна",
+  "@teacherHomeEmpty": {
+    "description": "Teacher Schedule (and Teacher Home, Gradebook): no class in the week, or no class to show."
+  },
+  "teacherSchedulePickDate": "Огноо сонгох",
+  "@teacherSchedulePickDate": {
+    "description": "Teacher Schedule: screen-reader label for the header's date control."
+  },
+  "teacherScheduleEmptyDay": "Энэ өдөр хичээл байхгүй байна.",
+  "@teacherScheduleEmptyDay": {
+    "description": "Teacher Schedule, large-text day list: no class on the selected day."
+  },
+  "teacherSchedulePreviousDay": "Өмнөх өдөр",
+  "@teacherSchedulePreviousDay": {
+    "description": "Teacher Schedule, large-text day list: screen-reader label for the previous-day arrow."
+  },
+  "teacherScheduleNextDay": "Дараагийн өдөр",
+  "@teacherScheduleNextDay": {
+    "description": "Teacher Schedule, large-text day list: screen-reader label for the next-day arrow."
+  },
+  "teacherScheduleFinished": "Дууссан",
+  "@teacherScheduleFinished": {
+    "description": "Teacher Schedule, large-text day list: the label on a class that has ended."
+  },
+  "teacherScheduleChangeTime": "Цаг солих",
+  "@teacherScheduleChangeTime": {
+    "description": "Teacher Schedule, upcoming class sheet: opens the list of teachers who could take the class."
+  },
+  "teacherScheduleTakeAttendance": "Ирц бүртгэх",
+  "@teacherScheduleTakeAttendance": {
+    "description": "Teacher Schedule, class sheet: opens attendance registration (enabled on the class's date only)."
+  },
+  "teacherScheduleAttendedCaption": "оюутан ирцэд бүртгэгдсэн",
+  "@teacherScheduleAttendedCaption": {
+    "description": "Teacher Schedule, held class sheet: the caption under the server's attendance count, e.g. \"14 / 24\"."
+  },
+  "teacherClassRoom": "Анги",
+  "@teacherClassRoom": {
+    "description": "Teacher class card: screen-reader label for the class's room."
+  },
+  "teacherClassTime": "Цаг",
+  "@teacherClassTime": {
+    "description": "Teacher class card: screen-reader label for the class's time."
+  },
+  "teacherRequestTeachersTitle": "Багш нар",
+  "@teacherRequestTeachersTitle": {
+    "description": "Time-change request: title of the screen listing teachers who could take the class."
+  },
+  "teacherRequestSend": "Хүсэлт илгээх",
+  "@teacherRequestSend": {
+    "description": "Time-change request: the button on a teacher's row that sends them the request."
+  },
+  "teacherRequestPending": "Хүлээгдэж байна",
+  "@teacherRequestPending": {
+    "description": "Time-change request: a teacher's row once the request waits for their answer."
+  },
+  "teacherRequestDeclined": "Татгалзсан",
+  "@teacherRequestDeclined": {
+    "description": "Time-change request: a teacher's row once they declined the request."
+  },
+  "teacherRequestsEmpty": "Энэ цагт орлон заах боломжтой багш алга",
+  "@teacherRequestsEmpty": {
+    "description": "Time-change request: no other teacher is free at the class's time."
+  },
+  "teacherRequestsUnavailable": "Одоогоор цаг солих хүсэлт илгээх боломжгүй байна. Дараа дахин оролдоно уу.",
+  "@teacherRequestsUnavailable": {
+    "description": "Time-change request: the backend refused without an error code (it does not serve the request endpoints)."
+  },
+  "teacherRequestDecline": "Татгалзах",
+  "@teacherRequestDecline": {
+    "description": "Incoming time-change request: the receiving teacher's decline button."
+  },
+  "teacherRequestAccept": "Зөвшөөрөх",
+  "@teacherRequestAccept": {
+    "description": "Incoming time-change request: the receiving teacher's accept button."
+  },
+  "teacherRequestSentTitle": "Хүсэлт илгээгдлээ",
+  "@teacherRequestSentTitle": {
+    "description": "Time-change request: the confirmation card's title once a request is sent."
+  },
+  "teacherConfirmationDismiss": "Ойлголоо",
+  "@teacherConfirmationDismiss": {
+    "description": "Time-change request: the button that closes the confirmation card."
+  },
+  "teacherSessionUntitled": "Хичээл",
+  "@teacherSessionUntitled": {
+    "description": "Teacher Schedule and incoming requests: the title of a class that names neither its course nor its cohort."
+  },
+  "teacherSessionCovering": "Орлон заах",
+  "@teacherSessionCovering": {
+    "description": "Teacher Schedule: a class the signed-in teacher teaches in another teacher's place."
+  },
+  "teacherSessionCovered": "Орлон заагдсан",
+  "@teacherSessionCovered": {
+    "description": "Teacher Schedule: the teacher's own class that another teacher, whose name is blank, teaches instead."
+  },
+  "teacherSessionCoveredBy": "Орлон заагдсан · {name}",
+  "@teacherSessionCoveredBy": {
+    "description": "Teacher Schedule: the teacher's own class that another teacher teaches instead, with that teacher's name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherRequestAccepted": "Хүсэлтийг зөвшөөрсөн",
+  "@teacherRequestAccepted": {
+    "description": "Incoming time-change request: the request was accepted (status accepted)."
+  },
+  "teacherRequestRejected": "Хүсэлтээс татгалзсан",
+  "@teacherRequestRejected": {
+    "description": "Incoming time-change request: the request was declined (status rejected)."
+  },
+  "teacherRequestCancelled": "Хүсэлт цуцлагдсан",
+  "@teacherRequestCancelled": {
+    "description": "Incoming time-change request: the sender cancelled the request (status cancelled)."
+  },
+  "teacherRequestExpired": "Хүсэлтийн хугацаа дууссан",
+  "@teacherRequestExpired": {
+    "description": "Incoming time-change request: the request expired (status expired)."
+  },
+  "teacherRequestRecipientBusy": "Энэ багш тухайн цагт өөр хичээлтэй байна",
+  "@teacherRequestRecipientBusy": {
+    "description": "Time-change request: the chosen teacher teaches at that time (409 recipient_busy)."
+  },
+  "teacherRequestAlreadyPending": "Энэ хичээлд илгээсэн хүсэлт хүлээгдэж байна",
+  "@teacherRequestAlreadyPending": {
+    "description": "Time-change request: the class already has a pending request (409 request_pending)."
+  },
+  "teacherRequestSessionCovered": "Энэ хичээлийг өөр багш орлон заахаар болсон байна",
+  "@teacherRequestSessionCovered": {
+    "description": "Time-change request: another teacher has already accepted the class (409 session_already_covered)."
+  },
+  "teacherRequestSessionStarted": "Хичээл эхэлсэн тул цаг солих боломжгүй",
+  "@teacherRequestSessionStarted": {
+    "description": "Time-change request: the class's start time has passed (409 session_started)."
+  },
+  "teacherRequestSessionNotFound": "Хичээл олдсонгүй",
+  "@teacherRequestSessionNotFound": {
+    "description": "Time-change request: the class does not exist (404 session_not_found)."
+  },
+  "teacherRequestRecipientNotFound": "Багш олдсонгүй",
+  "@teacherRequestRecipientNotFound": {
+    "description": "Time-change request: the chosen teacher is unknown or deactivated (404 recipient_not_found)."
+  },
+  "teacherRequestScheduleConflict": "Тухайн цагт танд өөр хичээл байгаа тул зөвшөөрөх боломжгүй",
+  "@teacherRequestScheduleConflict": {
+    "description": "Incoming time-change request: the receiving teacher teaches at that time (409 schedule_conflict)."
+  },
+  "teacherRequestAlreadyResolved": "Хүсэлт аль хэдийн шийдвэрлэгдсэн байна",
+  "@teacherRequestAlreadyResolved": {
+    "description": "Incoming time-change request: the request was already answered (409 request_already_resolved)."
+  },
+  "teacherRequestNotFound": "Хүсэлт олдсонгүй",
+  "@teacherRequestNotFound": {
+    "description": "Incoming time-change request: unknown, or the teacher is not a party to it (404 request_not_found)."
+  },
+  "teacherRequestNotRecipient": "Энэ хүсэлтэд хариулах эрх танд алга",
+  "@teacherRequestNotRecipient": {
+    "description": "Incoming time-change request: only the receiving teacher can answer (403 not_recipient)."
   }
 }
