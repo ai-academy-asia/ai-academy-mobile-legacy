@@ -146,6 +146,7 @@ Future<void> showRequestSentCard(BuildContext context) =>
           padding: const EdgeInsets.all(AppDimens.screenPadding),
           child: TeacherConfirmationCard(
             title: TeacherScheduleStrings.requestSentTitle,
+            dismissLabel: TeacherScheduleStrings.requestSentDismiss,
             onDismiss: () => Navigator.of(sheetContext).pop(),
           ),
         ),
@@ -204,9 +205,7 @@ class TeacherRequestScreen extends StatelessWidget {
               children: [
                 // The shared back header (Issue #368): its title kept clear of
                 // the button, and wrapping at larger text.
-                const BackTitleHeader(
-                  title: TeacherScheduleStrings.teachersTitle,
-                ),
+                BackTitleHeader(title: TeacherScheduleStrings.teachersTitle),
                 Expanded(
                   child: loading
                       ? const _Loading()

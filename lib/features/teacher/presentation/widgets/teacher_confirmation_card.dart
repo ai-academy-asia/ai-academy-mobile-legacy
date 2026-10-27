@@ -4,26 +4,31 @@ import '../../../../core/theme/app_dimens.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../teacher_schedule_strings.dart';
 import 'teacher_pill_button.dart';
 
 /// A confirmed success: the success disc, the [title], and the full-width
-/// "Ойлголоо" that dismisses it — the Teacher redesign's one success card,
-/// for "Хүсэлт илгээгдлээ" (Issue #372, shown since #449) and "Амжилттай
-/// баталгаажлаа" (attendance, Issue #374).
+/// [dismissLabel] ("Ойлголоо") that dismisses it — the Teacher redesign's one
+/// success card, for "Хүсэлт илгээгдлээ" (Issue #372, shown since #449) and
+/// "Амжилттай баталгаажлаа" (attendance, Issue #374).
 ///
 /// A post-write state: show it only once the server has confirmed every
 /// write it reports — never optimistically.
 class TeacherConfirmationCard extends StatelessWidget {
   const TeacherConfirmationCard({
     required this.title,
+    required this.dismissLabel,
     required this.onDismiss,
     super.key,
   });
 
   final String title;
 
-  /// "Ойлголоо". Null leaves it inert.
+  /// The dismiss button's label. Each caller passes its own, so the request
+  /// card follows the language (Issue #547) while attendance keeps its
+  /// Mongolian until its own migration.
+  final String dismissLabel;
+
+  /// Dismisses the card. Null leaves the button inert.
   final VoidCallback? onDismiss;
 
   @override
@@ -68,7 +73,7 @@ class TeacherConfirmationCard extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           TeacherPillButton(
-            label: TeacherScheduleStrings.requestSentDismiss,
+            label: dismissLabel,
             wrapLabel: true,
             variant: TeacherPillVariant.filled,
             onPressed: onDismiss,

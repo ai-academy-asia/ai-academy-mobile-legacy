@@ -308,6 +308,7 @@ Future<void> showAttendanceSavedCard(BuildContext context) =>
           padding: const EdgeInsets.all(AppDimens.screenPadding),
           child: TeacherConfirmationCard(
             title: TeacherAttendanceStrings.successTitle,
+            dismissLabel: TeacherAttendanceStrings.successDismiss,
             onDismiss: () => Navigator.of(sheetContext).pop(),
           ),
         ),

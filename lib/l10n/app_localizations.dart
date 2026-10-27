@@ -945,6 +945,240 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Quiz өгөх оролдлого дууссан'**
   String get quizNoAttemptsLeft;
+
+  /// Teacher Schedule (and Teacher Home, Gradebook): no class in the week, or no class to show.
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогоор хичээл алга байна'**
+  String get teacherHomeEmpty;
+
+  /// Teacher Schedule: screen-reader label for the header's date control.
+  ///
+  /// In mn, this message translates to:
+  /// **'Огноо сонгох'**
+  String get teacherSchedulePickDate;
+
+  /// Teacher Schedule, large-text day list: no class on the selected day.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ өдөр хичээл байхгүй байна.'**
+  String get teacherScheduleEmptyDay;
+
+  /// Teacher Schedule, large-text day list: screen-reader label for the previous-day arrow.
+  ///
+  /// In mn, this message translates to:
+  /// **'Өмнөх өдөр'**
+  String get teacherSchedulePreviousDay;
+
+  /// Teacher Schedule, large-text day list: screen-reader label for the next-day arrow.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дараагийн өдөр'**
+  String get teacherScheduleNextDay;
+
+  /// Teacher Schedule, large-text day list: the label on a class that has ended.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дууссан'**
+  String get teacherScheduleFinished;
+
+  /// Teacher Schedule, upcoming class sheet: opens the list of teachers who could take the class.
+  ///
+  /// In mn, this message translates to:
+  /// **'Цаг солих'**
+  String get teacherScheduleChangeTime;
+
+  /// Teacher Schedule, class sheet: opens attendance registration (enabled on the class's date only).
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирц бүртгэх'**
+  String get teacherScheduleTakeAttendance;
+
+  /// Teacher Schedule, held class sheet: the caption under the server's attendance count, e.g. "14 / 24".
+  ///
+  /// In mn, this message translates to:
+  /// **'оюутан ирцэд бүртгэгдсэн'**
+  String get teacherScheduleAttendedCaption;
+
+  /// Teacher class card: screen-reader label for the class's room.
+  ///
+  /// In mn, this message translates to:
+  /// **'Анги'**
+  String get teacherClassRoom;
+
+  /// Teacher class card: screen-reader label for the class's time.
+  ///
+  /// In mn, this message translates to:
+  /// **'Цаг'**
+  String get teacherClassTime;
+
+  /// Time-change request: title of the screen listing teachers who could take the class.
+  ///
+  /// In mn, this message translates to:
+  /// **'Багш нар'**
+  String get teacherRequestTeachersTitle;
+
+  /// Time-change request: the button on a teacher's row that sends them the request.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлт илгээх'**
+  String get teacherRequestSend;
+
+  /// Time-change request: a teacher's row once the request waits for their answer.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүлээгдэж байна'**
+  String get teacherRequestPending;
+
+  /// Time-change request: a teacher's row once they declined the request.
+  ///
+  /// In mn, this message translates to:
+  /// **'Татгалзсан'**
+  String get teacherRequestDeclined;
+
+  /// Time-change request: no other teacher is free at the class's time.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ цагт орлон заах боломжтой багш алга'**
+  String get teacherRequestsEmpty;
+
+  /// Time-change request: the backend refused without an error code (it does not serve the request endpoints).
+  ///
+  /// In mn, this message translates to:
+  /// **'Одоогоор цаг солих хүсэлт илгээх боломжгүй байна. Дараа дахин оролдоно уу.'**
+  String get teacherRequestsUnavailable;
+
+  /// Incoming time-change request: the receiving teacher's decline button.
+  ///
+  /// In mn, this message translates to:
+  /// **'Татгалзах'**
+  String get teacherRequestDecline;
+
+  /// Incoming time-change request: the receiving teacher's accept button.
+  ///
+  /// In mn, this message translates to:
+  /// **'Зөвшөөрөх'**
+  String get teacherRequestAccept;
+
+  /// Time-change request: the confirmation card's title once a request is sent.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлт илгээгдлээ'**
+  String get teacherRequestSentTitle;
+
+  /// Time-change request: the button that closes the confirmation card.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ойлголоо'**
+  String get teacherConfirmationDismiss;
+
+  /// Teacher Schedule and incoming requests: the title of a class that names neither its course nor its cohort.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээл'**
+  String get teacherSessionUntitled;
+
+  /// Teacher Schedule: a class the signed-in teacher teaches in another teacher's place.
+  ///
+  /// In mn, this message translates to:
+  /// **'Орлон заах'**
+  String get teacherSessionCovering;
+
+  /// Teacher Schedule: the teacher's own class that another teacher, whose name is blank, teaches instead.
+  ///
+  /// In mn, this message translates to:
+  /// **'Орлон заагдсан'**
+  String get teacherSessionCovered;
+
+  /// Teacher Schedule: the teacher's own class that another teacher teaches instead, with that teacher's name.
+  ///
+  /// In mn, this message translates to:
+  /// **'Орлон заагдсан · {name}'**
+  String teacherSessionCoveredBy(String name);
+
+  /// Incoming time-change request: the request was accepted (status accepted).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлтийг зөвшөөрсөн'**
+  String get teacherRequestAccepted;
+
+  /// Incoming time-change request: the request was declined (status rejected).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлтээс татгалзсан'**
+  String get teacherRequestRejected;
+
+  /// Incoming time-change request: the sender cancelled the request (status cancelled).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлт цуцлагдсан'**
+  String get teacherRequestCancelled;
+
+  /// Incoming time-change request: the request expired (status expired).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлтийн хугацаа дууссан'**
+  String get teacherRequestExpired;
+
+  /// Time-change request: the chosen teacher teaches at that time (409 recipient_busy).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ багш тухайн цагт өөр хичээлтэй байна'**
+  String get teacherRequestRecipientBusy;
+
+  /// Time-change request: the class already has a pending request (409 request_pending).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ хичээлд илгээсэн хүсэлт хүлээгдэж байна'**
+  String get teacherRequestAlreadyPending;
+
+  /// Time-change request: another teacher has already accepted the class (409 session_already_covered).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ хичээлийг өөр багш орлон заахаар болсон байна'**
+  String get teacherRequestSessionCovered;
+
+  /// Time-change request: the class's start time has passed (409 session_started).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээл эхэлсэн тул цаг солих боломжгүй'**
+  String get teacherRequestSessionStarted;
+
+  /// Time-change request: the class does not exist (404 session_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээл олдсонгүй'**
+  String get teacherRequestSessionNotFound;
+
+  /// Time-change request: the chosen teacher is unknown or deactivated (404 recipient_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Багш олдсонгүй'**
+  String get teacherRequestRecipientNotFound;
+
+  /// Incoming time-change request: the receiving teacher teaches at that time (409 schedule_conflict).
+  ///
+  /// In mn, this message translates to:
+  /// **'Тухайн цагт танд өөр хичээл байгаа тул зөвшөөрөх боломжгүй'**
+  String get teacherRequestScheduleConflict;
+
+  /// Incoming time-change request: the request was already answered (409 request_already_resolved).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлт аль хэдийн шийдвэрлэгдсэн байна'**
+  String get teacherRequestAlreadyResolved;
+
+  /// Incoming time-change request: unknown, or the teacher is not a party to it (404 request_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хүсэлт олдсонгүй'**
+  String get teacherRequestNotFound;
+
+  /// Incoming time-change request: only the receiving teacher can answer (403 not_recipient).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ хүсэлтэд хариулах эрх танд алга'**
+  String get teacherRequestNotRecipient;
 }
 
 class _AppLocalizationsDelegate

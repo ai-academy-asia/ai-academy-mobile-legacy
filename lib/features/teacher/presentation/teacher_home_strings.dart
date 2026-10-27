@@ -16,14 +16,16 @@ abstract final class TeacherHomeStrings {
   static String students(int count) => '$count Students';
 
   /// Accessibility label for a class's room.
-  static const String room = 'Анги';
+  static String get room => L10n.current.teacherClassRoom;
 
   /// Accessibility label for a class's time.
-  static const String time = 'Цаг';
+  static String get time => L10n.current.teacherClassTime;
 
   /// No class meets today. Not drawn by the reference — the Lesson List's
-  /// wording for the same "nothing here yet" state.
-  static const String empty = 'Одоогоор хичээл алга байна';
+  /// wording for the same "nothing here yet" state. In the selected language
+  /// since Issue #547, with Room and Time above: Teacher Schedule shares them
+  /// (and Gradebook this line).
+  static String get empty => L10n.current.teacherHomeEmpty;
 
   static String get retry => HomeStrings.retry;
 
