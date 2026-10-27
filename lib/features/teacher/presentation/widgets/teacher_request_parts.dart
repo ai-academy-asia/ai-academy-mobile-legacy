@@ -36,10 +36,10 @@ class TeacherPillPair extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final half = (constraints.maxWidth - _pairGap) / 2;
-        final fits = [first, second].every(
-          (pill) =>
-              _labelWidth(context, pill) + 2 * pill.horizontalPadding <= half,
-        );
+        final fits = [
+          first,
+          second,
+        ].every((pill) => pill.oneLineWidth(context) <= half);
         if (fits) {
           return Row(
             children: [
@@ -59,27 +59,6 @@ class TeacherPillPair extends StatelessWidget {
         );
       },
     );
-  }
-
-  /// [pill]'s label laid out on one line, as the pill draws it.
-  static double _labelWidth(BuildContext context, TeacherPillButton pill) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: pill.label,
-        style: DefaultTextStyle.of(context).style.merge(
-          AppTypography.buttonLabel.copyWith(
-            fontSize: pill.fontSize,
-            height: 1.2,
-          ),
-        ),
-      ),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    final width = painter.width;
-    painter.dispose();
-    return width;
   }
 }
 

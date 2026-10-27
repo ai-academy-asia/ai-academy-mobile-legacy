@@ -62,6 +62,30 @@ class TeacherPillButton extends StatelessWidget {
   /// row's trailing pill must.
   final bool wrapLabel;
 
+  /// The label's width laid out on one line, as the pill draws it: what a
+  /// parent compares with the room it can give before deciding to stack
+  /// (`TeacherPillPair`, `TeacherRequestRow`).
+  double oneLineLabelWidth(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: DefaultTextStyle.of(
+          context,
+        ).style.merge(_labelStyle.copyWith(fontSize: fontSize)),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  /// The width the pill needs to show its label whole on one line.
+  double oneLineWidth(BuildContext context) =>
+      oneLineLabelWidth(context) + 2 * horizontalPadding;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -138,11 +162,7 @@ class TeacherPillButton extends StatelessWidget {
                   maxLines: wrapLabel ? null : 1,
                   overflow: wrapLabel ? null : TextOverflow.ellipsis,
                   textAlign: wrapLabel ? TextAlign.center : null,
-                  style: AppTypography.buttonLabel.copyWith(
-                    fontSize: fontSize,
-                    height: 1.2,
-                    color: ink,
-                  ),
+                  style: _labelStyle.copyWith(fontSize: fontSize, color: ink),
                 ),
               ),
             ),
@@ -155,3 +175,6 @@ class TeacherPillButton extends StatelessWidget {
 
 /// Above and below a wrapped label, inside the pill's edge.
 const double _wrapVerticalPadding = 10;
+
+/// The label's type, measured and drawn alike.
+final TextStyle _labelStyle = AppTypography.buttonLabel.copyWith(height: 1.2);
