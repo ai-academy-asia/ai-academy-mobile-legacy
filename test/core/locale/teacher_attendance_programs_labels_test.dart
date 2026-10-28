@@ -778,6 +778,36 @@ void main() {
       expect(find.text(mn('teacherProgramsAttendance')), findsOneWidget);
     });
 
+    testWidgets('a failed re-read: the whole line, reason included, follows '
+        'the language at once', (tester) async {
+      final repo = await openManual(tester);
+      await tester.tap(control('Саруул Батбаатар'));
+      await tester.pump();
+      repo.readFailure = const TeacherFailure(TeacherFailureKind.network);
+      await tester.tap(teacherPill(TeacherAttendanceStrings.confirm));
+      await tester.pumpAndSettle();
+      final mongolianReason = TeacherHomeStrings.messageFor(
+        TeacherFailureKind.network,
+      );
+      expect(
+        find.text(checkFailed(mongolianReason, LocalePreference.mongolian)),
+        findsOneWidget,
+      );
+
+      await locale.setEnglish(true);
+      await tester.pumpAndSettle();
+      final englishReason = TeacherHomeStrings.messageFor(
+        TeacherFailureKind.network,
+      );
+      expect(englishReason, isNot(mongolianReason));
+      expect(
+        find.text(checkFailed(englishReason, LocalePreference.english)),
+        findsOneWidget,
+      );
+      expect(find.textContaining(mongolianReason), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('a refused reply already shown keeps its language until the '
         'next submit', (tester) async {
       final repo = classRepository()

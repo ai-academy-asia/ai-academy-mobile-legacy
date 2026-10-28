@@ -1,3 +1,5 @@
+import 'package:aia_mobile/core/locale/app_locale_controller.dart';
+import 'package:aia_mobile/core/locale/locale_preference.dart';
 import 'package:aia_mobile/core/models/localized_text.dart';
 import 'package:aia_mobile/core/theme/app_dimens.dart';
 import 'package:aia_mobile/core/theme/app_theme.dart';
@@ -17,9 +19,12 @@ import 'teacher_gradebook_screen_test.dart' show classRepository;
 /// The two stat titles were one line with an ellipsis, and the score's range
 /// error one line too, so both were cut short — the Mongolian titles even at
 /// the default size on a 320pt phone. Both now wrap; where they fit, they
-/// are drawn as before.
+/// are drawn as before. The screen runs in both languages since L18/L19
+/// (Issue #551) gave it English.
 void main() {
   setUpAll(loadAppFonts);
+  final locale = AppLocaleController.instance;
+  tearDown(() => locale.setPreference(LocalePreference.mongolian));
 
   const widths = [320.0, 375.0, 393.0];
   const scales = [1.0, 1.5, 2.0, 3.0];
@@ -124,43 +129,52 @@ void main() {
       return errors;
     }
 
-    for (final width in widths) {
-      for (final scale in scales) {
-        testWidgets('${width.toInt()} wide, text ×$scale: both stat titles '
-            'and the range error whole, the cards side by side', (
-          tester,
-        ) async {
-          final errors = await pumpStudent(tester, width: width, scale: scale);
-          expect(errors, isEmpty);
-          expect(tester.takeException(), isNull);
+    for (final language in LocalePreference.values) {
+      for (final width in widths) {
+        for (final scale in scales) {
+          testWidgets('${language.name}, ${width.toInt()} wide, text ×$scale: '
+              'both stat titles and the range error whole, the cards side by '
+              'side', (tester) async {
+            await locale.setPreference(language);
+            final errors = await pumpStudent(
+              tester,
+              width: width,
+              scale: scale,
+            );
+            expect(errors, isEmpty);
+            expect(tester.takeException(), isNull);
 
-          for (final value in [
-            TeacherGradebookStrings.attendance,
-            TeacherGradebookStrings.examScore,
-            TeacherGradebookStrings.scoreLabel(100),
-            TeacherGradebookStrings.scoreInvalid(100),
-          ]) {
-            expectWhole(tester, value, width);
-          }
-          final cards = tester
-              .widgetList<GradebookStatCard>(find.byType(GradebookStatCard))
-              .map((card) => tester.getRect(find.byWidget(card)))
-              .toList();
-          expect(cards, hasLength(2));
-          expect(cards[0].top, cards[1].top, reason: 'one row');
-          expect(cards[0].right, lessThan(cards[1].left));
-          expect(cards[1].right, lessThanOrEqualTo(width - 16));
-        });
+            for (final value in [
+              TeacherGradebookStrings.attendance,
+              TeacherGradebookStrings.examScore,
+              TeacherGradebookStrings.scoreLabel(100),
+              TeacherGradebookStrings.scoreInvalid(100),
+            ]) {
+              expectWhole(tester, value, width);
+            }
+            final cards = tester
+                .widgetList<GradebookStatCard>(find.byType(GradebookStatCard))
+                .map((card) => tester.getRect(find.byWidget(card)))
+                .toList();
+            expect(cards, hasLength(2));
+            expect(cards[0].top, cards[1].top, reason: 'one row');
+            expect(cards[0].right, lessThan(cards[1].left));
+            expect(cards[1].right, lessThanOrEqualTo(width - 16));
+          });
+        }
       }
-    }
 
-    testWidgets('at the default size on a 393pt phone, each title and the '
-        'error stay on one line, as before', (tester) async {
-      await pumpStudent(tester, width: 393, scale: 1);
-      expect(lines(tester, TeacherGradebookStrings.attendance), 1);
-      expect(lines(tester, TeacherGradebookStrings.examScore), 1);
-      expect(lines(tester, TeacherGradebookStrings.scoreInvalid(100)), 1);
-    });
+      testWidgets('${language.name}, at the default size on a 393pt phone: '
+          'each title and the error stay on one line, as before', (
+        tester,
+      ) async {
+        await locale.setPreference(language);
+        await pumpStudent(tester, width: 393, scale: 1);
+        expect(lines(tester, TeacherGradebookStrings.attendance), 1);
+        expect(lines(tester, TeacherGradebookStrings.examScore), 1);
+        expect(lines(tester, TeacherGradebookStrings.scoreInvalid(100)), 1);
+      });
+    }
   });
 
   group('the stat cards, any title', () {

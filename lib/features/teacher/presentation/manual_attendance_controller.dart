@@ -130,7 +130,7 @@ class ManualAttendanceController extends ChangeNotifier {
   bool _submitting = false;
   List<AttendanceRow>? _rows;
   String? _errorMessage;
-  String? _checkError;
+  TeacherFailureKind? _checkFailure;
   Future<void>? _inFlight;
 
   /// Writes stored since the teacher's last completed confirm — so a
@@ -147,8 +147,13 @@ class ManualAttendanceController extends ChangeNotifier {
   /// Set only when the most recent load failed.
   String? get errorMessage => _errorMessage;
 
-  /// Set when the last confirm could not re-read the roster.
-  String? get checkError => _checkError;
+  /// Set when the last confirm could not re-read the roster: the failure's
+  /// line, read in the language selected now — so the notice built from it
+  /// reads in one language (Issue #551). The kind is kept, not the words.
+  String? get checkError => switch (_checkFailure) {
+    final kind? => TeacherHomeStrings.messageFor(kind),
+    null => null,
+  };
 
   /// Rows whose last write failed.
   int get failedCount =>
@@ -244,7 +249,7 @@ class ManualAttendanceController extends ChangeNotifier {
     }
 
     _submitting = true;
-    _checkError = null;
+    _checkFailure = null;
     _notify();
 
     // The final re-read: what the server holds right before writing.
@@ -254,11 +259,9 @@ class ManualAttendanceController extends ChangeNotifier {
       latest = {for (final s in attendance.students) s.studentId: s};
     } catch (failure) {
       if (_disposed) return AttendanceSubmitResult.nothingSent;
-      _checkError = TeacherHomeStrings.messageFor(
-        failure is TeacherFailure
-            ? failure.kind
-            : TeacherFailureKind.unexpected,
-      );
+      _checkFailure = failure is TeacherFailure
+          ? failure.kind
+          : TeacherFailureKind.unexpected;
       _submitting = false;
       _notify();
       return AttendanceSubmitResult.checkFailed;
