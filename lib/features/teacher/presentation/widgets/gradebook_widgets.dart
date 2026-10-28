@@ -5,7 +5,9 @@ import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/track_badge.dart';
 
-/// Хичээлийн ирц / Шалгалтын дүн: a heading over a blue capsule.
+/// Хичээлийн ирц / Шалгалтын дүн: a heading over a blue capsule. The heading
+/// wraps where it does not fit its half of the row, rather than being cut
+/// short (Issue #552); where it fits, the card is as the frame draws it.
 class GradebookStatCard extends StatelessWidget {
   const GradebookStatCard({
     required this.title,
@@ -37,8 +39,6 @@ class GradebookStatCard extends StatelessWidget {
           Text(
             title,
             style: _statTitleStyle.copyWith(color: palette.textStrong),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
           Row(

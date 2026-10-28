@@ -424,6 +424,10 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
                                           max,
                                         )
                                       : null,
+                                  // Wraps rather than being cut short at
+                                  // larger text (Issue #552); still the
+                                  // field's error for assistive technology.
+                                  errorMaxLines: _scoreErrorMaxLines,
                                 ),
                           ),
                         ),
@@ -475,6 +479,10 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
 
 /// The review endpoint's limit (`MAX_FEEDBACK`).
 const int _maxFeedback = 5000;
+
+/// Lines the score's range error may take: room for the longest one whole
+/// at 3.0× text on a 320pt phone (four lines), with a line to spare.
+const int _scoreErrorMaxLines = 5;
 
 InputDecoration _outlined(AppPalette palette, {required String label}) {
   OutlineInputBorder border(Color color) => OutlineInputBorder(
