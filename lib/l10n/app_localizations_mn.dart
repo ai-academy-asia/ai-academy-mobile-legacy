@@ -587,4 +587,175 @@ class AppLocalizationsMn extends AppLocalizations {
   @override
   String get teacherRequestNotRecipient =>
       'Энэ хүсэлтэд хариулах эрх танд алга';
+
+  @override
+  String get teacherAttendanceQrCaption => 'оюутан ирцэд бүртгэгдлээ';
+
+  @override
+  String get teacherAttendanceManualEntry => 'Гар аргаар бүртгэх';
+
+  @override
+  String get teacherAttendanceQrNotToday =>
+      'QR кодыг зөвхөн хичээлийн өдөр үүсгэх боломжтой.';
+
+  @override
+  String get teacherAttendanceQrExpired => 'QR кодын хугацаа дууссан.';
+
+  @override
+  String get teacherAttendanceQrLabel => 'Ирцийн QR код';
+
+  @override
+  String get teacherStudentsHeading => 'Сурагчид';
+
+  @override
+  String get teacherAttendanceConfirm => 'Баталгаажуулах';
+
+  @override
+  String get teacherAttendanceNoStudents =>
+      'Энэ хичээлд бүртгэлтэй сурагч алга.';
+
+  @override
+  String get teacherAttendanceSaveFailed => 'Хадгалагдсангүй';
+
+  @override
+  String get teacherAttendanceSaving => 'Хадгалж байна';
+
+  @override
+  String teacherAttendanceFailedRows(int count) {
+    return '$count сурагчийн ирц хадгалагдсангүй. Дахин оролдоно уу.';
+  }
+
+  @override
+  String get teacherAttendanceConflictTitle => 'Ирц өөрчлөгдсөн байна';
+
+  @override
+  String get teacherAttendanceConflictBody =>
+      'Жагсаалтыг нээснээс хойш энэ сурагчийн ирц серверт өөрчлөгдсөн. Аль утгыг хадгалахаа сонгоно уу.';
+
+  @override
+  String teacherAttendanceConflictServer(String status, String method) {
+    return 'Серверт: $status ($method)';
+  }
+
+  @override
+  String teacherAttendanceConflictMine(String status) {
+    return 'Таны сонголт: $status';
+  }
+
+  @override
+  String teacherAttendanceKeepServer(String status) {
+    return 'Серверийнхийг үлдээх: $status';
+  }
+
+  @override
+  String teacherAttendanceApplyMine(String status) {
+    return 'Миний сонголтыг хадгалах: $status';
+  }
+
+  @override
+  String teacherAttendanceConflictsPending(int count) {
+    return '$count сурагчийн ирц серверт өөрчлөгдсөн. Мөр дээр дарж шийдвэрлэнэ үү.';
+  }
+
+  @override
+  String teacherAttendanceCheckFailed(String reason) {
+    return 'Сүүлийн ирцийг шалгаж чадсангүй — юу ч илгээгдсэнгүй. $reason';
+  }
+
+  @override
+  String get teacherAttendanceMethodManual => 'гараар';
+
+  @override
+  String get teacherAttendanceMethodNone => 'бүртгэлгүй';
+
+  @override
+  String get teacherAttendanceChooseStatus => 'Ирцийн төлөв';
+
+  @override
+  String get teacherAttendancePresent => 'Ирсэн';
+
+  @override
+  String get teacherAttendanceLate => 'Хоцорсон';
+
+  @override
+  String get teacherAttendanceAbsent => 'Ирээгүй';
+
+  @override
+  String get teacherAttendanceExcused => 'Чөлөөтэй';
+
+  @override
+  String get teacherAttendanceSuccessTitle => 'Амжилттай баталгаажлаа';
+
+  @override
+  String get teacherProgramsTotalStudents => 'Нийт сурагч';
+
+  @override
+  String get teacherProgramsDetails => 'Дэлгэрэнгүй';
+
+  @override
+  String get teacherProgramsAnnounce => 'Зар тараах';
+
+  @override
+  String get teacherProgramsStudentsInfo => 'Сурагчдын мэдээлэл';
+
+  @override
+  String get teacherProgramsAnnounceUnavailable =>
+      'Багш зар тараах боломж одоогоор серверт нээгдээгүй байна. Зар илгээгдэхгүй.';
+
+  @override
+  String get teacherProgramsNoStudents => 'Энэ ангид бүртгэлтэй сурагч алга.';
+
+  @override
+  String teacherProgramsPendingLabel(int count) {
+    return '$count даалгавар дүгнэгдэхийг хүлээж байна';
+  }
+
+  @override
+  String get teacherProgramsAttendance => 'Хичээлийн ирц';
+
+  @override
+  String get teacherProgramsExamScore => 'Шалгалтын дүн';
+
+  @override
+  String teacherProgramsAssignmentCaption(int number) {
+    return 'Даалгавар $number';
+  }
+
+  @override
+  String get teacherProgramsNoAssignments => 'Энэ ангид даалгавар алга.';
+
+  @override
+  String get teacherProgramsNotSubmitted => 'Энэ даалгаврыг илгээгээгүй байна.';
+
+  @override
+  String get teacherProgramsNoNote => 'Тайлбар бичээгүй.';
+
+  @override
+  String get teacherProgramsReplyLabel => 'Тайлбар';
+
+  @override
+  String get teacherProgramsEditReply => 'Хариултыг засах';
+
+  @override
+  String teacherProgramsScoreLabel(String max) {
+    return 'Оноо (0–$max)';
+  }
+
+  @override
+  String teacherProgramsScoreInvalid(String max) {
+    return '0-ээс $max хүртэлх оноо оруулна уу';
+  }
+
+  @override
+  String get teacherProgramsFeedbackRequired => 'Хариултаа бичнэ үү.';
+
+  @override
+  String get teacherProgramsFeedbackTooLong =>
+      'Хариулт 5000 тэмдэгтээс хэтэрсэн байна.';
+
+  @override
+  String get teacherProgramsInvalidScore => 'Оноо буруу байна.';
+
+  @override
+  String get teacherProgramsSubmissionNotFound => 'Энэ илгээлт олдсонгүй.';
 }

@@ -1179,6 +1179,294 @@ abstract class AppLocalizations {
   /// In mn, this message translates to:
   /// **'Энэ хүсэлтэд хариулах эрх танд алга'**
   String get teacherRequestNotRecipient;
+
+  /// Teacher attendance registration, QR screen: the caption under the live attendance count, e.g. "14 / 24".
+  ///
+  /// In mn, this message translates to:
+  /// **'оюутан ирцэд бүртгэгдлээ'**
+  String get teacherAttendanceQrCaption;
+
+  /// Teacher attendance registration: the QR screen's action that opens manual attendance, and that screen's title.
+  ///
+  /// In mn, this message translates to:
+  /// **'Гар аргаар бүртгэх'**
+  String get teacherAttendanceManualEntry;
+
+  /// Teacher attendance registration, QR screen: a code was asked for on another day (409 session_not_today).
+  ///
+  /// In mn, this message translates to:
+  /// **'QR кодыг зөвхөн хичээлийн өдөр үүсгэх боломжтой.'**
+  String get teacherAttendanceQrNotToday;
+
+  /// Teacher attendance registration, QR screen: the code ran out before a fresh one arrived.
+  ///
+  /// In mn, this message translates to:
+  /// **'QR кодын хугацаа дууссан.'**
+  String get teacherAttendanceQrExpired;
+
+  /// Teacher attendance registration, QR screen: screen-reader label for the code.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирцийн QR код'**
+  String get teacherAttendanceQrLabel;
+
+  /// Teacher manual attendance and Teacher Programs: the heading over a class's student list.
+  ///
+  /// In mn, this message translates to:
+  /// **'Сурагчид'**
+  String get teacherStudentsHeading;
+
+  /// Teacher attendance registration, manual screen: the button that saves the changed rows.
+  ///
+  /// In mn, this message translates to:
+  /// **'Баталгаажуулах'**
+  String get teacherAttendanceConfirm;
+
+  /// Teacher attendance registration, manual screen: the class has no students.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ хичээлд бүртгэлтэй сурагч алга.'**
+  String get teacherAttendanceNoStudents;
+
+  /// Teacher attendance registration, manual screen: a student's row whose write failed.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хадгалагдсангүй'**
+  String get teacherAttendanceSaveFailed;
+
+  /// Teacher attendance registration, manual screen: a student's row while its write is in flight.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хадгалж байна'**
+  String get teacherAttendanceSaving;
+
+  /// Teacher attendance registration, manual screen: how many students' writes failed.
+  ///
+  /// In mn, this message translates to:
+  /// **'{count} сурагчийн ирц хадгалагдсангүй. Дахин оролдоно уу.'**
+  String teacherAttendanceFailedRows(int count);
+
+  /// Teacher attendance registration, conflict sheet: title when the server's record changed after the list was opened.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирц өөрчлөгдсөн байна'**
+  String get teacherAttendanceConflictTitle;
+
+  /// Teacher attendance registration, conflict sheet: what happened and what to do.
+  ///
+  /// In mn, this message translates to:
+  /// **'Жагсаалтыг нээснээс хойш энэ сурагчийн ирц серверт өөрчлөгдсөн. Аль утгыг хадгалахаа сонгоно уу.'**
+  String get teacherAttendanceConflictBody;
+
+  /// Teacher attendance registration, conflict sheet: the server's record — its status, and how it was made.
+  ///
+  /// In mn, this message translates to:
+  /// **'Серверт: {status} ({method})'**
+  String teacherAttendanceConflictServer(String status, String method);
+
+  /// Teacher attendance registration, conflict sheet: the status the teacher picked.
+  ///
+  /// In mn, this message translates to:
+  /// **'Таны сонголт: {status}'**
+  String teacherAttendanceConflictMine(String status);
+
+  /// Teacher attendance registration, conflict sheet: the action that keeps the server's status.
+  ///
+  /// In mn, this message translates to:
+  /// **'Серверийнхийг үлдээх: {status}'**
+  String teacherAttendanceKeepServer(String status);
+
+  /// Teacher attendance registration, conflict sheet: the action that saves the teacher's status.
+  ///
+  /// In mn, this message translates to:
+  /// **'Миний сонголтыг хадгалах: {status}'**
+  String teacherAttendanceApplyMine(String status);
+
+  /// Teacher attendance registration, manual screen: how many rows changed on the server and wait for a decision.
+  ///
+  /// In mn, this message translates to:
+  /// **'{count} сурагчийн ирц серверт өөрчлөгдсөн. Мөр дээр дарж шийдвэрлэнэ үү.'**
+  String teacherAttendanceConflictsPending(int count);
+
+  /// Teacher attendance registration, manual screen: the re-read before saving failed; reason is the failure's own line.
+  ///
+  /// In mn, this message translates to:
+  /// **'Сүүлийн ирцийг шалгаж чадсангүй — юу ч илгээгдсэнгүй. {reason}'**
+  String teacherAttendanceCheckFailed(String reason);
+
+  /// Teacher attendance registration, conflict sheet: a record a teacher entered by hand.
+  ///
+  /// In mn, this message translates to:
+  /// **'гараар'**
+  String get teacherAttendanceMethodManual;
+
+  /// Teacher attendance registration, conflict sheet: a record with no method.
+  ///
+  /// In mn, this message translates to:
+  /// **'бүртгэлгүй'**
+  String get teacherAttendanceMethodNone;
+
+  /// Teacher attendance registration: the status picker's heading.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирцийн төлөв'**
+  String get teacherAttendanceChooseStatus;
+
+  /// Teacher attendance registration: the present status.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирсэн'**
+  String get teacherAttendancePresent;
+
+  /// Teacher attendance registration: the late status.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хоцорсон'**
+  String get teacherAttendanceLate;
+
+  /// Teacher attendance registration: the absent status.
+  ///
+  /// In mn, this message translates to:
+  /// **'Ирээгүй'**
+  String get teacherAttendanceAbsent;
+
+  /// Teacher attendance registration: the excused status.
+  ///
+  /// In mn, this message translates to:
+  /// **'Чөлөөтэй'**
+  String get teacherAttendanceExcused;
+
+  /// Teacher attendance registration: the success card's title once every write is confirmed.
+  ///
+  /// In mn, this message translates to:
+  /// **'Амжилттай баталгаажлаа'**
+  String get teacherAttendanceSuccessTitle;
+
+  /// Teacher Programs: the program card's student-count label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Нийт сурагч'**
+  String get teacherProgramsTotalStudents;
+
+  /// Teacher Programs: the program card's button that opens its actions.
+  ///
+  /// In mn, this message translates to:
+  /// **'Дэлгэрэнгүй'**
+  String get teacherProgramsDetails;
+
+  /// Teacher Programs: the action (and composer title) for an announcement to the class.
+  ///
+  /// In mn, this message translates to:
+  /// **'Зар тараах'**
+  String get teacherProgramsAnnounce;
+
+  /// Teacher Programs: the action that opens the class's student list.
+  ///
+  /// In mn, this message translates to:
+  /// **'Сурагчдын мэдээлэл'**
+  String get teacherProgramsStudentsInfo;
+
+  /// Teacher Programs, announcement composer: why Submit stays off (no endpoint lets a teacher announce).
+  ///
+  /// In mn, this message translates to:
+  /// **'Багш зар тараах боломж одоогоор серверт нээгдээгүй байна. Зар илгээгдэхгүй.'**
+  String get teacherProgramsAnnounceUnavailable;
+
+  /// Teacher Programs, student list: the class has no students.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ ангид бүртгэлтэй сурагч алга.'**
+  String get teacherProgramsNoStudents;
+
+  /// Teacher Programs: screen-reader label for a student's awaiting-review badge.
+  ///
+  /// In mn, this message translates to:
+  /// **'{count} даалгавар дүгнэгдэхийг хүлээж байна'**
+  String teacherProgramsPendingLabel(int count);
+
+  /// Teacher Programs, student detail: the attendance figure's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хичээлийн ирц'**
+  String get teacherProgramsAttendance;
+
+  /// Teacher Programs, student detail: the exam figure's label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Шалгалтын дүн'**
+  String get teacherProgramsExamScore;
+
+  /// Teacher Programs, student detail: an assignment's place in the class's list.
+  ///
+  /// In mn, this message translates to:
+  /// **'Даалгавар {number}'**
+  String teacherProgramsAssignmentCaption(int number);
+
+  /// Teacher Programs, student detail: the class has no assignment yet.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ ангид даалгавар алга.'**
+  String get teacherProgramsNoAssignments;
+
+  /// Teacher Programs, student detail: no submission from this student for the selected assignment.
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ даалгаврыг илгээгээгүй байна.'**
+  String get teacherProgramsNotSubmitted;
+
+  /// Teacher Programs, student detail: a submission with no note.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тайлбар бичээгүй.'**
+  String get teacherProgramsNoNote;
+
+  /// Teacher Programs, student detail: the teacher's reply field label.
+  ///
+  /// In mn, this message translates to:
+  /// **'Тайлбар'**
+  String get teacherProgramsReplyLabel;
+
+  /// Teacher Programs, student detail: screen-reader label for the reply's edit control.
+  ///
+  /// In mn, this message translates to:
+  /// **'Хариултыг засах'**
+  String get teacherProgramsEditReply;
+
+  /// Teacher Programs, student detail: the score field's label; max is the assignment's maximum.
+  ///
+  /// In mn, this message translates to:
+  /// **'Оноо (0–{max})'**
+  String teacherProgramsScoreLabel(String max);
+
+  /// Teacher Programs, student detail: the score is out of range.
+  ///
+  /// In mn, this message translates to:
+  /// **'0-ээс {max} хүртэлх оноо оруулна уу'**
+  String teacherProgramsScoreInvalid(String max);
+
+  /// Teacher Programs, student detail: a reply with no text (feedback_required).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хариултаа бичнэ үү.'**
+  String get teacherProgramsFeedbackRequired;
+
+  /// Teacher Programs, student detail: the reply is too long (feedback_too_long).
+  ///
+  /// In mn, this message translates to:
+  /// **'Хариулт 5000 тэмдэгтээс хэтэрсэн байна.'**
+  String get teacherProgramsFeedbackTooLong;
+
+  /// Teacher Programs, student detail: the server refused the score (invalid_score).
+  ///
+  /// In mn, this message translates to:
+  /// **'Оноо буруу байна.'**
+  String get teacherProgramsInvalidScore;
+
+  /// Teacher Programs, student detail: the submission no longer exists (submission_not_found).
+  ///
+  /// In mn, this message translates to:
+  /// **'Энэ илгээлт олдсонгүй.'**
+  String get teacherProgramsSubmissionNotFound;
 }
 
 class _AppLocalizationsDelegate
