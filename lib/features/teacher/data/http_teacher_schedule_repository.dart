@@ -23,8 +23,8 @@ import 'teacher_http.dart';
 ///
 /// The last (Issue #455) is from the backend's documented contract
 /// (`ai-academy-backend` `docs/schedule_change_api_v1.md` §6, `c6e6ce0`),
-/// not an observed response: whether the deployed backend serves it is
-/// `UNKNOWN`.
+/// not an observed response. The route is deployed — it answers `401`
+/// unauthenticated, where an unknown route answers `404` (Issue #557).
 ///
 /// All three verified in backend reconnaissance. The classes are Teacher
 /// Home's own read ([HttpTeacherHomeRepository]), so the two screens agree

@@ -69,10 +69,45 @@ const double _pairGap = 8;
 /// leading part and the incoming-request sheet's sender. The contract's
 /// `photo_url` is always null (Issue #449), so the avatar is a neutral
 /// placeholder.
+///
+/// [wrapName] lets a name too long for one line wrap instead of ending in
+/// an ellipsis (Issue #557) — for an identity given its row's full width:
+/// a stacked "Багш нар" row, and the incoming sheet's sender.
 class TeacherIdentity extends StatelessWidget {
-  const TeacherIdentity({required this.name, super.key});
+  const TeacherIdentity({required this.name, super.key, this.wrapName = false});
 
   final String name;
+  final bool wrapName;
+
+  /// The avatar and its gap: what the name and "Teacher" sit after.
+  static const double leadingWidth = _avatarSize + _avatarToName;
+
+  /// [name] laid out on one line, as the identity draws it.
+  static double oneLineNameWidth(BuildContext context, String name) =>
+      _oneLineWidth(context, name, _nameStyle);
+
+  /// "Teacher" laid out on one line, as the identity draws it.
+  static double oneLineRoleWidth(BuildContext context) =>
+      _oneLineWidth(context, TeacherScheduleStrings.teacherRole, _roleStyle);
+
+  static double _oneLineWidth(
+    BuildContext context,
+    String text,
+    TextStyle style,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,18 +136,14 @@ class TeacherIdentity extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: AppTypography.itemTitle.copyWith(
-                  color: palette.teacherNameInk,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                style: _nameStyle.copyWith(color: palette.teacherNameInk),
+                maxLines: wrapName ? null : 1,
+                overflow: wrapName ? null : TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
                 TeacherScheduleStrings.teacherRole,
-                style: AppTypography.caption.copyWith(
-                  color: palette.teacherRoleInk,
-                ),
+                style: _roleStyle.copyWith(color: palette.teacherRoleInk),
               ),
             ],
           ),
@@ -125,6 +156,10 @@ class TeacherIdentity extends StatelessWidget {
 /// The avatar, and its gap to the name: the name's left edge on 97.
 const double _avatarSize = 64;
 const double _avatarToName = 17;
+
+/// The identity's name and "Teacher", measured and drawn alike.
+const TextStyle _nameStyle = AppTypography.itemTitle;
+const TextStyle _roleStyle = AppTypography.caption;
 
 /// The sheet a teacher would answer an incoming request on (screenshot 6):
 /// the requesting teacher, the class and its session — the date and times
@@ -208,7 +243,7 @@ class TeacherIncomingRequestSheet extends StatelessWidget {
           children: [
             const TeacherSheetHandle(),
             const SizedBox(height: 20),
-            TeacherIdentity(name: senderName),
+            TeacherIdentity(name: senderName, wrapName: true),
             const SizedBox(height: 20),
             if (teacherClass case final teacherClass?)
               TeacherClassCard(

@@ -217,23 +217,36 @@ class TeacherRequestScreen extends StatelessWidget {
                               emptyMessage ??
                               TeacherScheduleStrings.requestsUnavailable,
                         )
-                      : ListView.separated(
-                          padding: EdgeInsets.fromLTRB(
-                            AppDimens.screenPadding,
-                            _headerToFirstRow,
-                            AppDimens.screenPadding,
-                            AppDimens.pageBottom +
-                                MediaQuery.paddingOf(context).bottom,
-                          ),
-                          itemCount: candidates.length,
-                          // A row of its own kind — avatar, name, request pill —
-                          // spaced as the reference draws it.
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 32),
-                          itemBuilder: (_, index) => TeacherRequestRow(
-                            candidate: candidates[index],
-                            onSend: onSend,
-                          ),
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            // One layout for the whole list (Issue #557).
+                            final stacked = TeacherRequestRow.stacks(
+                              context,
+                              width:
+                                  constraints.maxWidth -
+                                  2 * AppDimens.screenPadding,
+                              names: [for (final c in candidates) c.name],
+                            );
+                            return ListView.separated(
+                              padding: EdgeInsets.fromLTRB(
+                                AppDimens.screenPadding,
+                                _headerToFirstRow,
+                                AppDimens.screenPadding,
+                                AppDimens.pageBottom +
+                                    MediaQuery.paddingOf(context).bottom,
+                              ),
+                              itemCount: candidates.length,
+                              // A row of its own kind — avatar, name, request
+                              // pill — spaced as the reference draws it.
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 32),
+                              itemBuilder: (_, index) => TeacherRequestRow(
+                                candidate: candidates[index],
+                                onSend: onSend,
+                                stacked: stacked,
+                              ),
+                            );
+                          },
                         ),
                 ),
               ],
@@ -321,61 +334,113 @@ class _Message extends StatelessWidget {
 /// short (Issue #548), as [TeacherPillPair] does. All three labels decide,
 /// so every row of the list lays out alike and a row keeps its layout when
 /// its pill changes after a send.
+///
+/// It stacks too where the name column beside the widest pill cannot hold
+/// "Teacher" or a listed name on one line (Issue #557), so "Teacher" never
+/// breaks mid-word and no name is cut short; stacked, the name wraps.
 class TeacherRequestRow extends StatelessWidget {
-  const TeacherRequestRow({required this.candidate, super.key, this.onSend});
+  const TeacherRequestRow({
+    required this.candidate,
+    super.key,
+    this.onSend,
+    this.stacked,
+  });
 
   final TeacherRequestCandidate candidate;
   final ValueChanged<TeacherRequestCandidate>? onSend;
 
+  /// The list's own decision ([stacks] over every listed name); null
+  /// decides from this row's name alone.
+  final bool? stacked;
+
+  /// Whether rows [width] wide stack: where a label would not fit the
+  /// pill's cap on one line, or the name column beside the widest of the
+  /// three pills could not hold "Teacher" or one of [names] on one line.
+  static bool stacks(
+    BuildContext context, {
+    required double width,
+    required Iterable<String> names,
+  }) {
+    final pills = [
+      for (final status in TeacherRequestStatus.values)
+        _pill(status).oneLineWidth(context),
+    ];
+    if (pills.any((needed) => needed > _rowPillMaxWidth)) return true;
+    final widest = pills.reduce((a, b) => a > b ? a : b);
+    final column = width - _rowPillGap - widest - TeacherIdentity.leadingWidth;
+    if (TeacherIdentity.oneLineRoleWidth(context) > column) return true;
+    return names.any(
+      (name) => TeacherIdentity.oneLineNameWidth(context, name) > column,
+    );
+  }
+
+  /// [status]'s pill, as the row draws it.
+  static TeacherPillButton _pill(
+    TeacherRequestStatus status, {
+    VoidCallback? onPressed,
+    bool wrapLabel = false,
+  }) => TeacherPillButton(
+    label: switch (status) {
+      TeacherRequestStatus.notSent => TeacherScheduleStrings.requestSend,
+      TeacherRequestStatus.pending => TeacherScheduleStrings.requestPending,
+      TeacherRequestStatus.rejected => TeacherScheduleStrings.requestRejected,
+    },
+    variant: switch (status) {
+      TeacherRequestStatus.notSent => TeacherPillVariant.outlined,
+      TeacherRequestStatus.pending => TeacherPillVariant.filled,
+      TeacherRequestStatus.rejected => TeacherPillVariant.danger,
+    },
+    onPressed: onPressed,
+    height: 40,
+    fontSize: AppTypography.buttonSmall.fontSize!,
+    wrapLabel: wrapLabel,
+  );
+
   @override
   Widget build(BuildContext context) {
-    TeacherPillButton pill(
-      TeacherRequestStatus status, {
-      bool wrapLabel = false,
-    }) => TeacherPillButton(
-      label: switch (status) {
-        TeacherRequestStatus.notSent => TeacherScheduleStrings.requestSend,
-        TeacherRequestStatus.pending => TeacherScheduleStrings.requestPending,
-        TeacherRequestStatus.rejected => TeacherScheduleStrings.requestRejected,
-      },
-      variant: switch (status) {
-        TeacherRequestStatus.notSent => TeacherPillVariant.outlined,
-        TeacherRequestStatus.pending => TeacherPillVariant.filled,
-        TeacherRequestStatus.rejected => TeacherPillVariant.danger,
-      },
+    final stacked = this.stacked;
+    if (stacked == null) {
+      return LayoutBuilder(
+        builder: (context, constraints) => _build(
+          context,
+          stacks(context, width: constraints.maxWidth, names: [candidate.name]),
+        ),
+      );
+    }
+    return _build(context, stacked);
+  }
+
+  Widget _build(BuildContext context, bool stacked) {
+    TeacherPillButton pill({bool wrapLabel = false}) => _pill(
+      candidate.status,
       onPressed:
-          status == TeacherRequestStatus.notSent &&
+          candidate.status == TeacherRequestStatus.notSent &&
               candidate.id != null &&
               onSend != null
           ? () => onSend!(candidate)
           : null,
-      height: 40,
-      fontSize: AppTypography.buttonSmall.fontSize!,
       wrapLabel: wrapLabel,
     );
 
-    final sideBySide = TeacherRequestStatus.values.every(
-      (status) => pill(status).oneLineWidth(context) <= _rowPillMaxWidth,
-    );
-    if (!sideBySide) {
+    if (stacked) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TeacherIdentity(name: candidate.name),
+          TeacherIdentity(name: candidate.name, wrapName: true),
           const SizedBox(height: _stackedPillGap),
-          pill(candidate.status, wrapLabel: true),
+          pill(wrapLabel: true),
         ],
       );
     }
     return Row(
       children: [
         Expanded(child: TeacherIdentity(name: candidate.name)),
-        const SizedBox(width: 8),
+        const SizedBox(width: _rowPillGap),
         // Wide enough for the reference's longest label, leaving the name
         // its room; a label that needs more stacks the row (above).
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _rowPillMaxWidth),
-          child: pill(candidate.status),
+          child: pill(),
         ),
       ],
     );
@@ -384,6 +449,9 @@ class TeacherRequestRow extends StatelessWidget {
 
 /// The trailing pill's widest, beside the name.
 const double _rowPillMaxWidth = 180;
+
+/// Between the name column and the trailing pill.
+const double _rowPillGap = 8;
 
 /// Between a stacked row's identity and its pill — the app's own spacing:
 /// no frame draws the stacked row.

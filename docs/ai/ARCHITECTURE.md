@@ -138,6 +138,8 @@ The 37 suites come in three kinds:
 2. **Repository tests** — drive the HTTP repository against `MockClient`, assert URL, headers, parsing and failure mapping.
 3. **Widget/screen tests** — pump the screen with an injected fake repository.
 
+Beside them, `integration_test/real_backend_smoke_test.dart` (Issue #557) is the one **on-device** test: the real app against the real API, read-only, run by hand with test accounts — see [DATA_AND_API.md](DATA_AND_API.md) §3.2. `flutter test` does not run it; it needs a device (`-d`).
+
 The 9 doubles are `fake_auth_repository`, `fake_password_repository`, `fake_current_user_repository`, `fake_cohort_repository`, `fake_course_repository`, `fake_course_learning_repository`, `fake_enrollment_repository`, `fake_enrolled_cohorts_repository` and `fake_home_dashboard_repository`. **Reuse the existing double** for a feature rather than writing a second stub for the same interface.
 
 Widget-test conventions that recur and should be followed:

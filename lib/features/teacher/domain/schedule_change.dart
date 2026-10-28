@@ -4,8 +4,9 @@
 ///
 /// From the backend's documented contract — `ai-academy-backend`
 /// `docs/schedule_change_api_v1.md`, commit `c6e6ce0` — not from an observed
-/// response: whether the deployed backend serves it is `UNKNOWN`. A
-/// received-requests list, cancel and covering sessions are later phases.
+/// response. The routes are deployed — they answer `401` unauthenticated,
+/// where an unknown route answers `404` (Issue #557). A received-requests
+/// list, cancel and covering sessions are later phases.
 library;
 
 /// A teacher a session can be handed to — one `items` entry of

@@ -53,18 +53,18 @@ Base URL `https://api.ai-academy.asia`, held once in `ApiConfig` and used by eve
 
 **A session's `end_time` may be null** (Issue #479; verified from the backend: `ClassSession.end_time` is nullable, `_apply` makes it optional while `start_time` is required, and `generate_sessions` copies the cohort's nullable `end_time`; `session_dict` and `session_brief` send it as-is). The app keeps such a session: its label is the start alone (`18:30`), it counts as over only once its day is over, and the grid draws it at the minimum block height — no end time is shown or made up. `start_time`, and an `end_time` that is present but unreadable, are still a `server` failure.
 
-**Schedule change — phase 1** (Issue #449; "Цаг солих" → "Багш нар"). **Documented contract, deployment unverified:** `ai-academy-backend` `docs/schedule_change_api_v1.md` at `c6e6ce0` (2026-10-13), covered by its `tests/test_schedule_change_*.py`. No live response is captured, and whether the deployed backend serves these routes is `UNKNOWN`. Both calls go through `HttpScheduleChangeRepository` and `teacherSend`, so a refusal keeps its `{"error": code}`.
+**Schedule change — phase 1** (Issue #449; "Цаг солих" → "Багш нар"). **Documented contract, deployment unverified:** `ai-academy-backend` `docs/schedule_change_api_v1.md` at `c6e6ce0` (2026-10-13), covered by its `tests/test_schedule_change_*.py`. **The routes are deployed** (Issue #557, 2026-10-28): on production, unauthenticated, `GET /teacher/sessions`, `GET /teacher/sessions/{id}/eligible-teachers` and `GET /teacher/schedule-change-requests/{id}` answer `401`, where an unknown route answers `404`. No signed-in response is captured yet, so the shapes are still the contract's. Both calls go through `HttpScheduleChangeRepository` and `teacherSend`, so a refusal keeps its `{"error": code}`.
 - `GET /teacher/sessions/{session_id}/eligible-teachers` → `{session_id, items: [{id, name, photo_url}]}`: the active teachers not teaching at that time, in the server's order. Read: `session_id` (must be the session asked for), `id`, `name` (a string; a teacher whose name is blank is left out of the list rather than offered unnamed — Issue #537, product decision). `photo_url` is always `null` per the contract, so rows keep the placeholder avatar (a string is accepted; any other value is a `server` failure). Refusals: `404 session_not_found`, `409 session_started`.
 - `POST /teacher/schedule-change-requests` with exactly `{"session_id", "recipient_teacher_id", "message": null}`: the screen has no message field. Only `201` (created) or `200` (an identical retry) whose request object names the same `session_id`, `recipient.id` and `status: "pending"` is a confirmed send; anything else is a failure, never a success. Refusals: `409 recipient_busy`, `request_pending`, `session_already_covered`, `session_started`; `404 session_not_found`, `recipient_not_found`.
 - **Screen:** "Багш нар" (`TeacherScheduleChangeScreen`) lists the teachers, or says none is free (`requestsEmpty`). A send shows "Хүсэлт илгээгдлээ" only after confirmation, then that row reads "Хүлээгдэж байна" for as long as the screen is open; while a send is in flight every pill is inert. A failure is a SnackBar. Each documented code has its own line (`TeacherScheduleStrings.requestFailure`, the app's own copy, `PRODUCT DECISION`).
 - **A backend without these routes:** a refusal carrying no documented code (Flask's own 404 page has none) reads as the unavailable line (`requestsUnavailable`), never as an empty list or a sent request.
-- **Phase 2 — answering a request** (Issue #453; same contract, deployment unverified). A teacher answers from the notification: a `schedule_change_request` whose `data` has positive integer `request_id` and `session_id` opens `TeacherIncomingRequestSheet` (`showIncomingScheduleChangeRequest`) instead of the detail; a malformed one, and every other `kind`, opens the detail as before.
+- **Phase 2 — answering a request** (Issue #453; same contract, routes deployed — Issue #557). A teacher answers from the notification: a `schedule_change_request` whose `data` has positive integer `request_id` and `session_id` opens `TeacherIncomingRequestSheet` (`showIncomingScheduleChangeRequest`) instead of the detail; a malformed one, and every other `kind`, opens the detail as before.
   - `GET /teacher/schedule-change-requests/{id}` first — the request object (contract §3), read strictly: `id` (must be the one asked for), `session_id`, `status` (`pending` / `accepted` / `rejected` / `cancelled` / `expired`), `sender.name` (a string; a blank one reads as empty, so the sheet still opens and an accept or reject the server made is not reported failed — Issue #537), and the `session` brief (`date` required; `start_time`, `end_time`, `title`, `cohort_name`, `room` each a string or null). The server settles expiry on read. The sheet's card is drawn from that brief — no student count or track badge, which the request does not carry.
   - "Татгалзах" / "Зөвшөөрөх" show only while the read says `pending`, so a stale notification shows where the request stands (a status line) and no actions.
   - `POST …/{id}/accept` with `{}` and `POST …/{id}/reject` with `{"reason": null}` (no reason field). Only a `200` whose request object is that request at `accepted` / `rejected` is a decision; anything else is a failure, never a resolved sheet. Taps while one is in flight are ignored.
   - Refusals: `request_already_resolved` and `session_started` re-read the request (its status line then shows; a failed re-read closes the actions); `schedule_conflict` and `session_already_covered` turn accept off and keep reject; `403 not_recipient` and `404 request_not_found` close the actions; network, session and server failures keep them for a retry. A request that cannot be read shows why, with no actions; a no-code refusal is the unavailable line.
   - The status and error lines are the app's own (`TeacherScheduleStrings`, `PRODUCT DECISION`), in the selected language since Issue #547.
-- **Phase 3 — covered sessions in Teacher Schedule** (Issue #455; same contract §6, deployment unverified). Each displayed week also reads `GET /teacher/sessions?from=<week's first day>&to=<its last day>` (`YYYY-MM-DD`; both bounds always sent, the range includes both days) through `HttpTeacherScheduleRepository.getAssignedSessions`, alongside the unchanged per-cohort reads. Its `items` are read strictly (`assignedSessionsFromJson`):
+- **Phase 3 — covered sessions in Teacher Schedule** (Issue #455; same contract §6, route deployed — Issue #557). Each displayed week also reads `GET /teacher/sessions?from=<week's first day>&to=<its last day>` (`YYYY-MM-DD`; both bounds always sent, the range includes both days) through `HttpTeacherScheduleRepository.getAssignedSessions`, alongside the unchanged per-cohort reads. Its `items` are read strictly (`assignedSessionsFromJson`):
   - `assignment_type: regular` — one of the teacher's own sessions: only `id` and `covered_by` (an `{id, name, photo_url}`, or null; a blank `name` keeps the session covered, only unnamed — "Орлон заагдсан" with no name — Issue #537, MOB-07) are read, and the name is matched onto the cohort read's session by id.
   - `assignment_type: covering` — a session the teacher covers: `date`, `start_time`, `end_time` (all required: it is placed from them, and no time is invented), `request_id` (integer), the brief's `title` / `cohort_name` / `room` (string or null) and `original_teacher.name` (or null; a blank name reads as none, Issue #537). Any other `assignment_type`, or a malformed item, is a `server` failure.
   - A covering session joins the week in date-and-time order (ties by id), only within the week, and never twice (a session id already drawn is skipped). It has no `TeacherClass` (`ScheduledSession.covering`): its card is the brief, with no student count or track.
@@ -307,6 +307,42 @@ Two entry points, split by failure family — not by accident:
 - **Android emulator:** reaches the Mac at `http://10.0.2.2:8000`.
 - **Saved sign-ins don't follow the server:** a saved session belongs to the server that issued it, but the session store does not record which. **Sign out before switching** between a local and a production build. Otherwise the saved token is sent to the other server, where it is refused (401, which clears it) or, for a production token, exposed to the local machine.
 - **Seeded accounts may also exist in production,** so check the "API: host:port" pill before signing in with one.
+
+### 3.2 Real-backend smoke test on a device (Issue #557)
+
+`integration_test/real_backend_smoke_test.dart` drives the real app — launched through `main`, as a person starts it — against the API in use (production by default; a debug override per §3.1), on a simulator or a phone. It is **read-only**: it signs in and out and reads, and never marks attendance, enrols, submits, saves a note, starts a quiz attempt, signs a contract, completes a lesson or sends a time-change request.
+
+```bash
+flutter devices                                   # pick the device id
+flutter test integration_test/real_backend_smoke_test.dart -d <device-id> \
+  --dart-define=AIA_SMOKE_STUDENT_LOGIN=<adult login>  --dart-define=AIA_SMOKE_STUDENT_PASSWORD=<…> \
+  --dart-define=AIA_SMOKE_JUNIOR_LOGIN=<junior login>  --dart-define=AIA_SMOKE_JUNIOR_PASSWORD=<…> \
+  --dart-define=AIA_SMOKE_TEACHER_LOGIN=<teacher login> --dart-define=AIA_SMOKE_TEACHER_PASSWORD=<…>
+```
+
+Credentials go on the command line only — never into the repository, an Issue or a PR. Every account is optional: a role without one is reported `SKIP`.
+
+**A device that already holds a saved session** lands on that account's home. The run then exercises that role's read-only sections on it (tabs, large text, real data, language) and **leaves it signed in**; the Login checks and the credentialed sign-ins are skipped. To start from Login instead, sign out in the app, or pass `--dart-define=AIA_SMOKE_SIGN_OUT_RESTORED=true`.
+
+| Section | Checks |
+|---|---|
+| launch | Splash hands off — to Login, or to a **saved session's** home — and prints the API in use; Splash's network error fails it |
+| public catalog | `GET /courses` and `GET /cohorts` parse with the app's own repositories; no cohort skipped as unreadable |
+| Login | renders in Mongolian and English, and at 2.0× text without a layout exception |
+| per role: sign in | the role's shell opens (Adult, Junior, Teacher) and a session is stored |
+| per role: every tab | each bottom-bar tab loads without a shared failure line (network, server, unexpected, session expired) |
+| per role: large text | every tab again in English at 2.0× text, with no layout exception or failure line |
+| per role: real data | students: `/auth/me`, `/me/cohorts`, `/cohorts`, the course's `/me/courses/{slug}/learning`, the continue module's lessons and the continue lesson; teacher: classes, the fortnight's assigned sessions, a class's sessions, students and assignments |
+| per role: language | Profile's MN/EN control switches the app to English and back |
+| per role: sign out | returns to Login with no session |
+
+The run prints one block of `PASS` / `FAIL` / `SKIP` lines with notes (counts, the API, the signed-in user type) and fails if any section failed.
+
+**Side effect to know:** opening Home reads `GET /me/contracts`, which **creates** `pending` contract rows for an account's eligible enrolments (E-Contract §2.2). The smoke test does not call it itself, but the Home tab does — run it with **test accounts only**.
+
+**Recording a failure:** the section, the screen, what was expected and what happened, the device and the API, and the likely cause — **mobile** (a parse or layout failure in the app), **backend** (a status or shape off the contract), **configuration** (base URL, Firebase, signing) or **test environment** (account, data, network). A backend or configuration cause goes to its owner with the request and response; it is not worked around in the app.
+
+**Not covered here** (manual, or blocked): camera check-in on a phone (§3.1 step 4), push notifications (§1.2, needs Firebase), contract signing (#324), payments (§9–10, fixtures), and every write.
 
 ## 4. Failure taxonomy
 
