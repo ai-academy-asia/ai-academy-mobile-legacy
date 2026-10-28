@@ -16,6 +16,12 @@ import 'cohort.dart';
 /// a bug in `HttpCourseRepository` or in Course Detail's own 404 handling,
 /// neither of which this function changes.
 ///
+/// **Corrected on the backend since** (Issue #557, checked live
+/// 2026-10-28): `GET /courses` now lists course 6 `summer-bootcamp-2027`,
+/// and every `GET /cohorts` entry's embedded course matches the catalog by
+/// id and slug — so step 1 below answers, and the title fallback is no
+/// longer reached. It stays, harmless, in case the stub drifts again.
+///
 /// **A frontend compatibility fallback, not a new backend contract.** Every
 /// field this reads is already-confirmed data from `GET /cohorts` and
 /// `GET /courses` — nothing invented, nothing hardcoded. It tries three

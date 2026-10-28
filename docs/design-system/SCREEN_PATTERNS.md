@@ -87,7 +87,7 @@ Each of these breaks the default skeleton on purpose. The reasoning is recorded 
 
 **Teacher Schedule — the blue date band.** Its header is the date control and week strip on `scheduleBand`, drawn behind the status bar; the grid runs full width (no 480 cap) under it. Its gutter is the standard 16.
 
-**Teacher "Багш нар" — 40 below the header.** The `tsag-solih` reference sets its first teacher row 40 below `BackTitleHeader`, not the standard `pageContentTop` 24 (Issue #372). The header itself is the shared one, unchanged.
+**Teacher "Багш нар" — 40 below the header.** The `tsag-solih` reference sets its first teacher row 40 below `BackTitleHeader`, not the standard `pageContentTop` 24 (Issue #372). The header itself is the shared one, unchanged. The rows sit side by side as the frame draws them; the whole list stacks — identity, then the pill at full width — where a pill label would exceed its 180 cap (Issue #548), or where "Teacher" or a listed name would not fit on one line beside the widest pill (Issue #557). Stacked, and in the incoming sheet, the name wraps instead of being cut.
 
 **Teacher Programs — `ProgramPageHeader`.** The Programs student list and student detail (Issue #390) set the cohort caption and title **left-aligned beside** the back control, with a rule under the band, as their Figma frames draw them — not `BackTitleHeader`'s centred title. `test/shared/page_layout_test.dart` holds both to `ProgramPageHeader`.
 

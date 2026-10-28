@@ -98,6 +98,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # On-device smoke tests against the real backend (Issue #557) — part of
+  # the Flutter SDK, not a pub.dev package. See integration_test/.
+  integration_test:
+    sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
