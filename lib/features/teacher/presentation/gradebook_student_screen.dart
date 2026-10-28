@@ -239,8 +239,8 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
                           MediaQuery.paddingOf(context).bottom,
                     ),
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: AppDimens.screenPadding,
                         ),
                         child: Row(
@@ -273,7 +273,7 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
                           horizontal: AppDimens.screenPadding,
                         ),
                         child: selected == null
-                            ? const ProgramNotice(
+                            ? ProgramNotice(
                                 message: TeacherGradebookStrings.noAssignments,
                               )
                             : Column(
@@ -320,9 +320,7 @@ class _GradebookStudentScreenState extends State<GradebookStudentScreen> {
     if (submission == null) {
       return DecoratedBox(
         decoration: card,
-        child: const ProgramNotice(
-          message: TeacherGradebookStrings.notSubmitted,
-        ),
+        child: ProgramNotice(message: TeacherGradebookStrings.notSubmitted),
       );
     }
 

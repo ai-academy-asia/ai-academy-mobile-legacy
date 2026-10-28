@@ -158,7 +158,7 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const BackTitleHeader(
+                      BackTitleHeader(
                         title: TeacherAttendanceStrings.manualTitle,
                       ),
                       Expanded(child: _body(context, rows)),
@@ -200,7 +200,7 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
       );
     }
     if (rows.isEmpty) {
-      return const _Message(text: TeacherAttendanceStrings.noStudents);
+      return _Message(text: TeacherAttendanceStrings.noStudents);
     }
     return ListView.builder(
       padding: const EdgeInsets.only(top: AppDimens.pageContentTop),

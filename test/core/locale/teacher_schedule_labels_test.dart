@@ -368,15 +368,18 @@ void main() {
         expect(TeacherHomeStrings.room, t('teacherClassRoom'));
         expect(TeacherHomeStrings.time, t('teacherClassTime'));
         expect(TeacherHomeStrings.empty, t('teacherHomeEmpty'));
-        // Gradebook's empty line is the same key (approved, ahead of L19).
+        // Gradebook's empty line is the same key.
         expect(TeacherGradebookStrings.empty, t('teacherHomeEmpty'));
 
         // English in both languages, unchanged.
         expect(TeacherScheduleStrings.teacherRole, 'Teacher');
         expect(TeacherHomeStrings.students(24), '24 Students');
-        // Attendance registration keeps its Mongolian until its own Issue.
-        expect(TeacherAttendanceStrings.successDismiss, 'Ойлголоо');
-        expect(TeacherAttendanceStrings.successTitle, 'Амжилттай баталгаажлаа');
+        // Attendance registration's success card shares the dismiss label
+        // since L18 (Issue #551).
+        expect(
+          TeacherAttendanceStrings.successDismiss,
+          t('teacherConfirmationDismiss'),
+        );
       });
     }
   });

@@ -603,4 +603,197 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get teacherRequestNotRecipient =>
       'You don\'t have permission to answer this request';
+
+  @override
+  String get teacherAttendanceQrCaption => 'students checked in';
+
+  @override
+  String get teacherAttendanceManualEntry => 'Record manually';
+
+  @override
+  String get teacherAttendanceQrNotToday =>
+      'A QR code can only be created on the day of the class.';
+
+  @override
+  String get teacherAttendanceQrExpired => 'The QR code has expired.';
+
+  @override
+  String get teacherAttendanceQrLabel => 'Attendance QR code';
+
+  @override
+  String get teacherStudentsHeading => 'Students';
+
+  @override
+  String get teacherAttendanceConfirm => 'Confirm';
+
+  @override
+  String get teacherAttendanceNoStudents =>
+      'No students are enrolled in this class.';
+
+  @override
+  String get teacherAttendanceSaveFailed => 'Not saved';
+
+  @override
+  String get teacherAttendanceSaving => 'Saving';
+
+  @override
+  String teacherAttendanceFailedRows(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count students\' attendance wasn\'t saved. Please try again.',
+      one: '1 student\'s attendance wasn\'t saved. Please try again.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teacherAttendanceConflictTitle => 'Attendance has changed';
+
+  @override
+  String get teacherAttendanceConflictBody =>
+      'This student\'s attendance changed on the server after you opened the list. Choose which one to keep.';
+
+  @override
+  String teacherAttendanceConflictServer(String status, String method) {
+    return 'On the server: $status ($method)';
+  }
+
+  @override
+  String teacherAttendanceConflictMine(String status) {
+    return 'Your choice: $status';
+  }
+
+  @override
+  String teacherAttendanceKeepServer(String status) {
+    return 'Keep the server\'s: $status';
+  }
+
+  @override
+  String teacherAttendanceApplyMine(String status) {
+    return 'Save my choice: $status';
+  }
+
+  @override
+  String teacherAttendanceConflictsPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count students\' attendance changed on the server. Tap a row to resolve it.',
+      one:
+          '1 student\'s attendance changed on the server. Tap a row to resolve it.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teacherAttendanceCheckFailed(String reason) {
+    return 'Couldn\'t check the latest attendance — nothing was sent. $reason';
+  }
+
+  @override
+  String get teacherAttendanceMethodManual => 'manual';
+
+  @override
+  String get teacherAttendanceMethodNone => 'not recorded';
+
+  @override
+  String get teacherAttendanceChooseStatus => 'Attendance status';
+
+  @override
+  String get teacherAttendancePresent => 'Present';
+
+  @override
+  String get teacherAttendanceLate => 'Late';
+
+  @override
+  String get teacherAttendanceAbsent => 'Absent';
+
+  @override
+  String get teacherAttendanceExcused => 'Excused';
+
+  @override
+  String get teacherAttendanceSuccessTitle => 'Confirmed successfully';
+
+  @override
+  String get teacherProgramsTotalStudents => 'Total students';
+
+  @override
+  String get teacherProgramsDetails => 'Details';
+
+  @override
+  String get teacherProgramsAnnounce => 'Send announcement';
+
+  @override
+  String get teacherProgramsStudentsInfo => 'Student information';
+
+  @override
+  String get teacherProgramsAnnounceUnavailable =>
+      'Teachers can\'t send announcements on the server yet. The announcement won\'t be sent.';
+
+  @override
+  String get teacherProgramsNoStudents =>
+      'No students are enrolled in this class.';
+
+  @override
+  String teacherProgramsPendingLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count assignments waiting to be graded',
+      one: '1 assignment waiting to be graded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teacherProgramsAttendance => 'Class attendance';
+
+  @override
+  String get teacherProgramsExamScore => 'Exam score';
+
+  @override
+  String teacherProgramsAssignmentCaption(int number) {
+    return 'Assignment $number';
+  }
+
+  @override
+  String get teacherProgramsNoAssignments => 'This class has no assignments.';
+
+  @override
+  String get teacherProgramsNotSubmitted =>
+      'This assignment hasn\'t been submitted.';
+
+  @override
+  String get teacherProgramsNoNote => 'No note added.';
+
+  @override
+  String get teacherProgramsReplyLabel => 'Comment';
+
+  @override
+  String get teacherProgramsEditReply => 'Edit reply';
+
+  @override
+  String teacherProgramsScoreLabel(String max) {
+    return 'Score (0–$max)';
+  }
+
+  @override
+  String teacherProgramsScoreInvalid(String max) {
+    return 'Enter a score from 0 to $max';
+  }
+
+  @override
+  String get teacherProgramsFeedbackRequired => 'Please write your reply.';
+
+  @override
+  String get teacherProgramsFeedbackTooLong =>
+      'Your reply must be 5,000 characters or fewer.';
+
+  @override
+  String get teacherProgramsInvalidScore => 'The score is invalid.';
+
+  @override
+  String get teacherProgramsSubmissionNotFound => 'Submission not found.';
 }

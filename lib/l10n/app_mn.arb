@@ -762,5 +762,255 @@
   "teacherRequestNotRecipient": "Энэ хүсэлтэд хариулах эрх танд алга",
   "@teacherRequestNotRecipient": {
     "description": "Incoming time-change request: only the receiving teacher can answer (403 not_recipient)."
+  },
+  "teacherAttendanceQrCaption": "оюутан ирцэд бүртгэгдлээ",
+  "@teacherAttendanceQrCaption": {
+    "description": "Teacher attendance registration, QR screen: the caption under the live attendance count, e.g. \"14 / 24\"."
+  },
+  "teacherAttendanceManualEntry": "Гар аргаар бүртгэх",
+  "@teacherAttendanceManualEntry": {
+    "description": "Teacher attendance registration: the QR screen's action that opens manual attendance, and that screen's title."
+  },
+  "teacherAttendanceQrNotToday": "QR кодыг зөвхөн хичээлийн өдөр үүсгэх боломжтой.",
+  "@teacherAttendanceQrNotToday": {
+    "description": "Teacher attendance registration, QR screen: a code was asked for on another day (409 session_not_today)."
+  },
+  "teacherAttendanceQrExpired": "QR кодын хугацаа дууссан.",
+  "@teacherAttendanceQrExpired": {
+    "description": "Teacher attendance registration, QR screen: the code ran out before a fresh one arrived."
+  },
+  "teacherAttendanceQrLabel": "Ирцийн QR код",
+  "@teacherAttendanceQrLabel": {
+    "description": "Teacher attendance registration, QR screen: screen-reader label for the code."
+  },
+  "teacherStudentsHeading": "Сурагчид",
+  "@teacherStudentsHeading": {
+    "description": "Teacher manual attendance and Teacher Programs: the heading over a class's student list."
+  },
+  "teacherAttendanceConfirm": "Баталгаажуулах",
+  "@teacherAttendanceConfirm": {
+    "description": "Teacher attendance registration, manual screen: the button that saves the changed rows."
+  },
+  "teacherAttendanceNoStudents": "Энэ хичээлд бүртгэлтэй сурагч алга.",
+  "@teacherAttendanceNoStudents": {
+    "description": "Teacher attendance registration, manual screen: the class has no students."
+  },
+  "teacherAttendanceSaveFailed": "Хадгалагдсангүй",
+  "@teacherAttendanceSaveFailed": {
+    "description": "Teacher attendance registration, manual screen: a student's row whose write failed."
+  },
+  "teacherAttendanceSaving": "Хадгалж байна",
+  "@teacherAttendanceSaving": {
+    "description": "Teacher attendance registration, manual screen: a student's row while its write is in flight."
+  },
+  "teacherAttendanceFailedRows": "{count} сурагчийн ирц хадгалагдсангүй. Дахин оролдоно уу.",
+  "@teacherAttendanceFailedRows": {
+    "description": "Teacher attendance registration, manual screen: how many students' writes failed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherAttendanceConflictTitle": "Ирц өөрчлөгдсөн байна",
+  "@teacherAttendanceConflictTitle": {
+    "description": "Teacher attendance registration, conflict sheet: title when the server's record changed after the list was opened."
+  },
+  "teacherAttendanceConflictBody": "Жагсаалтыг нээснээс хойш энэ сурагчийн ирц серверт өөрчлөгдсөн. Аль утгыг хадгалахаа сонгоно уу.",
+  "@teacherAttendanceConflictBody": {
+    "description": "Teacher attendance registration, conflict sheet: what happened and what to do."
+  },
+  "teacherAttendanceConflictServer": "Серверт: {status} ({method})",
+  "@teacherAttendanceConflictServer": {
+    "description": "Teacher attendance registration, conflict sheet: the server's record — its status, and how it was made.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherAttendanceConflictMine": "Таны сонголт: {status}",
+  "@teacherAttendanceConflictMine": {
+    "description": "Teacher attendance registration, conflict sheet: the status the teacher picked.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherAttendanceKeepServer": "Серверийнхийг үлдээх: {status}",
+  "@teacherAttendanceKeepServer": {
+    "description": "Teacher attendance registration, conflict sheet: the action that keeps the server's status.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherAttendanceApplyMine": "Миний сонголтыг хадгалах: {status}",
+  "@teacherAttendanceApplyMine": {
+    "description": "Teacher attendance registration, conflict sheet: the action that saves the teacher's status.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherAttendanceConflictsPending": "{count} сурагчийн ирц серверт өөрчлөгдсөн. Мөр дээр дарж шийдвэрлэнэ үү.",
+  "@teacherAttendanceConflictsPending": {
+    "description": "Teacher attendance registration, manual screen: how many rows changed on the server and wait for a decision.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherAttendanceCheckFailed": "Сүүлийн ирцийг шалгаж чадсангүй — юу ч илгээгдсэнгүй. {reason}",
+  "@teacherAttendanceCheckFailed": {
+    "description": "Teacher attendance registration, manual screen: the re-read before saving failed; reason is the failure's own line.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherAttendanceMethodManual": "гараар",
+  "@teacherAttendanceMethodManual": {
+    "description": "Teacher attendance registration, conflict sheet: a record a teacher entered by hand."
+  },
+  "teacherAttendanceMethodNone": "бүртгэлгүй",
+  "@teacherAttendanceMethodNone": {
+    "description": "Teacher attendance registration, conflict sheet: a record with no method."
+  },
+  "teacherAttendanceChooseStatus": "Ирцийн төлөв",
+  "@teacherAttendanceChooseStatus": {
+    "description": "Teacher attendance registration: the status picker's heading."
+  },
+  "teacherAttendancePresent": "Ирсэн",
+  "@teacherAttendancePresent": {
+    "description": "Teacher attendance registration: the present status."
+  },
+  "teacherAttendanceLate": "Хоцорсон",
+  "@teacherAttendanceLate": {
+    "description": "Teacher attendance registration: the late status."
+  },
+  "teacherAttendanceAbsent": "Ирээгүй",
+  "@teacherAttendanceAbsent": {
+    "description": "Teacher attendance registration: the absent status."
+  },
+  "teacherAttendanceExcused": "Чөлөөтэй",
+  "@teacherAttendanceExcused": {
+    "description": "Teacher attendance registration: the excused status."
+  },
+  "teacherAttendanceSuccessTitle": "Амжилттай баталгаажлаа",
+  "@teacherAttendanceSuccessTitle": {
+    "description": "Teacher attendance registration: the success card's title once every write is confirmed."
+  },
+  "teacherProgramsTotalStudents": "Нийт сурагч",
+  "@teacherProgramsTotalStudents": {
+    "description": "Teacher Programs: the program card's student-count label."
+  },
+  "teacherProgramsDetails": "Дэлгэрэнгүй",
+  "@teacherProgramsDetails": {
+    "description": "Teacher Programs: the program card's button that opens its actions."
+  },
+  "teacherProgramsAnnounce": "Зар тараах",
+  "@teacherProgramsAnnounce": {
+    "description": "Teacher Programs: the action (and composer title) for an announcement to the class."
+  },
+  "teacherProgramsStudentsInfo": "Сурагчдын мэдээлэл",
+  "@teacherProgramsStudentsInfo": {
+    "description": "Teacher Programs: the action that opens the class's student list."
+  },
+  "teacherProgramsAnnounceUnavailable": "Багш зар тараах боломж одоогоор серверт нээгдээгүй байна. Зар илгээгдэхгүй.",
+  "@teacherProgramsAnnounceUnavailable": {
+    "description": "Teacher Programs, announcement composer: why Submit stays off (no endpoint lets a teacher announce)."
+  },
+  "teacherProgramsNoStudents": "Энэ ангид бүртгэлтэй сурагч алга.",
+  "@teacherProgramsNoStudents": {
+    "description": "Teacher Programs, student list: the class has no students."
+  },
+  "teacherProgramsPendingLabel": "{count} даалгавар дүгнэгдэхийг хүлээж байна",
+  "@teacherProgramsPendingLabel": {
+    "description": "Teacher Programs: screen-reader label for a student's awaiting-review badge.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherProgramsAttendance": "Хичээлийн ирц",
+  "@teacherProgramsAttendance": {
+    "description": "Teacher Programs, student detail: the attendance figure's label."
+  },
+  "teacherProgramsExamScore": "Шалгалтын дүн",
+  "@teacherProgramsExamScore": {
+    "description": "Teacher Programs, student detail: the exam figure's label."
+  },
+  "teacherProgramsAssignmentCaption": "Даалгавар {number}",
+  "@teacherProgramsAssignmentCaption": {
+    "description": "Teacher Programs, student detail: an assignment's place in the class's list.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherProgramsNoAssignments": "Энэ ангид даалгавар алга.",
+  "@teacherProgramsNoAssignments": {
+    "description": "Teacher Programs, student detail: the class has no assignment yet."
+  },
+  "teacherProgramsNotSubmitted": "Энэ даалгаврыг илгээгээгүй байна.",
+  "@teacherProgramsNotSubmitted": {
+    "description": "Teacher Programs, student detail: no submission from this student for the selected assignment."
+  },
+  "teacherProgramsNoNote": "Тайлбар бичээгүй.",
+  "@teacherProgramsNoNote": {
+    "description": "Teacher Programs, student detail: a submission with no note."
+  },
+  "teacherProgramsReplyLabel": "Тайлбар",
+  "@teacherProgramsReplyLabel": {
+    "description": "Teacher Programs, student detail: the teacher's reply field label."
+  },
+  "teacherProgramsEditReply": "Хариултыг засах",
+  "@teacherProgramsEditReply": {
+    "description": "Teacher Programs, student detail: screen-reader label for the reply's edit control."
+  },
+  "teacherProgramsScoreLabel": "Оноо (0–{max})",
+  "@teacherProgramsScoreLabel": {
+    "description": "Teacher Programs, student detail: the score field's label; max is the assignment's maximum.",
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherProgramsScoreInvalid": "0-ээс {max} хүртэлх оноо оруулна уу",
+  "@teacherProgramsScoreInvalid": {
+    "description": "Teacher Programs, student detail: the score is out of range.",
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherProgramsFeedbackRequired": "Хариултаа бичнэ үү.",
+  "@teacherProgramsFeedbackRequired": {
+    "description": "Teacher Programs, student detail: a reply with no text (feedback_required)."
+  },
+  "teacherProgramsFeedbackTooLong": "Хариулт 5000 тэмдэгтээс хэтэрсэн байна.",
+  "@teacherProgramsFeedbackTooLong": {
+    "description": "Teacher Programs, student detail: the reply is too long (feedback_too_long)."
+  },
+  "teacherProgramsInvalidScore": "Оноо буруу байна.",
+  "@teacherProgramsInvalidScore": {
+    "description": "Teacher Programs, student detail: the server refused the score (invalid_score)."
+  },
+  "teacherProgramsSubmissionNotFound": "Энэ илгээлт олдсонгүй.",
+  "@teacherProgramsSubmissionNotFound": {
+    "description": "Teacher Programs, student detail: the submission no longer exists (submission_not_found)."
   }
 }

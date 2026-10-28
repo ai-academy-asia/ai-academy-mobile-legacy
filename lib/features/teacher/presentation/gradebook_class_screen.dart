@@ -161,7 +161,7 @@ class _GradebookClassScreenState extends State<GradebookClassScreen> {
             ),
           ),
           if (students.isEmpty)
-            const ProgramNotice(message: TeacherGradebookStrings.noStudents),
+            ProgramNotice(message: TeacherGradebookStrings.noStudents),
           for (final student in students)
             ProgramStudentRow(
               student: student,
