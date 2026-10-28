@@ -73,4 +73,4 @@ A note on golden captures in this repo: a scratch golden test renders arbitrary 
 - [ ] New assets only where no existing icon works; no duplicates
 - [ ] `flutter analyze` + tests pass; pre-existing failures reported separately
 - [ ] Rendered and visually compared, or the gap stated explicitly
-- [ ] The three protected iOS files untouched ([../ai/DEVELOPMENT_RULES.md](../ai/DEVELOPMENT_RULES.md) §3)
+- [ ] The protected iOS paths untouched — three files, two `swiftpm/` folders ([../ai/DEVELOPMENT_RULES.md](../ai/DEVELOPMENT_RULES.md) §3)

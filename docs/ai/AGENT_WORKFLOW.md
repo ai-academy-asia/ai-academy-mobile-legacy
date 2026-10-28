@@ -141,19 +141,22 @@ Record the Issue number; every later stage uses it. The agent does not close, la
 
 ### 3.4 BRANCH
 
+First the pre-flight ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §1.1): `git status --short --branch`, the current branch, staged / unstaged / untracked changes, and `origin/main`'s commit after `git fetch origin` — every change classified as protected, this task's, or not yours. Then:
+
 ```bash
-git status                                   # understand every modified file first
-git fetch origin
-git switch main && git pull --ff-only origin main
-git switch -c feature/<issue-number>-<slug>  # e.g. feature/<n>-cancel-enrollment
+git switch main && git pull --ff-only origin main   # only protected changes in the tree
+git rev-parse HEAD origin/main                      # must be the same commit
+git switch -c feature/<issue-number>-<slug>         # e.g. feature/<n>-cancel-enrollment
 ```
 
 - `<slug>` is short, lowercase, hyphenated, derived from the Issue title.
-- The three protected iOS files ([AGENTS.md](../../AGENTS.md) §4) are modified locally and travel with the working tree across `git switch`; that is expected.
+- **Never `git pull origin main` while on a feature branch** to "update main" — it merges `main` into the feature branch instead, and refuses (or conflicts) over the branch's own uncommitted files.
+- The three protected iOS files and the two untracked `swiftpm/` folders ([AGENTS.md](../../AGENTS.md) §4) travel with the working tree across `git switch`; that is expected.
 - **Any other uncommitted change** in the working tree at this point is not yours: stop and report it. Do not stash, discard or commit it.
 - **If any of these commands refuses to run** — the protected files block a switch, `pull --ff-only` cannot fast-forward — stop and report. Do not stash, reset or check out files to get past it.
 - If a branch for the Issue already exists, continue on it rather than creating a second one.
 - If your **own** uncommitted work must come along (e.g. a manual-mode change being promoted to agentic) and `git switch main` refuses because local `main` is behind, fast-forward the ref without switching — `git fetch origin main:main` (it refuses anything but a fast-forward) — then switch, `git pull --ff-only` as a no-op check, and branch.
+- **`main` moved while this branch has uncommitted work** (another PR merged): follow [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §1.5 — back up, commit on the feature branch, fast-forward `main`, `git merge origin/main`, confirm the merged fix survived. A fix that must merge first is built in its own worktree, so this branch is never switched.
 
 ### 3.5 INVESTIGATE
 
@@ -273,7 +276,7 @@ git diff
 Check, before anything is staged:
 
 - [ ] Only files the plan named are changed
-- [ ] The three protected iOS files still show as modified and are **not** part of what will be committed
+- [ ] The three protected iOS files still show as modified, the two `swiftpm/` folders as untracked, and none of them is part of what will be committed
 - [ ] No unrelated refactor, reformatting or drive-by fix
 - [ ] No accidental generated or scratch files (golden scratch harnesses, build output, a newly generated `Podfile`, IDE files)
 - [ ] No `TODO`/`FIXME` introduced in `lib/` or `test/`; no secrets or tokens
@@ -308,6 +311,8 @@ EOF
 )"
 ```
 
+Before creating it, run the pre-PR check ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §1.3): the diff against `origin/main` is exactly the intended file list (no protected path, no `swiftpm/` content, no unapproved golden), and validation has run.
+
 The description contains:
 
 - **What changed** and **why**, tied to the Issue's acceptance criteria
@@ -321,7 +326,9 @@ The description contains:
 
 **After the PR is open, stop.** Report (§8) and wait.
 
-The agent does not merge, approve, enable auto-merge, or close the Issue. A human developer reviews and merges. If review asks for changes, that is a new instruction: make them on the same branch, re-run VALIDATE, push a follow-up commit (not an amended, force-pushed one), and stop again.
+The agent does not merge, approve, enable auto-merge, or close the Issue — not without the user's explicit approval. A human developer reviews and merges. If review asks for changes, that is a new instruction: make them on the same branch, re-run VALIDATE, push a follow-up commit (not an amended, force-pushed one), and stop again.
+
+**After the merge, before the next task:** verify the PR shows `MERGED`, run the pre-flight, fast-forward local `main`, and confirm `HEAD` equals `origin/main` ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §1.4). The next task then starts at INTAKE with its own Issue.
 
 ## 4. When is an Issue complete
 
@@ -348,6 +355,8 @@ An Issue is complete when, **for the Issue's scope**, all of these hold:
 | Open a PR with `Closes #<issue>` | Merge, auto-merge or approve a PR |
 | Comment on its own Issue when scope changes | Close, label or edit other people's Issues |
 | Follow-up commits after review | Amend/rebase already-pushed history |
+| Fast-forward local `main` (`pull --ff-only` on `main`, or `fetch origin main:main`) | `git pull origin main` on a feature branch |
+| List the worktrees and `stash@{0}` in reports | Remove or prune a worktree; drop, pop or apply `stash@{0}` |
 
 In manual mode the left column happens only when the user asks for it; the right column never changes.
 
@@ -355,7 +364,8 @@ In manual mode the left column happens only when the user asks for it; the right
 
 The canonical list is [AGENTS.md](../../AGENTS.md) §4; it holds in every mode and is never overridden by a task or an Issue's text. Lifecycle-specific reminders:
 
-- The three protected iOS files are modified before and after every task. They ride along across `git switch`, are never staged, and every report lists them as *pre-existing, protected, untouched*. Background on what they contain: [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3.
+- The three protected iOS files are modified, and the two `swiftpm/` folders untracked, before and after every task. They ride along across `git switch`, are never staged, and every report lists them as *pre-existing, protected, untouched*. Background on what they contain: [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §3.
+- Every branch change or integration is preceded by the pre-flight ([DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §1.1). An unclassified change, or a switch that could overwrite one, is a stop.
 - A Git command that is refused is a stop condition, not a puzzle to route around.
 - **Never invent** an endpoint, response field, status code, business rule, user data or design value — not in code, not in the Issue, not in the PR.
 
@@ -367,7 +377,8 @@ Autonomy ends where a guess would begin. Stop, report what was found, and wait w
 - the task's core requirement is a `BACKEND GAP` or `PRODUCT DECISION` — nothing meaningful can be built from what is confirmed;
 - UI is the point of the task but no Figma frame/export was supplied and no documented sibling exists to mirror;
 - the task would require a new dependency, a change to a protected file, or a destructive command;
-- the working tree holds uncommitted changes that are not the protected files and not yours;
+- the working tree holds uncommitted changes that are not the protected files and not yours, or a change you cannot classify;
+- a branch switch or integration cannot be shown safe — it could overwrite a local change, or the task's own work is not yet committed or backed up;
 - a Git or `gh` command is refused (switch blocked, pull cannot fast-forward, push rejected, merge conflict with `main`);
 - three failures of the same type (§3.10);
 - the work is turning out materially larger than the Issue describes.
@@ -384,7 +395,7 @@ The format in [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) §7, plus the GitHub 
 - validation results — task-caused vs. pre-existing
 - commit hash and PR number
 - remaining issues / `UNKNOWN` / `BACKEND GAP` / `PRODUCT DECISION`
-- the three protected iOS files: pre-existing, protected, untouched
+- the three protected iOS files and two `swiftpm/` folders: pre-existing, protected, untouched; `stash@{0}` and the worktrees unchanged
 
 ## 9. Worked example
 

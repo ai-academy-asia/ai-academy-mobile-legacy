@@ -23,7 +23,9 @@ alwaysApply: true
 Repeated here deliberately because it is authority level 1:
 
 - `git reset --hard`, `git clean`, `git stash`, force push, pushing to / working on / deleting `main`, merging or approving a PR.
+- `git pull origin main` on a feature branch; touching `stash@{0}` (`e0b746b`); removing or pruning a worktree.
+- Switching branches or integrating commits without the pre-flight (`docs/ai/DEVELOPMENT_RULES.md` §1.1): `git status --short --branch`, every change classified; stop if a safe switch cannot be guaranteed.
 - `git add -A` / `git add .` / `git commit -a` — stage edited files by explicit path.
 - `dart format lib/` — format only the files you edited.
-- Restore, stash, check out, stage or commit the protected files: `ios/Runner.xcodeproj/project.pbxproj`, `ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`, `ios/Runner/AppDelegate.swift`. Report them as *pre-existing, protected, untouched*.
+- Edit, restore, stash, check out, stage or commit the protected paths: `ios/Runner.xcodeproj/project.pbxproj`, `ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`, `ios/Runner/AppDelegate.swift`, and the untracked `ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/` and `ios/Runner.xcworkspace/xcshareddata/swiftpm/`. Report them as *pre-existing, protected, untouched*.
 - After 3 failures of the same type, stop and report.
