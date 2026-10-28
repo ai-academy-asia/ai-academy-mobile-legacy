@@ -50,23 +50,29 @@ Proceed with what is confirmed and carry the labelled gap into the Issue, the PR
 - `git reset --hard`
 - `git clean`
 - `git push --force` / `--force-with-lease`, or any rewrite of pushed history
-- `git stash` (not used in this repository)
+- `git stash` (not used in this repository) — and never drop, pop, apply or overwrite the existing `stash@{0}` (`e0b746b`)
 - push to `main`, work directly on `main`, or delete `main`
+- `git pull origin main` while on a feature branch, as a substitute for updating local `main`
+- remove, prune or move a worktree (`git worktree remove|prune`) unless the user explicitly asks
 - merge, approve or enable auto-merge on a PR
 - `git add -A`, `git add .`, `git commit -a` — **stage edited files by explicit path**
 - `dart format lib/` (or any blanket format) — format only the files you edited
 
-**Protected files** — intentional persistent local changes (signing team, Xcode format upgrades). They show as modified in `git status` essentially always:
+**Protected files** — intentional persistent local changes (signing team, Xcode format upgrades), plus two untracked Swift Package folders. They show in `git status` essentially always:
 
 ```
-ios/Runner.xcodeproj/project.pbxproj
-ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
-ios/Runner/AppDelegate.swift
+ios/Runner.xcodeproj/project.pbxproj                       (modified)
+ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme (modified)
+ios/Runner/AppDelegate.swift                                (modified)
+ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/  (untracked)
+ios/Runner.xcworkspace/xcshareddata/swiftpm/                    (untracked)
 ```
 
-Never restore, reset, stash, check out, overwrite, clean, stage or commit them, and never recommend a command that would. Report them separately as *pre-existing, protected, untouched*. A task that genuinely needs to change one is a stop condition. Background: [docs/ai/DEVELOPMENT_RULES.md](docs/ai/DEVELOPMENT_RULES.md) §3.
+Never edit, restore, reset, stash, check out, overwrite, clean, stage or commit them, and never recommend a command that would. Report them separately as *pre-existing, protected, untouched*. A task that genuinely needs to change one is a stop condition. Background: [docs/ai/DEVELOPMENT_RULES.md](docs/ai/DEVELOPMENT_RULES.md) §3.
 
 **Before anything that can discard work** (`checkout --`, `restore`, `rm -rf` in the repo): run `git status` and understand every modified file. `git checkout --` only on a file proven disposable; prefer a reversible step.
+
+**Before any Git command that changes branch or integrates commits** (`switch`, `checkout <branch>`, `pull`, `merge`, `rebase`, `fetch <src>:<dst>`): run the pre-flight in [docs/ai/DEVELOPMENT_RULES.md](docs/ai/DEVELOPMENT_RULES.md) §1.1 and classify every local change. If a safe switch or integration cannot be guaranteed, stop and explain — never guess, and never move work around with a destructive command.
 
 **Repeated failure:** after **3 failures of the same type** — the same test, the same analyzer error, the same refused Git/`gh` command — stop and report what was tried. Never weaken a test, add `// ignore:`, or bypass a check to get past it.
 
